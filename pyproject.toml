@@ -1,13 +1,20 @@
 [tool.poetry]
 name = "datavizhub"
-version = "0.1.0"
+version = "0.1.2"
 description = "A tool to injest data from a variety of sources and formats, create imagery or video based on that data, and send the results to a variety of locations for dissemination."
 authors = ["Eric Hackathorn <eric.j.hackathorn@noaa.gov>"]
 include = ["src/rtvideo/images/*.jpg"]
 license = "MIT"
+readme = "README.md"
 packages = [
     { include = "datavizhub", from = "src" }
 ]
+
+[tool.poetry.urls]
+Homepage = "https://github.com/NOAA-GSL/datavizhub"
+Documentation = "https://github.com/NOAA-GSL/datavizhub/blob/main/README.md"
+Source = "https://github.com/NOAA-GSL/datavizhub"
+Tracker = "https://github.com/NOAA-GSL/datavizhub/issues"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"

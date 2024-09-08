@@ -111,4 +111,6 @@ Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
 ## Contact
 Your Name - Eric.J.Hackathorn@noaa.gov
 
-Project Link: https://gitlab.sos.noaa.gov/science-on-a-sphere/datasets/real-time-video
+Project Link: https://github.com/NOAA-GSL/datavizhub
+PyPi Package: https://pypi.org/project/datavizhub/
+
