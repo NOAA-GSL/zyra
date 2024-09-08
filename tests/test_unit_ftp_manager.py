@@ -1,0 +1,38 @@
+from unittest.mock import patch
+
+import pytest
+from datavizhub.data_transfer.FTPManager import FTPManager
+
+
+@pytest.fixture()
+def ftp_manager():
+    """Fixture to provide a mocked FTPManager instance."""
+    ftp_host = "public.sos.noaa.gov"
+    ftp_port = 21
+    ftp_username = "anonymous"
+    ftp_password = "sosrt@noaa.gov"
+
+    with patch("rtvideo.FTPManager.FTP") as mock_ftp:
+        manager = FTPManager(ftp_host, ftp_port, ftp_username, ftp_password)
+        yield manager, mock_ftp
+
+
+def test_connect(ftp_manager):
+    """Test connection to the FTP server."""
+    manager, mock_ftp = ftp_manager
+    manager.connect()
+    mock_ftp.assert_called_with("public.sos.noaa.gov")
+    mock_ftp.return_value.login.assert_called_with(
+        ftp_port=21, user="anonymous", passwd="sosrt@noaa.gov"
+    )
+
+
+@pytest.mark.skip()
+def test_disconnect(ftp_manager):
+    """Test disconnection from the FTP server."""
+    manager, mock_ftp = ftp_manager
+    manager.disconnect()
+    mock_ftp.return_value.quit.assert_called()
+
+
+# Additional tests...

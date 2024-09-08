@@ -1,0 +1,35 @@
+# Ignore Python bytecode and cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore virtual environments (if any)
+venv/
+.env/
+
+# Ignore local credentials (except the one you specifically mount)
+credentials.txt
+
+# Ignore version control directories
+.git/
+.gitignore
+
+# Ignore OS-generated files
+.DS_Store
+Thumbs.db
+
+# Ignore build artifacts
+dist/
+build/
+*.log
+
+# Ignore Dockerfiles and Compose files if you don't need them inside the container
+Dockerfile
+docker-compose.yml
+
+# Ignore any IDE or editor-specific settings
+.vscode/
+.idea/
+*.swp
+*.swo

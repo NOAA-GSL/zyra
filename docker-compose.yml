@@ -1,0 +1,10 @@
+services:
+  datavizhub-rtvideo-app:
+    build: .
+    volumes:
+      - "c:/rt:/data"  # Mount host directory to container
+      - "c:/Users/erich/Documents/credentials.txt:/root/.rtvideo/credentials:ro"
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    command: cron -f  # Run cron in the foreground to keep the container alive
