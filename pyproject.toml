@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "datavizhub"
 version = "0.1.2"
-description = "A tool to injest data from a variety of sources and formats, create imagery or video based on that data, and send the results to a variety of locations for dissemination."
+description = "A tool to ingest data from various sources and formats, create imagery or video based on that data, and send the results to various locations for dissemination."
 authors = ["Eric Hackathorn <eric.j.hackathorn@noaa.gov>"]
 include = ["src/rtvideo/images/*.jpg"]
 license = "MIT"
@@ -31,7 +31,7 @@ netcdf4 = "^1.6.5"
 xarray = "^2024.3.0"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2"  # For running tests
+pytest = "^6.2"
 ruff = "^0.1.6"
 coverage = "^7.4.0"
 

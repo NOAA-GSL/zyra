@@ -30,7 +30,7 @@ ENV PATH="/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/.lo
 COPY pyproject.toml poetry.lock /app/
 
 # Install dependencies without installing the actual package
-RUN poetry install --no-root --no-dev
+RUN poetry install --no-root --only main
 
 # Copy the rest of the application code
 COPY . /app

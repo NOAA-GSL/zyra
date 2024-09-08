@@ -2,8 +2,8 @@ services:
   datavizhub-rtvideo-app:
     build: .
     volumes:
-      - "c:/rt:/data"  # Mount host directory to container
-      - "c:/Users/erich/Documents/credentials.txt:/root/.rtvideo/credentials:ro"
+      - "/mnt/c/rt:/data"  # Mount host directory to container
+      - "/mnt/c/Users/erich/Documents/credentials.txt:/root/.rtvideo/credentials:ro"
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1

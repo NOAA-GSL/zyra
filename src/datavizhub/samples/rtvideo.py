@@ -35,9 +35,9 @@ import tempfile
 from importlib.resources import files
 from pathlib import Path
 
-from datavizhub.data_transfer.FTPManager import FTPManager
-from datavizhub.data_transfer.S3Manager import S3Manager
-from datavizhub.data_transfer.VimeoManager import VimeoManager
+from datavizhub.datatransfer.FTPManager import FTPManager
+from datavizhub.datatransfer.S3Manager import S3Manager
+from datavizhub.datatransfer.VimeoManager import VimeoManager
 from datavizhub.processing.VideoProcessor import VideoProcessor
 from datavizhub.utils.CredentialManager import CredentialManager
 from datavizhub.utils.DateManager import DateManager
