@@ -32,6 +32,7 @@ import argparse
 import logging
 import sys
 import tempfile
+import time
 from importlib.resources import files
 from pathlib import Path
 
@@ -296,22 +297,36 @@ def process_ftp_operations(
     remote_dir,
     local_image_directory,
     dataset_duration,
+    max_retries=5,  # Default retry limit
+    retry_delay=5   # Default retry delay in seconds
 ):
-    """Handle all FTP-related operations: connect, sync files, and disconnect."""
-    try:
-        ftp_manager = FTPManager(ftp_host, ftp_port, ftp_username, ftp_password)
-        ftp_manager.connect()
-        ftp_manager.sync_ftp_directory(
-            remote_dir, local_image_directory, dataset_duration
-        )
-        return True
-    except Exception as e:
-        logging.error(f"FTP operation failed: {e}")
-        return False
-    finally:
-        # Disconnect from the FTP server regardless of success or failure
-        ftp_manager.disconnect()
-
+    """Handle all FTP-related operations: connect, sync files, and disconnect with retry logic."""
+    retries = 0
+    while retries < max_retries:
+        try:
+            ftp_manager = FTPManager(ftp_host, ftp_port, ftp_username, ftp_password)
+            ftp_manager.connect()
+            ftp_manager.sync_ftp_directory(
+                remote_dir, local_image_directory, dataset_duration
+            )
+            return True  # Success, no need for further retries
+        except Exception as e:
+            retries += 1
+            logging.error(f"FTP operation failed on attempt {retries}/{max_retries}: {e}")
+            
+            if retries < max_retries:
+                ftp_manager.disconnect()
+                logging.info(f"Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+            else:
+                logging.error("Max retries reached. FTP operation failed.")
+                return False
+        finally:
+            # Always disconnect even if there's an error
+            try:
+                ftp_manager.disconnect()
+            except Exception as e:
+                logging.error(f"Error while disconnecting FTP: {e}")
 
 def check_image_frames(
     directory, period_seconds, datetime_format, filename_format, filename_mask
@@ -532,7 +547,7 @@ def main():
 
     # Build the path to the basemap image
     if args.basemap is not None:
-        basemap = files("rtvideo.images").joinpath(args.basemap)
+        basemap = files("datavizhub.images").joinpath(args.basemap)
     else:
         basemap = None
 

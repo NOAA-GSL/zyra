@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "datavizhub"
-version = "0.1.2"
+version = "0.1.4"
 description = "A tool to ingest data from various sources and formats, create imagery or video based on that data, and send the results to various locations for dissemination."
 authors = ["Eric Hackathorn <eric.j.hackathorn@noaa.gov>"]
 include = ["src/rtvideo/images/*.jpg"]
@@ -29,6 +29,7 @@ cartopy = "^0.22.0"
 matplotlib = "^3.8.3"
 netcdf4 = "^1.6.5"
 xarray = "^2024.3.0"
+ffmpeg-python = "^0.2.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2"

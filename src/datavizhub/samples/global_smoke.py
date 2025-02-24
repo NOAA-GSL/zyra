@@ -14,20 +14,26 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import ffmpeg
 import glob
+import sys
 from scipy.interpolate import interp1d
 #import matplotlib.font_manager as fm
+import argparse
+import logging
+
+from datavizhub.utils.CredentialManager import CredentialManager
+from datavizhub.datatransfer.S3Manager import S3Manager
+from pathlib import Path
 
 # Specify the directory containing the GRIB files and the directory for the output images
 grib_directory = '/data/grib/fv3'
 output_directory = '/data/images/fv3'
 output_grib = '/data/grib/fv3/oc.grib'
-output_movie = '/data/output/smoke.mp4'
 image_path = '/data/tmp/eic-smoke-basemap.jpg'
 overlay_path = '/data/tmp/eic-smoke-overlay.png'
 image_extent = (-180.0, 180.0, -90.0, 90.0)
 
-url = "https://esrl.noaa.gov/gsd/thredds/catalog.xml"
-sub_catalog_url = "https://esrl.noaa.gov/gsd/thredds/catalog/fv3-chem-0p25deg-grib2/catalog.xml"
+url = "https://gsl.noaa.gov/thredds/catalog/catalog.xml"
+sub_catalog_url = "https://gsl.noaa.gov/thredds/catalog/fv3-chem-0p25deg-grib2/catalog.xml"
 
 # Set the global font to Helvetica Regular
 plt.rcParams['font.family'] = 'sans-serif'
@@ -72,6 +78,86 @@ colormap_data = [
 
 
 """# Functions"""
+
+def setup_arg_parser():
+    """Set up and return the argument parser for command-line options."""
+    parser = argparse.ArgumentParser(
+        description="Create a global smoke animation video and upload to S3."
+    )
+
+    parser.add_argument(
+        "-o",
+        "--output_file",
+        dest="output_file",
+        required=False,
+        default="/data/output/smoke.mp4",
+        help="output RT video file",
+    )
+
+    parser.add_argument(
+        "-aws-key",
+        "--aws_access_key",
+        dest="aws_access_key",
+        default=None,
+        help="the AWS access key required for s3 transfers",
+    )
+
+    parser.add_argument(
+        "-aws-secret",
+        "--aws_secret_key",
+        dest="aws_secret_key",
+        default=None,
+        help="the AWS secret key required for s3 transfers",
+    )
+
+    parser.add_argument(
+        "-s3",
+        "--s3_bucket",
+        dest="s3_bucket",
+        required=False,
+        help="the S3 bucket to store smoke animation in",
+        default="sos-explorer-s3",
+    )
+
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Enable verbose logging."
+    )
+
+    return parser
+
+def initialize_credential_manager(expected_keys):
+    """
+    Initialize the CredentialManager with credentials from the ~/.rtvideo/credentials file,
+    and check for the presence of expected keys.
+
+    Args:
+        expected_keys (list of str): A list of expected keys to be found in the credentials.
+
+    Returns:
+        CredentialManager: An instance of the CredentialManager loaded with credentials.
+
+    Raises:
+        FileNotFoundError: If the credentials file is not found.
+        KeyError: If any of the expected keys are missing.
+    """
+    home_directory = Path.home()
+    credentials_file = home_directory / ".global_smoke" / "credentials"
+
+    # Ensure credentials file exists
+    if not credentials_file.exists():
+        raise FileNotFoundError(f"Credentials file not found at {credentials_file}")
+
+    # Initialize CredentialManager with the credentials file
+    credential_manager = CredentialManager(str(credentials_file))
+    credential_manager.read_credentials(expected_keys=expected_keys)
+
+    # Additionally, check if all expected keys are available as environment variables
+    # as a fallback or supplement
+    for key in expected_keys:
+        if not credential_manager.get_credential(key):
+            raise KeyError(f"Missing expected key: {key}")
+
+    return credential_manager
 
 def remove_all_files_in_directory(directory):
     files = glob.glob(os.path.join(directory, '*'))
@@ -369,7 +455,55 @@ def create_movie(input_dir, output_file, fps=2):
       else:
           print("FFmpeg error occurred, but no stderr available to decode.")
 
+def upload_to_s3(
+    aws_access_key, aws_secret_key, aws_bucket_name, output_file
+):
+    """
+    Update metadata based on the latest video and upload it to S3.
+
+    Returns:
+        bool: True if the operation was successful, False otherwise.
+    """
+    try:
+        s3_manager = S3Manager(aws_access_key, aws_secret_key, aws_bucket_name)
+        s3_manager.upload_file(output_file, "/rt-animations/smoke.mp4")
+
+        return True
+    except Exception as e:
+        logging.error(f"S3 video upload failed: {e}")
+        return False
+        
 """# Main"""
+
+# Set up and parse command-line arguments first
+parser = setup_arg_parser()
+args = parser.parse_args()
+
+# Set logging level based on verbose argument immediately after parsing arguments
+log_level = logging.DEBUG if args.verbose else logging.INFO
+logging.basicConfig(
+    level=log_level, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+try:
+    # Retrieve secrets from credentials file
+    expected_keys = [
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+    ]
+    credential_manager = initialize_credential_manager(expected_keys)
+
+    args.aws_access_key = args.aws_access_key or credential_manager.get_credential(
+        "AWS_ACCESS_KEY_ID"
+    )
+    args.aws_secret_key = args.aws_secret_key or credential_manager.get_credential(
+        "AWS_SECRET_ACCESS_KEY"
+    )
+
+except KeyError as e:
+    logging.error(f"Missing credential: {e}")
+    sys.exit(1)
+
 
 # Get today's date
 today = datetime.today()
@@ -381,7 +515,6 @@ yesterday = today - timedelta(days=1)
 date_input = yesterday.strftime('%Y%m%d')
 
 prefix = convert_to_yyjjj(date_input)
-print(prefix)
 
 # Grab base map
 url = 'https://s3.us-east-1.amazonaws.com/metadata.sosexplorer.gov/assets/eic-smoke-basemap.jpg'
@@ -399,9 +532,9 @@ with open(overlay_path, 'wb') as f:
 sub_catalog = TDSCatalog(sub_catalog_url)
 
 # Retrieve and list the titles of each dataset available
-print("Datasets available in the sub-catalog:")
+logging.debug("Datasets available in the sub-catalog:")
 for dataset in sub_catalog.datasets:
-    print(dataset)
+    logging.debug(dataset)
 
 # Ensure the output directory exists
 os.makedirs(grib_directory, exist_ok=True)
@@ -413,17 +546,17 @@ for dataset_name, dataset in sub_catalog.datasets.items():
     if 'HTTPServer' in dataset.access_urls and dataset_name.startswith(prefix):
         file_url = dataset.access_urls['HTTPServer']
         output_path = os.path.join(grib_directory, dataset_name)  # Construct the file path
-        print(f"Downloading {dataset_name} from {file_url}")
+        logging.debug(f"Downloading {dataset_name} from {file_url}")
         download_file(file_url, output_path)
 
 # Process the GRIB files
 process_grib_files(grib_directory, output_grib)
-print(f"Extraction and concatenation complete. Output file: {output_grib}")
+logging.info(f"Extraction and concatenation complete. Output file: {output_grib}")
 
 organic_carbon_combined_data, associated_dates = read_grib_to_numpy(output_grib)
 
-print(f"Combined organic carbon data shape: {organic_carbon_combined_data.shape}")
-print("Associated Dates:", associated_dates)
+logging.debug(f"Combined organic carbon data shape: {organic_carbon_combined_data.shape}")
+logging.debug("Associated Dates:", associated_dates)
 
 # Temporally interpolating the data to every hour
 #organic_carbon_interpolated_data = interpolate_time_steps(organic_carbon_combined_data)
@@ -452,11 +585,23 @@ for i, (data_oc_slice, date) in enumerate(zip(organic_carbon_combined_data, asso
     try:
         # Assuming plot_data_array is defined to take data, lats, lons, and other plotting parameters...
         plot_data_array(data_oc_slice, custom_cmap, norm, image_path, overlay_path, date_str, image_extent, output_path)
-        print(f"Processed and saved: {output_path}")
+        logging.info(f"Processed and saved: {output_path}")
     except Exception as e:
-        print(f"Failed to process time step {i}: {e}")
+        logging.error(f"Failed to process time step {i}: {e}")
     finally:
         # Ensure that the current figure is closed to free up memory
         plt.close('all')  # Closes all figures
 
-create_movie(output_directory, output_movie, fps=5)
+create_movie(output_directory, args.output_file, fps=5)
+
+# Upload video to AWS S3
+if not upload_to_s3(
+    args.aws_access_key,
+    args.aws_secret_key,
+    args.s3_bucket,
+    args.output_file
+):
+    sys.exit(1)
+
+logging.info(f"{args.output_file} smoke animation updated on {args.s3_bucket}.")
+sys.exit(0)

@@ -4,6 +4,7 @@ services:
     volumes:
       - "/mnt/c/rt:/data"  # Mount host directory to container
       - "/mnt/c/Users/erich/Documents/credentials.txt:/root/.rtvideo/credentials:ro"
+      - "/mnt/c/Users/erich/Documents/credentials-woc.txt:/root/.global_smoke/credentials:ro"
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1

@@ -4,18 +4,37 @@ FROM python:3.10-slim
 # Set environment variables to prevent Python from writing .pyc files and buffering output
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV CC gcc
+ENV FC gfortran
+ENV USE_AEC 0
+ENV USE_NETCDF3 0
+ENV USE_NETCDF4 0
 
 # Set the working directory in the container
 WORKDIR /app
 
-# Install system dependencies, including cron and ffmpeg
+# Install system dependencies, including gfortran, build tools, and libraries required to build wgrib2
 RUN apt-get update && apt-get install -y \
     curl \
     bash \
     build-essential \
+    musl-dev \
+    gfortran \
     ffmpeg \
     cron \
+    make \
+    libjpeg-dev \
+    zlib1g-dev \
+    libpng-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Install wgrib2 from source, disable AEC, OpenJPEG, and NetCDF support by passing flags to make
+RUN curl -O https://ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz \
+    && tar -xvzf wgrib2.tgz \
+    && cd grib2 \
+    && make USE_AEC=0 USE_OPENJPEG=0 USE_NETCDF3=0 USE_NETCDF4=0 \
+    && cp wgrib2/wgrib2 /usr/local/bin/ \
+    && cd .. && rm -rf grib2 wgrib2.tgz
 
 # Upgrade pip to the latest version
 RUN pip install --upgrade pip
@@ -42,13 +61,13 @@ RUN poetry build
 RUN pip install dist/*.whl
 
 # Copy the cron file into the container
-COPY ./config/real-time-video.cron /etc/cron.d/config/real-time-video.cron
+COPY ./config/real-time-video.cron /etc/cron.d/real-time-video
 
 # Give execution rights on the cron file
-RUN chmod 0644 /etc/cron.d/config/real-time-video.cron
+RUN chmod 0644 /etc/cron.d/real-time-video
 
 # Apply the cron job
-RUN crontab /etc/cron.d/config/real-time-video.cron
+RUN crontab /etc/cron.d/real-time-video
 
 # Create the log file to be able to run tail
 RUN touch /var/log/cron.log
