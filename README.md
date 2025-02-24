@@ -10,6 +10,154 @@ This project automates the the ability to injest data from a variety of sources 
 - **AWS S3 Management**: Handles the uploading of metadata files to an AWS S3 bucket.
 - **Command-Line Interface**: Easy to use CLI for configuring and running the system.
 
+```mermaid
+classDiagram
+    %% === Datatransfer module ===
+    class datatransfer_VimeoManager {
+        - client_id: str
+        - client_secret: str
+        - access_token: str
+        - vimeo_client: VimeoClient
+        + __init__()
+        + upload_video()
+        + update_video()
+        + update_video_description()
+    }
+
+    class datatransfer_FTPManager {
+        - host: str
+        - username: str
+        - password: str
+        + __init__()
+        + upload_file()
+        + download_file()
+        + list_files()
+    }
+
+    class datatransfer_S3Manager {
+        - bucket_name: str
+        + __init__()
+        + upload_file()
+        + download_file()
+        + list_files()
+    }
+
+    class datatransfer_HTTPHandler {
+        + download_file()
+        + fetch_data()
+        + fetch_text()
+        + fetch_json()
+        + post_data()
+        + fetch_headers()
+    }
+
+    %% === Processing module ===
+    class processing_VideoProcessor {
+        - input_dir: str
+        - output_file: str
+        + __init__()
+        + process_videos()
+        + add_watermark()
+        + concatenate_videos()
+    }
+
+    class processing_GRIBDataProcessor {
+        - catalog_url: str
+        + __init__()
+        + list_datasets()
+        + read_grib_file()
+        + read_grib_to_numpy()
+        + load_data_from_file()
+        + process_grib_files_wgrib2()
+        + combine_into_3d_array()
+    }
+
+    %% === Utils module ===
+    class utils_DateManager {
+        - date_format: str
+        + __init__()
+        + parse_iso_period()
+        + convert_yyyymmdd_to_yyjjj()
+        + get_date_range()
+        + extract_date_time()
+        + is_date_in_range()
+        + extract_dates_from_filenames()
+    }
+
+    class utils_CredentialManager {
+        - filename: str
+        + __init__()
+        + read_credentials()
+        + add_credential()
+        + delete_credential()
+        + clear_credentials()
+        + __enter__()
+        + __exit__()
+    }
+
+    class utils_ImageManager {
+        - image_dir: str
+        + __init__()
+        + resize_image()
+        + convert_image_format()
+        + optimize_image()
+    }
+
+    class utils_JSONFileManager {
+        - json_file: str
+        + __init__()
+        + read_json()
+        + write_json()
+        + update_json()
+    }
+
+    class utils_FileUtils {
+        + __init__()
+        + remove_all_files_in_directory()
+    }
+
+    %% === Visualization module ===
+    class visualization_PlotManager {
+        - basemap: str
+        - overlay: str
+        - image_extent: list
+        - base_cmap: str
+        + __init__()
+        + sos_plot_data()
+        + plot_data_array()
+    }
+
+    class visualization_ColormapManager {
+        + __init__()
+        + create_custom_classified_cmap()
+        + create_custom_cmap()
+    }
+
+    %% === Tests module ===
+    class tests_test_unit_credential_manager {
+        + test_initialization_without_filename()
+        + test_initialization_with_filename()
+        + test_read_valid_credentials()
+        + test_read_nonexistent_file()
+        + test_add_credential()
+        + test_delete_credential()
+        + test_context_manager()
+        + test_clear_credentials()
+    }
+
+    %% === Relationships ===
+    datatransfer_VimeoManager --> VimeoClient : "uses"
+    datatransfer_FTPManager --> datatransfer_HTTPHandler : "connects"
+    datatransfer_S3Manager --> datatransfer_HTTPHandler : "connects"
+
+    processing_VideoProcessor --> utils_ImageManager : "manages"
+    processing_GRIBDataProcessor --> utils_JSONFileManager : "stores data"
+
+    utils_CredentialManager ..|> utils_FileUtils : "inherits"
+    tests_test_unit_credential_manager ..|> utils_CredentialManager
+    tests_test_unit_credential_manager --> utils_CredentialManager : "tests"
+```
+
 ## Prerequisites
 Before you begin, ensure you have met the following requirements:
 - Python 3.x installed.
