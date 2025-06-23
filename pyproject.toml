@@ -32,10 +32,10 @@ xarray = "^2024.3.0"
 ffmpeg-python = "^0.2.0"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2"
-ruff = "^0.1.6"
 coverage = "^7.4.0"
 py = ">=1.11.0"
+pytest = "^6.2"
+ruff = "^0.1.6"
 
 [build-system]
 requires = ["poetry>=0.12"]
