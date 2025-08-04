@@ -1,0 +1,40 @@
+name: Bump Version on PR to Main
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [ opened, synchronize ]
+
+jobs:
+  bump-version:
+    if: github.base_ref == 'main' && github.head_ref == 'staging'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # needed to push version change
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: poetry install --no-root
+
+      - name: Bump patch version
+        run: |
+          poetry version patch
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git commit -am "ci: bump version [skip ci]"
+          git push origin ${{ github.head_ref }}

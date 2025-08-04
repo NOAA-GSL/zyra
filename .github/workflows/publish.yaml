@@ -1,17 +1,25 @@
-name: Test and Publish
+# .github/workflows/publish.yaml
+name: Publish to PyPI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
-  test:
-    name: Run tests
+  publish:
     runs-on: ubuntu-latest
 
+    environment:
+      name: release
+      url: https://pypi.org/p/datavizhub
+
+    permissions:
+      contents: read
+      id-token: write  # required for trusted publishing
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -24,35 +32,10 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
-        run: poetry install --with dev
+        run: poetry install --no-root
 
-      - name: Run tests
-        run: poetry run pytest
+      - name: Build package
+        run: poetry build
 
-  publish:
-    name: Publish to PyPI
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Build and publish
-        env:
-          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_TOKEN }}
-        run: |
-          poetry install --no-root
-          poetry build
-          poetry publish
+      - name: Publish to PyPI
+        run: poetry publish --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
