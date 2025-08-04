@@ -31,10 +31,11 @@ netcdf4 = "^1.6.5"
 xarray = "^2024.3.0"
 ffmpeg-python = "^0.2.0"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 coverage = "^7.4.0"
 py = ">=1.11.0"
 pytest = "^6.2"
+pytest-cov = "^4.1"
 ruff = "^0.1.6"
 
 [build-system]

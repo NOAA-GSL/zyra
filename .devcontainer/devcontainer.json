@@ -1,0 +1,19 @@
+{
+  "name": "datavizhub-dev",
+  "dockerComposeFile": [
+    "../docker-compose.yml"
+  ],
+  "service": "datavizhub-rtvideo-app",
+  "workspaceFolder": "/app",
+  "customizations": {
+    "vscode": {
+      "settings": {},
+      "extensions": [
+        "ms-python.python",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+  "postCreateCommand": "poetry install --no-root --with dev || true"
+}
+
