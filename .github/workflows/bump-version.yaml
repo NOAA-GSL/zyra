@@ -1,19 +1,21 @@
-name: Bump Version
+name: Bump Version on PR from staging to main
 
 on:
   pull_request:
-    types: [closed]
+    types: [opened, synchronize, reopened]
     branches:
       - main
 
 jobs:
-  bump:
-    if: github.event.pull_request.merged == true
+  bump-version:
+    if: github.head_ref == 'staging'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: staging  # We update staging to include the version bump
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -25,13 +27,13 @@ jobs:
           curl -sSL https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Install dependencies
-        run: poetry install --no-root
-
-      - name: Bump version
+      - name: Configure Git
         run: |
-          poetry version patch
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
+
+      - name: Bump patch version using Poetry
+        run: |
+          poetry version patch
           git commit -am "ci: bump version"
-          git push origin main
+          git push origin staging
