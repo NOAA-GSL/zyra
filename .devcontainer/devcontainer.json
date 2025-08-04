@@ -1,0 +1,18 @@
+{
+    "name": "datavizhub-dev",
+    "dockerComposeFile": [
+        "../docker-compose.yml"
+    ],
+    "service": "datavizhub-rtvideo-app", // Replace with your service name if different
+    "workspaceFolder": "/app",
+    "customizations": {
+        "vscode": {
+            "settings": {},
+            "extensions": [
+                "ms-python.python",
+                "ms-azuretools.vscode-docker"
+            ]
+        }
+    },
+    "postCreateCommand": "poetry install || true"
+}
