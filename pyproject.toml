@@ -43,7 +43,7 @@ build-backend = "poetry.masonry.api"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-s -v --durations=0"
+addopts = "-s -v --durations=0 --cov=src --cov-report=term-missing"
 cache_dir = ".cache/pytest_cache"
 
 [tool.coverage.run]
