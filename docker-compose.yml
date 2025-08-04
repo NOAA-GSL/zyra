@@ -1,11 +1,14 @@
 services:
   datavizhub-rtvideo-app:
     build: .
+    env_file:
+      - .devcontainer/.env
     volumes:
-      - "/mnt/c/rt:/data"  # Mount host directory to container
+      - .:/app                                     # ← Mount the project directory (includes .git)
+      - "/mnt/c/rt:/data"
       - "/mnt/c/Users/erich/Documents/credentials.txt:/root/.rtvideo/credentials:ro"
       - "/mnt/c/Users/erich/Documents/credentials-woc.txt:/root/.global_smoke/credentials:ro"
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
-    command: cron -f  # Run cron in the foreground to keep the container alive
+    command: cron -f
