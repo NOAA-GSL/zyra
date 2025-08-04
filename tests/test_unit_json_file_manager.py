@@ -34,7 +34,7 @@ def test_save_file(mock_json_dump, mock_file, json_manager):
     mock_json_dump.assert_called_with(new_data, mock_file.return_value, indent=4)
 
 
-@patch("datavizhub.utils.DateManager.DateManager")
+@patch("datavizhub.utils.JSONFileManager.DateManager")
 def test_update_dataset_times(mock_date_manager, json_manager):
     # Setup mock for DateManager
     mock_date_manager_instance = mock_date_manager.return_value
