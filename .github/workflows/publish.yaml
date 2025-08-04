@@ -1,58 +1,49 @@
-name: Test and Publish
+name: Publish to PyPI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
-  test:
-    name: Run tests
+  build-and-publish:
     runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write  # needed to push tags if tagging in CI
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # important for tags!
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
-      - name: Install Poetry
+      - name: Install Poetry and plugin
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Install dependencies
-        run: poetry install --with dev
+          poetry self add poetry-dynamic-versioning
+          poetry install --no-root
 
       - name: Run tests
-        run: poetry run pytest
+        run: poetry run pytest --cov=src --cov-report=term-missing
 
-  publish:
-    name: Publish to PyPI
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install Poetry
+      - name: Bump version and tag
         run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          VERSION=$(poetry version patch --short)
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git commit -am "Release $VERSION"
+          git tag "v$VERSION"
+          git push origin main --tags
 
-      - name: Build and publish
-        env:
-          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_TOKEN }}
-        run: |
-          poetry install --no-root
-          poetry build
-          poetry publish
+      - name: Build package
+        run: poetry build
+
+      - name: Publish to PyPI
+        run: poetry publish --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}

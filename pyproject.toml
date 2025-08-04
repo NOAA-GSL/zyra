@@ -38,6 +38,12 @@ pytest = "^6.2"
 pytest-cov = "^4.1"
 ruff = "^0.1.6"
 
+[tool.poetry.plugins."poetry.plugin"]
+"dynamic-versioning" = "poetry_dynamic_versioning"
+
+[tool.poetry-dynamic-versioning]
+enable = true
+
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
