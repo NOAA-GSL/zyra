@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 import pytest
-from datavizhub.data_transfer.S3Manager import S3Manager
+from datavizhub.datatransfer.S3Manager import S3Manager
 
 
 @pytest.fixture()
