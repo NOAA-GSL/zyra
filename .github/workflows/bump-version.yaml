@@ -35,5 +35,6 @@ jobs:
       - name: Bump patch version using Poetry
         run: |
           poetry version patch
-          git commit -am "ci: bump version"
+          git add pyproject.toml
+          git commit -m "ci: bump version"    
           git push origin staging
