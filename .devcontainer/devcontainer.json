@@ -3,7 +3,7 @@
   "dockerComposeFile": [
     "../docker-compose.yml"
   ],
-  "service": "datavizhub-rtvideo-app",
+  "service": "datavizhub",
   "workspaceFolder": "/app",
   "customizations": {
     "vscode": {

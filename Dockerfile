@@ -21,7 +21,6 @@ RUN apt-get update && apt-get install -y \
     musl-dev \
     gfortran \
     ffmpeg \
-    cron \
     make \
     libjpeg-dev \
     zlib1g-dev \
@@ -64,20 +63,5 @@ RUN poetry build
 # Install the built package inside the Docker container
 RUN pip install dist/*.whl
 
-# Copy the cron file into the container
-COPY ./config/real-time-video.cron /etc/cron.d/real-time-video
-
-# Give execution rights on the cron file
-RUN chmod 0644 /etc/cron.d/real-time-video
-
-# Apply the cron job
-RUN crontab /etc/cron.d/real-time-video
-
-# Create the log file to be able to run tail
-RUN touch /var/log/cron.log
-
-# Start cron in the foreground
-CMD ["cron", "-f"]
-
 # Set the default command to open a bash shell
-#CMD ["/bin/bash"]
+CMD ["/bin/bash"]

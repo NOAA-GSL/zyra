@@ -1,14 +1,11 @@
 services:
-  datavizhub-rtvideo-app:
+  datavizhub:
     build: .
     env_file:
       - .devcontainer/.env
     volumes:
-      - .:/app                                     # ← Mount the project directory (includes .git)
-      - "/mnt/c/rt:/data"
-      - "/mnt/c/Users/erich/Documents/credentials.txt:/root/.rtvideo/credentials:ro"
-      - "/mnt/c/Users/erich/Documents/credentials-woc.txt:/root/.global_smoke/credentials:ro"
+      - .:/app
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
-    command: cron -f
+    command: ["sleep", "infinity"]

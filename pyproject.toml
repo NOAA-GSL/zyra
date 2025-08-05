@@ -63,8 +63,3 @@ show_missing = true
 
 [tool.coverage.xml]
 output = "coverage.xml"
-
-[tool.poetry.scripts]
-rtvideo = "datavizhub.samples.rtvideo:main"
-find-missing-frames = "datavizhub.samples.find_missing_frames:main"
-detect_significant_changes = "datavizhub.samples.detect_significant_changes:main"
