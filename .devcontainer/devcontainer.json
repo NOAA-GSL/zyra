@@ -14,6 +14,6 @@
       ]
     }
   },
-  "postCreateCommand": "poetry install --no-root --with dev || true"
+  "postCreateCommand": "poetry install --no-root --with dev || true",
+  "postStartCommand": "[ -f .devcontainer/.env ] || echo -e '# Auto-generated .env\\nDEBUG=False\\nLOG_LEVEL=info' > .devcontainer/.env; set -a && . .devcontainer/.env && set +a"
 }
-
