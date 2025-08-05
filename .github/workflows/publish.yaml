@@ -16,8 +16,7 @@ jobs:
 
     permissions:
       contents: read
-      id-token: write
-
+      
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -45,5 +44,5 @@ jobs:
       - name: Build package
         run: poetry build
 
-      - name: Publish to PyPI (Trusted Publishing)
-        run: poetry publish --no-interaction --verbose
+      - name: Publish to PyPI
+        run: poetry publish --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
