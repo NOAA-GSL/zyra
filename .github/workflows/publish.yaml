@@ -6,43 +6,34 @@ on:
       - main
 
 jobs:
-  build-and-publish:
+  publish:
+    name: Publish
     runs-on: ubuntu-latest
-    env:
-      PYTHONPATH: src 
-    environment: release
+
+    environment:
+      name: release
+      url: https://pypi.org/project/datavizhub/
+
     permissions:
-      contents: write  # needed to push tags if tagging in CI
+      contents: read
+      id-token: write  # required for trusted publishing
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # important for tags!
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
-      - name: Install Poetry and plugin
+      - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-          poetry self add poetry-dynamic-versioning
-          poetry install --no-root
 
-      - name: Run tests
-        run: poetry run pytest --cov=src --cov-report=term-missing
-
-      - name: Bump version and tag
-        run: |
-          VERSION=$(poetry version patch --short)
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git commit -am "Release $VERSION"
-          git tag "v$VERSION"
-          git push origin main --tags
+      - name: Install dependencies
+        run: poetry install --no-root
 
       - name: Build package
         run: poetry build

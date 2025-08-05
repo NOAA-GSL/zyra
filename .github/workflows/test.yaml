@@ -1,12 +1,11 @@
+# .github/workflows/test.yaml
 name: Run Tests
 
 on:
   push:
-    branches-ignore:
-      - main
+    branches: ["**"]
   pull_request:
-    branches-ignore:
-      - main
+    branches: ["**"]
 
 jobs:
   test:
@@ -14,21 +13,26 @@ jobs:
     env:
       PYTHONPATH: src
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python 3.10
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"  # Match the version used in your Dockerfile
+          python-version: '3.10'
 
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Install dependencies with Poetry
+      - name: Install dependencies
         run: poetry install --no-root --with dev
 
       - name: Run tests with coverage
         run: poetry run pytest --cov=src --cov-report=term-missing
+
+      - name: Save coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: .coverage

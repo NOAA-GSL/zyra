@@ -27,7 +27,10 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev \
     libpng-dev \
     git \
+    git-lfs \
     && rm -rf /var/lib/apt/lists/*
+
+    RUN git lfs install
 
 # Install wgrib2 from source, disable AEC, OpenJPEG, and NetCDF support by passing flags to make
 RUN curl -O https://ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz \
