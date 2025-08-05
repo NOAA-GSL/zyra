@@ -16,7 +16,7 @@ jobs:
 
     permissions:
       contents: read
-      id-token: write  # required for trusted publishing
+      id-token: write
 
     steps:
       - name: Checkout code
@@ -32,11 +32,18 @@ jobs:
           curl -sSL https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
+      - name: Cache Poetry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: poetry-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: poetry-${{ runner.os }}-
+
       - name: Install dependencies
         run: poetry install --no-root
 
       - name: Build package
         run: poetry build
 
-      - name: Publish to PyPI
-        run: poetry publish --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
+      - name: Publish to PyPI (Trusted Publishing)
+        run: poetry publish --no-interaction --verbose

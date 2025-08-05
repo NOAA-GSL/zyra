@@ -15,7 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: staging  # We update staging to include the version bump
+          ref: staging
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -27,6 +27,19 @@ jobs:
           curl -sSL https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
+      - name: Cache Poetry cache and virtualenv
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+          key: poetry-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            poetry-${{ runner.os }}-
+
+      # Optional if needed for plugins/scripts
+      # - name: Install dependencies
+      #   run: poetry install --no-root
+
       - name: Configure Git
         run: |
           git config user.name "github-actions"
@@ -36,5 +49,5 @@ jobs:
         run: |
           poetry version patch
           git add pyproject.toml
-          git commit -m "ci: bump version"    
+          git commit -m "ci: bump version" || echo "No changes to commit"
           git push origin staging
