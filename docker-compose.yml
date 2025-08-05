@@ -2,7 +2,7 @@ services:
   datavizhub:
     build: .
     env_file:
-      - .devcontainer/.env
+      - .env
     volumes:
       - .:/app
     environment:

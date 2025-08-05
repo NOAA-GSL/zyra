@@ -5,6 +5,7 @@
   ],
   "service": "datavizhub",
   "workspaceFolder": "/app",
+  "overrideCommand": false,
   "customizations": {
     "vscode": {
       "settings": {},
@@ -14,6 +15,5 @@
       ]
     }
   },
-  "postCreateCommand": "poetry install --no-root --with dev || true",
-  "postStartCommand": "[ -f .devcontainer/.env ] || echo -e '# Auto-generated .env\\nDEBUG=False\\nLOG_LEVEL=info' > .devcontainer/.env; set -a && . .devcontainer/.env && set +a"
+  "postStartCommand": "[ -f .env ] || cp .devcontainer/.env .env"
 }
