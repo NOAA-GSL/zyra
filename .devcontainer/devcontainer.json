@@ -15,5 +15,5 @@
       ]
     }
   },
-  "postStartCommand": "[ -f .env ] || cp .devcontainer/.env .env"
+  "postStartCommand": "[ -f .env ] || { [ -f .devcontainer/.env ] && cp .devcontainer/.env .env; }"
 }
