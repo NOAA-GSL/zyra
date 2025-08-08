@@ -1,14 +1,15 @@
 # DataVizHub
 
 ## Overview
-This project automates the the ability to injest data from a variety of sources and formats, create imagery or video based on that data, and send the results to a variety of locations for dissemination. It's designed to efficiently handle tasks like syncing files from an FTP server, processing these files into a video, and updating metadata in a cloud storage system.
+DataVizHub is a utility library for building data-driven visual products. It provides composable helpers for data transfer (FTP/HTTP/S3/Vimeo), data processing (GRIB/NetCDF/imagery/video), and visualization (matplotlib + basemap overlays). Use these pieces to script your own pipelines; this repo focuses on the reusable building blocks rather than end-user scripts.
+
+ This README documents the library itself and shows how to compose the components. For complete runnable examples, see the examples repos when available, or adapt the snippets below.
 
 ## Features
-- **FTP Syncing**: Automatically syncs image files from a specified FTP server.
-- **Video Processing**: Processes a sequence of images into a cohesive video file.
-- **Vimeo Integration**: Uploads the processed video to a specified Vimeo account.
-- **AWS S3 Management**: Handles the uploading of metadata files to an AWS S3 bucket.
-- **Command-Line Interface**: Easy to use CLI for configuring and running the system.
+- Datatransfer: `FTPManager`, `HTTPManager`, `S3Manager`, `VimeoManager`.
+- Processing: `VideoProcessor`, `GRIBDataProcessor`, `NetCDFDataProcessor`.
+- Visualization: `PlotManager`, `ColormapManager` with included basemap/overlay assets in `images/`.
+- Utils: `CredentialManager`, `DateManager`, `FileUtils`, `ImageManager`, `JSONFileManager`.
 
 ```mermaid
 classDiagram
@@ -158,108 +159,87 @@ classDiagram
     tests_test_unit_credential_manager --> utils_CredentialManager : "tests"
 ```
 
+
+## Project Structure
+- `datatransfer/`: I/O helpers (S3, FTP, HTTP, Vimeo).
+- `processing/`: data/video processing (GRIB/NetCDF, FFmpeg-based video).
+- `visualization/`: plotting utilities and colormaps.
+- `utils/`: shared helpers (dates, files, images, credentials).
+- `images/`: basemaps and overlays used by plots.
+- `samples/`: lightweight scripts; moving to external repos.
+- `pols.py`: example pollen plot (reads NetCDF from `/data/temp/pollen/`).
+
 ## Prerequisites
-Before you begin, ensure you have met the following requirements:
-- Python 3.x installed.
-- Optional: A Vimeo account with API credentials for video uploading.
-- Optional: An AWS account with S3 access for metadata management.
-- Optional: FFmpeg installed for video processing.
-- Optional: Access to an FTP server for image file syncing.
+- Python 3.10+
+- FFmpeg and ffprobe on PATH for video-related flows.
+- Optional: AWS credentials for S3; Vimeo API credentials for upload flows.
 
-## Development Installation
-To install the necessary Python packages, from the project root run:
+## Install (Poetry)
+- `poetry install`
+- Spawn a shell: `poetry shell`
+- One-off run: `poetry run python -c "print('ok')"`
 
-`pipx install poetry`
+## Quick Composition Examples
 
-`poetry install`
+Minimal pipeline: build video from images and upload to S3
 
-## Package Installation
-To install the datavizhub package change directory to the download directory and type:
+```python
+from datavizhub.processing import VideoProcessor
+from datavizhub.datatransfer import S3Manager
 
-`pip install datavizhub-<version>.tar.gz`
+vp = VideoProcessor(input_dir="/data/images", output_file="/data/out/movie.mp4")
+vp.process_videos(fps=24)
 
-## Configuration
-The system requires several configurations to be passed as command-line arguments. These include paths to directories, FTP server details, Vimeo and AWS credentials, etc.
+s3 = S3Manager(bucket_name="my-bucket")
+s3.upload_file("/data/out/movie.mp4", key="videos/movie.mp4", acl="public-read")
+```
 
-## Usage
-To run the script, use the following command:
+Plot a data array with a basemap
 
-Replace `[arguments]` with the necessary command-line arguments.
+```python
+import numpy as np
+from datavizhub.visualization import PlotManager
 
-`rtvideo [arguments]`
+data = np.random.rand(180, 360)
+plotter = PlotManager(basemap="earth_vegetation.jpg", overlay=None, image_extent=[-180, 180, -90, 90])
+plotter.plot_data_array(data, output_path="/tmp/heatmap.png", title="Demo")
+```
 
-## Command Line Arguments
+Compose FTP sync + video + Vimeo update
 
-This script supports various command line arguments for customizing its operation. Below is a detailed explanation of each argument:
+```python
+from datavizhub.datatransfer import FTPManager, VimeoManager
+from datavizhub.processing import VideoProcessor
 
-- `-i`, `--input_dir` (required): 
-  - Description: The directory where the input image files are located.
-  - Usage: `-i <path_to_directory>` or `--input_dir <path_to_directory>`
+ftp = FTPManager(host="public.sos.noaa.gov", username="anonymous", password="")
+ftp.download_file(remote_path="/pub/images/img_0001.png", local_path="/tmp/frames/img_0001.png")
+# ...download the rest of the frames as needed...
 
-- `-o`, `--output_file` (required): 
-  - Description: The path for the output video file.
-  - Usage: `-o <output_file_path>` or `--output_file <output_file_path>`
+VideoProcessor("/tmp/frames", "/tmp/out.mp4").process_videos(fps=30)
 
-- `-vimeo-uri`, `--existing_video_uri` (required):
-  - Description: The URI on Vimeo where the updated video will be placed.
-  - Usage: `-vimeo-uri <vimeo_uri>` or `--existing_video_uri <vimeo_uri>`
+vimeo = VimeoManager(client_id="...", client_secret="...", access_token="...")
+vimeo.upload_video("/tmp/out.mp4", name="Latest Render")
+```
 
-- `-id`, `--dataset_id` (required):
-  - Description: The catalog dataset ID to update with the new video.
-  - Usage: `-id <dataset_id>` or `--dataset_id <dataset_id>`
+## Examples
+- `rtvideo` real-time video pipeline: https://gitlab.sos.noaa.gov/science-on-a-sphere/datasets/real-time-video
 
-- `-period`, `--dataset_period` (required):
-  - Description: The duration for which to generate the movie (in ISO 8601 format).
-  - Usage: `-period <duration>` or `--dataset_period <duration>`
+## Development, Test, Lint
+- Tests: `poetry run pytest -q`
+- Formatting: `poetry run black . && poetry run isort .`
+- Lint: `poetry run flake8`
 
-- `-vimeo-client`, `--vimeo_client_id` (required, credential if argument not provided):
-  - Description: The Vimeo client ID associated with the app.
-  - Usage: `-vimeo-client <client_id>` or `--vimeo_client_id <client_id>`
+## Repository Guidelines
+- Project structure, dev workflow, testing, and contribution tips: see [AGENTS.md](AGENTS.md).
 
-- `-vimeo-secret`, `--vimeo_client_secret` (required, credential if argument not provided):
-  - Description: The Vimeo client secret associated with the app.
-  - Usage: `-vimeo-secret <client_secret>` or `--vimeo_client_secret <client_secret>`
-
-- `-vimeo-token`, `--vimeo_access_token` (required, credential if argument not provided):
-  - Description: The Vimeo access token associated with the app.
-  - Usage: `-vimeo-token <access_token>` or `--vimeo_access_token <access_token>`
-
-- `-aws-key`, `--aws_access_key` (required, credential if argument not provided):
-  - Description: The AWS access key required for S3 transfers.
-  - Usage: `-aws-key <access_key>` or `--aws_access_key <access_key>`
-
-- `-aws-secret`, `--aws_secret_key` (required, credential if argument not provided):
-  - Description: The AWS secret key required for S3 transfers.
-  - Usage: `-aws-secret <secret_key>` or `--aws_secret_key <secret_key>`
-
-- `-host`, `--ftp_host` (optional):
-  - Description: The FTP host to connect to. Default is "public.sos.noaa.gov".
-  - Usage: `-host <ftp.example.com>` or `--ftp_host <ftp.example.com>`
-
-- `-b'=`, `--basemap` (optional):
-  - Description: The internal path to an optional basemap image that will appear behind data in a video.
-  - Usage: `--basemap "earth_vegetation.jpg`
-
-- `-v`, `--verbose`,
-  - Description: Enable verbose logging.
-  - Usage: `--verbose`
-
-
-### Example (no environmental variables)
-
-`rtvideo -i "./images" -o "./output/video.mp4" -vimeo-uri "/videos/12345" -id "DATASET_ID" -period "1Y" -vimeo-client "VIMEO_CLIENT_ID" -vimeo-secret "VIMEO_CLIENT_SECRET" -vimeo-token "VIMEO_ACCESS_TOKEN" -aws-key "AWS_ACCESS_KEY" -aws-secret "AWS_SECRET_KEY" -host "ftp.example.com" -r "/ftp/images" -u "ftpuser" -p "ftppassword"`
-
-### Example ( environmental variables)
-
-`rtvideo -i "./images" -o "./output/video.mp4" -vimeo-uri "/videos/12345" -id "DATASET_ID" -period "1Y" -host "ftp.example.com" -r "/ftp/images" -u "ftpuser" -p "ftppassword"`
+## Notes
+- Paths: many scripts assume data under `/data/...`; prefer configuring via env vars (e.g., `DATA_DIR`) or parameters.
+- Credentials: do not commit secrets; AWS and Vimeo creds should come from env or secure stores used by `CredentialManager`.
+- Dependencies: video flows require system `ffmpeg`/`ffprobe`.
 
 ## License
-Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
+Distributed under the MIT License. See [LICENSE](LICENSE).
 
-## Contact
-Your Name - Eric.J.Hackathorn@noaa.gov
-
-Project Link: https://github.com/NOAA-GSL/datavizhub
-
-PyPi Package: https://pypi.org/project/datavizhub/
-
+## Links
+- Source: https://github.com/NOAA-GSL/datavizhub
+- PyPI: https://pypi.org/project/datavizhub/
