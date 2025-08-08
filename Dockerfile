@@ -1,5 +1,7 @@
-# Use an official Python runtime as a parent image
-FROM python:3.10-slim
+########################
+# === Base Stage ===
+########################
+FROM python:3.10-slim AS base
 
 # Set environment variables to prevent Python from writing .pyc files and buffering output
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -29,7 +31,7 @@ RUN apt-get update && apt-get install -y \
     git-lfs \
     && rm -rf /var/lib/apt/lists/*
 
-    RUN git lfs install
+RUN git lfs install
 
 # Install wgrib2 from source, disable AEC, OpenJPEG, and NetCDF support by passing flags to make
 RUN curl -O https://ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz \
@@ -57,11 +59,19 @@ RUN poetry install --no-root --only main
 # Copy the rest of the application code
 COPY . /app
 
-# Build the project (creates a .whl or .tar.gz file in the dist/ folder)
-RUN poetry build
+########################
+# === Dev Stage ===
+########################
 
-# Install the built package inside the Docker container
-RUN pip install dist/*.whl
+FROM base AS dev
+
+# Install Node.js for Codex CLI
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g @openai/codex
+
+# Install project in editable mode so `rtvideo` points at source
+RUN pip install --no-cache-dir -e .
 
 # Set the default command to open a bash shell
-CMD ["/bin/bash"]
+CMD ["sleep", "infinity"]
