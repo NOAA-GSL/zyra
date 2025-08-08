@@ -1,4 +1,3 @@
-#
 # DataVizHub
 
 ## Overview
