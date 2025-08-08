@@ -1,9 +1,17 @@
 services:
   datavizhub:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
     volumes:
       - .:/app
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
-    command: ["sleep", "infinity"]
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - VIMEO_CLIENT_ID=${VIMEO_CLIENT_ID}
+      - VIMEO_CLIENT_SECRET=${VIMEO_CLIENT_SECRET}
+      - VIMEO_ACCESS_TOKEN=${VIMEO_ACCESS_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
