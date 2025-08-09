@@ -10,7 +10,8 @@
 - `pols.py`: example script for pollen plots (reads NetCDF from `/data/temp/pollen/`).
 
 ## Build, Test, and Development Commands
-- Install with Poetry: `poetry install` (creates and manages the venv).
+- Install with Poetry (core): `poetry install --with dev` (creates the venv).
+- Opt-in extras locally as needed, e.g.: `poetry install --with dev -E datatransfer -E processing -E visualization` or `--all-extras`.
 - Spawn shell: `poetry shell`; run once-off: `poetry run python pols.py`.
 - Run samples: `poetry run python samples/global_smoke.py` (ensure data paths exist).
 - Lint/format (if added): `poetry run black . && poetry run isort . && poetry run flake8`.
@@ -45,3 +46,10 @@
 - No `requirements.txt` is needed. If a pip-only workflow requires it, export via:
   - `poetry export -f requirements.txt --output requirements.txt --without-hashes`
   - Include dev groups when needed: `poetry export -f requirements.txt --with dev -o requirements-dev.txt`
+
+Dev container:
+- The dev container installs dev dependencies plus all extras by default (`poetry install --with dev --all-extras`). This ensures optional integrations (S3 via boto3, Vimeo via PyVimeo, HTTP via requests, processing/visualization stacks) are available out of the box.
+
+## Documentation Sources
+- Wiki: https://github.com/NOAA-GSL/datavizhub/wiki (authoritative documentation for humans and AIs).
+- Dev container mirror: `/app/docs` contains an auto-cloned snapshot of the wiki for offline/context use. It auto-refreshes at most once per hour on container start. Force refresh with `bash .devcontainer/postStart.sh --force`. This folder is ignored by Git and is not part of the main repository—do not commit its contents.
