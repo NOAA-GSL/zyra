@@ -19,17 +19,52 @@ Tracker = "https://github.com/NOAA-GSL/datavizhub/issues"
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
 python-dotenv = "^0.19.1"
-boto3 = "^1.17" 
-PyVimeo = "^1.0"
-requests = "^2.25"
-pygrib = "^2.1.5"
-scipy = "^1.12.0"
-siphon = "^0.9"
-cartopy = "^0.22.0"
-matplotlib = "^3.8.3"
-netcdf4 = "^1.6.5"
-xarray = "^2024.3.0"
-ffmpeg-python = "^0.2.0"
+# Optional feature dependencies (installed via extras)
+boto3 = { version = "^1.17", optional = true }
+PyVimeo = { version = "^1.0", optional = true }
+requests = { version = "^2.25", optional = true }
+pygrib = { version = "^2.1.5", optional = true }
+scipy = { version = "^1.12.0", optional = true }
+siphon = { version = "^0.9", optional = true }
+cartopy = { version = "^0.22.0", optional = true }
+matplotlib = { version = "^3.8.3", optional = true }
+netcdf4 = { version = "^1.6.5", optional = true }
+xarray = { version = "^2024.3.0", optional = true }
+ffmpeg-python = { version = "^0.2.0", optional = true }
+
+[tool.poetry.extras]
+# Install only what you need, e.g.:
+#   pip install datavizhub[datatransfer]
+#   pip install datavizhub[processing]
+#   pip install datavizhub[visualization]
+# Or everything:
+#   pip install datavizhub[all]
+datatransfer = [
+    "boto3",
+    "PyVimeo",
+    "requests",
+]
+processing = [
+    "pygrib",
+    "scipy",
+    "siphon",
+    "ffmpeg-python",
+]
+visualization = [
+    "cartopy",
+    "matplotlib",
+]
+all = [
+    "boto3",
+    "PyVimeo",
+    "requests",
+    "pygrib",
+    "scipy",
+    "siphon",
+    "ffmpeg-python",
+    "cartopy",
+    "matplotlib",
+]
 
 [tool.poetry.group.dev.dependencies]
 coverage = "^7.4.0"
@@ -37,6 +72,9 @@ py = ">=1.11.0"
 pytest = "^6.2"
 pytest-cov = "^4.1"
 ruff = "^0.1.6"
+boto3 = "^1.17"
+PyVimeo = "^1.0"
+requests = "^2.25"
 
 [tool.poetry.plugins."poetry.plugin"]
 "dynamic-versioning" = "poetry_dynamic_versioning"

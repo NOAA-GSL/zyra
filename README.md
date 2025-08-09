@@ -1,13 +1,13 @@
 # DataVizHub
 
 ## Overview
-DataVizHub is a utility library for building data-driven visual products. It provides composable helpers for data transfer (FTP/HTTP/S3/Vimeo), data processing (GRIB/NetCDF/imagery/video), and visualization (matplotlib + basemap overlays). Use these pieces to script your own pipelines; this repo focuses on the reusable building blocks rather than end-user scripts.
+DataVizHub is a utility library for building data-driven visual products. It provides composable helpers for data transfer (FTP/HTTP/S3/Vimeo), data processing (GRIB/imagery/video), and visualization (matplotlib + basemap overlays). Use these pieces to script your own pipelines; this repo focuses on the reusable building blocks rather than end-user scripts.
 
  This README documents the library itself and shows how to compose the components. For complete runnable examples, see the examples repos when available, or adapt the snippets below.
 
 ## Features
 - Datatransfer: `FTPManager`, `HTTPManager`, `S3Manager`, `VimeoManager`.
-- Processing: `VideoProcessor`, `GRIBDataProcessor`, `NetCDFDataProcessor`.
+- Processing: `VideoProcessor`, `GRIBDataProcessor`.
 - Visualization: `PlotManager`, `ColormapManager` with included basemap/overlay assets in `images/`.
 - Utils: `CredentialManager`, `DateManager`, `FileUtils`, `ImageManager`, `JSONFileManager`.
 
@@ -179,6 +179,17 @@ classDiagram
 - Spawn a shell: `poetry shell`
 - One-off run: `poetry run python -c "print('ok')"`
 
+## Install (pip extras)
+- Core only: `pip install datavizhub`
+- Datatransfer deps: `pip install "datavizhub[datatransfer]"`
+- Processing deps: `pip install "datavizhub[processing]"`
+- Visualization deps: `pip install "datavizhub[visualization]"`
+- Everything: `pip install "datavizhub[all]"`
+
+Notes:
+- Core install keeps footprint small; optional features pull in heavier deps (e.g., Cartopy, SciPy, ffmpeg-python).
+- Some example scripts may import plotting libs; install `[visualization]` if you use those flows.
+
 ## Quick Composition Examples
 
 Minimal pipeline: build video from images and upload to S3
@@ -232,10 +243,17 @@ vimeo.upload_video("/tmp/out.mp4", name="Latest Render")
 ## Repository Guidelines
 - Project structure, dev workflow, testing, and contribution tips: see [AGENTS.md](AGENTS.md).
 
+## Documentation
+- Primary: Project wiki at https://github.com/NOAA-GSL/datavizhub/wiki
+- Dev container: A read-only mirror of the wiki is auto-cloned into `/app/docs` when the dev container starts. It auto-refreshes at most once per hour. This folder is ignored by Git and is not part of the repository on GitHub.
+- Force refresh: `bash .devcontainer/postStart.sh --force` (or set `DOCS_REFRESH_SECONDS` to adjust the hourly cadence).
+- Note: There is no `docs/` directory in the main repo. If you are not using the dev container, read the wiki directly.
+
 ## Notes
 - Paths: many scripts assume data under `/data/...`; prefer configuring via env vars (e.g., `DATA_DIR`) or parameters.
 - Credentials: do not commit secrets; AWS and Vimeo creds should come from env or secure stores used by `CredentialManager`.
 - Dependencies: video flows require system `ffmpeg`/`ffprobe`.
+ - Optional extras: see "Install (pip extras)" for targeted installs.
 
 ## License
 Distributed under the MIT License. See [LICENSE](LICENSE).

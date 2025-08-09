@@ -15,6 +15,6 @@
       ]
     }
   },
-"postStartCommand": "if [ ! -f .env ] && [ -f .devcontainer/.env ]; then cp .devcontainer/.env .env; fi"
+"postStartCommand": "bash .devcontainer/postStart.sh"
 
 }

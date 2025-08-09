@@ -45,3 +45,7 @@
 - No `requirements.txt` is needed. If a pip-only workflow requires it, export via:
   - `poetry export -f requirements.txt --output requirements.txt --without-hashes`
   - Include dev groups when needed: `poetry export -f requirements.txt --with dev -o requirements-dev.txt`
+
+## Documentation Sources
+- Wiki: https://github.com/NOAA-GSL/datavizhub/wiki (authoritative documentation for humans and AIs).
+- Dev container mirror: `/app/docs` contains an auto-cloned snapshot of the wiki for offline/context use. It auto-refreshes at most once per hour on container start. Force refresh with `bash .devcontainer/postStart.sh --force`. This folder is ignored by Git and is not part of the main repository—do not commit its contents.
