@@ -64,6 +64,8 @@ all = [
     "ffmpeg-python",
     "cartopy",
     "matplotlib",
+    "netcdf4",
+    "xarray",
 ]
 
 [tool.poetry.group.dev.dependencies]
