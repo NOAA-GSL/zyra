@@ -53,8 +53,8 @@ ENV PATH="/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/.lo
 # Copy pyproject.toml and poetry.lock files first (this helps with Docker caching)
 COPY pyproject.toml poetry.lock /app/
 
-# Install dependencies without installing the actual package
-RUN poetry install --no-root --only main
+# Install all dependencies (dev + extras) without installing the package itself
+RUN poetry install --no-root --with dev --all-extras
 
 # Copy the rest of the application code
 COPY . /app
@@ -70,8 +70,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     apt-get install -y nodejs && \
     npm install -g @openai/codex
 
-# Install project in editable mode so `rtvideo` points at source
-RUN pip install --no-cache-dir -e .
+# Install project with dev + all extras (editable install via Poetry)
+RUN poetry install --with dev --all-extras
 
 # Set the default command to open a bash shell
 CMD ["sleep", "infinity"]

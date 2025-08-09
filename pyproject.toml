@@ -72,9 +72,6 @@ py = ">=1.11.0"
 pytest = "^6.2"
 pytest-cov = "^4.1"
 ruff = "^0.1.6"
-boto3 = "^1.17"
-PyVimeo = "^1.0"
-requests = "^2.25"
 
 [tool.poetry.plugins."poetry.plugin"]
 "dynamic-versioning" = "poetry_dynamic_versioning"

@@ -175,9 +175,14 @@ classDiagram
 - Optional: AWS credentials for S3; Vimeo API credentials for upload flows.
 
 ## Install (Poetry)
-- `poetry install`
+- Core dev env: `poetry install --with dev`
+- With optional extras: `poetry install --with dev -E datatransfer -E processing -E visualization` (or `--all-extras`)
 - Spawn a shell: `poetry shell`
 - One-off run: `poetry run python -c "print('ok')"`
+
+Notes for development:
+- Optional integrations (S3 via boto3, Vimeo via PyVimeo, HTTP via requests) are provided as extras, not dev deps.
+- Opt into only what you need using `-E <extra>` flags, or use `--all-extras` for a full-featured env.
 
 ## Install (pip extras)
 - Core only: `pip install datavizhub`
