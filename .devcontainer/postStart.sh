@@ -61,7 +61,7 @@ if [[ $should_update -eq 1 ]]; then
     echo "last_sync_epoch=$(now_epoch)" >> "$tmp_dir/.mirror_meta"
     rm -rf "$DOCS_DIR"
     mv "$tmp_dir" "$DOCS_DIR"
-    echo "[postStart] Wiki synced to /app/docs"
+    echo "[postStart] Wiki synced to /wiki"
   else
     echo "[postStart] WARN: Wiki clone failed; leaving existing /wiki in place" >&2
     rm -rf "$tmp_dir"
