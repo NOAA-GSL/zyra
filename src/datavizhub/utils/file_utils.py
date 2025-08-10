@@ -57,5 +57,11 @@ def remove_all_files_in_directory(directory: str) -> None:
                 path.unlink()
             elif path.is_dir():
                 shutil.rmtree(path)
+        except PermissionError as e:
+            logging.error("Permission denied when deleting %s. Reason: %s", path, e)
+        except FileNotFoundError as e:
+            logging.error("File or directory not found when deleting %s. Reason: %s", path, e)
+        except OSError as e:
+            logging.error("OS error when deleting %s. Reason: %s", path, e)
         except Exception as e:
-            logging.error("Failed to delete %s. Reason: %s", path, e)
+            logging.error("Unexpected error when deleting %s. Reason: %s", path, e)
