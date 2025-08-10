@@ -63,7 +63,7 @@ if [[ $should_update -eq 1 ]]; then
     mv "$tmp_dir" "$DOCS_DIR"
     echo "[postStart] Wiki synced to /app/docs"
   else
-    echo "[postStart] WARN: Wiki clone failed; leaving existing /app/docs in place" >&2
+    echo "[postStart] WARN: Wiki clone failed; leaving existing /wiki in place" >&2
     rm -rf "$tmp_dir"
   fi
   set -e
