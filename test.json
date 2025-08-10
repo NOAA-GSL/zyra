@@ -1,0 +1,14 @@
+{
+    "datasets": [
+        {
+            "id": "123",
+            "startTime": "2024-01-01",
+            "endTime": "2024-01-02"
+        },
+        {
+            "id": "456",
+            "startTime": "oldStart",
+            "endTime": "oldEnd"
+        }
+    ]
+}

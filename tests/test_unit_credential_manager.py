@@ -1,5 +1,5 @@
 import pytest
-from datavizhub.utils.CredentialManager import CredentialManager
+from datavizhub.utils.credential_manager import CredentialManager
 
 
 # Test Initialization
