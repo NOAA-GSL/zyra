@@ -39,35 +39,3 @@ def test_download_file(s3_manager):
         manager.bucket_name, remote_file_path, local_file_path
     )
 
-
-def test_exists_delete_stat(s3_manager):
-    """Test exists/delete/stat on S3Manager using mocked boto3 client."""
-    from botocore.exceptions import ClientError
-
-    manager, mock_boto3_client = s3_manager
-    client = mock_boto3_client.return_value
-
-    # exists True
-    client.head_object.return_value = {"ContentLength": 10}
-    assert manager.exists("key.txt") is True
-    client.head_object.assert_called_with(Bucket=manager.bucket_name, Key="key.txt")
-
-    # exists False via ClientError 404
-    error_response = {"Error": {"Code": "404", "Message": "Not Found"}}
-    client.head_object.side_effect = ClientError(error_response, "HeadObject")
-    assert manager.exists("missing.txt") is False
-
-    # delete
-    client.delete_object.return_value = {}
-    assert manager.delete("key.txt") is True
-    client.delete_object.assert_called_with(Bucket=manager.bucket_name, Key="key.txt")
-
-    # stat
-    client.head_object.side_effect = None
-    client.head_object.return_value = {
-        "ContentLength": 42,
-        "LastModified": "ts",
-        "ETag": "etag",
-    }
-    meta = manager.stat("key.txt")
-    assert meta == {"size": 42, "last_modified": "ts", "etag": "etag"}

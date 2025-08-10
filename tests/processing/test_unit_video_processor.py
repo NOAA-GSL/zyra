@@ -35,5 +35,3 @@ def test_process_video(video_processor_setup):
         video_processor.output_file, vcodec="libx264", pix_fmt="yuv420p", g=1
     )
 
-
-# Additional test functions for other scenarios or methods can be added here.

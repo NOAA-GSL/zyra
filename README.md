@@ -90,6 +90,60 @@ s3.upload("local.nc", "path/object.nc")
 s3.disconnect()
 ```
 
+### Advanced Acquisition: GRIB subsetting, byte ranges, and listing
+
+Managers expose optional advanced helpers (inspired by NODD) to speed up GRIB workflows and large file transfers.
+
+- .idx subsetting
+  - S3 example (public bucket, unsigned):
+    ```python
+    from datavizhub.acquisition.s3_manager import S3Manager
+
+    s3 = S3Manager(None, None, bucket_name="noaa-hrrr-bdp-pds", unsigned=True)
+    lines = s3.get_idx_lines("hrrr.20230801/conus/hrrr.t00z.wrfsfcf00.grib2")
+    ranges = s3.idx_to_byteranges(lines, r"(:TMP:surface|:PRATE:surface)")
+    data = s3.download_byteranges("hrrr.20230801/conus/hrrr.t00z.wrfsfcf00.grib2", ranges.keys())
+    ```
+
+- Pattern-based listing (regex)
+  - S3 prefix listing with regex filter:
+    ```python
+    keys = s3.list_files("hrrr.20230801/conus/", pattern=r"wrfsfcf\d+\.grib2$")
+    ```
+  - HTTP directory-style index scraping with regex filter:
+    ```python
+    from datavizhub.acquisition import HTTPManager
+    urls = HTTPManager().list_files(
+        "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/",
+        pattern=r"\.grib2$",
+    )
+    ```
+
+- Parallel range downloads
+  - HTTP byte ranges:
+    ```python
+    from datavizhub.acquisition import HTTPManager
+    http = HTTPManager()
+    lines = http.get_idx_lines("https://example.com/path/file.grib2")
+    ranges = http.idx_to_byteranges(lines, r"GUST")
+    blob = http.download_byteranges("https://example.com/path/file.grib2", ranges.keys(), max_workers=10)
+    ```
+  - FTP byte ranges (uses REST and one connection per thread):
+    ```python
+    from datavizhub.acquisition import FTPManager
+    ftp = FTPManager(host="ftp.example.com")
+    ftp.connect()
+    lines = ftp.get_idx_lines("/pub/file.grib2")
+    ranges = ftp.idx_to_byteranges(lines, r"PRES:surface")
+    blob = ftp.download_byteranges("/pub/file.grib2", ranges.keys(), max_workers=4)
+    ftp.disconnect()
+    ```
+
+Notes
+- Pattern filters use Python regular expressions (`re.search`) applied to full keys/paths/URLs.
+- `.idx` resolution appends `.idx` to the GRIB path unless a fully qualified `.idx` path is given.
+- For unsigned public S3 buckets, pass `unsigned=True` as shown above.
+
 ## Processing Layer
 
 The `datavizhub.processing` package standardizes processors under a common `DataProcessor` interface.
