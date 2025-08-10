@@ -109,4 +109,4 @@ class JSONFileManager:
                 dataset["startTime"], dataset["endTime"] = start_time, end_time
                 self.save_file()
                 return f"Dataset '{target_id}' updated and saved to {self.file_path}"
-        return "No dataset found with the ID: nonexistent" if target_id == "nonexistent" else f"No dataset found with the ID: {target_id}"
+        return f"No dataset found with the ID: {target_id}"

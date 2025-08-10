@@ -61,8 +61,8 @@ class VideoProcessor(DataProcessor):
         str or None
             The output file path on success; ``None`` if processing failed.
         """
-        self.process_video()
-        return self.output_file
+        success = self.process_video()
+        return self.output_file if success else None
 
     def save(self, output_path: Optional[str] = None) -> Optional[str]:
         """Finalize the configured output path.
@@ -114,7 +114,7 @@ class VideoProcessor(DataProcessor):
             logging.error(f"An error occurred while checking FFmpeg installation: {e}")
             return False
 
-    def process_video(self) -> None:
+    def process_video(self) -> bool:
         """Build the video using FFmpeg from frames in ``input_directory``.
 
         Notes
@@ -126,14 +126,14 @@ class VideoProcessor(DataProcessor):
         """
         if not self.check_ffmpeg_installed():
             logging.error("Cannot process video as FFmpeg is not installed.")
-            return
+            return False
         try:
             input_dir = Path(self.input_directory)
             logging.debug("Scanning directory for files...")
             files = sorted([f for f in input_dir.iterdir() if f.is_file()], key=lambda f: f.name)
             if not files:
                 logging.error("No files found in the video input directory.")
-                return
+                return False
             logging.debug(f"Found {len(files)} files.")
             file_extension = files[0].suffix
             input_pattern = f"{self.input_directory}/*{file_extension}"
@@ -153,8 +153,16 @@ class VideoProcessor(DataProcessor):
                     logging.debug(line.strip())
             logging.debug("Video processing complete.")
             logging.info(f"Video created at {self.output_file}")
+            # Consider success if the expected output file exists
+            try:
+                if Path(self.output_file).exists():
+                    return True
+            except Exception:
+                pass
+            return False
         except Exception as e:
             logging.error(f"An error occurred: {e}")
+            return False
 
     def validate_video_file(self, video_file: str) -> bool:
         """Validate codec, resolution, and frame rate of an output video.

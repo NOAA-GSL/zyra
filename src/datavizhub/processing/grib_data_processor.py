@@ -198,6 +198,27 @@ class GRIBDataProcessor(DataProcessor):
                 return None, None, None
 
     @staticmethod
+    def shift_data_180(data: np.ndarray, lons: np.ndarray) -> np.ndarray:
+        """Shift global longitude grid by 180 degrees.
+
+        Parameters
+        ----------
+        data : numpy.ndarray
+            2D array of gridded values with longitudes varying along axis=1.
+        lons : numpy.ndarray
+            2D array of longitudes corresponding to ``data`` (unused for the
+            basic roll operation but included for interface symmetry).
+
+        Returns
+        -------
+        numpy.ndarray
+            Rolled data such that a 0–360 grid is centered at -180..180.
+        """
+        # Roll columns by half the width to move 0–360 to -180..180 ordering
+        shift = data.shape[1] // 2
+        return np.roll(data, shift, axis=1)
+
+    @staticmethod
     def process_grib_files_wgrib2(grib_dir: str, command: list[str], output_file: str) -> None:
         """Invoke an external wgrib2 command for each file in a directory.
 

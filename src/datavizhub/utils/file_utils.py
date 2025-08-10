@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import os
+import shutil
 from pathlib import Path
 
 
@@ -55,9 +56,6 @@ def remove_all_files_in_directory(directory: str) -> None:
             if path.is_file() or path.is_symlink():
                 path.unlink()
             elif path.is_dir():
-                for child in path.iterdir():
-                    if child.is_file() or child.is_symlink():
-                        child.unlink()
-                path.rmdir()
+                shutil.rmtree(path)
         except Exception as e:
             logging.error(f"Failed to delete %s. Reason: %s", path, e)
