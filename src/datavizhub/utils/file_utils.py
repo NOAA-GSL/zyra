@@ -14,6 +14,7 @@ Clean a scratch directory::
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 
@@ -46,8 +47,8 @@ def remove_all_files_in_directory(directory: str) -> None:
 
     Notes
     -----
-    Errors are printed to stdout; callers may wrap with their own handlers if
-    stricter error handling is desired.
+    Errors are reported via ``logging.error`` for consistency with the rest of
+    the codebase.
     """
     for path in Path(directory).glob("*"):
         try:
@@ -59,4 +60,4 @@ def remove_all_files_in_directory(directory: str) -> None:
                         child.unlink()
                 path.rmdir()
         except Exception as e:
-            print(f"Failed to delete {path}. Reason: {e}")
+            logging.error(f"Failed to delete %s. Reason: %s", path, e)

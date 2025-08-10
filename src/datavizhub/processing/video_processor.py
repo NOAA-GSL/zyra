@@ -197,11 +197,18 @@ class VideoProcessor(DataProcessor):
             return False
         codec, width, height, frame_rate_str = output
         resolution = f"{width}x{height}"
-        frame_rate = (
-            round(eval(frame_rate_str.split("/")[0]) / eval(frame_rate_str.split("/")[1]))
-            if "/" in frame_rate_str
-            else int(frame_rate_str)
-        )
+        # Safely parse r_frame_rate which is typically a fraction like "30000/1001"
+        try:
+            if "/" in frame_rate_str:
+                num_s, den_s = frame_rate_str.split("/", 1)
+                num = float(num_s)
+                den = float(den_s) if float(den_s) != 0 else 1.0
+                frame_rate = round(num / den)
+            else:
+                frame_rate = int(float(frame_rate_str))
+        except ValueError:
+            logging.error(f"Unable to parse frame rate: {frame_rate_str}")
+            return False
         if codec not in valid_codecs:
             logging.error(f"Invalid codec: {codec}")
             return False
