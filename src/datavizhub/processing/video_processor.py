@@ -215,9 +215,6 @@ class VideoProcessor(DataProcessor):
                     return False
                 num = float(num_s)
                 den = float(den_s)
-                if den == 0.0:
-                    logging.error("Frame rate denominator parsed as zero: %s", frame_rate_str)
-                    return False
                 frame_rate = round(num / den)
             else:
                 frame_rate = int(float(frame_rate_str))
