@@ -255,7 +255,7 @@ s3.disconnect()
 ## Documentation
 - Primary: Project wiki at https://github.com/NOAA-GSL/datavizhub/wiki
 - API docs (GitHub Pages): https://noaa-gsl.github.io/datavizhub/
-- Dev container: A read-only mirror of the wiki is auto-cloned into `wiki` when the dev container starts. It auto-refreshes at most once per hour. This folder is ignored by Git and is not part of the repository on GitHub.
+- Dev container: A read-only mirror of the wiki is auto-cloned into `/wiki` when the dev container starts. It auto-refreshes at most once per hour. This folder is ignored by Git and is not part of the repository on GitHub.
 - Force refresh: `bash .devcontainer/postStart.sh --force` (or set `DOCS_REFRESH_SECONDS` to adjust the hourly cadence).
 - Note: There is no `docs/` directory in the main repo. If you are not using the dev container, read the wiki directly.
 
