@@ -3,6 +3,12 @@
 Provides :class:`DataAcquirer` and concrete managers for fetching and uploading
 resources from remote sources. See each manager's docstrings for usage and
 supported capabilities.
+
+Notes
+-----
+- ``HTTPManager`` is provided as a convenience alias to
+  :class:`~datavizhub.acquisition.http_manager.HTTPHandler` for naming
+  consistency across managers. Both refer to the same implementation.
 """
 
 from .base import DataAcquirer, AcquisitionError, NotSupportedError
@@ -17,6 +23,10 @@ __all__ = [
     "NotSupportedError",
     "FTPManager",
     "HTTPHandler",
+    "HTTPManager",
     "S3Manager",
     "VimeoManager",
 ]
+
+# Backwards-compatible alias for consistency across code/docs
+HTTPManager = HTTPHandler

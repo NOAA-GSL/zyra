@@ -1,16 +1,37 @@
 """FTP data acquisition manager.
 
 Implements :class:`~datavizhub.acquisition.base.DataAcquirer` for FTP servers
-with support for listing, fetching, and uploading files.
+with support for listing, fetching, and uploading files. Adds optional helpers
+for GRIB ``.idx`` subsetting and FTP byte-range downloads via ``REST``.
+
+Advanced Features
+-----------------
+- ``get_size(path)``: use ``SIZE`` to return remote size in bytes.
+- ``get_idx_lines(path, *, write_to=None, timeout=30, max_retries=3)``:
+  fetch and parse a GRIB ``.idx`` (appends ``.idx`` unless explicit).
+- ``idx_to_byteranges(lines, search_regex)``: regex to Range headers.
+- ``get_chunks(path, chunk_size=500MB)``: compute contiguous ranges.
+- ``download_byteranges(path, byte_ranges, *, max_workers=10, timeout=30)``:
+  parallel range downloads using one short-lived FTP connection per range to
+  ensure thread safety; concatenates the results in input order.
 """
 
 import logging
+import re
+from io import BytesIO
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Iterable as _Iterable, Tuple
 
 from ftplib import FTP, error_perm, error_temp
 
 from datavizhub.acquisition.base import DataAcquirer, NotSupportedError
+from datavizhub.acquisition.grib_utils import (
+    ensure_idx_path,
+    parse_idx_lines,
+    idx_to_byteranges as _idx_to_byteranges,
+    compute_chunks as _compute_chunks,
+    parallel_download_byteranges as _parallel_download_byteranges,
+)
 from datavizhub.utils.date_manager import DateManager
 
 
@@ -90,13 +111,16 @@ class FTPManager(DataAcquirer):
         else:
             self._set_connected(True)
 
-    def list_files(self, remote_path: Optional[str] = None) -> Optional[Iterable[str]]:
-        """List names at the given remote path.
+    def list_files(self, remote_path: Optional[str] = None, pattern: Optional[str] = None) -> Optional[Iterable[str]]:
+        """List names at the given remote path and optionally filter by regex.
 
         Parameters
         ----------
         remote_path : str, optional
             Remote directory to list. Defaults to current server directory.
+        pattern : str, optional
+            Regular expression applied to names returned by ``NLST`` (via
+            :func:`re.search`).
 
         Returns
         -------
@@ -110,6 +134,9 @@ class FTPManager(DataAcquirer):
                 logging.info("Reconnecting to FTP server for listing files.")
                 self.connect()
             files = self.ftp.nlst(directory)
+            if pattern:
+                rx = re.compile(pattern)
+                files = [f for f in files if rx.search(f)]
             return files
         except (EOFError, error_temp) as e:
             logging.error(f"Network error listing files in {directory}: {e}")
@@ -433,3 +460,203 @@ class FTPManager(DataAcquirer):
             return {"size": int(size) if size is not None else None}
         except Exception:
             return None
+
+    # ---- Advanced features: size, ranges, and GRIB helpers -----------------------------
+
+    def get_size(self, remote_path: str) -> Optional[int]:
+        """Return the size in bytes for a remote file using ``SIZE``."""
+        try:
+            if not self.ftp or not self.ftp.sock:
+                self.connect()
+            directory = ""
+            filename = remote_path
+            if "/" in remote_path:
+                directory, filename = remote_path.rsplit("/", 1)
+                if directory:
+                    self.ftp.cwd(directory)
+            size = self.ftp.size(filename)
+            return int(size) if size is not None else None
+        except Exception:
+            return None
+
+    def _download_range(self, remote_path: str, start: int, end: int, blocksize: int = 8192) -> bytes:
+        """Download a byte range using FTP ``REST``. Stops after the requested length.
+
+        Notes
+        -----
+        - Establishes a binary transfer and uses ``REST`` to seek to ``start``.
+        - Reads exactly ``end-start+1`` bytes and aborts the transfer once done.
+        """
+        if not self.ftp or not self.ftp.sock:
+            self.connect()
+        ftp = self.ftp
+        directory = ""
+        filename = remote_path
+        if "/" in remote_path:
+            directory, filename = remote_path.rsplit("/", 1)
+            if directory:
+                ftp.cwd(directory)
+        remaining = end - start + 1
+        buffer = BytesIO()
+
+        class _StopDownload(Exception):
+            pass
+
+        def _cb(chunk: bytes) -> None:
+            nonlocal remaining
+            if remaining <= 0:
+                raise _StopDownload()
+            take = min(len(chunk), remaining)
+            if take:
+                buffer.write(chunk[:take])
+                remaining -= take
+            if remaining <= 0:
+                raise _StopDownload()
+
+        try:
+            # retrbinary supports 'rest' argument for starting offset
+            ftp.retrbinary(f"RETR {filename}", _cb, blocksize=blocksize, rest=start)
+        except _StopDownload:
+            try:
+                ftp.abort()
+            except Exception:
+                pass
+        return buffer.getvalue()
+
+    def get_idx_lines(
+        self,
+        remote_path: str,
+        *,
+        write_to: Optional[str] = None,
+        timeout: int = 30,
+        max_retries: int = 3,
+    ) -> Optional[list[str]]:
+        """Fetch and parse the GRIB ``.idx`` for a remote path.
+
+        Appends ``.idx`` to ``remote_path`` unless an explicit ``.idx`` is provided.
+        """
+        idx_path = ensure_idx_path(remote_path)
+        attempts = 0
+        while attempts < max_retries:
+            try:
+                if not self.ftp or not self.ftp.sock:
+                    self.connect()
+                directory = ""
+                filename = idx_path
+                if "/" in idx_path:
+                    directory, filename = idx_path.rsplit("/", 1)
+                    if directory:
+                        self.ftp.cwd(directory)
+                buf = BytesIO()
+                self.ftp.retrbinary(f"RETR {filename}", buf.write)
+                payload = buf.getvalue()
+                break
+            except Exception:
+                attempts += 1
+                if attempts >= max_retries:
+                    return None
+        lines = parse_idx_lines(payload)
+        if write_to:
+            try:
+                with open(write_to if write_to.endswith(".idx") else f"{write_to}.idx", "w", encoding="utf8") as f:
+                    f.write("\n".join(lines))
+            except Exception:
+                pass
+        return lines
+
+    def idx_to_byteranges(self, lines: list[str], search_str: str) -> dict[str, str]:
+        return _idx_to_byteranges(lines, search_str)
+
+    def get_chunks(self, remote_path: str, chunk_size: int = 500 * 1024 * 1024) -> list[str]:
+        size = self.get_size(remote_path)
+        if size is None:
+            return []
+        return _compute_chunks(size, chunk_size)
+
+    def download_byteranges(
+        self,
+        remote_path: str,
+        byte_ranges: _Iterable[str],
+        *,
+        max_workers: int = 10,
+        timeout: int = 30,
+    ) -> bytes:
+        """Download multiple byte ranges using parallel FTP connections.
+
+        Notes
+        -----
+        - Spawns one short-lived FTP connection per range (per thread) to
+          maintain thread safety across requests; this incurs connection
+          overhead but avoids shared-socket issues in :mod:`ftplib`.
+        - Uses ``REST`` to position the transfer at the desired start byte;
+          stops reading after the requested range length. Results are
+          concatenated in the input order.
+        """
+        # Worker that uses a fresh connection to avoid thread-safety issues
+        def _worker(_remote: str, _range: str) -> bytes:
+            start_end = _range.replace("bytes=", "").split("-")
+            start = int(start_end[0]) if start_end[0] else 0
+            # If no end provided, read to EOF using single connection
+            if start_end[1]:
+                end = int(start_end[1])
+            else:
+                size = self.get_size(_remote) or 0
+                end = max(size - 1, start)
+
+            ftp = FTP(timeout=timeout)
+            ftp.connect(self.host, self.port)
+            ftp.login(user=self.username, passwd=self.password)
+            ftp.set_pasv(True)
+            # reuse the helper logic with a temporary FTP instance
+            remaining = end - start + 1
+            buffer = BytesIO()
+
+            class _StopDownload(Exception):
+                pass
+
+            def _cb(chunk: bytes) -> None:
+                nonlocal remaining
+                if remaining <= 0:
+                    raise _StopDownload()
+                take = min(len(chunk), remaining)
+                if take:
+                    buffer.write(chunk[:take])
+                    remaining -= take
+                if remaining <= 0:
+                    raise _StopDownload()
+
+            directory = ""
+            filename = _remote
+            if "/" in _remote:
+                directory, filename = _remote.rsplit("/", 1)
+                if directory:
+                    ftp.cwd(directory)
+            try:
+                ftp.retrbinary(f"RETR {filename}", _cb, rest=start)
+            except _StopDownload:
+                try:
+                    ftp.abort()
+                except Exception:
+                    pass
+            try:
+                ftp.quit()
+            except Exception:
+                pass
+            return buffer.getvalue()
+
+        from concurrent.futures import ThreadPoolExecutor
+        indexed = list(enumerate(byte_ranges))
+        if not indexed:
+            return b""
+        results: dict[int, bytes] = {}
+        with ThreadPoolExecutor(max_workers=max_workers) as ex:
+            futs = {ex.submit(_worker, remote_path, rng): i for i, rng in indexed}
+            for fut in futs:
+                pass
+            for fut in futs:
+                idx = futs[fut]
+                results[idx] = fut.result() or b""
+        buf = BytesIO()
+        for i, _rng in indexed:
+            buf.write(results.get(i, b""))
+        return buf.getvalue()
