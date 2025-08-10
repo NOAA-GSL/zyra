@@ -5,171 +5,37 @@ DataVizHub is a utility library for building data-driven visual products. It pro
 
  This README documents the library itself and shows how to compose the components. For complete runnable examples, see the examples repos when available, or adapt the snippets below.
 
-[![PyPI version](https://img.shields.io/pypi/v/datavizhub.svg)](https://pypi.org/project/datavizhub/) [![Chat with DataVizHub Helper Bot](https://img.shields.io/badge/ChatGPT-DataVizHub_Helper_Bot-00A67E?logo=openai&logoColor=white)](https://chatgpt.com/g/g-6897a3dd5a7481918a55ebe3795f7a26-datavizhub-helper-bot)
+[![PyPI version](https://img.shields.io/pypi/v/datavizhub.svg)](https://pypi.org/project/datavizhub/) [![Docs](https://img.shields.io/badge/docs-GitHub_Pages-0A7BBB)](https://noaa-gsl.github.io/datavizhub/) [![Chat with DataVizHub Helper Bot](https://img.shields.io/badge/ChatGPT-DataVizHub_Helper_Bot-00A67E?logo=openai&logoColor=white)](https://chatgpt.com/g/g-6897a3dd5a7481918a55ebe3795f7a26-datavizhub-helper-bot)
+
+## Table of Contents
+- [Overview](#overview)
+- [Features](#features)
+- [Project Structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Install (Poetry)](#install-poetry)
+- [Install (pip extras)](#install-pip-extras)
+- [Quick Composition Examples](#quick-composition-examples)
+- [Real-World Implementations](#real-world-implementations)
+- [Development, Test, Lint](#development-test-lint)
+- [Repository Guidelines](#repository-guidelines)
+- [Documentation](#documentation)
+- [Notes](#notes)
+- [License](#license)
+- [Links](#links)
 
 ## Features
-- Datatransfer: `FTPManager`, `HTTPManager`, `S3Manager`, `VimeoManager`.
-- Processing: `VideoProcessor`, `GRIBDataProcessor`.
-- Visualization: `PlotManager`, `ColormapManager` with included basemap/overlay assets in `images/`.
-- Utils: `CredentialManager`, `DateManager`, `FileUtils`, `ImageManager`, `JSONFileManager`.
-
-```mermaid
-classDiagram
-    %% === Datatransfer module ===
-    class datatransfer_VimeoManager {
-        - client_id: str
-        - client_secret: str
-        - access_token: str
-        - vimeo_client: VimeoClient
-        + __init__()
-        + upload_video()
-        + update_video()
-        + update_video_description()
-    }
-
-    class datatransfer_FTPManager {
-        - host: str
-        - username: str
-        - password: str
-        + __init__()
-        + upload_file()
-        + download_file()
-        + list_files()
-    }
-
-    class datatransfer_S3Manager {
-        - bucket_name: str
-        + __init__()
-        + upload_file()
-        + download_file()
-        + list_files()
-    }
-
-    class datatransfer_HTTPHandler {
-        + download_file()
-        + fetch_data()
-        + fetch_text()
-        + fetch_json()
-        + post_data()
-        + fetch_headers()
-    }
-
-    %% === Processing module ===
-    class processing_VideoProcessor {
-        - input_dir: str
-        - output_file: str
-        + __init__()
-        + process_videos()
-        + add_watermark()
-        + concatenate_videos()
-    }
-
-    class processing_GRIBDataProcessor {
-        - catalog_url: str
-        + __init__()
-        + list_datasets()
-        + read_grib_file()
-        + read_grib_to_numpy()
-        + load_data_from_file()
-        + process_grib_files_wgrib2()
-        + combine_into_3d_array()
-    }
-
-    %% === Utils module ===
-    class utils_DateManager {
-        - date_format: str
-        + __init__()
-        + parse_iso_period()
-        + convert_yyyymmdd_to_yyjjj()
-        + get_date_range()
-        + extract_date_time()
-        + is_date_in_range()
-        + extract_dates_from_filenames()
-    }
-
-    class utils_CredentialManager {
-        - filename: str
-        + __init__()
-        + read_credentials()
-        + add_credential()
-        + delete_credential()
-        + clear_credentials()
-        + __enter__()
-        + __exit__()
-    }
-
-    class utils_ImageManager {
-        - image_dir: str
-        + __init__()
-        + resize_image()
-        + convert_image_format()
-        + optimize_image()
-    }
-
-    class utils_JSONFileManager {
-        - json_file: str
-        + __init__()
-        + read_json()
-        + write_json()
-        + update_json()
-    }
-
-    class utils_FileUtils {
-        + __init__()
-        + remove_all_files_in_directory()
-    }
-
-    %% === Visualization module ===
-    class visualization_PlotManager {
-        - basemap: str
-        - overlay: str
-        - image_extent: list
-        - base_cmap: str
-        + __init__()
-        + sos_plot_data()
-        + plot_data_array()
-    }
-
-    class visualization_ColormapManager {
-        + __init__()
-        + create_custom_classified_cmap()
-        + create_custom_cmap()
-    }
-
-    %% === Tests module ===
-    class tests_test_unit_credential_manager {
-        + test_initialization_without_filename()
-        + test_initialization_with_filename()
-        + test_read_valid_credentials()
-        + test_read_nonexistent_file()
-        + test_add_credential()
-        + test_delete_credential()
-        + test_context_manager()
-        + test_clear_credentials()
-    }
-
-    %% === Relationships ===
-    datatransfer_VimeoManager --> VimeoClient : "uses"
-    datatransfer_FTPManager --> datatransfer_HTTPHandler : "connects"
-    datatransfer_S3Manager --> datatransfer_HTTPHandler : "connects"
-
-    processing_VideoProcessor --> utils_ImageManager : "manages"
-    processing_GRIBDataProcessor --> utils_JSONFileManager : "stores data"
-
-    utils_CredentialManager ..|> utils_FileUtils : "inherits"
-    tests_test_unit_credential_manager ..|> utils_CredentialManager
-    tests_test_unit_credential_manager --> utils_CredentialManager : "tests"
-```
+- [Acquisition](#acquisition-layer): `DataAcquirer`, `FTPManager`, `HTTPHandler`, `S3Manager`, `VimeoManager` (in `datavizhub.acquisition`).
+- [Processing](#processing-layer): `DataProcessor`, `VideoProcessor`, `GRIBDataProcessor` (in `datavizhub.processing`).
+- [Utilities](#utilities): `CredentialManager`, `DateManager`, `FileUtils`, `ImageManager`, `JSONFileManager` (in `datavizhub.utils`).
+- Visualization: `PlotManager`, `ColormapManager` with included basemap/overlay assets in `images/`).
 
 
 ## Project Structure
-- `datatransfer/`: I/O helpers (S3, FTP, HTTP, Vimeo).
+- `acquisition/`: I/O helpers (S3, FTP, HTTP, Vimeo).
 - `processing/`: data/video processing (GRIB/NetCDF, FFmpeg-based video).
 - `visualization/`: plotting utilities and colormaps.
 - `utils/`: shared helpers (dates, files, images, credentials).
-- `images/`: basemaps and overlays used by plots.
-- `samples/`: lightweight scripts; moving to external repos.
-- `pols.py`: example pollen plot (reads NetCDF from `/data/temp/pollen/`).
+- `assets/images/`: packaged basemaps and overlays used by plots.
 
 ## Prerequisites
 - Python 3.10+
@@ -199,47 +65,182 @@ Notes:
 
 ## Quick Composition Examples
 
+## Acquisition Layer
+
+The `datavizhub.acquisition` package standardizes data source integrations under a common `DataAcquirer` interface.
+
+- DataAcquirer: abstract base with `connect()`, `fetch(remote, local=None)`, `list_files(remote=None)`, `upload(local, remote)`, `disconnect()`.
+- Helpers: context manager support (`with` auto-connect/disconnect), `fetch_many()` batch helper, and utility methods for path handling and simple retries.
+- Managers: `FTPManager`, `HTTPHandler`, `S3Manager`, `VimeoManager` expose consistent behavior and capability flags.
+  - Capabilities: each manager advertises a `CAPABILITIES` set, e.g. `{'fetch','upload','list'}` for FTP/S3.
+  - Unsupported ops raise `NotSupportedError` (e.g., `HTTPHandler.upload`).
+
+Examples:
+
+```
+from datavizhub.acquisition.ftp_manager import FTPManager
+
+with FTPManager(host="ftp.example.com") as ftp:
+    ftp.fetch("/pub/file.txt", "file.txt")
+
+from datavizhub.acquisition.s3_manager import S3Manager
+s3 = S3Manager(access_key, secret_key, "my-bucket")
+s3.connect()
+s3.upload("local.nc", "path/object.nc")
+s3.disconnect()
+```
+
+## Processing Layer
+
+The `datavizhub.processing` package standardizes processors under a common `DataProcessor` interface.
+
+- DataProcessor: abstract base with `load(input_source)`, `process(**kwargs)`, `save(output_path=None)`, and optional `validate()`.
+- Processors: `VideoProcessor` (image sequences → video via FFmpeg), `GRIBDataProcessor` (GRIB files → NumPy arrays + utilities).
+- Notes: `VideoProcessor` requires system `ffmpeg` and `ffprobe` on PATH; GRIB utilities rely on `pygrib`, `siphon`, and `scipy` where used.
+
+Examples:
+
+```
+# Video: compile image frames into a video
+from datavizhub.processing.video_processor import VideoProcessor
+
+vp = VideoProcessor(input_directory="./frames", output_file="./out/movie.mp4")
+vp.load("./frames")
+if vp.validate():
+    vp.process()
+    vp.save("./out/movie.mp4")
+```
+
+```
+# GRIB: read a GRIB file to arrays and dates
+from datavizhub.processing.grib_data_processor import GRIBDataProcessor
+
+gp = GRIBDataProcessor()
+data_list, dates = gp.process(grib_file_path="/path/to/file.grib2", shift_180=True)
+```
+
+## Utilities
+
+The `datavizhub.utils` package provides shared helpers for credentials, dates, files, images, and small JSON configs.
+
+- CredentialManager: read/manage dotenv-style secrets without exporting globally.
+- DateManager: parse timestamps in filenames, compute date ranges, and reason about frame cadences.
+- FileUtils: simple file/directory helpers like `remove_all_files_in_directory`.
+- ImageManager: basic image inspection and change detection.
+- JSONFileManager: read/update/write simple JSON files.
+
+Examples:
+
+```
+# Credentials
+from datavizhub.utils import CredentialManager
+
+with CredentialManager(".env", namespace="MYAPP_") as cm:
+    cm.read_credentials(expected_keys=["API_KEY"])  # expects MYAPP_API_KEY
+    token = cm.get_credential("API_KEY")
+```
+
+```
+# Dates
+from datavizhub.utils import DateManager
+
+dm = DateManager(["%Y%m%d"])
+start, end = dm.get_date_range("7D")
+print(dm.is_date_in_range("frame_20240102.png", start, end))
+```
+
+Capabilities and batch fetching:
+
+```
+from datavizhub.acquisition import DataAcquirer
+from datavizhub.acquisition.ftp_manager import FTPManager
+
+acq: DataAcquirer = FTPManager("ftp.example.com")
+print(acq.capabilities)  # e.g., {'fetch','upload','list'}
+
+with acq:
+    results = acq.fetch_many(["/pub/a.txt", "/pub/b.txt"], dest_dir="downloads")
+    for remote, ok in results:
+        print(remote, ok)
+```
+
+
 Minimal pipeline: build video from images and upload to S3
 
 ```python
 from datavizhub.processing import VideoProcessor
-from datavizhub.datatransfer import S3Manager
+from datavizhub.acquisition.s3_manager import S3Manager
 
-vp = VideoProcessor(input_dir="/data/images", output_file="/data/out/movie.mp4")
-vp.process_videos(fps=24)
+vp = VideoProcessor(input_directory="/data/images", output_file="/data/out/movie.mp4")
+vp.load("/data/images")
+if vp.validate():
+    vp.process()
+    vp.save("/data/out/movie.mp4")
 
-s3 = S3Manager(bucket_name="my-bucket")
-s3.upload_file("/data/out/movie.mp4", key="videos/movie.mp4", acl="public-read")
+s3 = S3Manager("ACCESS_KEY", "SECRET_KEY", "my-bucket")
+s3.connect()
+s3.upload("/data/out/movie.mp4", "videos/movie.mp4")
+s3.disconnect()
 ```
+
+## Visualization Layer
 
 Plot a data array with a basemap
 
-```python
+```
 import numpy as np
-from datavizhub.visualization import PlotManager
+from importlib.resources import files, as_file
+from datavizhub.visualization import PlotManager, ColormapManager
 
+# Example data
 data = np.random.rand(180, 360)
-plotter = PlotManager(basemap="earth_vegetation.jpg", overlay=None, image_extent=[-180, 180, -90, 90])
-plotter.plot_data_array(data, output_path="/tmp/heatmap.png", title="Demo")
+
+# Locate packaged basemap asset
+resource = files("datavizhub.assets").joinpath("images/earth_vegetation.jpg")
+with as_file(resource) as p:
+    basemap_path = str(p)
+
+    # Prepare colormap (continuous)
+    cm = ColormapManager()
+    cmap = cm.render("YlOrBr")
+
+    # Render and save
+    plotter = PlotManager(basemap=basemap_path, image_extent=[-180, 180, -90, 90])
+    plotter.render(data, custom_cmap=cmap)
+    plotter.save("/tmp/heatmap.png")
 ```
 
-Compose FTP sync + video + Vimeo update
+Classified colormap example (optional):
+
+```
+colormap_data = [
+    {"Color": [255, 255, 229, 0], "Upper Bound": 5e-07},
+    {"Color": [255, 250, 205, 51], "Upper Bound": 1e-06},
+]
+cmap, norm = ColormapManager().render(colormap_data)
+plotter.render(data, custom_cmap=cmap, norm=norm)
+plotter.save("/tmp/heatmap_classified.png")
+```
+
+Compose FTP fetch + video + Vimeo upload
 
 ```python
-from datavizhub.datatransfer import FTPManager, VimeoManager
+from datavizhub.acquisition.ftp_manager import FTPManager
+from datavizhub.acquisition.vimeo_manager import VimeoManager
 from datavizhub.processing import VideoProcessor
 
-ftp = FTPManager(host="public.sos.noaa.gov", username="anonymous", password="")
-ftp.download_file(remote_path="/pub/images/img_0001.png", local_path="/tmp/frames/img_0001.png")
+ftp = FTPManager(host="ftp.example.com", username="anonymous", password="test@test.com")
+ftp.connect()
+ftp.fetch("/pub/images/img_0001.png", "/tmp/frames/img_0001.png")
 # ...download the rest of the frames as needed...
 
 VideoProcessor("/tmp/frames", "/tmp/out.mp4").process_videos(fps=30)
 
 vimeo = VimeoManager(client_id="...", client_secret="...", access_token="...")
-vimeo.upload_video("/tmp/out.mp4", name="Latest Render")
+vimeo.upload_video("/tmp/out.mp4", "Latest Render")
 ```
 
-## Examples
+## Real-World Implementations
 - `rtvideo` real-time video pipeline: https://gitlab.sos.noaa.gov/science-on-a-sphere/datasets/real-time-video
 
 ## Development, Test, Lint
@@ -252,15 +253,32 @@ vimeo.upload_video("/tmp/out.mp4", name="Latest Render")
 
 ## Documentation
 - Primary: Project wiki at https://github.com/NOAA-GSL/datavizhub/wiki
-- Dev container: A read-only mirror of the wiki is auto-cloned into `/app/docs` when the dev container starts. It auto-refreshes at most once per hour. This folder is ignored by Git and is not part of the repository on GitHub.
+- API docs (GitHub Pages): https://noaa-gsl.github.io/datavizhub/
+- Dev container: A read-only mirror of the wiki is auto-cloned into `/app/wiki` when the dev container starts. It auto-refreshes at most once per hour. This folder is ignored by Git and is not part of the repository on GitHub.
 - Force refresh: `bash .devcontainer/postStart.sh --force` (or set `DOCS_REFRESH_SECONDS` to adjust the hourly cadence).
 - Note: There is no `docs/` directory in the main repo. If you are not using the dev container, read the wiki directly.
 
 ## Notes
-- Paths: many scripts assume data under `/data/...`; prefer configuring via env vars (e.g., `DATA_DIR`) or parameters.
+- Paths: examples use absolute paths (e.g., `/data/...`) for clarity, but the library does not assume a specific root; configure paths via your own settings or env vars if preferred.
 - Credentials: do not commit secrets; AWS and Vimeo creds should come from env or secure stores used by `CredentialManager`.
 - Dependencies: video flows require system `ffmpeg`/`ffprobe`.
  - Optional extras: see "Install (pip extras)" for targeted installs.
+
+CAPABILITIES vs. FEATURES:
+- Acquisition managers expose `capabilities` (remote I/O actions), e.g. `{'fetch','upload','list'}` for S3/FTP; `{'fetch'}` for HTTP; `{'upload'}` for Vimeo.
+- Processors expose `features` (lifecycle hooks), e.g. `{'load','process','save','validate'}` for `VideoProcessor` and `GRIBDataProcessor`.
+
+Examples:
+```
+from datavizhub.acquisition.s3_manager import S3Manager
+from datavizhub.processing.video_processor import VideoProcessor
+
+s3 = S3Manager("AKIA...", "SECRET...", "my-bucket"); s3.connect()
+print(s3.capabilities)  # {'fetch','upload','list'}
+
+vp = VideoProcessor("./frames", "./out.mp4")
+print(vp.features)      # {'load','process','save','validate'}
+```
 
 ## License
 Distributed under the MIT License. See [LICENSE](LICENSE).

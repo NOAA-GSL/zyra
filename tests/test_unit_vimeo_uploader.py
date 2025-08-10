@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 import pytest
-from datavizhub.datatransfer.VimeoManager import VimeoManager
+from datavizhub.acquisition.vimeo_manager import VimeoManager
 
 
 @pytest.fixture()

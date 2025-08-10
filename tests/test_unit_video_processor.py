@@ -1,7 +1,7 @@
 from unittest.mock import Mock
 
 import pytest
-from datavizhub.processing.VideoProcessor import VideoProcessor
+from datavizhub.processing.video_processor import VideoProcessor
 
 
 @pytest.fixture()

@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import pytest
-from datavizhub.utils.DateManager import DateManager
+from datavizhub.utils.date_manager import DateManager
 from dateutil.relativedelta import relativedelta
 
 

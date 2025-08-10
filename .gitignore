@@ -76,9 +76,10 @@ cover/
 
 # Sphinx documentation
 docs/_build/
+docs/build/
 
 # Local wiki mirror (devcontainer-only docs)
-/docs/
+/app/wiki/
 
 # PyBuilder
 .pybuilder/

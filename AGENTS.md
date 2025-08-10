@@ -1,25 +1,24 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- `datatransfer/`: I/O helpers (e.g., `S3Manager.py`, `HTTPManager.py`).
-- `processing/`: data/video processing (e.g., `GRIBDataProcessor.py`, `VideoProcessor.py`).
-- `visualization/`: plotting utilities (e.g., `PlotManager.py`, `ColormapManager.py`).
-- `utils/`: shared helpers (dates, files, images, credentials).
-- `samples/`: runnable examples and small utilities.
-- `images/`: basemaps and overlays used by plots.
-- `pols.py`: example script for pollen plots (reads NetCDF from `/data/temp/pollen/`).
+- `acquisition/`: I/O helpers unified under `base.DataAcquirer` (e.g., `ftp_manager.py`, `http_manager.py`, `s3_manager.py`, `vimeo_manager.py`).
+- `processing/`: processors unified under `base.DataProcessor` (e.g., `grib_data_processor.py`, `video_processor.py`).
+- `visualization/`: renderers unified under `base.Renderer` (e.g., `plot_manager.py`, `colormap_manager.py`).
+- `utils/`: shared helpers (e.g., `credential_manager.py`, `date_manager.py`, `file_utils.py`, `image_manager.py`, `json_file_manager.py`).
+- `assets/`: static resources packaged with the library (e.g., `assets/images/` for basemaps/overlays); prefer `importlib.resources` to resolve paths at runtime.
+- `samples/`: runnable examples and small utilities (optional, not always present).
 
 ## Build, Test, and Development Commands
 - Install with Poetry (core): `poetry install --with dev` (creates the venv).
 - Opt-in extras locally as needed, e.g.: `poetry install --with dev -E datatransfer -E processing -E visualization` or `--all-extras`.
-- Spawn shell: `poetry shell`; run once-off: `poetry run python pols.py`.
-- Run samples: `poetry run python samples/global_smoke.py` (ensure data paths exist).
+- Spawn shell: `poetry shell`.
+- Run a script or module: `poetry run python path/to/your_script.py` or `poetry run python -m your.module`.
 - Lint/format (if added): `poetry run black . && poetry run isort . && poetry run flake8`.
 - FFmpeg-required flows: ensure `ffmpeg` and `ffprobe` are installed on the system.
 
 ## Coding Style & Naming Conventions
 - Indentation: 4 spaces; UTF-8; Unix newlines.
-- Filenames: follow existing pattern (e.g., `XyzManager.py`), classes in `PascalCase`.
+- Filenames: `snake_case` (e.g., `ftp_manager.py`, `plot_manager.py`), classes in `PascalCase` (e.g., `FTPManager`, `PlotManager`).
 - Functions/variables: `snake_case`; constants: `UPPER_CASE`.
 - Imports: standard lib, third-party, local (separated groups).
 - Formatting: run `black .` and `isort .`; lint with `flake8` before opening PRs.
@@ -37,8 +36,9 @@
 - Checks: pass lint/format; run sample scripts touched by the change.
 
 ## Security & Configuration Tips
-- Credentials: never commit secrets. For AWS, prefer IAM roles or env vars consumed by `S3Manager`.
-- Paths: scripts may assume data under `/data/...`; make paths configurable via env (e.g., `DATA_DIR`).
+- Credentials: never commit secrets. For AWS, prefer IAM roles or env vars consumed by `S3Manager` (`datavizhub.acquisition.s3_manager`).
+- Paths: avoid hard-coded absolute paths; make paths configurable via env (e.g., `DATA_DIR`).
+- Assets: packaged resources live under `datavizhub.assets`; use `importlib.resources` to resolve paths (works in wheels/sdists).
 - Dependencies: pin if adding new requirements; document any system deps (e.g., FFmpeg, PROJ/GEOS for Cartopy).
 
 ## Dependency Management (Poetry)
@@ -52,4 +52,4 @@ Dev container:
 
 ## Documentation Sources
 - Wiki: https://github.com/NOAA-GSL/datavizhub/wiki (authoritative documentation for humans and AIs).
-- Dev container mirror: `/app/docs` contains an auto-cloned snapshot of the wiki for offline/context use. It auto-refreshes at most once per hour on container start. Force refresh with `bash .devcontainer/postStart.sh --force`. This folder is ignored by Git and is not part of the main repository—do not commit its contents.
+- Dev container mirror: `/app/wiki` contains an auto-cloned snapshot of the wiki for offline/context use. It auto-refreshes at most once per hour on container start. Force refresh with `bash .devcontainer/postStart.sh --force`. This folder is ignored by Git and is not part of the main repository—do not commit its contents.

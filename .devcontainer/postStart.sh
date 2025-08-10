@@ -19,14 +19,15 @@ if [[ ! -f .env && -f .devcontainer/.env ]]; then
 fi
 
 WIKI_URL="https://github.com/NOAA-GSL/datavizhub.wiki.git"
-DOCS_DIR="docs"
+# Mirror the wiki under /app/wiki to avoid clashing with Sphinx docs in /app/docs
+DOCS_DIR="app/wiki"
 META_FILE="$DOCS_DIR/.mirror_meta"
 
 now_epoch() { date +%s; }
 
 should_update=0
 if [[ ! -d "$DOCS_DIR" ]]; then
-  echo "[postStart] /app/docs missing; will clone wiki"
+  echo "[postStart] /app/wiki missing; will clone wiki"
   should_update=1
 else
   if [[ $FORCE_UPDATE -eq 1 ]]; then
@@ -61,13 +62,12 @@ if [[ $should_update -eq 1 ]]; then
     echo "last_sync_epoch=$(now_epoch)" >> "$tmp_dir/.mirror_meta"
     rm -rf "$DOCS_DIR"
     mv "$tmp_dir" "$DOCS_DIR"
-    echo "[postStart] Wiki synced to /app/docs"
+    echo "[postStart] Wiki synced to /app/wiki"
   else
-    echo "[postStart] WARN: Wiki clone failed; leaving existing /app/docs in place" >&2
+    echo "[postStart] WARN: Wiki clone failed; leaving existing /app/wiki in place" >&2
     rm -rf "$tmp_dir"
   fi
   set -e
 fi
 
 exit 0
-
