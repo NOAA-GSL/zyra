@@ -58,4 +58,4 @@ def remove_all_files_in_directory(directory: str) -> None:
             elif path.is_dir():
                 shutil.rmtree(path)
         except Exception as e:
-            logging.error(f"Failed to delete %s. Reason: %s", path, e)
+            logging.error("Failed to delete %s. Reason: %s", path, e)
