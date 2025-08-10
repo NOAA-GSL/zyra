@@ -219,20 +219,23 @@ class VideoProcessor(DataProcessor):
                     return False
                 num = float(num_s)
                 den = float(den_s)
-                frame_rate = round(num / den)
+                frame_rate = float(num) / float(den)
             else:
-                frame_rate = int(float(frame_rate_str))
+                frame_rate = float(frame_rate_str)
         except ValueError:
             logging.error(f"Unable to parse frame rate: {frame_rate_str}")
             return False
+        # Tolerance-based frame rate validation
+        tolerance = 0.05
+        valid_frame_rates_float = [float(fps) for fps in valid_frame_rates]
         if codec not in valid_codecs:
             logging.error(f"Invalid codec: {codec}")
             return False
         if resolution not in valid_resolutions:
             logging.error(f"Invalid resolution: {resolution}")
             return False
-        if str(frame_rate) not in valid_frame_rates:
-            logging.error(f"Invalid frame rate: {frame_rate}")
+        if not any(abs(frame_rate - valid_fps) <= tolerance for valid_fps in valid_frame_rates_float):
+            logging.error(f"Invalid frame rate: {frame_rate} (expected one of {valid_frame_rates})")
             return False
         logging.info(f"{video_file} is a valid video file")
         return True
