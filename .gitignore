@@ -78,8 +78,9 @@ cover/
 docs/_build/
 docs/build/
 
-# Local wiki mirror (devcontainer-only docs)
-/app/wiki/
+# Wiki documentation in dev container (used as context)
+wiki/
+app/wiki/
 
 # PyBuilder
 .pybuilder/

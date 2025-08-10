@@ -18,6 +18,5 @@ External Wiki
 For human-authored guidance, design notes, and usage guides, see the project
 wiki (cloned into the dev container):
 
-- Local mirror: ``../app/wiki/``
+- Local mirror: ``/wiki/``
 - Online: https://github.com/NOAA-GSL/datavizhub/wiki
-
