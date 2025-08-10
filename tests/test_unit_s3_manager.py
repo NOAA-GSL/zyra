@@ -2,7 +2,6 @@ from unittest.mock import patch
 
 import pytest
 from datavizhub.acquisition.s3_manager import S3Manager
-from botocore.exceptions import ClientError
 
 
 @pytest.fixture()
@@ -43,6 +42,8 @@ def test_download_file(s3_manager):
 
 def test_exists_delete_stat(s3_manager):
     """Test exists/delete/stat on S3Manager using mocked boto3 client."""
+    from botocore.exceptions import ClientError
+
     manager, mock_boto3_client = s3_manager
     client = mock_boto3_client.return_value
 

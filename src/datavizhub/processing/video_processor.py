@@ -209,8 +209,15 @@ class VideoProcessor(DataProcessor):
         try:
             if "/" in frame_rate_str:
                 num_s, den_s = frame_rate_str.split("/", 1)
+                # Avoid converting a zero denominator; treat as invalid
+                if den_s.strip() in {"0", "0.0"}:
+                    logging.error("Frame rate reports zero denominator: %s", frame_rate_str)
+                    return False
                 num = float(num_s)
-                den = float(den_s) if float(den_s) != 0 else 1.0
+                den = float(den_s)
+                if den == 0.0:
+                    logging.error("Frame rate denominator parsed as zero: %s", frame_rate_str)
+                    return False
                 frame_rate = round(num / den)
             else:
                 frame_rate = int(float(frame_rate_str))
