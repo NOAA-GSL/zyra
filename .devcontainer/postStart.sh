@@ -26,7 +26,7 @@ now_epoch() { date +%s; }
 
 should_update=0
 if [[ ! -d "$DOCS_DIR" ]]; then
-  echo "[postStart] /app/docs missing; will clone wiki"
+  echo "[postStart] ${DOCS_DIR} missing; will clone wiki"
   should_update=1
 else
   if [[ $FORCE_UPDATE -eq 1 ]]; then
