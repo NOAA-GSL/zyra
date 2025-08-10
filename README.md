@@ -26,8 +26,8 @@ DataVizHub is a utility library for building data-driven visual products. It pro
 ## Features
 - [Acquisition](#acquisition-layer): `DataAcquirer`, `FTPManager`, `HTTPHandler`, `S3Manager`, `VimeoManager` (in `datavizhub.acquisition`).
 - [Processing](#processing-layer): `DataProcessor`, `VideoProcessor`, `GRIBDataProcessor` (in `datavizhub.processing`).
+- [Visualization](#visualization-layer): `PlotManager`, `ColormapManager` (with included basemap/overlay assets in `datavizhub.assets`).
 - [Utilities](#utilities): `CredentialManager`, `DateManager`, `FileUtils`, `ImageManager`, `JSONFileManager` (in `datavizhub.utils`).
-- Visualization: `PlotManager`, `ColormapManager` with included basemap/overlay assets in `images/`).
 
 
 ## Project Structure
@@ -119,6 +119,64 @@ gp = GRIBDataProcessor()
 data_list, dates = gp.process(grib_file_path="/path/to/file.grib2", shift_180=True)
 ```
 
+
+## Visualization Layer
+
+Plot a data array with a basemap
+
+```
+import numpy as np
+from importlib.resources import files, as_file
+from datavizhub.visualization import PlotManager, ColormapManager
+
+# Example data
+data = np.random.rand(180, 360)
+
+# Locate packaged basemap asset
+resource = files("datavizhub.assets").joinpath("images/earth_vegetation.jpg")
+with as_file(resource) as p:
+    basemap_path = str(p)
+
+    # Prepare colormap (continuous)
+    cm = ColormapManager()
+    cmap = cm.render("YlOrBr")
+
+    # Render and save
+    plotter = PlotManager(basemap=basemap_path, image_extent=[-180, 180, -90, 90])
+    plotter.render(data, custom_cmap=cmap)
+    plotter.save("/tmp/heatmap.png")
+```
+
+Classified colormap example (optional):
+
+```
+colormap_data = [
+    {"Color": [255, 255, 229, 0], "Upper Bound": 5e-07},
+    {"Color": [255, 250, 205, 51], "Upper Bound": 1e-06},
+]
+cmap, norm = ColormapManager().render(colormap_data)
+plotter.render(data, custom_cmap=cmap, norm=norm)
+plotter.save("/tmp/heatmap_classified.png")
+```
+
+Compose FTP fetch + video + Vimeo upload
+
+```python
+from datavizhub.acquisition.ftp_manager import FTPManager
+from datavizhub.acquisition.vimeo_manager import VimeoManager
+from datavizhub.processing import VideoProcessor
+
+ftp = FTPManager(host="ftp.example.com", username="anonymous", password="test@test.com")
+ftp.connect()
+ftp.fetch("/pub/images/img_0001.png", "/tmp/frames/img_0001.png")
+# ...download the rest of the frames as needed...
+
+VideoProcessor("/tmp/frames", "/tmp/out.mp4").process_videos(fps=30)
+
+vimeo = VimeoManager(client_id="...", client_secret="...", access_token="...")
+vimeo.upload_video("/tmp/out.mp4", "Latest Render")
+```
+
 ## Utilities
 
 The `datavizhub.utils` package provides shared helpers for credentials, dates, files, images, and small JSON configs.
@@ -183,63 +241,6 @@ s3.upload("/data/out/movie.mp4", "videos/movie.mp4")
 s3.disconnect()
 ```
 
-## Visualization Layer
-
-Plot a data array with a basemap
-
-```
-import numpy as np
-from importlib.resources import files, as_file
-from datavizhub.visualization import PlotManager, ColormapManager
-
-# Example data
-data = np.random.rand(180, 360)
-
-# Locate packaged basemap asset
-resource = files("datavizhub.assets").joinpath("images/earth_vegetation.jpg")
-with as_file(resource) as p:
-    basemap_path = str(p)
-
-    # Prepare colormap (continuous)
-    cm = ColormapManager()
-    cmap = cm.render("YlOrBr")
-
-    # Render and save
-    plotter = PlotManager(basemap=basemap_path, image_extent=[-180, 180, -90, 90])
-    plotter.render(data, custom_cmap=cmap)
-    plotter.save("/tmp/heatmap.png")
-```
-
-Classified colormap example (optional):
-
-```
-colormap_data = [
-    {"Color": [255, 255, 229, 0], "Upper Bound": 5e-07},
-    {"Color": [255, 250, 205, 51], "Upper Bound": 1e-06},
-]
-cmap, norm = ColormapManager().render(colormap_data)
-plotter.render(data, custom_cmap=cmap, norm=norm)
-plotter.save("/tmp/heatmap_classified.png")
-```
-
-Compose FTP fetch + video + Vimeo upload
-
-```python
-from datavizhub.acquisition.ftp_manager import FTPManager
-from datavizhub.acquisition.vimeo_manager import VimeoManager
-from datavizhub.processing import VideoProcessor
-
-ftp = FTPManager(host="ftp.example.com", username="anonymous", password="test@test.com")
-ftp.connect()
-ftp.fetch("/pub/images/img_0001.png", "/tmp/frames/img_0001.png")
-# ...download the rest of the frames as needed...
-
-VideoProcessor("/tmp/frames", "/tmp/out.mp4").process_videos(fps=30)
-
-vimeo = VimeoManager(client_id="...", client_secret="...", access_token="...")
-vimeo.upload_video("/tmp/out.mp4", "Latest Render")
-```
-
 ## Real-World Implementations
 - `rtvideo` real-time video pipeline: https://gitlab.sos.noaa.gov/science-on-a-sphere/datasets/real-time-video
 
@@ -254,7 +255,7 @@ vimeo.upload_video("/tmp/out.mp4", "Latest Render")
 ## Documentation
 - Primary: Project wiki at https://github.com/NOAA-GSL/datavizhub/wiki
 - API docs (GitHub Pages): https://noaa-gsl.github.io/datavizhub/
-- Dev container: A read-only mirror of the wiki is auto-cloned into `/app/wiki` when the dev container starts. It auto-refreshes at most once per hour. This folder is ignored by Git and is not part of the repository on GitHub.
+- Dev container: A read-only mirror of the wiki is auto-cloned into `/wiki` when the dev container starts. It auto-refreshes at most once per hour. This folder is ignored by Git and is not part of the repository on GitHub.
 - Force refresh: `bash .devcontainer/postStart.sh --force` (or set `DOCS_REFRESH_SECONDS` to adjust the hourly cadence).
 - Note: There is no `docs/` directory in the main repo. If you are not using the dev container, read the wiki directly.
 

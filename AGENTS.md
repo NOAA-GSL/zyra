@@ -52,4 +52,4 @@ Dev container:
 
 ## Documentation Sources
 - Wiki: https://github.com/NOAA-GSL/datavizhub/wiki (authoritative documentation for humans and AIs).
-- Dev container mirror: `/app/wiki` contains an auto-cloned snapshot of the wiki for offline/context use. It auto-refreshes at most once per hour on container start. Force refresh with `bash .devcontainer/postStart.sh --force`. This folder is ignored by Git and is not part of the main repository—do not commit its contents.
+- Dev container mirror: `/wiki` contains an auto-cloned snapshot of the wiki for offline/context use. It auto-refreshes at most once per hour on container start. Force refresh with `bash .devcontainer/postStart.sh --force`. This folder lives outside the repo and is not part of the main repository—do not commit its contents.
