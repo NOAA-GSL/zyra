@@ -89,10 +89,11 @@ def grib_decode(data: bytes, backend: str = "cfgrib") -> DecodedGRIB:
                 )
                 return DecodedGRIB(backend="cfgrib", dataset=ds, path=temp_path)
             except ModuleNotFoundError as exc:  # pragma: no cover - optional dep
-                # User explicitly requested cfgrib but xarray is missing
+                # User explicitly requested cfgrib but xarray/cfgrib are missing
                 raise RuntimeError(
                     "cfgrib backend requested but xarray/cfgrib are not available. "
-                    "Install the processing extras (e.g., 'pip install datavizhub[processing]') or choose a different backend."
+                    "Install the focused GRIB2 extras (e.g., 'pip install datavizhub[grib2]' or 'poetry install -E grib2'), "
+                    "or choose a different backend (pygrib or wgrib2)."
                 ) from exc
             except Exception as exc:  # pragma: no cover - backend optional
                 # If cfgrib fails for other reasons, proceed to try pygrib and then wgrib2 in sequence
