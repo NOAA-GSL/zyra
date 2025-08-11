@@ -27,7 +27,6 @@ import boto3
 from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError
 
 from botocore import config as _botocore_config
-from botocore.handlers import disable_signing as _disable_signing  # pragma: no cover - reference
 
 from datavizhub.acquisition.base import DataAcquirer
 from datavizhub.acquisition.grib_utils import (
