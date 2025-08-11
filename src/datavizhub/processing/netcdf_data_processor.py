@@ -44,11 +44,11 @@ def load_netcdf(path_or_bytes: Union[str, bytes]) -> Any:
         else:
             path = str(path_or_bytes)
         ds = xr.open_dataset(path)
-        return ds
+        return ds, tmp_path
     except Exception as exc:
         raise RuntimeError(f"Failed to open NetCDF: {exc}") from exc
     finally:
-        # Keep file for dataset to access; caller should close and remove if needed.
+        # If a temporary file was created, caller is responsible for cleanup after closing the dataset.
         pass
 
 
