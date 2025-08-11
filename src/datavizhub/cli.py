@@ -187,6 +187,18 @@ def cmd_extract_variable(args: argparse.Namespace) -> int:
 
 
 def cmd_convert_format(args: argparse.Namespace) -> int:
+    """Convert decoded data to a requested format.
+
+    Notes on NetCDF pass-through:
+    - When the input stream is already NetCDF and the requested format is also
+      NetCDF, and no variable selection ("--var") is provided, this command
+      performs a byte-for-byte pass-through without decoding. This skips any
+      validation of dataset contents.
+    - If users expect validation or modification (e.g., selecting a variable
+      or transforming coordinates), they must request a variable extraction or
+      a conversion that decodes the data (e.g., specify "--var" or convert to
+      another format).
+    """
     from datavizhub.processing import grib_decode
     from datavizhub.processing.grib_utils import convert_to_format, DecodedGRIB
 
@@ -194,6 +206,21 @@ def cmd_convert_format(args: argparse.Namespace) -> int:
         raise SystemExit("--output or --stdout is required for convert-format")
 
     data = _read_bytes(args.file_or_url, idx_pattern=args.pattern, unsigned=args.unsigned)
+
+    # Fast-path: if input is already NetCDF and requested format is NetCDF with no var selection,
+    # just pass bytes through. This avoids optional xarray dependency for a no-op conversion and
+    # intentionally skips validation. Use --var or another conversion to force decoding/validation.
+    if (
+        args.format == "netcdf"
+        and args.var is None
+        and (data.startswith(b"\x89HDF\r\n\x1a\n") or data.startswith(b"CDF"))
+    ):
+        if args.stdout:
+            sys.stdout.buffer.write(data)
+        else:
+            Path(args.output).write_bytes(data)
+            print(f"Wrote {args.output}")
+        return 0
 
     # Detect input type: GRIB2 vs NetCDF (classic CDF or HDF5-based NetCDF4)
     decoded = None
