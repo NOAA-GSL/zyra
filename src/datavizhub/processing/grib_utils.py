@@ -253,6 +253,21 @@ def convert_to_format(
     """
     ftype = (format_type or "").lower()
 
+    # Early NetCDF passthrough for environments without xarray/netcdf4
+    # If the on-disk file is already NetCDF (classic CDF or HDF5-based NetCDF4)
+    # and the requested format is NetCDF with no variable selection, return
+    # the bytes directly without decoding.
+    if ftype == "netcdf" and decoded.path and not var:
+        try:
+            with open(decoded.path, "rb") as _f:
+                _head = _f.read(4)
+            if _head.startswith(b"CDF") or _head.startswith(b"\x89HDF"):
+                with open(decoded.path, "rb") as _f:
+                    return _f.read()
+        except Exception:
+            # If detection fails, continue with backend-specific handling
+            pass
+
     if decoded.backend == "cfgrib" and decoded.dataset is not None:
         ds = decoded.dataset
         obj: Any = ds
@@ -346,20 +361,6 @@ def convert_to_format(
                     pass
 
     # Fallbacks for non-xarray backends
-    # Special-case: if the on-disk path actually contains NetCDF bytes, allow
-    # direct passthrough when the requested format is NetCDF and no xarray
-    # dataset is available (e.g., when upstream detection misclassified input).
-    if ftype == "netcdf" and decoded.path:
-        try:
-            with open(decoded.path, "rb") as _f:
-                _head = _f.read(8)
-            if _head.startswith(b"\x89HDF\r\n\x1a\n") or _head.startswith(b"CDF"):
-                # Input is already NetCDF; return bytes as-is
-                with open(decoded.path, "rb") as _f:
-                    return _f.read()
-        except Exception:
-            # Continue to other fallbacks
-            pass
     if ftype == "netcdf" and decoded.path:
         # Try wgrib2 if available to convert GRIB->NetCDF regardless of backend
         if _has_wgrib2():  # pragma: no cover - external tool
