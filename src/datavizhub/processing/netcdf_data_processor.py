@@ -2,32 +2,36 @@ import os
 import shutil
 import subprocess
 import tempfile
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from contextlib import contextmanager
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 
 
 def _has_wgrib2() -> bool:
     return shutil.which("wgrib2") is not None
 
 
-def load_netcdf(path_or_bytes: Union[str, bytes]) -> Any:
-    """Open a NetCDF dataset from a file path or bytes.
+@contextmanager
+def load_netcdf(path_or_bytes: Union[str, bytes]) -> Iterator[Any]:
+    """Context manager that opens a NetCDF dataset from a path or bytes.
 
     Uses xarray under the hood. For byte inputs, a temporary file is created.
+    Always closes the dataset and removes any temporary file when the context
+    exits.
 
     Parameters
     ----------
     path_or_bytes : str or bytes
         Filesystem path to a NetCDF file or the raw bytes of one.
 
-    Returns
-    -------
+    Yields
+    ------
     xarray.Dataset
-        The opened dataset.
+        The opened dataset, valid within the context.
 
     Raises
     ------
     RuntimeError
-        If the dataset cannot be opened.
+        If the dataset cannot be opened or xarray is missing.
     """
     try:
         import xarray as xr  # type: ignore
@@ -35,6 +39,7 @@ def load_netcdf(path_or_bytes: Union[str, bytes]) -> Any:
         raise RuntimeError("xarray is required to load NetCDF data") from exc
 
     tmp_path: Optional[str] = None
+    ds = None
     try:
         if isinstance(path_or_bytes, (bytes, bytearray)):
             fd, tmp_path = tempfile.mkstemp(suffix=".nc")

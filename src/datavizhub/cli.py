@@ -228,11 +228,18 @@ def cmd_convert_format(args: argparse.Namespace) -> int:
         if data.startswith(b"GRIB"):
             decoded = grib_decode(data, backend=args.backend)
         elif data.startswith(b"\x89HDF\r\n\x1a\n") or data.startswith(b"CDF"):
-            # Load NetCDF and wrap as DecodedGRIB-like for reuse of conversion
+            # Load NetCDF and immediately convert within the context
             from datavizhub.processing.netcdf_data_processor import load_netcdf
 
-            ds, _ = load_netcdf(data)
-            decoded = DecodedGRIB(backend="cfgrib", dataset=ds)  # reuse xarray-based conversions
+            with load_netcdf(data) as ds:
+                decoded = DecodedGRIB(backend="cfgrib", dataset=ds)  # reuse xarray-based conversions
+                out_bytes = convert_to_format(decoded, args.format, var=args.var)
+                if args.stdout:
+                    sys.stdout.buffer.write(out_bytes)
+                else:
+                    Path(args.output).write_bytes(out_bytes)
+                    print(f"Wrote {args.output}")
+                return 0
         else:
             # Fallback: assume GRIB2 and try to decode
             decoded = grib_decode(data, backend=args.backend)
