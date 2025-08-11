@@ -96,7 +96,7 @@ def test_grib2_raw_matches_file_bytes():
     # datavizhub decode-grib2 tests/testdata/demo.grib2 --raw
     demo_path = Path("tests/testdata/demo.grib2")
     expected = demo_path.read_bytes()
-    res = _run_cli(["decode-grib2", str(demo_path), "--raw"]) 
+    res = _run_cli(["decode-grib2", str(demo_path), "--raw"])
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     assert res.stdout == expected
     assert res.stderr == b""
