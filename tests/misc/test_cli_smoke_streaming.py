@@ -125,7 +125,7 @@ def test_grib2_extract_variable_stdout_netcdf_header():
         pytest.skip("xarray/cfgrib not available for NetCDF conversion")
     # datavizhub extract-variable tests/testdata/demo.grib2 "TMP" --stdout --format netcdf
     demo_path = Path("tests/testdata/demo.grib2")
-    res = _run_cli(["extract-variable", str(demo_path), "TMP", "--stdout", "--format", "netcdf"]) 
+    res = _run_cli(["extract-variable", str(demo_path), "TMP", "--stdout", "--format", "netcdf"])
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     assert res.stdout.startswith(b"CDF") or res.stdout.startswith(b"\x89HDF")
 
