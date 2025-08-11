@@ -7,6 +7,13 @@ from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 
 
 def _has_wgrib2() -> bool:
+    """Check whether the wgrib2 CLI is available on PATH.
+
+    Returns
+    -------
+    bool
+        True if a wgrib2 executable is found, otherwise False.
+    """
     return shutil.which("wgrib2") is not None
 
 
