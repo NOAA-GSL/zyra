@@ -95,7 +95,7 @@ def grib_decode(data: bytes, backend: str = "cfgrib") -> DecodedGRIB:
                     "Install the processing extras (e.g., 'pip install datavizhub[processing]') or choose a different backend."
                 ) from exc
             except Exception as exc:  # pragma: no cover - backend optional
-                # If cfgrib fails for other reasons, try pygrib next; if not installed, try wgrib2
+                # If cfgrib fails for other reasons, proceed to try pygrib and then wgrib2 in sequence
                 pass
 
         if backend in ("pygrib", "cfgrib"):
