@@ -96,6 +96,8 @@ def grib_decode(data: bytes, backend: str = "cfgrib") -> DecodedGRIB:
                 ) from exc
             except Exception as exc:  # pragma: no cover - backend optional
                 # If cfgrib fails for other reasons, proceed to try pygrib and then wgrib2 in sequence
+                if isinstance(exc, (KeyboardInterrupt, SystemExit)):
+                    raise
                 pass
 
         if backend in ("pygrib", "cfgrib"):
