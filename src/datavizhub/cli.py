@@ -231,7 +231,7 @@ def cmd_convert_format(args: argparse.Namespace) -> int:
             # Load NetCDF and wrap as DecodedGRIB-like for reuse of conversion
             from datavizhub.processing.netcdf_data_processor import load_netcdf
 
-            ds = load_netcdf(data)
+            ds, _ = load_netcdf(data)
             decoded = DecodedGRIB(backend="cfgrib", dataset=ds)  # reuse xarray-based conversions
         else:
             # Fallback: assume GRIB2 and try to decode
