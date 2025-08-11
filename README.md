@@ -59,6 +59,20 @@ Notes for development:
 - Visualization deps: `pip install "datavizhub[visualization]"`
 - Everything: `pip install "datavizhub[all]"`
 
+Focused installs for GRIB2/NetCDF/GeoTIFF:
+
+```
+pip install "datavizhub[grib2,netcdf,geotiff]"
+```
+
+Extras overview:
+
+| Extra     | Packages                    | Enables                                   |
+|-----------|-----------------------------|-------------------------------------------|
+| `grib2`   | `cfgrib`, `pygrib`          | GRIB2 decoding via xarray/pygrib          |
+| `netcdf`  | `netcdf4`, `xarray`         | NetCDF I/O and subsetting                 |
+| `geotiff` | `rioxarray`, `rasterio`     | GeoTIFF export from xarray                |
+
 Notes:
 - Core install keeps footprint small; optional features pull in heavier deps (e.g., Cartopy, SciPy, ffmpeg-python).
 - Some example scripts may import plotting libs; install `[visualization]` if you use those flows.
@@ -172,6 +186,65 @@ from datavizhub.processing.grib_data_processor import GRIBDataProcessor
 gp = GRIBDataProcessor()
 data_list, dates = gp.process(grib_file_path="/path/to/file.grib2", shift_180=True)
 ```
+
+### Processing GRIB2 and NetCDF (bytes-first)
+
+Decode a GRIB2 subset returned as bytes, extract a variable, and write NetCDF:
+
+```
+from datavizhub.processing import grib_decode, extract_variable, convert_to_format
+
+dec = grib_decode(data_bytes, backend="cfgrib")  # default backend
+da = extract_variable(dec, r"^TMP$")  # exact/regex match
+nc_bytes = convert_to_format(dec, "netcdf", var="TMP")
+```
+
+Work with NetCDF directly and subset spatially/temporally:
+
+```
+from datavizhub.processing import load_netcdf, subset_netcdf
+
+ds = load_netcdf(nc_bytes)
+sub = subset_netcdf(ds, variables=["TMP"], bbox=(-130,20,-60,55), time_range=("2024-01-01","2024-01-02"))
+```
+
+Notes and fallbacks:
+- Default backend is `cfgrib` (xarray + eccodes). If unavailable or failing, `pygrib` is attempted when requested; `wgrib2 -json` can be used as a metadata fallback.
+- GeoTIFF conversion requires `rioxarray`/`rasterio` and supports a single variable; specify `var` when multiple variables exist.
+- GRIB2→NetCDF uses `xarray.to_netcdf()` when possible with a `wgrib2 -netcdf` fallback if present.
+- Generic NetCDF→GRIB2 is not supported by `wgrib2`. If `cdo` is installed, `convert_to_grib2()` uses `cdo -f grb2 copy` automatically; otherwise a clear exception is raised.
+
+CLI helpers:
+- `datavizhub decode-grib2 <file_or_url> [--backend cfgrib|pygrib|wgrib2]`
+- `datavizhub extract-variable <file_or_url> <pattern> [--backend ...]`
+- `datavizhub convert-format <file_or_url> <netcdf|geotiff> -o out.ext [--var NAME] [--backend ...]`
+
+## Chaining Commands with --raw and --stdout
+
+The CLI supports streaming binary data through stdout/stdin so you can compose offline pipelines without touching disk.
+
+- `.idx` → extract → convert (one-liner):
+  ```bash
+  datavizhub decode-grib2 file.grib2 --pattern "TMP" --raw | \
+  datavizhub extract-variable - "TMP" --stdout --format grib2 | \
+  datavizhub convert-format - geotiff --stdout > tmp.tif
+  ```
+
+- Notes on tools and fallbacks:
+  - `wgrib2`: When available, `extract-variable --stdout` uses `wgrib2 -match` to subset and emits either GRIB2 (`-grib`) or NetCDF (`-netcdf`).
+  - `CDO`: If converting NetCDF→GRIB2 is needed without `wgrib2` support, `convert_to_grib2()` uses `cdo -f grb2 copy` when `cdo` is installed.
+  - Python-only fallback: If `wgrib2` is not present, NetCDF streaming still works via xarray (`to_netcdf()`), while GRIB2 streaming may not be available depending on your environment.
+
+- Auto-detection in `convert-format`:
+  - `convert-format` can read from stdin (`-`) and auto-detects GRIB2 vs NetCDF by magic bytes. NetCDF is opened with xarray; GRIB2 uses the configured backend to decode.
+
+Bytes-first demos:
+- Use `.idx`-aware subsetting directly with URLs: `datavizhub decode-grib2 https://.../file.grib2 --pattern ":(UGRD|VGRD):10 m above ground:"`
+- Pipe small outputs without temp files: `datavizhub convert-format local.grib2 netcdf --stdout | hexdump -C | head`
+
+Offline demo assets:
+- Tiny NetCDF file: `tests/testdata/demo.nc`
+- Tiny GRIB2 file: please place a small sample as `tests/testdata/demo.grib2` (we can add one if provided).
 
 
 ## Visualization Layer
