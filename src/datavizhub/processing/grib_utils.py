@@ -313,8 +313,11 @@ def convert_to_format(
                 tobytes = getattr(maybe_bytes, "tobytes", None)
                 if callable(tobytes):
                     return tobytes()
-                # Last resort: attempt bytes() coercion
-                return bytes(maybe_bytes)
+                # If we reach here, the type is not handled.
+                raise TypeError(
+                    f"Unexpected return type from to_netcdf(): {type(maybe_bytes)}. "
+                    "Expected bytes, bytearray, memoryview, file-like object, or numpy array."
+                )
             except Exception:
                 # Try writing to a temporary file using netCDF4 or h5netcdf engine
                 tmp = tempfile.NamedTemporaryFile(suffix=".nc", delete=False)
