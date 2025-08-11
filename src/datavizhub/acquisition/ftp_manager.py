@@ -644,16 +644,14 @@ class FTPManager(DataAcquirer):
                 pass
             return buffer.getvalue()
 
-        from concurrent.futures import ThreadPoolExecutor
+        from concurrent.futures import ThreadPoolExecutor, as_completed
         indexed = list(enumerate(byte_ranges))
         if not indexed:
             return b""
         results: dict[int, bytes] = {}
         with ThreadPoolExecutor(max_workers=max_workers) as ex:
             futs = {ex.submit(_worker, remote_path, rng): i for i, rng in indexed}
-            for fut in futs:
-                pass
-            for fut in futs:
+            for fut in as_completed(futs):
                 idx = futs[fut]
                 results[idx] = fut.result() or b""
         buf = BytesIO()
