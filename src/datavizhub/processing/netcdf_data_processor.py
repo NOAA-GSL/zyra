@@ -76,24 +76,35 @@ def subset_netcdf(
     bbox: Optional[Tuple[float, float, float, float]] = None,
     time_range: Optional[Tuple[Any, Any]] = None,
 ) -> Any:
-    """Subset a NetCDF xarray.Dataset by variables, spatial bbox, and time range.
+    """Subset a NetCDF ``xarray.Dataset`` by variables, spatial extent, and time.
+
+    Applies up to three filters in order: variable selection, spatial bounding
+    box, and time window. Any filter can be omitted by passing ``None``.
 
     Parameters
     ----------
     dataset : xarray.Dataset
         Dataset returned by ``load_netcdf`` or other xarray operations.
     variables : iterable of str, optional
-        List of variables to keep. If None, keep all.
+        Variable names to keep. If ``None``, keep all variables.
     bbox : tuple, optional
-        Spatial bounding box as (min_lon, min_lat, max_lon, max_lat). Requires
-        the dataset to have ``lat/latitude`` and ``lon/longitude`` coordinates.
+        Spatial bounding box as ``(min_lon, min_lat, max_lon, max_lat)``.
+        Requires the dataset to have ``lat``/``latitude`` and ``lon``/``longitude``
+        coordinates for selection.
     time_range : tuple, optional
-        Start/end time-like values compatible with xarray selection.
+        Start and end values compatible with ``xarray`` time selection, e.g.
+        strings, datetimes, or numpy datetime64.
 
     Returns
     -------
     xarray.Dataset
-        The subsetted dataset.
+        A new dataset view with the requested subset.
+
+    Raises
+    ------
+    ValueError
+        If ``bbox`` is provided but the dataset does not expose recognizable
+        latitude/longitude coordinates for spatial selection.
     """
     ds = dataset
     if variables:
