@@ -88,8 +88,14 @@ def grib_decode(data: bytes, backend: str = "cfgrib") -> DecodedGRIB:
                     backend_kwargs={"indexpath": ":auto:"},
                 )
                 return DecodedGRIB(backend="cfgrib", dataset=ds, path=temp_path)
+            except ModuleNotFoundError as exc:  # pragma: no cover - optional dep
+                # User explicitly requested cfgrib but xarray is missing
+                raise RuntimeError(
+                    "cfgrib backend requested but xarray/cfgrib are not available. "
+                    "Install the processing extras (e.g., 'pip install datavizhub[processing]') or choose a different backend."
+                ) from exc
             except Exception as exc:  # pragma: no cover - backend optional
-                # If cfgrib fails, try pygrib next; if not installed, try wgrib2
+                # If cfgrib fails for other reasons, try pygrib next; if not installed, try wgrib2
                 pass
 
         if backend in ("pygrib", "cfgrib"):
@@ -292,8 +298,23 @@ def convert_to_format(
             try:
                 data_to_write = obj if hasattr(obj, "to_netcdf") else ds
                 maybe_bytes = data_to_write.to_netcdf()  # type: ignore
-                # Some engines return bytes, others a memoryview
-                return bytes(maybe_bytes) if not isinstance(maybe_bytes, (bytes, bytearray)) else maybe_bytes
+                # Normalize various in-memory returns to raw bytes.
+                # Seen in the wild: bytes, bytearray, memoryview, BytesIO/file-like, numpy arrays.
+                if isinstance(maybe_bytes, (bytes, bytearray)):
+                    return bytes(maybe_bytes)
+                # memoryview
+                if isinstance(maybe_bytes, memoryview):
+                    return maybe_bytes.tobytes()
+                # File-like (e.g., BytesIO)
+                read = getattr(maybe_bytes, "read", None)
+                if callable(read):
+                    return read()
+                # Numpy-like objects
+                tobytes = getattr(maybe_bytes, "tobytes", None)
+                if callable(tobytes):
+                    return tobytes()
+                # Last resort: attempt bytes() coercion
+                return bytes(maybe_bytes)
             except Exception:
                 # Try writing to a temporary file using netCDF4 or h5netcdf engine
                 tmp = tempfile.NamedTemporaryFile(suffix=".nc", delete=False)
