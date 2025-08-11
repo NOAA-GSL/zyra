@@ -66,5 +66,3 @@ def test_update_dataset_times(mock_date_manager, json_manager):
     response = json_manager.update_dataset_times("123", "dummy_directory")
     assert response == "No data loaded to update."
 
-
-# Additional tests...

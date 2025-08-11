@@ -22,7 +22,6 @@ def test_upload_video(vimeo_uploader):
     file_path = "/path/to/video.mp4"
     video_name = "Test Video"
 
-    # Mocking the upload response from Vimeo
     mock_vimeo_client.return_value.upload.return_value = {"uri": "/videos/12345"}
 
     result = uploader.upload_video(file_path, video_name)
@@ -32,5 +31,3 @@ def test_upload_video(vimeo_uploader):
     )
     assert result == "/videos/12345"
 
-
-# Additional tests...
