@@ -66,7 +66,7 @@ def test_extract_variable_stdout_netcdf_simulated(monkeypatch, capsysbinary):
 
     monkeypatch.setattr("subprocess.run", fake_run)
 
-    rc = main(["extract-variable", "-", "TMP", "--stdout", "--format", "netcdf"]) 
+    rc = main(["extract-variable", "-", "TMP", "--stdout", "--format", "netcdf"])
     assert rc == 0
     captured = capsysbinary.readouterr()
     # Output should be exactly the NetCDF bytes produced by fake wgrib2
