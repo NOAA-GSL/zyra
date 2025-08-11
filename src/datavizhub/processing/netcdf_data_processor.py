@@ -70,13 +70,15 @@ def load_netcdf(path_or_bytes: Union[str, bytes]) -> Iterator[Any]:
                 os.remove(tmp_path)
             except Exception:
                 pass
+
+
 def subset_netcdf(
     dataset: Any,
     variables: Optional[Iterable[str]] = None,
     bbox: Optional[Tuple[float, float, float, float]] = None,
     time_range: Optional[Tuple[Any, Any]] = None,
 ) -> Any:
-    """Subset a NetCDF ``xarray.Dataset`` by variables, spatial extent, and time.
+    """Subset an ``xarray.Dataset`` by variables, spatial extent, and time.
 
     Applies up to three filters in order: variable selection, spatial bounding
     box, and time window. Any filter can be omitted by passing ``None``.
@@ -87,24 +89,30 @@ def subset_netcdf(
         Dataset returned by ``load_netcdf`` or other xarray operations.
     variables : iterable of str, optional
         Variable names to keep. If ``None``, keep all variables.
-    bbox : tuple, optional
+    bbox : tuple of float, optional
         Spatial bounding box as ``(min_lon, min_lat, max_lon, max_lat)``.
         Requires the dataset to have ``lat``/``latitude`` and ``lon``/``longitude``
         coordinates for selection.
-    time_range : tuple, optional
+    time_range : tuple[Any, Any], optional
         Start and end values compatible with ``xarray`` time selection, e.g.
         strings, datetimes, or numpy datetime64.
 
     Returns
     -------
     xarray.Dataset
-        A new dataset view with the requested subset.
+        A new dataset view with the requested subset applied.
 
     Raises
     ------
     ValueError
         If ``bbox`` is provided but the dataset does not expose recognizable
         latitude/longitude coordinates for spatial selection.
+
+    Examples
+    --------
+    Select temperature over a region and time range:
+
+    >>> ds = subset_netcdf(ds, variables=["t2m"], bbox=(-110, 30, -90, 40), time_range=("2024-01-01", "2024-01-02"))
     """
     ds = dataset
     if variables:
