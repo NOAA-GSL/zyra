@@ -108,7 +108,7 @@ def grib_decode(data: bytes, backend: str = "cfgrib") -> DecodedGRIB:
                 messages = list(grbs)
                 grbs.close()
                 return DecodedGRIB(backend="pygrib", messages=messages, path=temp_path)
-            except Exception as exc:  # pragma: no cover - backend optional
+            except (ImportError, OSError, pygrib.GribError) as exc:  # pragma: no cover - backend optional
                 if backend == "pygrib":
                     raise RuntimeError(f"pygrib decoding failed: {exc}") from exc
                 # else fall through to wgrib2
