@@ -345,6 +345,30 @@ def convert_to_format(
                 except Exception:
                     pass
 
+    # Fallbacks for non-xarray backends
+    if ftype == "netcdf" and decoded.path:
+        # Try wgrib2 if available to convert GRIB->NetCDF regardless of backend
+        if _has_wgrib2():  # pragma: no cover - external tool
+            tmp = tempfile.NamedTemporaryFile(suffix=".nc", delete=False)
+            tmp_path = tmp.name
+            tmp.close()
+            try:
+                res = subprocess.run(
+                    ["wgrib2", decoded.path, "-netcdf", tmp_path],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                if res.returncode != 0:
+                    raise RuntimeError(res.stderr.strip() or "wgrib2 -netcdf failed")
+                with open(tmp_path, "rb") as f:
+                    return f.read()
+            finally:
+                try:
+                    os.remove(tmp_path)
+                except Exception:
+                    pass
+
     # Non-xarray paths require explicit tooling; keep behavior clear
     raise ValueError(
         "Unsupported conversion for this backend. Prefer cfgrib/xarray or provide wgrib2."
