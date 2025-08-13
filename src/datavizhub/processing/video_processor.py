@@ -35,10 +35,11 @@ class VideoProcessor(DataProcessor):
         vp.save("./out.mp4")
     """
 
-    def __init__(self, input_directory: str, output_file: str, basemap: Optional[str] = None):
+    def __init__(self, input_directory: str, output_file: str, basemap: Optional[str] = None, fps: int = 30):
         self.input_directory = input_directory
         self.output_file = output_file
         self.basemap = basemap
+        self.fps = int(fps)
 
     FEATURES = {"load", "process", "save", "validate"}
 
@@ -61,7 +62,8 @@ class VideoProcessor(DataProcessor):
         str or None
             The output file path on success; ``None`` if processing failed.
         """
-        success = self.process_video()
+        fps = int(kwargs.get("fps", self.fps))
+        success = self.process_video(fps=fps)
         return self.output_file if success else None
 
     def save(self, output_path: Optional[str] = None) -> Optional[str]:
@@ -114,7 +116,7 @@ class VideoProcessor(DataProcessor):
             logging.error(f"An error occurred while checking FFmpeg installation: {e}")
             return False
 
-    def process_video(self) -> bool:
+    def process_video(self, *, fps: int | None = None) -> bool:
         """Build the video using FFmpeg from frames in ``input_directory``.
 
         Notes
@@ -141,11 +143,11 @@ class VideoProcessor(DataProcessor):
             output_path = self.output_file
             ffmpeg_cmd = "ffmpeg"
             if self.basemap:
-                ffmpeg_cmd += f" -framerate 30 -loop 1 -i {self.basemap}"
-            ffmpeg_cmd += f" -framerate 30 -pattern_type glob -i '{input_pattern}'"
+                ffmpeg_cmd += f" -framerate {fps or self.fps} -loop 1 -i {self.basemap}"
+            ffmpeg_cmd += f" -framerate {fps or self.fps} -pattern_type glob -i '{input_pattern}'"
             if self.basemap:
                 ffmpeg_cmd += " -filter_complex '[0:v][1:v]overlay=shortest=1'"
-            ffmpeg_cmd += f" -vcodec libx264 -pix_fmt yuv420p -y {output_path}"
+            ffmpeg_cmd += f" -r {fps or self.fps} -vcodec libx264 -pix_fmt yuv420p -y {output_path}"
             logging.info(f"Starting video processing using:{ffmpeg_cmd}")
             cmd = shlex.split(ffmpeg_cmd)
             with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True) as proc:

@@ -85,6 +85,15 @@ docs/build/
 wiki/
 app/wiki/
 
+# Samples: generated artifacts (keep repo small and clean)
+samples/samples/quickstart_outputs/
+samples/**/frames_*/
+samples/**/manifest.json
+samples/u_stack.npy
+samples/v_stack.npy
+samples/uv_stack.nc
+samples/*.mp4
+
 # PyBuilder
 .pybuilder/
 target/
