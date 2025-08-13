@@ -367,10 +367,12 @@ class InteractiveManager(Renderer):
                     layer_control=bool(kwargs.get("layer_control", False)),
                     input_path=input_path,
                 )
-                # Add optional base layers (XYZ/WMS)
+                # Base layers are already handled in _folium_heatmap
+                # (leftover block removed)
                 try:
-                    m = None
+                    pass
                 except Exception:
+                    pass
             elif mode in ("points", "markers"):
                 df = self._load_points(input_path=input_path)
                 try:
