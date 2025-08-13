@@ -125,11 +125,14 @@ def cmd_extract_variable(args: argparse.Namespace) -> int:
                         args_list += ["-netcdf", out_path]
                     res = subprocess.run(args_list, capture_output=True, text=True, check=False)
                     if res.returncode != 0:
-                        print(res.stderr.strip() or "wgrib2 subsetting failed", file=sys.stderr)
-                        return 2
-                    with open(out_path, "rb") as f:
-                        sys.stdout.buffer.write(f.read())
-                    return 0
+                        # Gracefully fall back to Python conversion when wgrib2 lacks NetCDF support
+                        print(res.stderr.strip() or "wgrib2 subsetting failed; falling back to Python conversion", file=sys.stderr)
+                        # Do not return; continue to Python fallback below
+                        pass
+                    if res.returncode == 0:
+                        with open(out_path, "rb") as f:
+                            sys.stdout.buffer.write(f.read())
+                        return 0
                 finally:
                     try:
                         os.remove(out_path)
@@ -285,6 +288,9 @@ def _viz_heatmap_cmd(ns: argparse.Namespace) -> int:
         width=ns.width,
         height=ns.height,
         dpi=ns.dpi,
+        # CRS handling
+        crs=getattr(ns, "crs", None),
+        reproject=getattr(ns, "reproject", False),
         colorbar=getattr(ns, "colorbar", False),
         label=getattr(ns, "label", None),
         units=getattr(ns, "units", None),
@@ -304,13 +310,17 @@ def _viz_contour_cmd(ns: argparse.Namespace) -> int:
     from datavizhub.visualization.contour_manager import ContourManager
 
     levels = ns.levels
-    if isinstance(levels, int):
-        pass
-    else:
+    if not isinstance(levels, int):
         try:
-            levels = [float(x) for x in ",".join(levels).split(",") if x.strip()]
+            # If provided as a simple integer string (e.g., "5"), treat as count
+            levels = int(str(levels))
         except Exception:
-            levels = 10
+            try:
+                # Otherwise, parse comma-separated explicit level values
+                s = str(levels)
+                levels = [float(x) for x in s.split(",") if x.strip()]
+            except Exception:
+                levels = 10
 
     mgr = ContourManager(basemap=ns.basemap, cmap=ns.cmap, filled=ns.filled)
     mgr.configure(extent=ns.extent)
@@ -336,6 +346,9 @@ def _viz_contour_cmd(ns: argparse.Namespace) -> int:
         height=ns.height,
         dpi=ns.dpi,
         levels=levels,
+        # CRS handling
+        crs=getattr(ns, "crs", None),
+        reproject=getattr(ns, "reproject", False),
         colorbar=getattr(ns, "colorbar", False),
         label=getattr(ns, "label", None),
         units=getattr(ns, "units", None),
@@ -398,6 +411,9 @@ def _viz_vector_cmd(ns: argparse.Namespace) -> int:
         width=ns.width,
         height=ns.height,
         dpi=ns.dpi,
+        # CRS handling
+        crs=getattr(ns, "crs", None),
+        reproject=getattr(ns, "reproject", False),
         features=features,
         map_type=getattr(ns, "map_type", "image"),
         tile_source=getattr(ns, "tile_source", None),
@@ -609,6 +625,9 @@ def main(argv: Optional[list[str]] = None) -> int:
                 width=ns.width,
                 height=ns.height,
                 dpi=ns.dpi,
+                # CRS handling
+                crs=getattr(ns, "crs", None),
+                reproject=getattr(ns, "reproject", False),
                 output_dir=ns.output_dir,
             )
             out = mgr.save(ns.manifest)
@@ -664,10 +683,21 @@ def main(argv: Optional[list[str]] = None) -> int:
                 show_timestamp=getattr(ns, "show_timestamp", False),
                 timestamps_csv=getattr(ns, "timestamps_csv", None),
                 timestamp_loc=getattr(ns, "timestamp_loc", "lower_right"),
+                # Vector-specific config (passed-through; ignored by heatmap/contour)
+                u=ns.u,
+                v=ns.v,
+                uvar=ns.uvar,
+                vvar=ns.vvar,
+                density=getattr(ns, "density", 0.2),
+                scale=getattr(ns, "scale", None),
+                color=getattr(ns, "color", "#333333"),
                 features=features,
                 map_type=getattr(ns, "map_type", "image"),
                 tile_source=getattr(ns, "tile_source", None),
                 tile_zoom=getattr(ns, "tile_zoom", 3),
+                # CRS handling
+                crs=getattr(ns, "crs", None),
+                reproject=getattr(ns, "reproject", False),
             )
             out = mgr.save(ns.manifest)
             print(out or "")
@@ -733,6 +763,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_anim.add_argument("--dt", type=float, default=0.01, help="Particles: integration step")
     p_anim.add_argument("--steps-per-frame", type=int, default=1, help="Particles: substeps per frame")
     p_anim.add_argument("--size", type=float, default=0.5, help="Particles: marker size")
+    p_anim.add_argument("--method", choices=["euler", "rk2", "midpoint"], default="euler", help="Particles: integrator")
     p_anim.add_argument("--crs", help="Force input CRS for heatmap/contour/vector")
     p_anim.add_argument("--reproject", action="store_true")
     p_anim.add_argument("--to-video", dest="to_video", help="Optional: compose frames to MP4 using ffmpeg")

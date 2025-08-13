@@ -121,10 +121,30 @@ class VectorFieldManager(Renderer):
         except Exception:
             pass
 
+        # Accept either arrays (U/V) or file paths/NetCDF inputs
         U = kwargs.get("u")
         V = kwargs.get("v")
-        if U is None or V is None:
-            U, V = self._resolve_uv(input_path=input_path, uvar=uvar, vvar=vvar, u_path=u_path, v_path=v_path)
+        if (
+            U is None
+            or V is None
+            or isinstance(U, (str, bytes))
+            or isinstance(V, (str, bytes))
+        ):
+            U, V = self._resolve_uv(
+                input_path=input_path,
+                uvar=uvar,
+                vvar=vvar,
+                u_path=(U if isinstance(U, (str, bytes)) else u_path),
+                v_path=(V if isinstance(V, (str, bytes)) else v_path),
+            )
+        else:
+            import numpy as np
+            U = np.asarray(U)
+            V = np.asarray(V)
+        # If 3D stacks are provided to the static vector renderer, use first time slice
+        if hasattr(U, "ndim") and hasattr(V, "ndim") and U.ndim == 3 and V.ndim == 3:
+            U = U[0]
+            V = V[0]
         ny, nx = U.shape[-2], U.shape[-1]
         xs = np.linspace(self.extent[0], self.extent[1], nx)
         ys = np.linspace(self.extent[2], self.extent[3], ny)

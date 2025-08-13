@@ -56,14 +56,14 @@ def test_cli_animate_heatmap_npy():
         ]
         proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
         assert proc.returncode == 0, proc.stderr
-        # Check manifest and frames
+        # Check manifest and frames while temp dir is alive
         assert os.path.exists(manifest)
         data = json.loads(open(manifest).read())
-    assert data["count"] == t
-    for i in range(t):
-        path = os.path.join(outdir, f"frame_{i:04d}.png")
-        assert os.path.exists(path)
-        assert os.path.getsize(path) > 0
+        assert data["count"] == t
+        for i in range(t):
+            path = os.path.join(outdir, f"frame_{i:04d}.png")
+            assert os.path.exists(path)
+            assert os.path.getsize(path) > 0
 
 
 def test_cli_animate_vector_npy(ensure_uv_stacks):

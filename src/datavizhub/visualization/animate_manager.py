@@ -87,8 +87,11 @@ class AnimateManager(Renderer):
             raise ValueError("Either data or input_path must be provided")
         if input_path.lower().endswith(".npy"):
             arr = np.load(input_path)
+            # Accept 2D arrays by promoting to a single-frame stack
+            if arr.ndim == 2:
+                arr = arr[None, ...]
             if arr.ndim != 3:
-                raise ValueError(".npy stack must be 3D [time, y, x]")
+                raise ValueError(".npy stack must be 2D or 3D; 3D required as [time, y, x]")
             return arr, timestamps
         if input_path.lower().endswith((".nc", ".nc4")):
             import xarray as xr
