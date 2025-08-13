@@ -371,7 +371,6 @@ class InteractiveManager(Renderer):
                 try:
                     m = None
                 except Exception:
-                    pass
             elif mode in ("points", "markers"):
                 df = self._load_points(input_path=input_path)
                 try:
