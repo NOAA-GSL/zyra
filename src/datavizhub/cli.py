@@ -128,7 +128,9 @@ def cmd_extract_variable(args: argparse.Namespace) -> int:
                         # Gracefully fall back to Python conversion when wgrib2 lacks NetCDF support
                         print(res.stderr.strip() or "wgrib2 subsetting failed; falling back to Python conversion", file=sys.stderr)
                         # Do not return; continue to Python fallback below
-                        pass
+                        # wgrib2 failed; will fall back to Python conversion after this block
+                        print(res.stderr.strip() or "wgrib2 subsetting failed; falling back to Python conversion", file=sys.stderr)
+                        # Continue to Python fallback below
                     if res.returncode == 0:
                         with open(out_path, "rb") as f:
                             sys.stdout.buffer.write(f.read())
