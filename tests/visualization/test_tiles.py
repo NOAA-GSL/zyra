@@ -1,6 +1,7 @@
 import os
 import pytest
 import subprocess
+import sys
 
 # Skip tile tests unless contextily is available and explicitly enabled
 has_contextily = False
@@ -21,7 +22,7 @@ pytestmark = pytest.mark.skipif(
 def test_heatmap_tiles_smoke(tmp_path):
     out_file = tmp_path / "heatmap_tiles.png"
     cmd = [
-        "python",
+        sys.executable,
         "-m",
         "datavizhub.cli",
         "visualize",
@@ -45,7 +46,7 @@ def test_animate_tiles_smoke(tmp_path):
     out_dir = tmp_path / "frames"
     manifest = tmp_path / "manifest.json"
     cmd = [
-        "python",
+        sys.executable,
         "-m",
         "datavizhub.cli",
         "visualize",
@@ -79,7 +80,7 @@ def test_animate_tiles_smoke(tmp_path):
 def test_contour_tiles_smoke(tmp_path):
     out_file = tmp_path / "contour_tiles.png"
     cmd = [
-        "python",
+        sys.executable,
         "-m",
         "datavizhub.cli",
         "visualize",

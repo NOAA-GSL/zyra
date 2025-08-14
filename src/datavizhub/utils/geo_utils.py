@@ -86,7 +86,7 @@ def warn_if_mismatch(input_crs: Optional[str], *, target_crs: str = TARGET_CRS, 
     if input_crs.upper() != target_crs.upper():
         print(
             f"Warning: Input CRS ({input_crs}) differs from display CRS ({target_crs}). "
-            f"Reprojection {'requested but not applied' if reproject else 'not applied' }.",
+            f"Reprojection {'requested but not applied' if reproject else 'not applied'}.",
             file=sys.stderr,
         )
 
