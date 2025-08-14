@@ -50,7 +50,7 @@ def add_basemap_cartopy(
             ax.imshow(
                 img,
                 origin="upper",
-                extent=extent,
+                extent=extent or [-180, 180, -90, 90],
                 transform=ccrs.PlateCarree(),
                 alpha=alpha,
             )
