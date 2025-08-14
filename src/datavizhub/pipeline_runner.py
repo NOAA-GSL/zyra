@@ -189,6 +189,64 @@ def _run_cli(argv: list[str], input_bytes: bytes | None) -> tuple[int, bytes, st
     from datavizhub.cli import main as cli_main
     import sys
 
+    # Lightweight fast-paths to avoid importing heavy dependencies when possible
+    try:
+        if (
+            len(argv) >= 4
+            and argv[0] == "process"
+            and argv[1] == "convert-format"
+        ):
+            file_or_url = argv[2]
+            fmt = argv[3].lower()
+            want_stdout = "--stdout" in argv
+            if want_stdout and fmt == "netcdf" and file_or_url == "-" and input_bytes:
+                # NetCDF pass-through (classic or NetCDF4/HDF5)
+                if input_bytes.startswith(b"CDF") or input_bytes.startswith(b"\x89HDF"):
+                    return 0, input_bytes, ""
+        # Fast-path: decimate local with '-' input; write bytes directly
+        if len(argv) >= 3 and argv[0] == "decimate" and argv[1] == "local" and input_bytes is not None:
+            # Positional path is argv[2]; also allow flags order-insensitive
+            dest_path = argv[2]
+            # If --input provided and not '-', we cannot fast-path
+            if "--input" in argv:
+                try:
+                    i = argv.index("--input")
+                    if i + 1 < len(argv) and argv[i + 1] not in ("-", "--"):
+                        raise ValueError
+                except Exception:
+                    # Fallback to normal CLI path
+                    pass
+                else:
+                    try:
+                        import os
+                        from pathlib import Path
+
+                        p = Path(dest_path)
+                        if p.parent:
+                            p.parent.mkdir(parents=True, exist_ok=True)
+                        with p.open("wb") as f:
+                            f.write(input_bytes)
+                        return 0, b"", ""
+                    except Exception as exc:
+                        return 2, b"", str(exc)
+            else:
+                # No explicit --input; assume stdin
+                try:
+                    import os
+                    from pathlib import Path
+
+                    p = Path(dest_path)
+                    if p.parent:
+                        p.parent.mkdir(parents=True, exist_ok=True)
+                    with p.open("wb") as f:
+                        f.write(input_bytes)
+                    return 0, b"", ""
+                except Exception as exc:
+                    return 2, b"", str(exc)
+    except Exception:
+        # Fall back to normal path on any detection error
+        pass
+
     # Preserve and swap stdin/stdout
     old_stdin = sys.stdin
     old_stdout = sys.stdout
@@ -263,10 +321,14 @@ def run_pipeline(
             continue
         selected.append(st)
 
-    # Stream bytes between stages; start with stdin for the first stage
-    current: bytes | None = None
-    # If the pipeline explicitly wants to start from runner stdin, ensure first stage uses '-'
-    # Otherwise, for file-based flows, stage args should specify file paths/URLs directly.
+    # Stream bytes between stages.
+    # Seed first stage with stdin bytes when available (non-tty), enabling '-' driven pipelines.
+    import sys
+    try:
+        current_stdin = None if sys.stdin.isatty() else sys.stdin.buffer.read()
+    except Exception:
+        current_stdin = None
+    current: bytes | None = current_stdin if current_stdin else None
 
     # Printed structures for --print-argv-format=json
     printed_objects: list[dict[str, Any]] = []

@@ -162,16 +162,20 @@ def register_cli(subparsers: Any) -> None:
     def cmd_convert_format(args: argparse.Namespace) -> int:
         from datavizhub.utils.cli_helpers import configure_logging_from_env
         configure_logging_from_env()
-        from datavizhub.processing import grib_decode
-        from datavizhub.processing.grib_utils import convert_to_format
 
+        # Read input first so we can short-circuit pass-through without heavy imports
         data = _read_bytes(args.file_or_url)
         # If reading NetCDF and writing NetCDF with --stdout, pass-through
         if getattr(args, "stdout", False) and args.format == "netcdf":
             if is_netcdf_bytes(data):
                 sys.stdout.buffer.write(data)
                 return 0
+
         # Otherwise, decode and convert based on requested format
+        # Lazy-import heavy GRIB dependencies only when needed
+        from datavizhub.processing import grib_decode
+        from datavizhub.processing.grib_utils import convert_to_format
+
         decoded = grib_decode(data, backend=args.backend)
         out_bytes = convert_to_format(decoded, args.format, var=getattr(args, "var", None))
         if getattr(args, "stdout", False):
