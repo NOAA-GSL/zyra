@@ -14,7 +14,9 @@ DataVizHub is a utility library for building data-driven visual products. It pro
 - [Prerequisites](#prerequisites)
 - [Install (Poetry)](#install-poetry)
 - [Install (pip extras)](#install-pip-extras)
+ - [Stage-Specific Installs](#stage-specific-installs)
 - [Quick Composition Examples](#quick-composition-examples)
+- [Interactive Visualization](#interactive-visualization)
 - [Real-World Implementations](#real-world-implementations)
 - [Development, Test, Lint](#development-test-lint)
 - [Repository Guidelines](#repository-guidelines)
@@ -57,6 +59,7 @@ Notes for development:
 - Datatransfer deps: `pip install "datavizhub[datatransfer]"`
 - Processing deps: `pip install "datavizhub[processing]"`
 - Visualization deps: `pip install "datavizhub[visualization]"`
+- Interactive deps: `pip install "datavizhub[interactive]"`
 - Everything: `pip install "datavizhub[all]"`
 
 Focused installs for GRIB2/NetCDF/GeoTIFF:
@@ -72,10 +75,40 @@ Extras overview:
 | `grib2`   | `cfgrib`, `pygrib`          | GRIB2 decoding via xarray/pygrib          |
 | `netcdf`  | `netcdf4`, `xarray`         | NetCDF I/O and subsetting                 |
 | `geotiff` | `rioxarray`, `rasterio`     | GeoTIFF export from xarray                |
+| `interactive` | `folium`, `plotly`      | Interactive maps (Folium) and plots (Plotly) |
 
 Notes:
 - Core install keeps footprint small; optional features pull in heavier deps (e.g., Cartopy, SciPy, ffmpeg-python).
 - Some example scripts may import plotting libs; install `[visualization]` if you use those flows.
+
+## Stage-Specific Installs
+Install only what you need for a given stage. Each stage can run independently with its own optional extras.
+
+- Acquisition stage:
+  - Pip: `pip install -e .[datatransfer]`
+  - Poetry: `poetry install --with dev -E datatransfer`
+- Processing stage:
+  - Pip: `pip install -e .[processing]`
+  - Poetry: `poetry install --with dev -E processing`
+- Visualization stage (includes Matplotlib, Cartopy, Xarray, SciPy, Contextily):
+  - Pip: `pip install -e .[visualization]`
+  - Poetry: `poetry install --with dev -E visualization`
+- Interactive stage (optional Folium/Plotly):
+  - Pip: `pip install -e .[interactive]`
+  - Poetry: `poetry install --with dev -E interactive`
+
+Examples:
+- Run the visualization CLI with only the visualization extra installed:
+  - Heatmap: `python -m datavizhub.cli heatmap --input samples/demo.npy --output heatmap.png`
+  - Contour: `python -m datavizhub.cli contour --input samples/demo.nc --var T2M --output contour.png --levels 5,10,15 --filled`
+
+Focused extras remain available for targeted installs:
+- GRIB2 only: `pip install -e .[grib2]`
+- NetCDF only: `pip install -e .[netcdf]`
+- GeoTIFF export: `pip install -e .[geotiff]`
+
+Note on interactive installs:
+- The `interactive` extra pulls in Folium and/or Plotly, which increase dependency size and runtime memory. If you only need static images and animations, you can skip `interactive` and install just `visualization`.
 
 ## Quick Composition Examples
 
@@ -271,8 +304,44 @@ with as_file(resource) as p:
     # Render and save
     plotter = PlotManager(basemap=basemap_path, image_extent=[-180, 180, -90, 90])
     plotter.render(data, custom_cmap=cmap)
-    plotter.save("/tmp/heatmap.png")
+plotter.save("/tmp/heatmap.png")
 ```
+
+Tile basemaps (static images)
+
+- Requirements: install the visualization extra (includes `contextily`). Tiles are fetched best-effort; offline or missing deps gracefully no-op.
+- Heatmap over tiles:
+
+```
+poetry install --with dev -E visualization
+poetry run python -m datavizhub.cli heatmap \
+  --input samples/demo.npy \
+  --output out.png \
+  --map-type tile \
+  --tile-zoom 3
+```
+
+- Contour over a named tile source:
+
+```
+poetry run python -m datavizhub.cli contour \
+  --input samples/demo.npy --output contour.png \
+  --levels 10 --filled \
+  --map-type tile --tile-source Stamen.TerrainBackground
+```
+
+- Vector quiver over tiles:
+
+```
+poetry run python -m datavizhub.cli vector \
+  --u /path/U.npy --v /path/V.npy \
+  --output vec.png \
+  --map-type tile --tile-zoom 2
+```
+
+Attribution and provider terms
+- Respect the terms of the tile provider you use (OpenStreetMap is the default in many cases). Some providers require explicit attribution in the figure or documentation; include an appropriate credit when publishing.
+- Interactive Folium maps support attribution and multiple base layers via CLI flags (`--tiles`, `--attribution`, `--wms-*`). For static images, add credits in captions or overlays as needed.
 
 Classified colormap example (optional):
 
@@ -285,6 +354,77 @@ cmap, norm = ColormapManager().render(colormap_data)
 plotter.render(data, custom_cmap=cmap, norm=norm)
 plotter.save("/tmp/heatmap_classified.png")
 ```
+
+## Interactive Visualization
+
+Render interactive HTML (Folium or Plotly) via the CLI. Install extras as needed:
+
+- Poetry: `poetry install --with dev -E interactive` (or `-E visualization -E interactive`)
+- Pip: `pip install "datavizhub[interactive]"`
+
+Examples
+- Folium heatmap from a NumPy array:
+
+```
+python -m datavizhub.cli interactive \
+  --input samples/demo.npy \
+  --output out.html \
+  --engine folium \
+  --mode heatmap
+```
+
+- Plotly heatmap (standalone HTML):
+
+```
+python -m datavizhub.cli interactive \
+  --input samples/demo.npy \
+  --output out_plotly.html \
+  --engine plotly \
+  --mode heatmap \
+  --width 600 --height 300
+```
+
+- Folium points from CSV:
+
+```
+python -m datavizhub.cli interactive \
+  --input samples/points.csv \
+  --output points.html \
+  --engine folium \
+  --mode points
+```
+
+- Folium points with a time column (TimeDimension):
+
+```
+python -m datavizhub.cli interactive \
+  --input samples/points_time.csv \
+  --output points_time.html \
+  --engine folium \
+  --mode points \
+  --time-column time \
+  --period P6H \
+  --transition-ms 300
+```
+
+- Folium vector quiver from U/V arrays:
+
+```
+python -m datavizhub.cli interactive \
+  --mode vector \
+  --u /path/U.npy \
+  --v /path/V.npy \
+  --output vec.html \
+  --engine folium \
+  --density 0.3 --scale 1.0
+```
+
+Base layers and WMS
+- Use `--tiles` to set a tile layer (name or URL), e.g., `--tiles OpenStreetMap` or `--tiles "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"` with `--attribution`.
+- Add WMS overlays with `--wms-url`, `--wms-layers`, and optionally `--wms-format`/`--wms-transparent`. Add a layer control with `--layer-control`.
+
+CRS notes
+- The display CRS is PlateCarree (EPSG:4326). Tools will warn if the input CRS differs. Use `--crs` to override, or `--reproject` (limited; requires optional GIS deps) to opt into reprojection.
 
 Compose FTP fetch + video + Vimeo upload
 
