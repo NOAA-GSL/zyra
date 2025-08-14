@@ -2,8 +2,23 @@ import os
 import tempfile
 
 import numpy as np
+import pytest
 
 from importlib.resources import files, as_file
+
+# Skip Cartopy-heavy tests unless explicitly enabled
+_has_cartopy = False
+try:  # pragma: no cover - import guard
+    import cartopy  # noqa: F401
+    _has_cartopy = True
+except Exception:
+    pass
+
+_skip_cartopy_heavy = (not _has_cartopy) or os.environ.get("DATAVIZHUB_RUN_CARTOPY_TESTS") != "1"
+pytestmark = pytest.mark.skipif(
+    _skip_cartopy_heavy,
+    reason="Cartopy-heavy tests require cartopy and opt-in (DATAVIZHUB_RUN_CARTOPY_TESTS=1)",
+)
 
 
 def _get_basemap_path():
@@ -94,4 +109,3 @@ def test_cli_heatmap_smoke():
         assert proc.returncode == 0, proc.stderr
         assert os.path.exists(out)
         assert os.path.getsize(out) > 0
-

@@ -24,6 +24,7 @@ def test_cli_timeseries_samples_csv(tmp_path):
         sys.executable,
         "-m",
         "datavizhub.cli",
+        "visualize",
         "timeseries",
         "--input",
         str(csv_path),
@@ -42,4 +43,3 @@ def test_cli_timeseries_samples_csv(tmp_path):
     assert proc.returncode == 0, proc.stderr
     assert out.exists()
     assert out.stat().st_size > 0
-

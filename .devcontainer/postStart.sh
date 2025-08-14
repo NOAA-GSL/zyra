@@ -22,6 +22,19 @@ WIKI_URL="https://github.com/NOAA-GSL/datavizhub.wiki.git"
 DOCS_DIR="wiki"
 META_FILE="$DOCS_DIR/.mirror_meta"
 
+# Pre-check: if an existing wiki directory is present but not writable (e.g. leftover
+# from a prior container run created under a different UID), remove it so that the
+# later clone/move does not fail with 'Permission denied'. This directory is an
+# ephemeral mirror (never committed) so it's safe to remove.
+if [[ -d "$DOCS_DIR" && ! -w "$DOCS_DIR" ]]; then
+  echo "[postStart] Existing $DOCS_DIR not writable (owner $(stat -c %U:%G "$DOCS_DIR" 2>/dev/null || echo '?')) – removing"
+  if rm -rf "$DOCS_DIR" 2>/dev/null; then
+    echo "[postStart] Removed stale $DOCS_DIR"
+  else
+    echo "[postStart] WARN: Failed to remove non-writable $DOCS_DIR; subsequent sync may fail" >&2
+  fi
+fi
+
 now_epoch() { date +%s; }
 
 should_update=0
@@ -59,9 +72,20 @@ if [[ $should_update -eq 1 ]]; then
     rm -rf "$tmp_dir/.git"
     echo "source_url=\"$WIKI_URL\"" > "$tmp_dir/.mirror_meta"
     echo "last_sync_epoch=$(now_epoch)" >> "$tmp_dir/.mirror_meta"
-    rm -rf "$DOCS_DIR"
-    mv "$tmp_dir" "$DOCS_DIR"
-    echo "[postStart] Wiki synced to /wiki"
+    # Remove any existing directory (best-effort)
+    rm -rf "$DOCS_DIR" 2>/dev/null || true
+    if mv "$tmp_dir" "$DOCS_DIR" 2>/dev/null; then
+      echo "[postStart] Wiki synced to /wiki"
+    else
+      echo "[postStart] WARN: mv failed (permission issue?). Attempting copy fallback" >&2
+      mkdir -p "$DOCS_DIR" || true
+      if cp -R "$tmp_dir"/. "$DOCS_DIR" 2>/dev/null; then
+        rm -rf "$tmp_dir"
+        echo "[postStart] Wiki synced to /wiki (copy fallback)"
+      else
+        echo "[postStart] ERROR: Could not place wiki contents; leaving temp dir $tmp_dir for inspection" >&2
+      fi
+    fi
   else
     echo "[postStart] WARN: Wiki clone failed; leaving existing /wiki in place" >&2
     rm -rf "$tmp_dir"

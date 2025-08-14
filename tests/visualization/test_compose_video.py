@@ -27,6 +27,7 @@ def test_cli_compose_video_smoke():
             sys.executable,
             "-m",
             "datavizhub.cli",
+            "visualize",
             "compose-video",
             "--frames",
             frames,

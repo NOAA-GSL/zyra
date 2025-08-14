@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHONPATH: src
+      # Seed stdin for pipeline tests that read from '-' when CI does not pipe input
+      DATAVIZHUB_DEFAULT_STDIN: tests/testdata/demo.nc
       
     steps:
       - name: Check out code

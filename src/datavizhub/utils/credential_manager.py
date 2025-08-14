@@ -27,7 +27,8 @@ import logging
 from pathlib import Path
 from typing import Iterable, Optional
 
-from dotenv import dotenv_values, find_dotenv
+# Defer optional dependency import to method calls to avoid crashing
+# modules that import CredentialManager when python-dotenv is unavailable.
 
 
 class CredentialManager:
@@ -97,6 +98,13 @@ class CredentialManager:
         KeyError
             If any expected keys are missing after reading.
         """
+        try:
+            from dotenv import dotenv_values, find_dotenv  # type: ignore
+        except (ImportError, ModuleNotFoundError) as exc:  # pragma: no cover - optional dependency path
+            raise ImportError(
+                "python-dotenv is required to read credentials; install the 'dev' extra or add python-dotenv"
+            ) from exc
+
         dotenv_path = Path(self.filename) if self.filename else Path(find_dotenv())
         if dotenv_path and dotenv_path.exists():
             env_vars = dotenv_values(dotenv_path)

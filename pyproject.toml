@@ -153,6 +153,7 @@ addopts = "-s -v --durations=0"
 cache_dir = ".cache/pytest_cache"
 markers = [
     "cli: marks tests that invoke the CLI",
+    "pipeline: marks tests that run the pipeline runner",
 ]
 
 [tool.coverage.run]

@@ -1,0 +1,16 @@
+# NetCDF passthrough to file: reads NetCDF bytes from stdin and writes to a file
+name: NetCDF To File
+stages:
+  - stage: processing
+    command: convert-format
+    args:
+      file_or_url: "-"
+      format: netcdf
+      stdout: true
+
+  - stage: decimation
+    command: local
+    args:
+      input: "-"
+      path: out.nc
+
