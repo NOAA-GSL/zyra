@@ -405,8 +405,8 @@ def run_pipeline(
     if (print_argv or dry_run) and print_format == "json":
         os.write(1, (json.dumps(printed_objects) + "\n").encode("utf-8"))
 
-    # Write final bytes to stdout if any, otherwise exit 0 or first error
-    if current is not None:
+    # Write final bytes to stdout only when actually executing stages (not dry-run)
+    if current is not None and not dry_run:
         os.write(1, current)
     return any_error or 0
 
