@@ -70,7 +70,7 @@ class HeatmapManager(Renderer):
 
             return np.load(input_path)
         else:
-            raise ValueError("Unsupported input file; use .nc or .npy for this increment")
+            raise ValueError("Unsupported input file; use .nc or .npy")
 
     def render(self, data: Any = None, **kwargs: Any):
         width = int(kwargs.get("width", 1024))
