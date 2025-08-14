@@ -69,7 +69,7 @@ def test_animate_tiles_smoke(tmp_path):
 def test_contour_tiles_smoke(tmp_path):
     out_file = tmp_path / "contour_tiles.png"
     cmd = [
-        "python",
+        sys.executable,
         "-m",
         "datavizhub.cli",
         "contour",
