@@ -131,7 +131,7 @@ def cmd_extract_variable(args: argparse.Namespace) -> int:
                         # wgrib2 failed; will fall back to Python conversion after this block
                         print(res.stderr.strip() or "wgrib2 subsetting failed; falling back to Python conversion", file=sys.stderr)
                         # Continue to Python fallback below
-                    if res.returncode == 0:
+                    else:
                         with open(out_path, "rb") as f:
                             sys.stdout.buffer.write(f.read())
                         return 0
