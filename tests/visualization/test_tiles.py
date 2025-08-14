@@ -20,25 +20,6 @@ def test_heatmap_tiles_smoke(tmp_path):
         "--tile-zoom",
         "2",
     ]
-
-
-@pytest.mark.cli
-def test_heatmap_tiles_smoke(tmp_path):
-    out_file = tmp_path / "heatmap_tiles.png"
-    cmd = [
-        sys.executable,
-        "-m",
-        "datavizhub.cli",
-        "heatmap",
-        "--input",
-        "samples/demo.npy",
-        "--output",
-        str(out_file),
-        "--map-type",
-        "tile",
-        "--tile-zoom",
-        "2",
-    ]
     result = subprocess.run(cmd)
     assert result.returncode == 0
     assert out_file.exists()
