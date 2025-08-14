@@ -1,12 +1,25 @@
 import pytest
 import subprocess
+import sys
 
 
 @pytest.mark.cli
 def test_heatmap_tiles_smoke(tmp_path):
     out_file = tmp_path / "heatmap_tiles.png"
     cmd = [
-import sys
+        sys.executable,
+        "-m",
+        "datavizhub.cli",
+        "heatmap",
+        "--input",
+        "samples/demo.npy",
+        "--output",
+        str(out_file),
+        "--map-type",
+        "tile",
+        "--tile-zoom",
+        "2",
+    ]
 
 
 @pytest.mark.cli
