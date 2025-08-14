@@ -6,7 +6,14 @@ import subprocess
 def test_heatmap_tiles_smoke(tmp_path):
     out_file = tmp_path / "heatmap_tiles.png"
     cmd = [
-        "python",
+import sys
+
+
+@pytest.mark.cli
+def test_heatmap_tiles_smoke(tmp_path):
+    out_file = tmp_path / "heatmap_tiles.png"
+    cmd = [
+        sys.executable,
         "-m",
         "datavizhub.cli",
         "heatmap",
