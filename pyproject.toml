@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "datavizhub"
-version = "0.1.14"
+version = "0.1.15"
 description = "A tool to ingest data from various sources and formats, create imagery or video based on that data, and send the results to various locations for dissemination."
 authors = ["Eric Hackathorn <eric.j.hackathorn@noaa.gov>"]
 include = [
@@ -153,6 +153,7 @@ addopts = "-s -v --durations=0"
 cache_dir = ".cache/pytest_cache"
 markers = [
     "cli: marks tests that invoke the CLI",
+    "pipeline: marks tests that run the pipeline runner",
 ]
 
 [tool.coverage.run]
