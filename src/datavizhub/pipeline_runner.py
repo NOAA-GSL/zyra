@@ -330,6 +330,23 @@ def run_pipeline(
         current_stdin = None
     current: bytes | None = current_stdin if current_stdin else None
 
+    # Optional seeding from env for CI or non-piped contexts.
+    # If the first selected stage expects '-' as an input and stdin is empty,
+    # use DATAVIZHUB_DEFAULT_STDIN to provide bytes.
+    if current is None:
+        try:
+            default_stdin_path = os.environ.get("DATAVIZHUB_DEFAULT_STDIN")
+            if default_stdin_path and selected:
+                first = selected[0]
+                if isinstance(first, dict):
+                    args0 = first.get("args") or {}
+                    if any(v == "-" for v in args0.values()):
+                        with open(default_stdin_path, "rb") as f:
+                            current = f.read()
+        except Exception:
+            # Ignore seeding failures silently; normal error handling will apply later
+            pass
+
     # Printed structures for --print-argv-format=json
     printed_objects: list[dict[str, Any]] = []
     any_error: int | None = None
@@ -356,6 +373,24 @@ def run_pipeline(
         if dry_run:
             continue
         rc, out, _ = _run_cli(argv, current)
+        # If the very first stage failed and it appears to require stdin ('-') but none was provided,
+        # emit a helpful hint to stderr for CI logs.
+        if rc != 0 and idx == 0 and current is None:
+            try:
+                if (
+                    len(argv) >= 4
+                    and argv[0] == "process"
+                    and argv[1] == "convert-format"
+                    and argv[2] == "-"
+                    and "--stdout" in argv
+                ):
+                    msg = (
+                        "No stdin provided for first stage requiring '-' input (process convert-format --stdout).\n"
+                        "Hint: pipe input bytes or set DATAVIZHUB_DEFAULT_STDIN=/path/to/file in the environment.\n"
+                    )
+                    os.write(2, msg.encode("utf-8"))
+            except Exception:
+                pass
         if rc != 0:
             any_error = any_error or rc
             if not continue_on_error:
