@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from typing import Any
 
 from datavizhub.cli_common import add_output_option
 from datavizhub.utils.cli_helpers import configure_logging_from_env
@@ -48,7 +49,7 @@ def _cmd_vimeo(ns: argparse.Namespace) -> int:  # pragma: no cover - placeholder
     raise SystemExit("acquire vimeo is not implemented yet")
 
 
-def register_cli(acq_subparsers: argparse._SubParsersAction) -> None:
+def register_cli(acq_subparsers: Any) -> None:
     # http
     p_http = acq_subparsers.add_parser("http", help="Fetch via HTTP(S)")
     p_http.add_argument("url")

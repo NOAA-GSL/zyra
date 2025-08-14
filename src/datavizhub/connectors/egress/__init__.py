@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from typing import Any
 
 from datavizhub.cli_common import add_input_option
 from datavizhub.utils.cli_helpers import configure_logging_from_env
@@ -61,7 +62,7 @@ def _cmd_post(ns: argparse.Namespace) -> int:
     return 0
 
 
-def register_cli(dec_subparsers: argparse._SubParsersAction) -> None:
+def register_cli(dec_subparsers: Any) -> None:
     # local
     p_local = dec_subparsers.add_parser("local", help="Write to local file")
     add_input_option(p_local, required=True)

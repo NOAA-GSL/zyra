@@ -434,9 +434,7 @@ class S3Manager(DataAcquirer):
 
         return _parallel_download_byteranges(_ranged_get, key, byte_ranges, max_workers=max_workers)
 
-    def list_files_filtered(self, prefix: Optional[str] = None, pattern: Optional[str] = None) -> list[str]:
-        """Deprecated alias for ``list_files(prefix, pattern)``."""
-        return list(self.list_files(prefix, pattern) or [])
+    # Removed deprecated alias `list_files_filtered`; use `list_files` instead
 
     def delete(self, remote_path: str) -> bool:
         """Delete an object from the bucket."""

@@ -20,14 +20,13 @@ def _load_config(path: str) -> dict[str, Any]:
 
 
 def _expand_env(obj: Any, *, strict: bool = False) -> Any:
-    """Recursively expand env placeholders in a structure.
+    """Recursively expand environment placeholders within nested structures.
 
-    Supports $VAR, ${VAR}, and ${VAR:-default}. If ``strict`` is True,
-    raises SystemExit when a plain ${VAR} is missing.
-    """
-    """Recursively expand ${VAR} in strings using environment variables.
-
-    If strict, fail when a placeholder has no matching environment value.
+    - Expands ``$VAR`` and ``${VAR}`` using the current environment.
+    - Supports shell-style defaults via ``${VAR:-default}``.
+    - When ``strict`` is True, raises ``SystemExit`` if a plain ``${VAR}``
+      appears without a corresponding environment value. Defaults specified via
+      ``${VAR:-default}`` are not considered errors in strict mode.
     """
     import os
     import re
@@ -411,7 +410,7 @@ def run_pipeline(
     return any_error or 0
 
 
-def register_cli_run(subparsers: argparse._SubParsersAction) -> None:
+def register_cli_run(subparsers: Any) -> None:
     """Register the ``run`` subcommand on a parser."""
     p = subparsers.add_parser("run", help="Run a pipeline from YAML/JSON config")
     p.add_argument("config")
