@@ -36,7 +36,7 @@ def test_animate_tiles_smoke(tmp_path):
     out_dir = tmp_path / "frames"
     manifest = tmp_path / "manifest.json"
     cmd = [
-        "python",
+        sys.executable,
         "-m",
         "datavizhub.cli",
         "animate",
