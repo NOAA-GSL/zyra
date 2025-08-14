@@ -14,7 +14,7 @@ from .json_file_manager import JSONFileManager
 try:  # pragma: no cover - optional path
     from .image_manager import ImageManager  # type: ignore
     _HAS_IMAGE = True
-except Exception:  # pragma: no cover - optional path
+except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional path
     _HAS_IMAGE = False
 
 __all__ = [

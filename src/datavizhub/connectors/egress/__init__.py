@@ -29,7 +29,7 @@ def _cmd_local(ns: argparse.Namespace) -> int:
             dest.parent.mkdir(parents=True, exist_ok=True)
         with dest.open("wb") as f:
             f.write(data)
-    except Exception as exc:
+    except OSError as exc:
         raise SystemExit(f"Failed to write local file: {exc}")
     import logging
     logging.info(str(dest))

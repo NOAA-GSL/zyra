@@ -100,7 +100,7 @@ class CredentialManager:
         """
         try:
             from dotenv import dotenv_values, find_dotenv  # type: ignore
-        except Exception as exc:  # pragma: no cover - optional dependency path
+        except (ImportError, ModuleNotFoundError) as exc:  # pragma: no cover - optional dependency path
             raise ImportError(
                 "python-dotenv is required to read credentials; install the 'dev' extra or add python-dotenv"
             ) from exc

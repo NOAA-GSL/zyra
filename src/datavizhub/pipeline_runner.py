@@ -212,7 +212,7 @@ def _run_cli(argv: list[str], input_bytes: bytes | None) -> tuple[int, bytes, st
                     i = argv.index("--input")
                     if i + 1 < len(argv) and argv[i + 1] not in ("-", "--"):
                         raise ValueError
-                except Exception:
+                except ValueError:
                     # Fallback to normal CLI path
                     pass
                 else:
@@ -226,7 +226,7 @@ def _run_cli(argv: list[str], input_bytes: bytes | None) -> tuple[int, bytes, st
                         with p.open("wb") as f:
                             f.write(input_bytes)
                         return 0, b"", ""
-                    except Exception as exc:
+                    except OSError as exc:
                         return 2, b"", str(exc)
             else:
                 # No explicit --input; assume stdin
@@ -240,9 +240,9 @@ def _run_cli(argv: list[str], input_bytes: bytes | None) -> tuple[int, bytes, st
                     with p.open("wb") as f:
                         f.write(input_bytes)
                     return 0, b"", ""
-                except Exception as exc:
+                except OSError as exc:
                     return 2, b"", str(exc)
-    except Exception:
+    except (ValueError, IndexError, OSError, AttributeError, TypeError):
         # Fall back to normal path on any detection error
         pass
 
