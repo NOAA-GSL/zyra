@@ -1,0 +1,10 @@
+# NetCDF passthrough: reads NetCDF bytes from stdin and emits NetCDF to stdout
+name: NetCDF Passthrough
+stages:
+  - stage: processing
+    command: convert-format
+    args:
+      file_or_url: "-"      # read from stdin
+      format: netcdf        # write NetCDF
+      stdout: true          # emit to stdout
+

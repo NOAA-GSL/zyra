@@ -1,0 +1,16 @@
+# Compose frames in a directory into a local MP4 video
+name: Compose Video to Local
+stages:
+  - stage: visualization
+    command: compose-video
+    args:
+      frames: frames           # directory containing frame_*.png
+      output: video.mp4        # output MP4 file
+      fps: 24
+
+  - stage: decimation
+    command: local
+    args:
+      input: video.mp4
+      path: video.mp4
+

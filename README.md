@@ -15,6 +15,7 @@ DataVizHub is a utility library for building data-driven visual products. It pro
 - [Install (Poetry)](#install-poetry)
 - [Install (pip extras)](#install-pip-extras)
  - [Stage-Specific Installs](#stage-specific-installs)
+- [CLI Overview](#cli-overview)
 - [Quick Composition Examples](#quick-composition-examples)
 - [Interactive Visualization](#interactive-visualization)
 - [Real-World Implementations](#real-world-implementations)
@@ -109,6 +110,58 @@ Focused extras remain available for targeted installs:
 
 Note on interactive installs:
 - The `interactive` extra pulls in Folium and/or Plotly, which increase dependency size and runtime memory. If you only need static images and animations, you can skip `interactive` and install just `visualization`.
+
+## CLI Overview
+
+DataVizHub ships a single `datavizhub` CLI organized into four groups that mirror the pipeline stages, plus a `run` helper for config-driven pipelines.
+
+### CLI Tree
+
+```
+datavizhub
+├─ acquire            # Ingest/fetch bytes from sources
+│  ├─ http            # acquire http <url> [-o out|-]
+│  ├─ s3              # acquire s3 --url s3://bucket/key [-o out|-]
+│  ├─ ftp             # acquire ftp <ftp://host/path or host/path> [-o out|-]
+│  └─ vimeo           # (placeholder)
+├─ process            # Decode, extract, convert (supports stdin/stdout)
+│  ├─ decode-grib2
+│  ├─ extract-variable
+│  └─ convert-format
+├─ visualize          # Static images, animations, interactive HTML
+│  ├─ heatmap | contour | timeseries | vector | wind [deprecated]
+│  ├─ animate         # write frames; optional MP4 composition
+│  ├─ compose-video   # frames → MP4 (ffmpeg)
+│  └─ interactive     # folium/plotly HTML
+├─ decimate           # Write/egress bytes to destinations
+│  ├─ local           # file path
+│  ├─ s3              # s3://bucket/key
+│  ├─ ftp             # ftp://host/path or host/path
+│  └─ post            # HTTP POST
+└─ run                # Run a pipeline from YAML/JSON (coming soon)
+```
+
+Notes
+- All subcommands accept `-` for stdin/stdout where applicable to support piping.
+- Legacy flat commands (e.g., `datavizhub decode-grib2`, `datavizhub contour`) remain available for backward compatibility.
+
+### Quick Usage by Group
+
+- Acquire
+  - HTTP to file: `datavizhub acquire http https://example.com/data.bin -o data.bin`
+  - S3 to stdout: `datavizhub acquire s3 --url s3://bucket/key -o -`
+
+- Process (streaming-friendly)
+  - Decode GRIB2 to raw bytes via `.idx` subset: `datavizhub process decode-grib2 s3://bucket/file.grib2 --pattern ":TMP:surface:" --raw > subset.grib2`
+  - Convert stdin to NetCDF: `cat subset.grib2 | datavizhub process convert-format - netcdf --stdout > out.nc`
+
+- Visualize
+  - Contour PNG from NetCDF: `datavizhub visualize contour --input out.nc --var TMP --output contour.png --levels 10 --filled`
+  - Animate frames and compose to MP4: `datavizhub visualize animate --mode heatmap --input cube.npy --output-dir frames && datavizhub visualize compose-video --frames frames -o out.mp4`
+
+- Decimate
+  - Upload to S3 from stdin: `cat out.png | datavizhub decimate s3 -i - --url s3://bucket/products/out.png`
+- HTTP POST JSON: `echo '{"ok":true}' | datavizhub decimate post -i - https://example.com/ingest --content-type application/json`
 
 ## Quick Composition Examples
 
@@ -247,10 +300,66 @@ Notes and fallbacks:
 - GRIB2→NetCDF uses `xarray.to_netcdf()` when possible with a `wgrib2 -netcdf` fallback if present.
 - Generic NetCDF→GRIB2 is not supported by `wgrib2`. If `cdo` is installed, `convert_to_grib2()` uses `cdo -f grb2 copy` automatically; otherwise a clear exception is raised.
 
-CLI helpers:
-- `datavizhub decode-grib2 <file_or_url> [--backend cfgrib|pygrib|wgrib2]`
-- `datavizhub extract-variable <file_or_url> <pattern> [--backend ...]`
-- `datavizhub convert-format <file_or_url> <netcdf|geotiff> -o out.ext [--var NAME] [--backend ...]`
+CLI helpers (grouped commands):
+- `datavizhub process decode-grib2 <file_or_url> [--backend cfgrib|pygrib|wgrib2]`
+- `datavizhub process extract-variable <file_or_url> <pattern> [--backend ...]`
+- `datavizhub process convert-format <file_or_url> <netcdf|geotiff> -o out.ext [--var NAME] [--backend ...]`
+
+## Development, Test, Lint
+
+- Run all tests:
+  - Poetry: `poetry run pytest -q`
+  - Pip/venv: `pytest -q`
+
+- Run CLI-only tests (marker `cli`):
+  - `pytest -m cli`
+
+- Run tile-based visualization tests (require `contextily` and explicit opt-in):
+  - `DATAVIZHUB_RUN_TILE_TESTS=1 pytest -m cli`
+  - Without this variable set, tile tests are skipped to keep CI stable in minimal runners.
+
+- Run pipeline integration tests (marker `pipeline`):
+  - `pytest -m pipeline`
+  - Combine with other opts as needed, e.g., `-q` or coverage flags.
+
+## Pipeline Patterns
+
+Sample pipeline configs live under `samples/pipelines/`:
+
+- `nc_passthrough.yaml`: read NetCDF bytes from stdin and emit NetCDF to stdout.
+  - Usage: `cat tests/testdata/demo.nc | datavizhub run samples/pipelines/nc_passthrough.yaml > out.nc`
+- `nc_to_file.yaml`: read NetCDF from stdin, then write to `out.nc` via `decimate local`.
+  - Usage: `cat tests/testdata/demo.nc | datavizhub run samples/pipelines/nc_to_file.yaml`
+- `ftp_to_s3.yaml`: template for FTP → video composition → S3 upload (placeholders, not CI-safe).
+- `extract_variable_to_file.yaml`: extract TMP from stdin, convert to NetCDF, and write to file.
+  - Usage: `cat tests/testdata/demo.nc | datavizhub run samples/pipelines/extract_variable_to_file.yaml`
+- `compose_video_to_local.yaml`: compose frames in a directory to MP4 and copy locally.
+
+Overrides
+- Global override (applied where key exists): `--set var=TMP`
+- Per-stage override using 1-based index (1-based): `--set 2.var=TMP` (sets key `var` on stage 2 only)
+- Stage-name override (uses aliases acquisition/ingest→acquire, processing→process, visualization→visualize, decimation/egress→decimate):
+  - `--set processing.var=TMP`
+  - `--set decimation.backend=local`
+
+Dry run and argv output
+- Validate and print the expanded stage argv without executing:
+  - Text: `datavizhub run pipeline.yaml --dry-run`
+  - JSON: `datavizhub run pipeline.yaml --dry-run --print-argv-format=json`
+    - Structure:
+      ```json
+      [
+        {"stage": 1, "name": "acquire", "argv": ["datavizhub", "acquire", "http", "https://..."]},
+        {"stage": 2, "name": "process", "argv": ["datavizhub", "process", "convert-format", "-", "netcdf"]}
+      ]
+      ```
+
+Error handling
+- Stop on first error (default) or continue executing remaining stages:
+  - `datavizhub run pipeline.yaml --continue-on-error`
+
+- Lint/format (if enabled in your env):
+  - `poetry run black . && poetry run isort . && poetry run flake8`
 
 ## Chaining Commands with --raw and --stdout
 

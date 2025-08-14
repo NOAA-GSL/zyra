@@ -37,7 +37,7 @@ def test_decode_grib2_raw_passthrough_netcdf(monkeypatch, capsysbinary):
     fake_stdin = type("S", (), {"buffer": io.BytesIO(demo)})()
     monkeypatch.setattr(sys, "stdin", fake_stdin)
 
-    rc = main(["decode-grib2", "-", "--raw"])
+    rc = main(["process", "decode-grib2", "-", "--raw"])
     assert rc == 0
     captured = capsysbinary.readouterr()
     # stdout should contain the exact bytes we piped in
@@ -66,7 +66,7 @@ def test_extract_variable_stdout_netcdf_simulated(monkeypatch, capsysbinary):
 
     monkeypatch.setattr("subprocess.run", fake_run)
 
-    rc = main(["extract-variable", "-", "TMP", "--stdout", "--format", "netcdf"])
+    rc = main(["process", "extract-variable", "-", "TMP", "--stdout", "--format", "netcdf"])
     assert rc == 0
     captured = capsysbinary.readouterr()
     # Output should be exactly the NetCDF bytes produced by fake wgrib2
@@ -81,7 +81,7 @@ def test_convert_format_autodetect_netcdf_from_stdin(monkeypatch, capsysbinary):
     fake_stdin = type("S", (), {"buffer": io.BytesIO(demo)})()
     monkeypatch.setattr(sys, "stdin", fake_stdin)
 
-    rc = main(["convert-format", "-", "netcdf", "--stdout"])
+    rc = main(["process", "convert-format", "-", "netcdf", "--stdout"])
     assert rc == 0
     captured = capsysbinary.readouterr()
     # Check magic bytes for NetCDF classic (CDF) or NetCDF4/HDF5
@@ -96,7 +96,7 @@ def test_grib2_raw_matches_file_bytes():
     # datavizhub decode-grib2 tests/testdata/demo.grib2 --raw
     demo_path = Path("tests/testdata/demo.grib2")
     expected = demo_path.read_bytes()
-    res = _run_cli(["decode-grib2", str(demo_path), "--raw"])
+    res = _run_cli(["process", "decode-grib2", str(demo_path), "--raw"])
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     assert res.stdout == expected
     assert res.stderr == b""
@@ -110,8 +110,8 @@ def test_grib2_to_netcdf_pipeline_header_check():
         pytest.skip("xarray/cfgrib not available for NetCDF conversion")
     # Pipe raw GRIB2 into: datavizhub convert-format - netcdf --stdout
     demo_path = Path("tests/testdata/demo.grib2")
-    raw = _run_cli(["decode-grib2", str(demo_path), "--raw"]).stdout
-    res = _run_cli(["convert-format", "-", "netcdf", "--stdout"], input_bytes=raw)
+    raw = _run_cli(["process", "decode-grib2", str(demo_path), "--raw"]).stdout
+    res = _run_cli(["process", "convert-format", "-", "netcdf", "--stdout"], input_bytes=raw)
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     # Validate NetCDF magic numbers: classic CDF or HDF5-based NetCDF4
     assert res.stdout.startswith(b"CDF") or res.stdout.startswith(b"\x89HDF")
@@ -125,7 +125,7 @@ def test_grib2_extract_variable_stdout_netcdf_header():
         pytest.skip("xarray/cfgrib not available for NetCDF conversion")
     # datavizhub extract-variable tests/testdata/demo.grib2 "TMP" --stdout --format netcdf
     demo_path = Path("tests/testdata/demo.grib2")
-    res = _run_cli(["extract-variable", str(demo_path), "TMP", "--stdout", "--format", "netcdf"])
+    res = _run_cli(["process", "extract-variable", str(demo_path), "TMP", "--stdout", "--format", "netcdf"])
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     assert res.stdout.startswith(b"CDF") or res.stdout.startswith(b"\x89HDF")
 
@@ -140,8 +140,8 @@ def test_grib2_to_geotiff_pipeline_header_check():
         pytest.skip("rioxarray not available for GeoTIFF conversion")
     # Pipe raw GRIB2 into: datavizhub convert-format - geotiff --stdout
     demo_path = Path("tests/testdata/demo.grib2")
-    raw = _run_cli(["decode-grib2", str(demo_path), "--raw"]).stdout
-    res = _run_cli(["convert-format", "-", "geotiff", "--stdout"], input_bytes=raw)
+    raw = _run_cli(["process", "decode-grib2", str(demo_path), "--raw"]).stdout
+    res = _run_cli(["process", "convert-format", "-", "geotiff", "--stdout"], input_bytes=raw)
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     # GeoTIFF header is either little-endian "II" or big-endian "MM"
     assert res.stdout.startswith(b"II") or res.stdout.startswith(b"MM")

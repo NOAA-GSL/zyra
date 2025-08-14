@@ -1,0 +1,22 @@
+# Extract a variable from stdin GRIB/NetCDF, convert to NetCDF, and write to file
+name: Extract Variable to File
+stages:
+  - stage: processing
+    command: extract-variable
+    args:
+      file_or_url: "-"      # read from stdin (GRIB2/NetCDF)
+      pattern: "TMP"        # regex/name of variable
+
+  - stage: processing
+    command: convert-format
+    args:
+      file_or_url: "-"      # take previous stage stdout
+      format: netcdf
+      stdout: true
+
+  - stage: decimation
+    command: local
+    args:
+      input: "-"
+      path: temperature.nc
+

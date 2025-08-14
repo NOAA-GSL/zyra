@@ -1,5 +1,20 @@
+import os
 import pytest
 import subprocess
+
+# Skip tile tests unless contextily is available and explicitly enabled
+has_contextily = False
+try:  # pragma: no cover - import guard
+    import contextily  # noqa: F401
+    has_contextily = True
+except Exception:
+    pass
+
+skip_tiles = not has_contextily or os.environ.get("DATAVIZHUB_RUN_TILE_TESTS") != "1"
+pytestmark = pytest.mark.skipif(
+    skip_tiles,
+    reason="Tile tests require contextily and opt-in (DATAVIZHUB_RUN_TILE_TESTS=1)",
+)
 
 
 @pytest.mark.cli
@@ -9,6 +24,7 @@ def test_heatmap_tiles_smoke(tmp_path):
         "python",
         "-m",
         "datavizhub.cli",
+        "visualize",
         "heatmap",
         "--input",
         "samples/demo.npy",
@@ -32,6 +48,7 @@ def test_animate_tiles_smoke(tmp_path):
         "python",
         "-m",
         "datavizhub.cli",
+        "visualize",
         "animate",
         "--mode",
         "heatmap",
@@ -65,6 +82,7 @@ def test_contour_tiles_smoke(tmp_path):
         "python",
         "-m",
         "datavizhub.cli",
+        "visualize",
         "contour",
         "--input",
         "samples/demo.npy",

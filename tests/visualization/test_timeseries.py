@@ -53,6 +53,7 @@ def test_cli_timeseries_csv_smoke():
             sys.executable,
             "-m",
             "datavizhub.cli",
+            "visualize",
             "timeseries",
             "--input",
             csv_path,
@@ -71,4 +72,3 @@ def test_cli_timeseries_csv_smoke():
         assert proc.returncode == 0, proc.stderr
         assert os.path.exists(out)
         assert os.path.getsize(out) > 0
-

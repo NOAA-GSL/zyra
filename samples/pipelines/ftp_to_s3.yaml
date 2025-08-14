@@ -1,0 +1,24 @@
+# Example: FTP -> compose video -> upload to S3
+# Note: This is a template and requires network access and credentials.
+# It is not intended to run in minimal CI environments.
+name: FTP to S3 Video Pipeline
+stages:
+  - stage: acquire
+    command: ftp
+    args:
+      path: ftp://ftp.example.com/pub/frames/frame_*.png  # placeholder
+      output: -
+
+  - stage: visualize
+    command: compose-video
+    args:
+      frames: ./frames              # you would materialize frames before composing
+      output: video.mp4
+      fps: 24
+
+  - stage: decimate
+    command: s3
+    args:
+      input: video.mp4
+      url: s3://your-bucket/path/video.mp4
+
