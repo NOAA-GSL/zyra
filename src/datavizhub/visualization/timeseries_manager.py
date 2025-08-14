@@ -105,7 +105,7 @@ class TimeSeriesManager(Renderer):
         elif style == "line_marker":
             ax.plot(xs, ys, linestyle="-", marker="o", markersize=3)
         else:
-            ax.plot(xs, ys, linestyle="-" )
+            ax.plot(xs, ys, linestyle="-")
 
         if self.title:
             ax.set_title(self.title)
