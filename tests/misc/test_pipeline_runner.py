@@ -159,7 +159,7 @@ def test_run_process_then_decimate_local(tmp_path: Path):
     p.write_text(json.dumps(cfg), encoding="utf-8")
 
     demo = Path("tests/testdata/demo.nc").read_bytes()
-    res = _run_cli(["run", str(p)])
+    res = _run_cli(["run", str(p)], input_bytes=demo)
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     out_file = tmp_path / "out.nc"
     assert out_file.exists()
@@ -192,7 +192,7 @@ def test_stage_name_overrides_apply_correctly(tmp_path: Path):
 
     demo = Path("tests/testdata/demo.nc").read_bytes()
     # Override the path on the decimation stage via stage-name syntax
-    res = _run_cli(["run", str(p), "--set", f"decimation.path={tmp_path/'NEW.nc'}"])
+    res = _run_cli(["run", str(p), "--set", f"decimation.path={tmp_path/'NEW.nc'}"], input_bytes=demo)
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     assert (tmp_path / "NEW.nc").exists()
     assert not (tmp_path / "ORIG.nc").exists()
