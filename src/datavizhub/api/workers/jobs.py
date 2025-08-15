@@ -34,6 +34,8 @@ _rq_queue = None
 
 # In-memory pub/sub for WebSocket parity
 _SUBSCRIBERS: Dict[str, List[asyncio.Queue[str]]] = {}
+# In-memory last-message cache per channel for quick replay on new subscribers
+_LAST_MESSAGES: Dict[str, Dict[str, Any]] = {}
 
 
 def _register_listener(channel: str) -> asyncio.Queue[str]:
@@ -81,6 +83,14 @@ def _pub(channel: str, message: Dict[str, Any]) -> None:
     """
     payload = json.dumps(message)
     if not is_redis_enabled():
+        # Update last-message cache (shallow merge by keys)
+        try:
+            if isinstance(message, dict):
+                last = _LAST_MESSAGES.get(channel) or {}
+                last.update(message)
+                _LAST_MESSAGES[channel] = last
+        except Exception:
+            pass
         # Broadcast to in-memory subscribers
         for q in list(_SUBSCRIBERS.get(channel, []) or []):
             try:
@@ -94,6 +104,17 @@ def _pub(channel: str, message: Dict[str, Any]) -> None:
     except Exception:
         # Best effort publish; do not crash job
         pass
+
+
+def _get_last_message(channel: str) -> Optional[Dict[str, Any]]:
+    """Return the last cached message dict for a channel (in-memory mode only)."""
+    if is_redis_enabled():
+        return None
+    try:
+        v = _LAST_MESSAGES.get(channel)
+        return dict(v) if isinstance(v, dict) else None
+    except Exception:
+        return None
 
 
 class _PubTee(io.StringIO):

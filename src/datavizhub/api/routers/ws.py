@@ -6,7 +6,13 @@ from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
-from datavizhub.api.workers.jobs import is_redis_enabled, REDIS_URL, _register_listener, _unregister_listener
+from datavizhub.api.workers.jobs import (
+    is_redis_enabled,
+    REDIS_URL,
+    _register_listener,
+    _unregister_listener,
+    _get_last_message,
+)
 import os
 
 
@@ -43,8 +49,13 @@ async def job_progress_ws(
     - stream: Comma-separated keys to stream (stdout,stderr,progress). When omitted, all messages are sent.
     - api_key: API key required when `DATAVIZHUB_API_KEY` is set; closes immediately on mismatch.
     """
-    await websocket.accept()
     expected = os.environ.get("DATAVIZHUB_API_KEY")
+    # Authn: reject missing key at handshake; accept then close for wrong key
+    if expected and not api_key:
+        # Close without accepting so clients see a connection error
+        await websocket.close(code=1008)
+        return
+    await websocket.accept()
     if expected and api_key != expected:
         # Send an explicit error payload, then close with policy violation
         try:
@@ -56,13 +67,20 @@ async def job_progress_ws(
     allowed = None
     if stream:
         allowed = {s.strip().lower() for s in str(stream).split(',') if s.strip()}
-    # Emit a synthetic initial progress message to avoid race conditions
-    # where the client subscribes after the first real progress event.
+    # Replay last known progress on connect (in-memory mode caches last message)
     try:
-        if (allowed is None) or ("progress" in allowed):
-            await websocket.send_text(json.dumps({"progress": 0.0}))
+        channel = f"jobs.{job_id}.progress"
+        last = _get_last_message(channel)
+        if last:
+            # Filter to allowed keys if requested
+            to_send = {}
+            for k, v in last.items():
+                if (allowed is None) or (k in allowed):
+                    to_send[k] = v
+            if to_send:
+                await websocket.send_text(json.dumps(to_send))
     except Exception:
-        # Best-effort; continue even if the send fails (client may have closed)
+        # Best-effort; absence of cache is fine
         pass
     if not is_redis_enabled():
         # In-memory streaming: subscribe to local queue
