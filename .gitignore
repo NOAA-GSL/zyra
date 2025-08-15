@@ -89,6 +89,7 @@ app/wiki/
 samples/samples/quickstart_outputs/
 samples/**/frames_*/
 samples/**/manifest.json
+samples/api-responses/
 samples/u_stack.npy
 samples/v_stack.npy
 samples/uv_stack.nc
