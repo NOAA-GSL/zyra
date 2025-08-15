@@ -85,10 +85,11 @@ def create_app() -> FastAPI:
             disk_ok = False
 
         # Queue/worker readiness (Redis optional)
-        from datavizhub.api.workers.jobs import USE_REDIS, REDIS_URL, QUEUE_NAME
+        from datavizhub.api.workers.jobs import is_redis_enabled, REDIS_URL, QUEUE_NAME
 
-        queue = {"mode": "redis" if USE_REDIS else "in_memory", "connected": not USE_REDIS}
-        if USE_REDIS:
+        use_redis = is_redis_enabled()
+        queue = {"mode": "redis" if use_redis else "in_memory", "connected": (not use_redis)}
+        if use_redis:
             try:
                 import redis  # type: ignore
                 from datavizhub.api.workers.jobs import _get_redis_and_queue  # type: ignore

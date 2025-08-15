@@ -6,7 +6,7 @@ from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
-from datavizhub.api.workers.jobs import USE_REDIS, REDIS_URL, _register_listener, _unregister_listener
+from datavizhub.api.workers.jobs import is_redis_enabled, REDIS_URL, _register_listener, _unregister_listener
 import os
 
 
@@ -46,13 +46,17 @@ async def job_progress_ws(
     await websocket.accept()
     expected = os.environ.get("DATAVIZHUB_API_KEY")
     if expected and api_key != expected:
-        # Fail-fast: immediately close without sending a payload
+        # Send an explicit error payload, then close with policy violation
+        try:
+            await websocket.send_text(json.dumps({"error": "Unauthorized"}))
+        except Exception:
+            pass
         await websocket.close(code=1008)
         return
     allowed = None
     if stream:
         allowed = {s.strip().lower() for s in str(stream).split(',') if s.strip()}
-    if not USE_REDIS:
+    if not is_redis_enabled():
         # In-memory streaming: subscribe to local queue
         channel = f"jobs.{job_id}.progress"
         q = _register_listener(channel)

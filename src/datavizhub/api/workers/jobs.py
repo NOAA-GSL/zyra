@@ -19,8 +19,13 @@ from pathlib import Path
 import shutil
 
 
-USE_REDIS = os.environ.get("DATAVIZHUB_USE_REDIS", "0").lower() in {"1", "true", "yes"}
-REDIS_URL = os.environ.get("DATAVIZHUB_REDIS_URL", os.environ.get("REDIS_URL", "redis://localhost:6379/0"))
+def is_redis_enabled() -> bool:
+    return os.environ.get("DATAVIZHUB_USE_REDIS", "0").lower() in {"1", "true", "yes"}
+
+def redis_url() -> str:
+    return os.environ.get("DATAVIZHUB_REDIS_URL", os.environ.get("REDIS_URL", "redis://localhost:6379/0"))
+
+REDIS_URL = redis_url()
 QUEUE_NAME = os.environ.get("DATAVIZHUB_QUEUE", "datavizhub")
 
 
@@ -75,7 +80,7 @@ def _pub(channel: str, message: Dict[str, Any]) -> None:
     the serialized string on their per-channel queues.
     """
     payload = json.dumps(message)
-    if not USE_REDIS:
+    if not is_redis_enabled():
         # Broadcast to in-memory subscribers
         for q in list(_SUBSCRIBERS.get(channel, []) or []):
             try:
@@ -220,7 +225,7 @@ _JOBS: Dict[str, Dict[str, Any]] = {}
 
 
 def submit_job(stage: str, command: str, args: Dict[str, Any]) -> str:
-    if USE_REDIS:
+    if is_redis_enabled():
         r, q = _get_redis_and_queue()
         # Create a placeholder job id by enqueuing with meta; we need job id to publish channel messages
         job = q.enqueue(run_cli_job, stage, command, args)  # type: ignore[arg-type]
@@ -241,7 +246,7 @@ def submit_job(stage: str, command: str, args: Dict[str, Any]) -> str:
 
 
 def start_job(job_id: str, stage: str, command: str, args: Dict[str, Any]) -> None:
-    if USE_REDIS:
+    if is_redis_enabled():
         # When using Redis/RQ, jobs are started by workers; nothing to do here
         return
     # In-memory execution: run inline and update this module's job store
@@ -346,7 +351,7 @@ def start_job(job_id: str, stage: str, command: str, args: Dict[str, Any]) -> No
 
 
 def get_job(job_id: str) -> Optional[Dict[str, Any]]:
-    if USE_REDIS:
+    if is_redis_enabled():
         from rq.job import Job
         r, _q = _get_redis_and_queue()
         job = Job.fetch(job_id, connection=r)
@@ -373,7 +378,7 @@ def get_job(job_id: str) -> Optional[Dict[str, Any]]:
 
 
 def cancel_job(job_id: str) -> bool:
-    if USE_REDIS:
+    if is_redis_enabled():
         from rq.job import Job
         r, _q = _get_redis_and_queue()
         try:

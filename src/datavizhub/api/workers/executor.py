@@ -94,6 +94,11 @@ def _normalize_args(stage: str, command: str, args: Dict[str, Any]) -> Dict[str,
     }
 
     out = dict(args)
+    # Apply global synonyms first (e.g., src->input, dest->output)
+    for src, dst in global_synonyms.items():
+        if src in out and dst not in out:
+            out[dst] = out[src]
+    # Then apply per-command mappings (e.g., input->file_or_url)
     for src, dst in per_cmd.get((stage, command), {}).items():
         if src in out and dst not in out:
             out[dst] = out[src]
@@ -101,9 +106,6 @@ def _normalize_args(stage: str, command: str, args: Dict[str, Any]) -> Dict[str,
                 del out[src]
             except Exception:
                 pass
-    for src, dst in global_synonyms.items():
-        if src in out and dst not in out:
-            out[dst] = out[src]
     return out
 
 
