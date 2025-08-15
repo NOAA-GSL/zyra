@@ -56,6 +56,14 @@ async def job_progress_ws(
     allowed = None
     if stream:
         allowed = {s.strip().lower() for s in str(stream).split(',') if s.strip()}
+    # Emit a synthetic initial progress message to avoid race conditions
+    # where the client subscribes after the first real progress event.
+    try:
+        if (allowed is None) or ("progress" in allowed):
+            await websocket.send_text(json.dumps({"progress": 0.0}))
+    except Exception:
+        # Best-effort; continue even if the send fails (client may have closed)
+        pass
     if not is_redis_enabled():
         # In-memory streaming: subscribe to local queue
         channel = f"jobs.{job_id}.progress"
