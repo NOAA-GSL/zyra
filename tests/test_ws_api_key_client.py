@@ -1,0 +1,29 @@
+from __future__ import annotations
+
+import json
+import pytest
+from fastapi.testclient import TestClient
+
+from datavizhub.api.server import app
+from datavizhub.api.workers import jobs as jb
+
+
+def test_ws_api_key_enforcement(monkeypatch) -> None:
+    monkeypatch.setenv('DATAVIZHUB_API_KEY', 'sekret')
+    client = TestClient(app)
+    jid = jb.submit_job('process', 'convert-format', {})
+    # Wrong key: expect unauthorized message then close
+    with client.websocket_connect(f"/ws/jobs/{jid}?api_key=wrong&stream=progress") as ws:
+        msg = ws.receive_text()
+        data = json.loads(msg)
+        assert data.get('error') == 'Unauthorized'
+        # Next receive should fail due to close
+        with pytest.raises(Exception):
+            ws.receive_text()
+    # Correct key: connect and publish a progress message, expect to receive it
+    with client.websocket_connect(f"/ws/jobs/{jid}?api_key=sekret&stream=progress") as ws:
+        jb._pub(f"jobs.{jid}.progress", {"progress": 0.7})
+        msg = ws.receive_text()
+        data = json.loads(msg)
+        assert data.get('progress') == 0.7
+

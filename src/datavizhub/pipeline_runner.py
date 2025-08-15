@@ -8,15 +8,28 @@ from typing import Any, Optional
 
 
 def _load_config(path: str) -> dict[str, Any]:
-    """Load a pipeline config from YAML or JSON file."""
+    """Load a pipeline config from YAML or JSON file.
+
+    Prefer YAML when available; provide a helpful error if a YAML file is used
+    but PyYAML is not installed.
+    """
     text = open(path, "r", encoding="utf-8").read()
-    # Try YAML first, fall back to JSON
+    # Try YAML first
     try:
         import yaml  # type: ignore
 
         return yaml.safe_load(text)  # type: ignore[no-any-return]
+    except ModuleNotFoundError:
+        # If the file looks like YAML, raise a friendly message
+        if path.lower().endswith((".yml", ".yaml")):
+            raise SystemExit(
+                "PyYAML is not installed. Install it or use a JSON config (e.g., samples/pipelines/*.json)."
+            )
     except Exception:
-        return json.loads(text)
+        # ignore and try JSON next
+        pass
+    # Fall back to JSON
+    return json.loads(text)
 
 
 def _expand_env(obj: Any, *, strict: bool = False) -> Any:

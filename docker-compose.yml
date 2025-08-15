@@ -4,14 +4,48 @@ services:
       context: .
       dockerfile: Dockerfile
       target: dev
+    command: ["/bin/bash", ".devcontainer/entrypoint.sh"]
     volumes:
       - .:/app
+      - ./data/uploads:/data/uploads
     environment:
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - VIMEO_CLIENT_ID=${VIMEO_CLIENT_ID}
-      - VIMEO_CLIENT_SECRET=${VIMEO_CLIENT_SECRET}
-      - VIMEO_ACCESS_TOKEN=${VIMEO_ACCESS_TOKEN}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # Python settings
+      PYTHONDONTWRITEBYTECODE: 1
+      PYTHONUNBUFFERED: 1
+
+      # App environment
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      VIMEO_CLIENT_ID: ${VIMEO_CLIENT_ID}
+      VIMEO_CLIENT_SECRET: ${VIMEO_CLIENT_SECRET}
+      VIMEO_ACCESS_TOKEN: ${VIMEO_ACCESS_TOKEN}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+
+      # Redis / API autostart
+      DATAVIZHUB_USE_REDIS: ${DATAVIZHUB_USE_REDIS:-0}
+      DATAVIZHUB_REDIS_URL: ${DATAVIZHUB_REDIS_URL:-redis://redis:6379/0}
+      DATAVIZHUB_AUTOSTART_API: 1
+      DATAVIZHUB_AUTOSTART_RQ: ${DATAVIZHUB_USE_REDIS:-0}
+      DATAVIZHUB_UPLOAD_DIR: /data/uploads
+      DATAVIZHUB_MIN_DISK_MB: 100
+      DATAVIZHUB_REQUIRE_FFMPEG: 0
+
+      # API network settings
+      DATAVIZHUB_API_HOST: 0.0.0.0
+      DATAVIZHUB_API_PORT: 8000
+
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"

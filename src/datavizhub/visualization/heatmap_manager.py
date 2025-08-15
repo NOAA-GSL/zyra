@@ -49,7 +49,14 @@ class HeatmapManager(Renderer):
         self.extent = list(kwargs.get("extent", self.extent))
         self.cmap = kwargs.get("cmap", self.cmap)
 
-    def _resolve_data(self, data: Any = None, *, input_path: Optional[str] = None, var: Optional[str] = None):
+    def _resolve_data(
+        self,
+        data: Any = None,
+        *,
+        input_path: Optional[str] = None,
+        var: Optional[str] = None,
+        xarray_engine: Optional[str] = None,
+    ):
         if data is not None:
             return data
         if input_path is None:
@@ -59,7 +66,7 @@ class HeatmapManager(Renderer):
 
             if not var:
                 raise ValueError("var is required when reading from NetCDF")
-            ds = xr.open_dataset(input_path)
+            ds = xr.open_dataset(input_path, engine=xarray_engine) if xarray_engine else xr.open_dataset(input_path)
             try:
                 arr = ds[var].values
             finally:
@@ -98,7 +105,12 @@ class HeatmapManager(Renderer):
         reproject = bool(kwargs.get("reproject", False))
 
         # Resolve data from source or direct argument
-        arr = self._resolve_data(data, input_path=input_path, var=var)
+        arr = self._resolve_data(
+            data,
+            input_path=input_path,
+            var=var,
+            xarray_engine=kwargs.get("xarray_engine"),
+        )
 
         # CRS detection (warn on mismatch)
         data_transform = None
