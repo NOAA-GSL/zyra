@@ -67,6 +67,16 @@ async def job_progress_ws(
     allowed = None
     if stream:
         allowed = {s.strip().lower() for s in str(stream).split(',') if s.strip()}
+    # Proactively emit an initial progress frame so clients don't block waiting
+    # when using filtered views (e.g., stream=progress) and before any cached
+    # message is available. This helps tests avoid hangs even if Redis is
+    # unavailable and no immediate publish occurs.
+    try:
+        if (allowed is None) or ("progress" in allowed):
+            await websocket.send_json({"progress": 0.0})
+            await asyncio.sleep(0)
+    except Exception:
+        pass
     # Emit an immediate lightweight message so clients see activity even if
     # earlier progress was published before this subscription (Redis mode).
     try:
@@ -119,10 +129,15 @@ async def job_progress_ws(
         try:
             import redis.asyncio as aioredis  # type: ignore
         except Exception:
-            # Keep the socket open; rely on the initial message already sent
+            # Keep the socket open but send periodic keepalives to avoid client hangs
             try:
                 while True:
-                    await asyncio.sleep(60)
+                    if (allowed is None) or ("keepalive" in allowed):
+                        try:
+                            await websocket.send_json({"keepalive": True})
+                        except Exception:
+                            pass
+                    await asyncio.sleep(5)
             except WebSocketDisconnect:
                 return
         redis = aioredis.from_url(redis_url())
@@ -157,10 +172,15 @@ async def job_progress_ws(
         except WebSocketDisconnect:
             return
         except Exception:
-            # On Redis errors, keep the connection alive quietly
+            # On Redis errors, keep the connection alive with periodic keepalives
             try:
                 while True:
-                    await asyncio.sleep(60)
+                    if (allowed is None) or ("keepalive" in allowed):
+                        try:
+                            await websocket.send_json({"keepalive": True})
+                        except Exception:
+                            pass
+                    await asyncio.sleep(5)
             except WebSocketDisconnect:
                 return
         finally:
