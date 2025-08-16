@@ -14,6 +14,7 @@ from datavizhub.api.workers.jobs import (
     _unregister_listener,
     _get_last_message,
 )
+from datavizhub.api.security import _auth_limits, _record_failure, _should_throttle  # internal helpers
 import os
 
 
@@ -46,15 +47,45 @@ async def job_progress_ws(
     - api_key: API key required when `DATAVIZHUB_API_KEY` is set; closes immediately on mismatch.
     """
     expected = os.environ.get("DATAVIZHUB_API_KEY")
+    # Determine client IP for basic throttling of failed attempts
+    try:
+        client_ip = getattr(getattr(websocket, "client", None), "host", None)
+    except Exception:
+        client_ip = None
     # Authn: reject missing key at handshake; accept then close for wrong key
     if expected and not api_key:
+        # Apply small delay to slow brute-force attempts
+        try:
+            _maxf, _win, delay_sec = _auth_limits()
+            if delay_sec > 0:
+                await asyncio.sleep(delay_sec)
+        except Exception:
+            pass
+        if client_ip:
+            try:
+                _ = _record_failure(client_ip)
+            except Exception:
+                pass
         # Raise during handshake so TestClient.connect errors immediately
         raise WebSocketException(code=1008)
     await websocket.accept()
     if expected and not (isinstance(api_key, str) and isinstance(expected, str) and secrets.compare_digest(api_key, expected)):
+        # Failed auth after accept: delay and record failure, then close with policy violation
+        try:
+            _maxf, _win, delay_sec = _auth_limits()
+            if delay_sec > 0:
+                await asyncio.sleep(delay_sec)
+        except Exception:
+            pass
+        if client_ip:
+            try:
+                _ = _record_failure(client_ip)
+            except Exception:
+                pass
         # Send an explicit error payload, then close with policy violation
         try:
             await websocket.send_text(json.dumps({"error": "Unauthorized"}))
+            await asyncio.sleep(0)
         except Exception:
             pass
         await websocket.close(code=1008)
@@ -96,6 +127,8 @@ async def job_progress_ws(
         if allowed and ("progress" in allowed):
             if not isinstance(last, dict) or ("progress" not in last):
                 await websocket.send_text(json.dumps({"progress": 0.0}))
+                # Yield to flush frame promptly for TestClient
+                await asyncio.sleep(0)
     except Exception:
         pass
     if not is_redis_enabled():

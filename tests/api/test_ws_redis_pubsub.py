@@ -17,9 +17,9 @@ def test_redis_pubsub_roundtrip(monkeypatch):
 
     from datavizhub.api.workers import jobs as jb
 
-    # Force Redis mode
+    # Force Redis mode; ensure cleanup via monkeypatch
     monkeypatch.setenv('DATAVIZHUB_USE_REDIS', '1')
-    jb.USE_REDIS = True
+    monkeypatch.setattr(jb, 'USE_REDIS', True, raising=False)
 
     url = os.environ.get('DATAVIZHUB_REDIS_URL', 'redis://localhost:6379/0')
     try:
@@ -52,4 +52,3 @@ def test_redis_pubsub_roundtrip(monkeypatch):
     finally:
         pubsub.unsubscribe(channel)
         pubsub.close()
-

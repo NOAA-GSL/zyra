@@ -8,6 +8,7 @@ from pathlib import Path
 import subprocess
 from datavizhub.utils.cli_helpers import configure_logging_from_env
 import logging
+import os
 
 
 def handle_animate(ns) -> int:
@@ -116,13 +117,24 @@ def handle_animate(ns) -> int:
             logging.info(out)
         if ns.to_video:
             frames_dir = ns.output_dir
-            vp = VideoProcessor(input_directory=frames_dir, output_file=ns.to_video, fps=ns.fps)
+            # Validate and normalize output file path
+            to_video = str(ns.to_video).strip()
+            if to_video.startswith("-"):
+                raise SystemExit("--to-video cannot start with '-' (may be interpreted as an option)")
+            out_path = Path(to_video).expanduser().resolve()
+            safe_root = os.environ.get("DATAVIZHUB_SAFE_OUTPUT_ROOT")
+            if safe_root:
+                try:
+                    _ = out_path.resolve().relative_to(Path(safe_root).expanduser().resolve())
+                except Exception:
+                    raise SystemExit("--to-video is outside of allowed output root")
+            vp = VideoProcessor(input_directory=frames_dir, output_file=str(out_path), fps=ns.fps)
             if not vp.validate():
                 logging.warning("ffmpeg/ffprobe not available; skipping video composition")
             else:
                 vp.process(fps=ns.fps)
-                vp.save(ns.to_video)
-                logging.info(ns.to_video)
+                vp.save(str(out_path))
+                logging.info(str(out_path))
         return 0
 
     from datavizhub.visualization.animate_manager import AnimateManager
@@ -170,13 +182,23 @@ def handle_animate(ns) -> int:
         logging.info(out)
     if ns.to_video:
         frames_dir = ns.output_dir
-        vp = VideoProcessor(input_directory=frames_dir, output_file=ns.to_video, fps=ns.fps)
+        to_video = str(ns.to_video).strip()
+        if to_video.startswith("-"):
+            raise SystemExit("--to-video cannot start with '-' (may be interpreted as an option)")
+        out_path = Path(to_video).expanduser().resolve()
+        safe_root = os.environ.get("DATAVIZHUB_SAFE_OUTPUT_ROOT")
+        if safe_root:
+            try:
+                _ = out_path.resolve().relative_to(Path(safe_root).expanduser().resolve())
+            except Exception:
+                raise SystemExit("--to-video is outside of allowed output root")
+        vp = VideoProcessor(input_directory=frames_dir, output_file=str(out_path), fps=ns.fps)
         if not vp.validate():
             logging.warning("ffmpeg/ffprobe not available; skipping video composition")
         else:
             vp.process(fps=ns.fps)
-            vp.save(ns.to_video)
-            logging.info(ns.to_video)
+            vp.save(str(out_path))
+            logging.info(str(out_path))
     return 0
 
 
@@ -199,6 +221,12 @@ def _build_ffmpeg_grid_args(*, videos: List[str], fps: int, output: str, grid_mo
         # Prevent ffmpeg from interpreting output as an option
         raise ValueError("output filename cannot start with '-' (may be interpreted as an option)")
     out_path = Path(output).expanduser().resolve()
+    safe_root = os.environ.get("DATAVIZHUB_SAFE_OUTPUT_ROOT")
+    if safe_root:
+        try:
+            _ = out_path.resolve().relative_to(Path(safe_root).expanduser().resolve())
+        except Exception:
+            raise ValueError("output is outside of allowed output root")
     if out_path.parent:
         out_path.parent.mkdir(parents=True, exist_ok=True)
     args: List[str] = ["ffmpeg"]
