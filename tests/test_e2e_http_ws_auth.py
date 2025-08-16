@@ -68,7 +68,7 @@ def test_http_ws_e2e_with_api_key(monkeypatch) -> None:
     # Negative path: missing key should yield 401
     r3 = client.get('/cli/commands')
     assert r3.status_code == 401
-    # WS unauthorized closes immediately
+    # WS unauthorized closes immediately (handshake raises on enter)
     with pytest.raises(Exception):
-        client.websocket_connect(f"/ws/jobs/{job_id}?stream=progress")
-
+        with client.websocket_connect(f"/ws/jobs/{job_id}?stream=progress"):
+            pass
