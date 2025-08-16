@@ -8,7 +8,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, WebSocketE
 
 from datavizhub.api.workers.jobs import (
     is_redis_enabled,
-    REDIS_URL,
+    redis_url,
     _register_listener,
     _unregister_listener,
     _get_last_message,
@@ -100,37 +100,36 @@ async def job_progress_ws(
             return
         finally:
             _unregister_listener(channel, q)
-        
+    else:
+        import redis.asyncio as aioredis  # type: ignore
 
-    import redis.asyncio as aioredis  # type: ignore
-
-    redis = aioredis.from_url(REDIS_URL)
-    try:
-        pubsub = redis.pubsub()
-        channel = f"jobs.{job_id}.progress"
-        await pubsub.subscribe(channel)
+        redis = aioredis.from_url(redis_url())
         try:
-            async for msg in pubsub.listen():
-                if msg is None:
-                    await asyncio.sleep(0)
-                    continue
-                if msg.get("type") != "message":
-                    continue
-                data = msg.get("data")
-                text = None
-                if isinstance(data, (bytes, bytearray)):
-                    text = data.decode("utf-8", errors="ignore")
-                elif isinstance(data, str):
-                    text = data
-                if text is None:
-                    continue
-                if not _ws_should_send(text, allowed):
-                    continue
-                await websocket.send_text(text)
+            pubsub = redis.pubsub()
+            channel = f"jobs.{job_id}.progress"
+            await pubsub.subscribe(channel)
+            try:
+                async for msg in pubsub.listen():
+                    if msg is None:
+                        await asyncio.sleep(0)
+                        continue
+                    if msg.get("type") != "message":
+                        continue
+                    data = msg.get("data")
+                    text = None
+                    if isinstance(data, (bytes, bytearray)):
+                        text = data.decode("utf-8", errors="ignore")
+                    elif isinstance(data, str):
+                        text = data
+                    if text is None:
+                        continue
+                    if not _ws_should_send(text, allowed):
+                        continue
+                    await websocket.send_text(text)
+            finally:
+                await pubsub.unsubscribe(channel)
+                await pubsub.close()
+        except WebSocketDisconnect:
+            return
         finally:
-            await pubsub.unsubscribe(channel)
-            await pubsub.close()
-    except WebSocketDisconnect:
-        return
-    finally:
-        await redis.close()
+            await redis.close()

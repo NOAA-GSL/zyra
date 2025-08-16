@@ -24,9 +24,8 @@ def is_redis_enabled() -> bool:
 
 def redis_url() -> str:
     return os.environ.get("DATAVIZHUB_REDIS_URL", os.environ.get("REDIS_URL", "redis://localhost:6379/0"))
-
-REDIS_URL = redis_url()
-QUEUE_NAME = os.environ.get("DATAVIZHUB_QUEUE", "datavizhub")
+def queue_name() -> str:
+    return os.environ.get("DATAVIZHUB_QUEUE", "datavizhub")
 
 
 _redis_client = None
@@ -67,11 +66,11 @@ def _get_redis_and_queue():  # lazy init to avoid hard dependency
     if _redis_client is None:
         from redis import Redis
 
-        _redis_client = Redis.from_url(REDIS_URL)
+        _redis_client = Redis.from_url(redis_url())
     if _rq_queue is None:
         from rq import Queue
 
-        _rq_queue = Queue(QUEUE_NAME, connection=_redis_client)
+        _rq_queue = Queue(queue_name(), connection=_redis_client)
     return _redis_client, _rq_queue
 
 

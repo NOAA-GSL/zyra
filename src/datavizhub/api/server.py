@@ -84,7 +84,7 @@ def create_app() -> FastAPI:
             disk_ok = False
 
         # Queue/worker readiness (Redis optional)
-        from datavizhub.api.workers.jobs import is_redis_enabled, REDIS_URL, QUEUE_NAME
+        from datavizhub.api.workers.jobs import is_redis_enabled, redis_url, queue_name
 
         use_redis = is_redis_enabled()
         queue = {"mode": "redis" if use_redis else "in_memory", "connected": (not use_redis)}
@@ -93,11 +93,12 @@ def create_app() -> FastAPI:
                 import redis  # type: ignore
                 from datavizhub.api.workers.jobs import _get_redis_and_queue  # type: ignore
 
-                client = redis.Redis.from_url(REDIS_URL, socket_connect_timeout=0.5)  # type: ignore[arg-type]
+                url = redis_url()
+                client = redis.Redis.from_url(url, socket_connect_timeout=0.5)  # type: ignore[arg-type]
                 client.ping()
                 queue["connected"] = True
-                queue["url"] = REDIS_URL
-                queue["queue_name"] = QUEUE_NAME
+                queue["url"] = url
+                queue["queue_name"] = queue_name()
                 try:
                     _r, rq = _get_redis_and_queue()
                     cnt_attr = getattr(rq, "count", None)
@@ -109,7 +110,7 @@ def create_app() -> FastAPI:
                     queue["length"] = None
             except Exception:
                 queue["connected"] = False
-                queue["url"] = REDIS_URL
+                queue["url"] = redis_url()
 
         # Optional binaries (FFmpeg/ffprobe)
         ffmpeg_ok = shutil.which("ffmpeg") is not None

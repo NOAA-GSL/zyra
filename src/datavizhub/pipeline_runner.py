@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import io
 import json
 import os
@@ -17,17 +18,18 @@ def _load_config(path: str) -> dict[str, Any]:
     # Try YAML first
     try:
         import yaml  # type: ignore
-
-        return yaml.safe_load(text)  # type: ignore[no-any-return]
     except ModuleNotFoundError:
         # If the file looks like YAML, raise a friendly message
         if path.lower().endswith((".yml", ".yaml")):
             raise SystemExit(
                 "PyYAML is not installed. Install it or use a JSON config (e.g., samples/pipelines/*.json)."
             )
-    except Exception:
-        # ignore and try JSON next
-        pass
+    else:
+        try:
+            return yaml.safe_load(text)  # type: ignore[no-any-return]
+        except Exception as e:  # Be explicit about parse failures
+            # yaml.YAMLError is the common parse error; log and fall back to JSON
+            logging.debug("YAML parse failed for %s: %s. Falling back to JSON.", path, e)
     # Fall back to JSON
     return json.loads(text)
 
