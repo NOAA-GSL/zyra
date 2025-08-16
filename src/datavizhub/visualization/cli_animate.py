@@ -74,18 +74,19 @@ def handle_animate(ns) -> int:
             # ffmpeg xstack grid
             # Build inputs
             inputs = " ".join(f"-i {shlex.quote(v)}" for v in videos)
-            filter_desc = f"xstack=inputs={len(videos)}:layout="
-            # layout positions
-            layout = []
-            for idx in range(len(videos)):
-                r = idx // cols
-                c = idx % cols
-                layout.append(f"w{c}*{c}|h{r}*{r}")
-            # Simpler: zero-offset tiled; assume same dimensions, ffmpeg xstack default arranges by tile=colsxrows
-            filter_desc = f"xstack=inputs={len(videos)}:layout=0_0|w0_0|0_h0|w0_h0"
-            # For >4 videos, fallback to simple horizontal stack (best effort)
-            if len(videos) > 4:
+            if getattr(ns, 'grid_mode', 'grid') == 'hstack':
                 filter_desc = f"hstack=inputs={len(videos)}"
+            else:
+                # Build xstack layout using first input dimensions (w0,h0) as tile size.
+                # Each entry is "x_y"; e.g., 2x2 grid -> 0_0|w0_0|0_h0|w0_h0
+                layout_entries = []
+                for idx in range(len(videos)):
+                    r = idx // cols
+                    c = idx % cols
+                    x = "0" if c == 0 else f"w0*{c}"
+                    y = "0" if r == 0 else f"h0*{r}"
+                    layout_entries.append(f"{x}_{y}")
+                filter_desc = f"xstack=inputs={len(videos)}:layout=" + "|".join(layout_entries)
             cmd = f"ffmpeg {inputs} -filter_complex {shlex.quote(filter_desc)} -r {ns.fps} -vcodec libx264 -pix_fmt yuv420p -y {shlex.quote(ns.combine_to)}"
             try:
                 subprocess.run(shlex.split(cmd), check=False)

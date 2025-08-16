@@ -398,7 +398,7 @@ def cancel_job(job_id: str) -> bool:
     rec = _JOBS.get(job_id)
     if not rec:
         return False
-    if rec.get("status") in {"queued"}:
+    if rec.get("status") == "queued":
         rec["status"] = "canceled"
         return True
     return False

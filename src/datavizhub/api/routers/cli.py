@@ -474,7 +474,12 @@ def examples_page(request: Request) -> HTMLResponse:
     if require and expected:
         header_name = os.environ.get('DATAVIZHUB_API_KEY_HEADER', 'X-API-Key')
         provided = request.headers.get(header_name) or request.query_params.get('api_key')
-        if provided != expected:
+        try:
+            import secrets as _secrets
+            ok = bool(provided) and _secrets.compare_digest(str(provided), str(expected))
+        except Exception:
+            ok = (provided == expected)
+        if not ok:
             return HTMLResponse(content="<h1>Unauthorized</h1><p>Provide a valid API key to access examples.</p>", status_code=401)
     """Serve a minimal interactive examples page with Run buttons."""
     html = """<!doctype html>

@@ -248,6 +248,16 @@ def register_cli(subparsers: Any) -> None:
     p_anim.add_argument("--to-video", dest="to_video", help="Optional: compose frames to MP4 using ffmpeg (single or per-input when using --inputs)")
     p_anim.add_argument("--combine-to", dest="combine_to", help="Optional: compose per-input videos into a single MP4 grid")
     p_anim.add_argument("--grid-cols", dest="grid_cols", type=int, default=2, help="Grid columns for --combine-to (default 2)")
+    p_anim.add_argument(
+        "--grid-mode",
+        dest="grid_mode",
+        choices=["grid", "hstack"],
+        default="grid",
+        help=(
+            "Composition mode for --combine-to. 'grid' uses ffmpeg xstack (inputs must share the same width/height); "
+            "if sizes differ, pre-scale inputs or use '--grid-mode hstack' to compose horizontally."
+        ),
+    )
     p_anim.add_argument("--fps", type=int, default=30, help="Frames per second for video composition")
     p_anim.set_defaults(func=handle_animate)
 

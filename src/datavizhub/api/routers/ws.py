@@ -5,6 +5,7 @@ import json
 from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, WebSocketException
+import secrets
 
 from datavizhub.api.workers.jobs import (
     is_redis_enabled,
@@ -55,7 +56,7 @@ async def job_progress_ws(
         # Raise during handshake so TestClient.connect errors immediately
         raise WebSocketException(code=1008)
     await websocket.accept()
-    if expected and api_key != expected:
+    if expected and not (api_key and secrets.compare_digest(str(api_key), str(expected))):
         # Send an explicit error payload, then close with policy violation
         try:
             await websocket.send_text(json.dumps({"error": "Unauthorized"}))
