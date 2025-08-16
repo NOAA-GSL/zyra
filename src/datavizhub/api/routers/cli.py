@@ -19,7 +19,7 @@ from datavizhub.api.workers import jobs as jobs_backend
 router = APIRouter(tags=["cli"])
 
 
-_CLI_MATRIX: Dict[str, List[str]] | None = None
+_CLI_MATRIX: Dict[str, Any] | None = None
 
 
 def _type_name(t: Any) -> str | None:

@@ -786,6 +786,11 @@ Results, TTL, and cleanup:
 - A background cleanup task removes expired files and prunes empty job dirs at `DATAVIZHUB_RESULTS_CLEAN_INTERVAL_SECONDS` (default 3600s).
 - For heavier-duty cleanup, consider a sidecar (e.g., `tmpreaper`) targeting the results dir.
 
+In‑memory job TTL (non‑Redis mode):
+- When Redis is disabled, the API uses an in‑memory job store for status/results.
+- Completed jobs (`succeeded`, `failed`, `canceled`) are pruned after `DATAVIZHUB_JOBS_TTL_SECONDS` (default 3600s).
+- Set `DATAVIZHUB_JOBS_TTL_SECONDS=0` (or negative) to disable in‑memory TTL cleanup.
+
 MIME detection (optional):
 - Install extra for richer MIME detection: `poetry install --with mime`.
 - Falls back to `mimetypes` when `python-magic` is not installed.

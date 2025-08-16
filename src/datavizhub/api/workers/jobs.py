@@ -241,7 +241,46 @@ def run_cli_job(stage: str, command: str, args: Dict[str, Any], job_id: Optional
 
 
 # In-memory fallback (used when USE_REDIS is false)
+# NOTE: This job store is scoped to the API layer to integrate pub/sub streaming
+# and Redis-compatible semantics when Redis is disabled. It is distinct from
+# datavizhub.api.workers.executor._JOBS, which backs the low-level CLI execution
+# helpers and some unit tests. Keeping the stores separate avoids tight coupling
+# and circular imports. They serve different purposes but share similar shapes.
 _JOBS: Dict[str, Dict[str, Any]] = {}
+
+
+def _jobs_ttl_seconds() -> int:
+    """TTL (seconds) for completed in-memory jobs before cleanup.
+
+    Controlled via env DATAVIZHUB_JOBS_TTL_SECONDS (default: 3600). Use 0 or a
+    negative value to disable automatic cleanup. Mirrors executor-side policy.
+    """
+    try:
+        return int(os.environ.get("DATAVIZHUB_JOBS_TTL_SECONDS", "3600") or 3600)
+    except Exception:
+        return 3600
+
+
+def _cleanup_jobs() -> None:
+    ttl = _jobs_ttl_seconds()
+    if ttl <= 0:
+        return
+    now = time.time()
+    to_delete: list[str] = []
+    for jid, rec in list(_JOBS.items()):
+        try:
+            status = rec.get("status")
+            if status in {"succeeded", "failed", "canceled"}:
+                ts = float(rec.get("updated_at") or rec.get("created_at") or 0.0)
+                if ts and (now - ts) > ttl:
+                    to_delete.append(jid)
+        except Exception:
+            continue
+    for jid in to_delete:
+        try:
+            _JOBS.pop(jid, None)
+        except Exception:
+            pass
 
 
 def submit_job(stage: str, command: str, args: Dict[str, Any]) -> str:
@@ -253,13 +292,15 @@ def submit_job(stage: str, command: str, args: Dict[str, Any]) -> str:
     else:
         import uuid
         from datavizhub.api.workers.executor import start_job as _start
-
+        _cleanup_jobs()
         job_id = uuid.uuid4().hex
         _JOBS[job_id] = {
             "status": "queued",
             "stdout": "",
             "stderr": "",
             "exit_code": None,
+            "created_at": time.time(),
+            "updated_at": time.time(),
         }
         # For API symmetry, we only enqueue here; caller should start background task
         return job_id
@@ -274,6 +315,7 @@ def start_job(job_id: str, stage: str, command: str, args: Dict[str, Any]) -> No
     if not rec:
         return
     rec["status"] = "running"
+    rec["updated_at"] = time.time()
     args_resolved, resolved_paths, _unresolved = resolve_upload_placeholders(args)
     # Streaming execution with in-memory pub/sub
     channel = f"jobs.{job_id}.progress"
@@ -368,6 +410,8 @@ def start_job(job_id: str, stage: str, command: str, args: Dict[str, Any]) -> No
         payload["output_file"] = rec["output_file"]
     _pub(channel, payload)
     rec["status"] = "succeeded" if code == 0 else "failed"
+    rec["updated_at"] = time.time()
+    _cleanup_jobs()
 
 
 def get_job(job_id: str) -> Optional[Dict[str, Any]]:
@@ -394,6 +438,7 @@ def get_job(job_id: str) -> Optional[Dict[str, Any]]:
             "output_file": (result or {}).get("output_file") if isinstance(result, dict) else None,
         }
     else:
+        _cleanup_jobs()
         return _JOBS.get(job_id)
 
 
@@ -413,5 +458,6 @@ def cancel_job(job_id: str) -> bool:
             return False
         if rec.get("status") == "queued":
             rec["status"] = "canceled"
+            rec["updated_at"] = time.time()
             return True
         return False

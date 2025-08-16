@@ -13,8 +13,9 @@ def test_get_job_status_returns_expected_keys(tmp_path: Path) -> None:
     rec['status'] = 'succeeded'
     rec['exit_code'] = 0
     res = jobs_router.get_job_status(jid)
-    # Pydantic model; export dict
-    data = res.dict()  # type: ignore[attr-defined]
+    # Pydantic v2+: prefer model_dump; fall back to dict()
+    to_dict = getattr(res, "model_dump", None)
+    data = to_dict() if callable(to_dict) else res.dict()  # type: ignore[attr-defined]
     assert data['job_id'] == jid
     assert data['status'] == 'succeeded'
     assert 'stdout' in data and 'stderr' in data and 'exit_code' in data

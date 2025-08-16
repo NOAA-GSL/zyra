@@ -352,7 +352,42 @@ def run_cli(stage: str, command: str, args: Dict[str, Any]) -> RunResult:
 _JOBS: Dict[str, Dict[str, Any]] = {}
 
 
+def _jobs_ttl_seconds() -> int:
+    """TTL (seconds) for completed in-memory jobs before cleanup.
+
+    Set via env DATAVIZHUB_JOBS_TTL_SECONDS (default: 3600). Use 0 or a
+    negative value to disable automatic cleanup.
+    """
+    try:
+        return int(os.environ.get("DATAVIZHUB_JOBS_TTL_SECONDS", "3600") or 3600)
+    except Exception:
+        return 3600
+
+
+def _cleanup_jobs() -> None:
+    ttl = _jobs_ttl_seconds()
+    if ttl <= 0:
+        return
+    now = time.time()
+    to_delete: list[str] = []
+    for jid, rec in list(_JOBS.items()):
+        try:
+            status = rec.get("status")
+            if status in {"succeeded", "failed", "canceled"}:
+                ts = float(rec.get("updated_at") or rec.get("created_at") or 0.0)
+                if ts and (now - ts) > ttl:
+                    to_delete.append(jid)
+        except Exception:
+            continue
+    for jid in to_delete:
+        try:
+            _JOBS.pop(jid, None)
+        except Exception:
+            pass
+
+
 def submit_job(stage: str, command: str, args: Dict[str, Any]) -> str:
+    _cleanup_jobs()
     job_id = uuid.uuid4().hex
     _JOBS[job_id] = {
         "status": "queued",
@@ -361,6 +396,8 @@ def submit_job(stage: str, command: str, args: Dict[str, Any]) -> str:
         "exit_code": None,
         "argv": None,
         "output_file": None,
+        "created_at": time.time(),
+        "updated_at": time.time(),
     }
     return job_id
 
@@ -370,6 +407,7 @@ def start_job(job_id: str, stage: str, command: str, args: Dict[str, Any]) -> No
     if not rec:
         return
     rec["status"] = "running"
+    rec["updated_at"] = time.time()
     res = run_cli(stage, command, args)
     rec["stdout"] = res.stdout
     rec["stderr"] = res.stderr
@@ -382,9 +420,12 @@ def start_job(job_id: str, stage: str, command: str, args: Dict[str, Any]) -> No
     except Exception:
         rec["output_file"] = None
     rec["status"] = "succeeded" if res.exit_code == 0 else "failed"
+    rec["updated_at"] = time.time()
+    _cleanup_jobs()
 
 
 def get_job(job_id: str) -> Dict[str, Any] | None:
+    _cleanup_jobs()
     return _JOBS.get(job_id)
 
 
