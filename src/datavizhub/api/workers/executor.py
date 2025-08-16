@@ -390,7 +390,19 @@ def get_job(job_id: str) -> Dict[str, Any] | None:
 
 
 def cancel_job(job_id: str) -> bool:
+    """Cooperatively cancel a queued in-memory job.
+
+    - Returns True when a job exists and its status was 'queued' and is now
+      marked as 'canceled'.
+    - Returns False for missing jobs or when already running/finished.
+    """
     rec = _JOBS.get(job_id)
+    if not rec:
+        return False
+    if rec.get("status") in {"queued"}:
+        rec["status"] = "canceled"
+        return True
+    return False
 # Results directory for persisted artifacts
 RESULTS_ROOT = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
 RESULTS_ROOT.mkdir(parents=True, exist_ok=True)
@@ -520,10 +532,3 @@ def write_manifest(job_id: str) -> Path | None:
         return mf
     except Exception:
         return None
-    if not rec:
-        return False
-    # Cooperative only: we don't preempt running jobs in this simple impl
-    if rec.get("status") in {"queued"}:
-        rec["status"] = "canceled"
-        return True
-    return False
