@@ -348,11 +348,6 @@ def submit_job(stage: str, command: str, args: Dict[str, Any]) -> str:
             "created_at": time.time(),
             "updated_at": time.time(),
         }
-        # Publish an initial progress frame for immediate WS replay
-        try:
-            _pub(f"jobs.{job_id}.progress", {"progress": 0.0})
-        except Exception:
-            pass
         # For API symmetry, we only enqueue here; caller should start background task
         return job_id
 
