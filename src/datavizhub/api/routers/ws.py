@@ -73,6 +73,8 @@ async def job_progress_ws(
         initial = {"stderr": "listening"}
         if (allowed is None) or any(k in allowed for k in initial.keys()):
             await websocket.send_text(json.dumps(initial))
+            # Yield control to ensure the initial frame is flushed to client
+            await asyncio.sleep(0)
     except Exception:
         pass
     # Replay last known progress on connect (in-memory mode caches last message)
