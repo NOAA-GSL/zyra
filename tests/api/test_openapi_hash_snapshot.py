@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import copy
 import hashlib
 from pathlib import Path
 
@@ -12,8 +13,8 @@ def _normalize_openapi(spec: dict) -> dict:
 
     - Removes info.version so snapshot stays stable across version bumps.
     """
-    # Deep copy via JSON round-trip to avoid mutating FastAPI's cached spec
-    data = json.loads(json.dumps(spec))
+    # Deep copy to avoid mutating FastAPI's cached spec
+    data = copy.deepcopy(spec)
     try:
         if isinstance(data.get("info"), dict):
             data["info"].pop("version", None)

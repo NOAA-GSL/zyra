@@ -272,8 +272,13 @@ def _cleanup_jobs() -> None:
         try:
             status = rec.get("status")
             if status in {"succeeded", "failed", "canceled"}:
-                ts = float(rec.get("updated_at") or rec.get("created_at") or 0.0)
-                if ts and (now - ts) > ttl:
+                ts_val = rec.get("updated_at") or rec.get("created_at")
+                if ts_val is None:
+                    # Initialize a timestamp to now to avoid premature deletion
+                    rec["updated_at"] = now
+                    continue
+                ts = float(ts_val)
+                if (now - ts) > ttl:
                     to_delete.append(jid)
         except Exception:
             continue

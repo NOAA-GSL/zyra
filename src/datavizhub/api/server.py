@@ -177,6 +177,9 @@ def create_app() -> FastAPI:
         if not prefer_html:
             return meta
         # Build a simple HTML index with clickable links
+        import html as _html
+        header_name = _html.escape(os.environ.get('DATAVIZHUB_API_KEY_HEADER', 'X-API-Key'))
+        version_text = _html.escape(str(dvh_version))
         html = f"""
         <!doctype html>
         <html lang=\"en\">
@@ -194,7 +197,7 @@ def create_app() -> FastAPI:
           </head>
           <body>
             <h1>DataVizHub API</h1>
-            <div class=\"muted\">Version {dvh_version}</div>
+            <div class=\"muted\">Version {version_text}</div>
             <h2>Quick Links</h2>
             <ul>
               <li><a href=\"/docs\">Swagger UI</a></li>
@@ -215,7 +218,7 @@ def create_app() -> FastAPI:
               <li>POST /upload — multipart upload (try in <a href=\"/docs#/%2Fupload\">/docs</a>)</li>
             </ul>
             <h2>Auth</h2>
-            <p class=\"muted\">If <code>DATAVIZHUB_API_KEY</code> is set, include <code>{{os.environ.get('DATAVIZHUB_API_KEY_HEADER','X-API-Key')}}</code> header with your key. WebSockets use <code>?api_key=</code>.</p>
+            <p class=\"muted\">If <code>DATAVIZHUB_API_KEY</code> is set, include <code>{header_name}</code> header with your key. WebSockets use <code>?api_key=</code>.</p>
           </body>
         </html>
         """

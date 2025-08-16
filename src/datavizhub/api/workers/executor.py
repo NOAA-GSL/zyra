@@ -263,8 +263,19 @@ class RunResult:
 class _StdCapture:
     """Binary-safe capture shim for sys.stdout/stderr.
 
-    Provides a ``buffer`` attribute (BytesIO) and a text ``write`` method that
-    encodes to UTF-8 while retaining original bytes in ``getvalue()``.
+    Intended usage
+    - Swap into ``sys.stdout``/``sys.stderr`` while running a function that
+      writes text. The ``write()`` method encodes to UTF-8 and appends to an
+      internal ``BytesIO`` buffer so both text and the original bytes can be
+      retrieved.
+    - Access captured bytes via ``getvalue()`` or the ``buffer`` property.
+
+    Notes
+    - Only a small subset of the text stream interface is implemented
+      (``write()``, ``flush()``, and ``buffer``); this is sufficient for our
+      CLI capture use cases in ``run_cli``.
+    - This class is not a full ``io.TextIOBase`` replacement and is intended
+      for internal use.
     """
     def __init__(self) -> None:
         self._buf = io.BytesIO()
@@ -374,8 +385,12 @@ def _cleanup_jobs() -> None:
         try:
             status = rec.get("status")
             if status in {"succeeded", "failed", "canceled"}:
-                ts = float(rec.get("updated_at") or rec.get("created_at") or 0.0)
-                if ts and (now - ts) > ttl:
+                ts_val = rec.get("updated_at") or rec.get("created_at")
+                if ts_val is None:
+                    rec["updated_at"] = now
+                    continue
+                ts = float(ts_val)
+                if (now - ts) > ttl:
                     to_delete.append(jid)
         except Exception:
             continue

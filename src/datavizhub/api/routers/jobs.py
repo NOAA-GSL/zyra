@@ -31,9 +31,13 @@ def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
     if not rd.exists():
         raise HTTPException(status_code=404, detail="Results not found")
     if specific_file:
-        # Prevent path traversal
+        # Prevent path traversal and symlink escapes by resolving and ensuring
+        # the target is within the results directory for this job.
         p = (rd / specific_file).resolve()
-        if rd.resolve() not in p.parents and rd.resolve() != p:
+        base = rd.resolve()
+        try:
+            _ = p.relative_to(base)
+        except Exception:
             raise HTTPException(status_code=400, detail="Invalid file parameter")
         if not p.exists() or not p.is_file():
             raise HTTPException(status_code=404, detail="Requested file not found")
