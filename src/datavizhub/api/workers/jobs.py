@@ -32,8 +32,9 @@ _redis_client = None
 _rq_queue = None
 
 # In-memory pub/sub for WebSocket parity
-# Store (queue, loop) to enable cross-thread safe publishing via call_soon_threadsafe
-_SUBSCRIBERS: Dict[str, List[Tuple[asyncio.Queue[str], asyncio.AbstractEventLoop]]] = {}
+# Store (queue, loop) where loop may be None when no running loop at registration time.
+# This enables immediate puts in simple sync tests and thread-safe puts when loop is running.
+_SUBSCRIBERS: Dict[str, List[Tuple[asyncio.Queue[str], Optional[asyncio.AbstractEventLoop]]]] = {}
 # In-memory last-message cache per channel for quick replay on new subscribers
 _LAST_MESSAGES: Dict[str, Dict[str, Any]] = {}
 
@@ -48,8 +49,8 @@ def _register_listener(channel: str) -> asyncio.Queue[str]:
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
-        # Fallback: create a new loop reference; callers should run in an event loop
-        loop = asyncio.new_event_loop()
+        # No running loop in this thread (e.g., plain unit tests)
+        loop = None
     _SUBSCRIBERS.setdefault(channel, []).append((q, loop))
     return q
 
@@ -104,7 +105,11 @@ def _pub(channel: str, message: Dict[str, Any]) -> None:
         # Broadcast to in-memory subscribers (thread-safe)
         for (q, loop) in list(_SUBSCRIBERS.get(channel, []) or []):
             try:
-                loop.call_soon_threadsafe(q.put_nowait, payload)
+                if loop is not None and loop.is_running():
+                    loop.call_soon_threadsafe(q.put_nowait, payload)
+                else:
+                    # Synchronous path (e.g., tests without an event loop running)
+                    q.put_nowait(payload)
             except Exception:
                 continue
         return
