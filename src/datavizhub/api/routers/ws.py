@@ -73,6 +73,7 @@ async def job_progress_ws(
     except Exception:
         pass
     # Replay last known progress on connect (in-memory mode caches last message)
+    last = None
     try:
         channel = f"jobs.{job_id}.progress"
         last = _get_last_message(channel)
@@ -86,6 +87,16 @@ async def job_progress_ws(
                 await websocket.send_text(json.dumps(to_send))
     except Exception:
         # Best-effort; absence of cache is fine
+        last = None
+
+    # If client explicitly requested progress stream and no cached progress is
+    # available yet, emit an initial progress frame. This reduces test flakiness
+    # and perceived latency when jobs start just after WS subscription.
+    try:
+        if allowed and ("progress" in allowed):
+            if not isinstance(last, dict) or ("progress" not in last):
+                await websocket.send_text(json.dumps({"progress": 0.0}))
+    except Exception:
         pass
     if not is_redis_enabled():
         # In-memory streaming: subscribe to local queue
