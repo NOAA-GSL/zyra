@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional, List, Tuple
 import asyncio
 import time
 
@@ -32,7 +32,8 @@ _redis_client = None
 _rq_queue = None
 
 # In-memory pub/sub for WebSocket parity
-_SUBSCRIBERS: Dict[str, List[asyncio.Queue[str]]] = {}
+# Store (queue, loop) to enable cross-thread safe publishing via call_soon_threadsafe
+_SUBSCRIBERS: Dict[str, List[Tuple[asyncio.Queue[str], asyncio.AbstractEventLoop]]] = {}
 # In-memory last-message cache per channel for quick replay on new subscribers
 _LAST_MESSAGES: Dict[str, Dict[str, Any]] = {}
 
@@ -44,7 +45,12 @@ def _register_listener(channel: str) -> asyncio.Queue[str]:
     without Redis. Returns an asyncio.Queue that receives JSON strings.
     """
     q: asyncio.Queue[str] = asyncio.Queue()
-    _SUBSCRIBERS.setdefault(channel, []).append(q)
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # Fallback: create a new loop reference; callers should run in an event loop
+        loop = asyncio.new_event_loop()
+    _SUBSCRIBERS.setdefault(channel, []).append((q, loop))
     return q
 
 
@@ -54,7 +60,10 @@ def _unregister_listener(channel: str, q: asyncio.Queue[str]) -> None:
     if not lst:
         return
     try:
-        lst.remove(q)
+        for i, (qq, _loop) in enumerate(list(lst)):
+            if qq is q:
+                lst.pop(i)
+                break
     except ValueError:
         pass
     if not lst:
@@ -92,10 +101,10 @@ def _pub(channel: str, message: Dict[str, Any]) -> None:
     except Exception:
         pass
     if not is_redis_enabled():
-        # Broadcast to in-memory subscribers
-        for q in list(_SUBSCRIBERS.get(channel, []) or []):
+        # Broadcast to in-memory subscribers (thread-safe)
+        for (q, loop) in list(_SUBSCRIBERS.get(channel, []) or []):
             try:
-                q.put_nowait(payload)
+                loop.call_soon_threadsafe(q.put_nowait, payload)
             except Exception:
                 continue
         return
