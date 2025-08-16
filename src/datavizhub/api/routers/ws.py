@@ -4,7 +4,7 @@ import asyncio
 import json
 from typing import Any
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, WebSocketException
 
 from datavizhub.api.workers.jobs import (
     is_redis_enabled,
@@ -52,9 +52,8 @@ async def job_progress_ws(
     expected = os.environ.get("DATAVIZHUB_API_KEY")
     # Authn: reject missing key at handshake; accept then close for wrong key
     if expected and not api_key:
-        # Close without accepting so clients see a connection error
-        await websocket.close(code=1008)
-        return
+        # Raise during handshake so TestClient.connect errors immediately
+        raise WebSocketException(code=1008)
     await websocket.accept()
     if expected and api_key != expected:
         # Send an explicit error payload, then close with policy violation
