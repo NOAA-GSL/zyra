@@ -54,7 +54,7 @@ def _should_throttle(count: int) -> bool:
     return count >= maxf
 
 
-async def require_api_key(request: Request, api_key: str | None = Security(api_key_header)) -> bool:
+async def require_api_key(api_key: str | None = Security(api_key_header), request: Request | None = None) -> bool:
     """Require an API key when `DATAVIZHUB_API_KEY` is set.
 
     Behavior
@@ -71,8 +71,9 @@ async def require_api_key(request: Request, api_key: str | None = Security(api_k
     # Failed authentication: apply small delay and basic rate limit
     client_ip = None
     try:
-        client = getattr(request, "client", None)
-        client_ip = getattr(client, "host", None)
+        if request is not None:
+            client = getattr(request, "client", None)
+            client_ip = getattr(client, "host", None)
     except Exception:
         client_ip = None
     # Delay every failure slightly to slow brute force
