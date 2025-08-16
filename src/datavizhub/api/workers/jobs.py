@@ -20,7 +20,32 @@ import shutil
 
 
 def is_redis_enabled() -> bool:
-    return os.environ.get("DATAVIZHUB_USE_REDIS", "0").lower() in {"1", "true", "yes"}
+    """Return True only when Redis is explicitly requested AND reachable.
+
+    Conditions:
+    - `DATAVIZHUB_USE_REDIS` is truthy (1/true/yes)
+    - `redis` and `rq` are importable
+    - A quick `PING` to the configured Redis URL succeeds (<= 0.25s connect timeout)
+
+    Falls back to in-memory mode when any condition fails. This makes tests and
+    default local runs robust in environments where the env var might be set
+    but Redis is not actually available.
+    """
+    use_env = os.environ.get("DATAVIZHUB_USE_REDIS", "0").lower() in {"1", "true", "yes"}
+    if not use_env:
+        return False
+    try:
+        import redis  # type: ignore
+        import rq  # noqa: F401  # type: ignore
+    except Exception:
+        return False
+    try:
+        url = redis_url()
+        client = redis.Redis.from_url(url, socket_connect_timeout=0.25)  # type: ignore[arg-type]
+        client.ping()
+        return True
+    except Exception:
+        return False
 
 def redis_url() -> str:
     return os.environ.get("DATAVIZHUB_REDIS_URL", os.environ.get("REDIS_URL", "redis://localhost:6379/0"))
