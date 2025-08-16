@@ -77,7 +77,7 @@ async def job_progress_ws(
             await asyncio.sleep(0)
     except Exception:
         pass
-    # Replay last known progress on connect (in-memory mode caches last message)
+    # Replay last known progress on connect (cache now maintained regardless of Redis mode)
     try:
         channel = f"jobs.{job_id}.progress"
         last = _get_last_message(channel)

@@ -75,21 +75,23 @@ def _get_redis_and_queue():  # lazy init to avoid hard dependency
 
 
 def _pub(channel: str, message: Dict[str, Any]) -> None:
-    """Publish a message to a channel (Redis when enabled; in-memory otherwise).
+    """Publish a message to a channel (Redis when enabled; always cache in-memory).
 
-    Messages are JSON-serialized dictionaries. In-memory subscribers receive
-    the serialized string on their per-channel queues.
+    - Always updates an in-memory last-message cache for quick WS replay,
+      regardless of Redis mode (useful for single-process tests without workers).
+    - When Redis is enabled, attempts to publish; errors are swallowed.
+    - In in-memory mode, also fans out to local subscriber queues.
     """
     payload = json.dumps(message)
+    # Always update last-message cache (shallow merge)
+    try:
+        if isinstance(message, dict):
+            last = _LAST_MESSAGES.get(channel) or {}
+            last.update(message)
+            _LAST_MESSAGES[channel] = last
+    except Exception:
+        pass
     if not is_redis_enabled():
-        # Update last-message cache (shallow merge by keys)
-        try:
-            if isinstance(message, dict):
-                last = _LAST_MESSAGES.get(channel) or {}
-                last.update(message)
-                _LAST_MESSAGES[channel] = last
-        except Exception:
-            pass
         # Broadcast to in-memory subscribers
         for q in list(_SUBSCRIBERS.get(channel, []) or []):
             try:
@@ -97,8 +99,9 @@ def _pub(channel: str, message: Dict[str, Any]) -> None:
             except Exception:
                 continue
         return
-    r, _q = _get_redis_and_queue()
+    # Redis path
     try:
+        r, _q = _get_redis_and_queue()
         r.publish(channel, payload)
     except Exception:
         # Best effort publish; do not crash job
@@ -106,9 +109,7 @@ def _pub(channel: str, message: Dict[str, Any]) -> None:
 
 
 def _get_last_message(channel: str) -> Optional[Dict[str, Any]]:
-    """Return the last cached message dict for a channel (in-memory mode only)."""
-    if is_redis_enabled():
-        return None
+    """Return the last cached message dict for a channel (always cached)."""
     try:
         v = _LAST_MESSAGES.get(channel)
         return dict(v) if isinstance(v, dict) else None
