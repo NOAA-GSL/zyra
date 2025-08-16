@@ -20,32 +20,7 @@ import shutil
 
 
 def is_redis_enabled() -> bool:
-    """Return True only when Redis is explicitly requested AND reachable.
-
-    Conditions:
-    - `DATAVIZHUB_USE_REDIS` is truthy (1/true/yes)
-    - `redis` and `rq` are importable
-    - A quick `PING` to the configured Redis URL succeeds (<= 0.25s connect timeout)
-
-    Falls back to in-memory mode when any condition fails. This makes tests and
-    default local runs robust in environments where the env var might be set
-    but Redis is not actually available.
-    """
-    use_env = os.environ.get("DATAVIZHUB_USE_REDIS", "0").lower() in {"1", "true", "yes"}
-    if not use_env:
-        return False
-    try:
-        import redis  # type: ignore
-        import rq  # noqa: F401  # type: ignore
-    except Exception:
-        return False
-    try:
-        url = redis_url()
-        client = redis.Redis.from_url(url, socket_connect_timeout=0.25)  # type: ignore[arg-type]
-        client.ping()
-        return True
-    except Exception:
-        return False
+    return os.environ.get("DATAVIZHUB_USE_REDIS", "0").lower() in {"1", "true", "yes"}
 
 def redis_url() -> str:
     return os.environ.get("DATAVIZHUB_REDIS_URL", os.environ.get("REDIS_URL", "redis://localhost:6379/0"))
@@ -57,9 +32,7 @@ _redis_client = None
 _rq_queue = None
 
 # In-memory pub/sub for WebSocket parity
-# Store (queue, loop) where loop may be None when no running loop at registration time.
-# This enables immediate puts in simple sync tests and thread-safe puts when loop is running.
-_SUBSCRIBERS: Dict[str, List[Tuple[asyncio.Queue[str], Optional[asyncio.AbstractEventLoop]]]] = {}
+_SUBSCRIBERS: Dict[str, List[asyncio.Queue[str]]] = {}
 # In-memory last-message cache per channel for quick replay on new subscribers
 _LAST_MESSAGES: Dict[str, Dict[str, Any]] = {}
 
@@ -71,12 +44,7 @@ def _register_listener(channel: str) -> asyncio.Queue[str]:
     without Redis. Returns an asyncio.Queue that receives JSON strings.
     """
     q: asyncio.Queue[str] = asyncio.Queue()
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        # No running loop in this thread (e.g., plain unit tests)
-        loop = None
-    _SUBSCRIBERS.setdefault(channel, []).append((q, loop))
+    _SUBSCRIBERS.setdefault(channel, []).append(q)
     return q
 
 
@@ -86,10 +54,7 @@ def _unregister_listener(channel: str, q: asyncio.Queue[str]) -> None:
     if not lst:
         return
     try:
-        for i, (qq, _loop) in enumerate(list(lst)):
-            if qq is q:
-                lst.pop(i)
-                break
+        lst.remove(q)
     except ValueError:
         pass
     if not lst:
@@ -110,37 +75,30 @@ def _get_redis_and_queue():  # lazy init to avoid hard dependency
 
 
 def _pub(channel: str, message: Dict[str, Any]) -> None:
-    """Publish a message to a channel (Redis when enabled; always cache in-memory).
+    """Publish a message to a channel (Redis when enabled; in-memory otherwise).
 
-    - Always updates an in-memory last-message cache for quick WS replay,
-      regardless of Redis mode (useful for single-process tests without workers).
-    - When Redis is enabled, attempts to publish; errors are swallowed.
-    - In in-memory mode, also fans out to local subscriber queues.
+    Messages are JSON-serialized dictionaries. In-memory subscribers receive
+    the serialized string on their per-channel queues.
     """
     payload = json.dumps(message)
-    # Always update last-message cache (shallow merge)
-    try:
-        if isinstance(message, dict):
-            last = _LAST_MESSAGES.get(channel) or {}
-            last.update(message)
-            _LAST_MESSAGES[channel] = last
-    except Exception:
-        pass
     if not is_redis_enabled():
-        # Broadcast to in-memory subscribers (thread-safe)
-        for (q, loop) in list(_SUBSCRIBERS.get(channel, []) or []):
+        # Update last-message cache (shallow merge by keys)
+        try:
+            if isinstance(message, dict):
+                last = _LAST_MESSAGES.get(channel) or {}
+                last.update(message)
+                _LAST_MESSAGES[channel] = last
+        except Exception:
+            pass
+        # Broadcast to in-memory subscribers
+        for q in list(_SUBSCRIBERS.get(channel, []) or []):
             try:
-                if loop is not None and loop.is_running():
-                    loop.call_soon_threadsafe(q.put_nowait, payload)
-                else:
-                    # Synchronous path (e.g., tests without an event loop running)
-                    q.put_nowait(payload)
+                q.put_nowait(payload)
             except Exception:
                 continue
         return
-    # Redis path
+    r, _q = _get_redis_and_queue()
     try:
-        r, _q = _get_redis_and_queue()
         r.publish(channel, payload)
     except Exception:
         # Best effort publish; do not crash job
@@ -148,7 +106,9 @@ def _pub(channel: str, message: Dict[str, Any]) -> None:
 
 
 def _get_last_message(channel: str) -> Optional[Dict[str, Any]]:
-    """Return the last cached message dict for a channel (always cached)."""
+    """Return the last cached message dict for a channel (in-memory mode only)."""
+    if is_redis_enabled():
+        return None
     try:
         v = _LAST_MESSAGES.get(channel)
         return dict(v) if isinstance(v, dict) else None
@@ -342,13 +302,7 @@ def submit_job(stage: str, command: str, args: Dict[str, Any]) -> str:
         r, q = _get_redis_and_queue()
         # Create a placeholder job id by enqueuing with meta; we need job id to publish channel messages
         job = q.enqueue(run_cli_job, stage, command, args)  # type: ignore[arg-type]
-        job_id = job.get_id()
-        # Best-effort: immediately publish a lightweight queued event so WS clients see activity
-        try:
-            _pub(f"jobs.{job_id}.progress", {"stderr": "queued"})
-        except Exception:
-            pass
-        return job_id
+        return job.get_id()
     else:
         import uuid
         from datavizhub.api.workers.executor import start_job as _start

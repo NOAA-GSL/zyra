@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any, Set
+from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, WebSocketException
 import secrets
@@ -20,12 +20,7 @@ import os
 router = APIRouter(tags=["ws"])
 
 
-def _ws_should_send(text: str, allowed: Set[str] | None) -> bool:
-    """Return True when a JSON message contains at least one allowed key.
-
-    This helper is used to filter WebSocket traffic server-side in both Redis
-    and in-memory streaming modes.
-    """
+def _ws_should_send(text: str, allowed: set[str] | None) -> bool:
     if not allowed:
         return True
     try:
@@ -67,27 +62,7 @@ async def job_progress_ws(
     allowed = None
     if stream:
         allowed = {s.strip().lower() for s in str(stream).split(',') if s.strip()}
-    # Proactively emit an initial progress frame so clients don't block waiting
-    # when using filtered views (e.g., stream=progress) and before any cached
-    # message is available. This helps tests avoid hangs even if Redis is
-    # unavailable and no immediate publish occurs.
-    try:
-        if (allowed is None) or ("progress" in allowed):
-            await websocket.send_json({"progress": 0.0})
-            await asyncio.sleep(0)
-    except Exception:
-        pass
-    # Emit an immediate lightweight message so clients see activity even if
-    # earlier progress was published before this subscription (Redis mode).
-    try:
-        initial = {"stderr": "listening"}
-        if (allowed is None) or any(k in allowed for k in initial.keys()):
-            await websocket.send_json(initial)
-            # Yield control to ensure the initial frame is flushed to client
-            await asyncio.sleep(0)
-    except Exception:
-        pass
-    # Replay last known progress on connect (cache now maintained regardless of Redis mode)
+    # Replay last known progress on connect (in-memory mode caches last message)
     try:
         channel = f"jobs.{job_id}.progress"
         last = _get_last_message(channel)
@@ -98,7 +73,7 @@ async def job_progress_ws(
                 if (allowed is None) or (k in allowed):
                     to_send[k] = v
             if to_send:
-                await websocket.send_json(to_send)
+                await websocket.send_text(json.dumps(to_send))
     except Exception:
         # Best-effort; absence of cache is fine
         pass
@@ -111,35 +86,19 @@ async def job_progress_ws(
                 try:
                     msg = await asyncio.wait_for(q.get(), timeout=60.0)
                 except asyncio.TimeoutError:
-                    # keep connection alive only when not filtered out
-                    if (allowed is None) or ("keepalive" in allowed):
-                        await websocket.send_json({"keepalive": True})
+                    # keep connection alive
+                    await websocket.send_text(json.dumps({"keepalive": True}))
                     continue
                 if not _ws_should_send(msg, allowed):
                     continue
-                # Forward message to client (previously unreachable due to mis-indentation)
                 await websocket.send_text(msg)
         except WebSocketDisconnect:
             return
         finally:
             _unregister_listener(channel, q)
     else:
-        # Redis-backed streaming. If Redis client is unavailable or errors, keep
-        # the connection open after the initial message to avoid client errors.
-        try:
-            import redis.asyncio as aioredis  # type: ignore
-        except Exception:
-            # Keep the socket open but send periodic keepalives to avoid client hangs
-            try:
-                while True:
-                    if (allowed is None) or ("keepalive" in allowed):
-                        try:
-                            await websocket.send_json({"keepalive": True})
-                        except Exception:
-                            pass
-                    await asyncio.sleep(5)
-            except WebSocketDisconnect:
-                return
+        import redis.asyncio as aioredis  # type: ignore
+
         redis = aioredis.from_url(redis_url())
         try:
             pubsub = redis.pubsub()
@@ -164,27 +123,9 @@ async def job_progress_ws(
                         continue
                     await websocket.send_text(text)
             finally:
-                try:
-                    await pubsub.unsubscribe(channel)
-                    await pubsub.close()
-                except Exception:
-                    pass
+                await pubsub.unsubscribe(channel)
+                await pubsub.close()
         except WebSocketDisconnect:
             return
-        except Exception:
-            # On Redis errors, keep the connection alive with periodic keepalives
-            try:
-                while True:
-                    if (allowed is None) or ("keepalive" in allowed):
-                        try:
-                            await websocket.send_json({"keepalive": True})
-                        except Exception:
-                            pass
-                    await asyncio.sleep(5)
-            except WebSocketDisconnect:
-                return
         finally:
-            try:
-                await redis.close()
-            except Exception:
-                pass
+            await redis.close()
