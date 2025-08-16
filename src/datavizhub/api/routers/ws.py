@@ -67,6 +67,14 @@ async def job_progress_ws(
     allowed = None
     if stream:
         allowed = {s.strip().lower() for s in str(stream).split(',') if s.strip()}
+    # Emit an immediate lightweight message so clients see activity even if
+    # earlier progress was published before this subscription (Redis mode).
+    try:
+        initial = {"stderr": "listening"}
+        if (allowed is None) or any(k in allowed for k in initial.keys()):
+            await websocket.send_text(json.dumps(initial))
+    except Exception:
+        pass
     # Replay last known progress on connect (in-memory mode caches last message)
     try:
         channel = f"jobs.{job_id}.progress"
