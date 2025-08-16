@@ -72,7 +72,7 @@ async def job_progress_ws(
     try:
         initial = {"stderr": "listening"}
         if (allowed is None) or any(k in allowed for k in initial.keys()):
-            await websocket.send_text(json.dumps(initial))
+            await websocket.send_json(initial)
             # Yield control to ensure the initial frame is flushed to client
             await asyncio.sleep(0)
     except Exception:
@@ -88,7 +88,7 @@ async def job_progress_ws(
                 if (allowed is None) or (k in allowed):
                     to_send[k] = v
             if to_send:
-                await websocket.send_text(json.dumps(to_send))
+                await websocket.send_json(to_send)
     except Exception:
         # Best-effort; absence of cache is fine
         pass
@@ -106,7 +106,7 @@ async def job_progress_ws(
                     continue
                 if not _ws_should_send(msg, allowed):
                     continue
-                await websocket.send_text(msg)
+                    await websocket.send_text(msg)
         except WebSocketDisconnect:
             return
         finally:
