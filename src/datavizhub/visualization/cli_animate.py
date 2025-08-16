@@ -4,7 +4,7 @@ import sys
 
 from datavizhub.visualization.cli_utils import features_from_ns
 from pathlib import Path
-import subprocess, shlex
+import subprocess
 from datavizhub.utils.cli_helpers import configure_logging_from_env
 import logging
 
@@ -70,26 +70,15 @@ def handle_animate(ns) -> int:
         # Optional: combine grid
         if getattr(ns, 'combine_to', None) and videos:
             cols = int(getattr(ns, 'grid_cols', 2) or 2)
-            rows = (len(videos) + cols - 1) // cols
-            # ffmpeg xstack grid
-            # Build inputs
-            inputs = " ".join(f"-i {shlex.quote(v)}" for v in videos)
-            if getattr(ns, 'grid_mode', 'grid') == 'hstack':
-                filter_desc = f"hstack=inputs={len(videos)}"
-            else:
-                # Build xstack layout using first input dimensions (w0,h0) as tile size.
-                # Each entry is "x_y"; e.g., 2x2 grid -> 0_0|w0_0|0_h0|w0_h0
-                layout_entries = []
-                for idx in range(len(videos)):
-                    r = idx // cols
-                    c = idx % cols
-                    x = "0" if c == 0 else f"w0*{c}"
-                    y = "0" if r == 0 else f"h0*{r}"
-                    layout_entries.append(f"{x}_{y}")
-                filter_desc = f"xstack=inputs={len(videos)}:layout=" + "|".join(layout_entries)
-            cmd = f"ffmpeg {inputs} -filter_complex {shlex.quote(filter_desc)} -r {ns.fps} -vcodec libx264 -pix_fmt yuv420p -y {shlex.quote(ns.combine_to)}"
             try:
-                subprocess.run(shlex.split(cmd), check=False)
+                cmd = _build_ffmpeg_grid_args(
+                    videos=videos,
+                    fps=int(ns.fps),
+                    output=str(ns.combine_to),
+                    grid_mode=str(getattr(ns, 'grid_mode', 'grid')),
+                    cols=cols,
+                )
+                subprocess.run(cmd, check=False)
                 logging.info(ns.combine_to)
             except Exception:
                 logging.warning("Failed to compose grid video")
@@ -188,3 +177,33 @@ def handle_animate(ns) -> int:
             vp.save(ns.to_video)
             logging.info(ns.to_video)
     return 0
+
+
+def _build_ffmpeg_grid_args(*, videos: list[str], fps: int, output: str, grid_mode: str, cols: int) -> list[str]:
+    """Build a safe ffmpeg command args list to compose multiple MP4s.
+
+    - grid_mode 'grid' uses xstack with positions derived from first input size (w0,h0)
+    - grid_mode 'hstack' composes horizontally with hstack
+    - Returns a list of arguments suitable for subprocess.run without shell=True
+    """
+    if not videos:
+        raise ValueError("No input videos provided")
+    if cols <= 0:
+        raise ValueError("cols must be >= 1")
+    args: list[str] = ["ffmpeg"]
+    for v in videos:
+        args.extend(["-i", v])
+    if grid_mode == "hstack":
+        filter_desc = f"hstack=inputs={len(videos)}"
+    else:
+        # Build xstack layout using first input dimensions (w0,h0) as tile size.
+        layout_entries: list[str] = []
+        for idx in range(len(videos)):
+            r = idx // cols
+            c = idx % cols
+            x = "0" if c == 0 else f"w0*{c}"
+            y = "0" if r == 0 else f"h0*{r}"
+            layout_entries.append(f"{x}_{y}")
+        filter_desc = f"xstack=inputs={len(videos)}:layout=" + "|".join(layout_entries)
+    args.extend(["-filter_complex", filter_desc, "-r", str(fps), "-vcodec", "libx264", "-pix_fmt", "yuv420p", "-y", output])
+    return args

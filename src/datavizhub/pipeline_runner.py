@@ -27,8 +27,7 @@ def _load_config(path: str) -> dict[str, Any]:
     else:
         try:
             return yaml.safe_load(text)  # type: ignore[no-any-return]
-        except Exception as e:  # Be explicit about parse failures
-            # yaml.YAMLError is the common parse error; log and fall back to JSON
+        except yaml.YAMLError as e:  # Be explicit about YAML parse failures
             logging.debug("YAML parse failed for %s: %s. Falling back to JSON.", path, e)
     # Fall back to JSON
     return json.loads(text)

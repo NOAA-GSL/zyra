@@ -15,7 +15,6 @@ from datavizhub.api.workers.executor import (
     write_manifest,
     resolve_upload_placeholders,
 )
-import os
 from pathlib import Path
 import shutil
 

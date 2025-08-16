@@ -458,13 +458,15 @@ def cancel_job(job_id: str) -> bool:
         rec["status"] = "canceled"
         return True
     return False
-# Results directory for persisted artifacts
-RESULTS_ROOT = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
-RESULTS_ROOT.mkdir(parents=True, exist_ok=True)
-
-
 def _ensure_results_dir(job_id: str) -> Path:
-    d = RESULTS_ROOT / job_id
+    """Return the results dir for a job, creating it lazily.
+
+    Computes the root from ``DATAVIZHUB_RESULTS_DIR`` at call time to avoid
+    module-level side effects and ensure the directory exists.
+    """
+    root = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+    root.mkdir(parents=True, exist_ok=True)
+    d = root / job_id
     d.mkdir(parents=True, exist_ok=True)
     return d
 

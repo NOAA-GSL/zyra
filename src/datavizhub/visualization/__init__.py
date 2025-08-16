@@ -60,7 +60,10 @@ def register_cli(subparsers: Any) -> None:
     p_hm.add_argument("--var", help="Variable name for NetCDF inputs")
     p_hm.add_argument("--basemap", help="Path to background image")
     p_hm.add_argument("--extent", nargs=4, type=float, default=[-180, 180, -90, 90], help="west east south north")
-    p_hm.add_argument("--output", help="Output PNG path (single input)")
+    p_hm.add_argument(
+        "--output",
+        help="Output PNG path (required when using --input; for --inputs use --output-dir)",
+    )
     p_hm.add_argument("--inputs", nargs="+", help="Multiple input paths for batch rendering")
     p_hm.add_argument("--output-dir", dest="output_dir", help="Directory to write outputs for --inputs")
     p_hm.add_argument("--width", type=int, default=1024)
@@ -99,7 +102,11 @@ def register_cli(subparsers: Any) -> None:
     p_ct.add_argument("--var", help="Variable name for NetCDF inputs")
     p_ct.add_argument("--basemap", help="Path to background image")
     p_ct.add_argument("--extent", nargs=4, type=float, default=[-180, 180, -90, 90], help="west east south north")
-    p_ct.add_argument("--output", required=True, help="Output PNG path")
+    p_ct.add_argument(
+        "--output",
+        required=True,
+        help="Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
+    )
     p_ct.add_argument("--width", type=int, default=1024)
     p_ct.add_argument("--height", type=int, default=512)
     p_ct.add_argument("--dpi", type=int, default=96)
@@ -156,7 +163,11 @@ def register_cli(subparsers: Any) -> None:
     p_vector.add_argument("--v", help="Path to V .npy file (alternative input)")
     p_vector.add_argument("--basemap", help="Path to background image")
     p_vector.add_argument("--extent", nargs=4, type=float, default=[-180, 180, -90, 90], help="west east south north")
-    p_vector.add_argument("--output", required=True, help="Output PNG path")
+    p_vector.add_argument(
+        "--output",
+        required=True,
+        help="Output PNG path (required for single --input/--u/--v; when using --inputs, prefer --output-dir)",
+    )
     p_vector.add_argument("--width", type=int, default=1024)
     p_vector.add_argument("--height", type=int, default=512)
     p_vector.add_argument("--dpi", type=int, default=96)
