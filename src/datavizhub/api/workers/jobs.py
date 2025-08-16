@@ -53,7 +53,8 @@ _redis_client = None
 _rq_queue = None
 
 # In-memory pub/sub for WebSocket parity
-_SUBSCRIBERS: Dict[str, List[asyncio.Queue[str]]] = {}
+# Store (queue, loop) to support thread-safe puts into the listener's event loop.
+_SUBSCRIBERS: Dict[str, List[Tuple[asyncio.Queue[str], Optional[asyncio.AbstractEventLoop]]]] = {}
 # In-memory last-message cache per channel for quick replay on new subscribers
 _LAST_MESSAGES: Dict[str, Dict[str, Any]] = {}
 
@@ -65,7 +66,11 @@ def _register_listener(channel: str) -> asyncio.Queue[str]:
     without Redis. Returns an asyncio.Queue that receives JSON strings.
     """
     q: asyncio.Queue[str] = asyncio.Queue()
-    _SUBSCRIBERS.setdefault(channel, []).append(q)
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+    _SUBSCRIBERS.setdefault(channel, []).append((q, loop))
     return q
 
 
@@ -75,7 +80,10 @@ def _unregister_listener(channel: str, q: asyncio.Queue[str]) -> None:
     if not lst:
         return
     try:
-        lst.remove(q)
+        for i, (qq, _loop) in enumerate(list(lst)):
+            if qq is q:
+                lst.pop(i)
+                break
     except ValueError:
         pass
     if not lst:
@@ -111,10 +119,13 @@ def _pub(channel: str, message: Dict[str, Any]) -> None:
                 _LAST_MESSAGES[channel] = last
         except Exception:
             pass
-        # Broadcast to in-memory subscribers
-        for q in list(_SUBSCRIBERS.get(channel, []) or []):
+        # Broadcast to in-memory subscribers; respect listener loop if running
+        for (q, loop) in list(_SUBSCRIBERS.get(channel, []) or []):
             try:
-                q.put_nowait(payload)
+                if loop is not None and loop.is_running():
+                    loop.call_soon_threadsafe(q.put_nowait, payload)
+                else:
+                    q.put_nowait(payload)
             except Exception:
                 continue
         return
