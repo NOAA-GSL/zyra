@@ -31,13 +31,29 @@ def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
     if not rd.exists():
         raise HTTPException(status_code=404, detail="Results not found")
     if specific_file:
-        # Prevent path traversal and symlink escapes by resolving and ensuring
-        # the target is within the results directory for this job.
-        p = (rd / specific_file).resolve()
-        base = rd.resolve()
+        # Prevent path traversal and symlink escapes by verifying that the
+        # original path does not traverse symlinks and that the resolved
+        # target remains within the job's results directory.
+        orig = rd / specific_file
+        # Reject if any component between rd and the file is a symlink
+        cur = orig
         try:
-            _ = p.relative_to(base)
+            while True:
+                if cur.is_symlink():
+                    raise HTTPException(status_code=400, detail="Invalid file parameter")
+                if cur == rd or cur.parent == cur:
+                    break
+                cur = cur.parent
+        except OSError:
+            raise HTTPException(status_code=400, detail="Invalid file parameter")
+        # Resolve and validate common path with the base directory
+        try:
+            p = orig.resolve()
+            base = rd.resolve()
         except Exception:
+            raise HTTPException(status_code=400, detail="Invalid file parameter")
+        import os as _os
+        if _os.path.commonpath([str(base), str(p)]) != str(base):
             raise HTTPException(status_code=400, detail="Invalid file parameter")
         if not p.exists() or not p.is_file():
             raise HTTPException(status_code=404, detail="Requested file not found")

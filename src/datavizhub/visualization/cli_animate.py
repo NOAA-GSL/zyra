@@ -190,9 +190,25 @@ def _build_ffmpeg_grid_args(*, videos: list[str], fps: int, output: str, grid_mo
         raise ValueError("No input videos provided")
     if cols <= 0:
         raise ValueError("cols must be >= 1")
+    if not isinstance(fps, int) or fps <= 0:
+        raise ValueError("fps must be a positive integer")
+    if not isinstance(output, str) or not output.strip():
+        raise ValueError("output must be a non-empty string path")
+    if output.lstrip().startswith("-"):
+        # Prevent ffmpeg from interpreting output as an option
+        raise ValueError("output filename cannot start with '-' (may be interpreted as an option)")
+    out_path = Path(output).expanduser().resolve()
+    if out_path.parent:
+        out_path.parent.mkdir(parents=True, exist_ok=True)
     args: list[str] = ["ffmpeg"]
     for v in videos:
-        args.extend(["-i", v])
+        if not isinstance(v, str) or not v.strip():
+            raise ValueError("invalid input video path")
+        # Resolve and ensure it's a file to reduce the chance of injecting options via paths
+        vp = Path(v).expanduser().resolve()
+        if not vp.is_file():
+            raise ValueError(f"input video not found: {vp}")
+        args.extend(["-i", str(vp)])
     if grid_mode == "hstack":
         filter_desc = f"hstack=inputs={len(videos)}"
     else:
@@ -205,5 +221,5 @@ def _build_ffmpeg_grid_args(*, videos: list[str], fps: int, output: str, grid_mo
             y = "0" if r == 0 else f"h0*{r}"
             layout_entries.append(f"{x}_{y}")
         filter_desc = f"xstack=inputs={len(videos)}:layout=" + "|".join(layout_entries)
-    args.extend(["-filter_complex", filter_desc, "-r", str(fps), "-vcodec", "libx264", "-pix_fmt", "yuv420p", "-y", output])
+    args.extend(["-filter_complex", filter_desc, "-r", str(fps), "-vcodec", "libx264", "-pix_fmt", "yuv420p", "-y", str(out_path)])
     return args

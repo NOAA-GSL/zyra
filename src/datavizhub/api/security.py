@@ -24,6 +24,7 @@ async def require_api_key(api_key: str | None = Security(api_key_header)) -> boo
     expected = os.environ.get(API_KEY_ENV)
     if not expected:
         return True  # auth disabled
-    if api_key and secrets.compare_digest(str(api_key), str(expected)):
+    # Only compare when both are strings; otherwise treat as invalid
+    if isinstance(api_key, str) and isinstance(expected, str) and secrets.compare_digest(api_key, expected):
         return True
     raise HTTPException(status_code=401, detail="Unauthorized: invalid API key")

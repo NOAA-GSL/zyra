@@ -138,10 +138,19 @@ class _PubTee(io.StringIO):
 
 
 def run_cli_job(stage: str, command: str, args: Dict[str, Any], job_id: Optional[str] = None) -> Dict[str, Any]:
-    """RQ worker entry: runs CLI and publishes a completion message.
+    """RQ worker entry: run the CLI and stream progress/logs.
 
-    For future incremental streaming, replace capture buffers with a stream that
-    calls _pub() on each write. For now, publish a final payload.
+    Behavior
+    - Resolves uploaded ``file_id:`` placeholders for convenience.
+    - Publishes an initial progress payload ``{"progress": 0.0}`` to the per-job
+      channel ``jobs.{job_id}.progress`` when a job id is available.
+    - Streams stdout/stderr incrementally by swapping ``sys.stdout``/``sys.stderr``
+      for a tee writer (``_PubTee``) that both buffers and publishes each write
+      as a JSON message (e.g., ``{"stdout": "..."}``). Works in both Redis and
+      in-memory modes via ``_pub``.
+    - On completion, publishes a final payload including ``stdout``, ``stderr``,
+      ``exit_code``, and optionally ``output_file`` when artifacts are persisted
+      into the results directory. A manifest is written on best effort.
     """
     if job_id is None:
         try:

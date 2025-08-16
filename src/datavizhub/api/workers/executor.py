@@ -115,7 +115,9 @@ def _to_kebab(s: str) -> str:
 def resolve_upload_placeholders(a: Dict[str, Any]) -> tuple[Dict[str, Any], list[str], list[str]]:
     """Resolve file_id placeholders in args.
 
-    Returns (resolved_args, resolved_paths, unresolved_ids)
+    Returns (resolved_args, resolved_paths, unresolved_ids).
+    Safeguards ensure resolved paths are within the upload directory to avoid
+    symlink/path traversal escaping.
     """
     out = dict(a)
     resolved_paths: list[str] = []
@@ -123,10 +125,22 @@ def resolve_upload_placeholders(a: Dict[str, Any]) -> tuple[Dict[str, Any], list
 
     def _lookup_uploaded_path(fid: str) -> str | None:
         try:
+            base = files_router.UPLOAD_DIR.resolve()
+        except Exception:
             base = files_router.UPLOAD_DIR
-            for p in base.glob(f"{fid}_*"):
-                if p.is_file():
-                    return str(p)
+        try:
+            for p in files_router.UPLOAD_DIR.glob(f"{fid}_*"):
+                try:
+                    rp = p.resolve()
+                except Exception:
+                    continue
+                # Ensure the resolved path is within the uploads base
+                try:
+                    _ = rp.relative_to(base)
+                except Exception:
+                    continue
+                if rp.is_file():
+                    return str(rp)
         except Exception:
             return None
         return None

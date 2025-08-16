@@ -476,9 +476,9 @@ def examples_page(request: Request) -> HTMLResponse:
         provided = request.headers.get(header_name) or request.query_params.get('api_key')
         try:
             import secrets as _secrets
-            ok = bool(provided) and _secrets.compare_digest(str(provided), str(expected))
+            ok = isinstance(provided, str) and isinstance(expected, str) and _secrets.compare_digest(provided, expected)
         except Exception:
-            ok = (provided == expected)
+            ok = False
         if not ok:
             return HTMLResponse(content="<h1>Unauthorized</h1><p>Provide a valid API key to access examples.</p>", status_code=401)
     """Serve a minimal interactive examples page with Run buttons."""
