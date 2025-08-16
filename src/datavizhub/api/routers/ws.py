@@ -107,7 +107,8 @@ async def job_progress_ws(
                     continue
                 if not _ws_should_send(msg, allowed):
                     continue
-                    await websocket.send_text(msg)
+                # Forward message to client (previously unreachable due to mis-indentation)
+                await websocket.send_text(msg)
         except WebSocketDisconnect:
             return
         finally:
