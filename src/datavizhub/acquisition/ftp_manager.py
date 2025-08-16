@@ -20,7 +20,7 @@ import logging
 import re
 from io import BytesIO
 from pathlib import Path
-from typing import Iterable, Optional, Iterable as _Iterable, Tuple
+from typing import Iterable, Optional, Iterable as _Iterable, Tuple, List, Dict
 
 from ftplib import FTP, error_perm, error_temp
 
@@ -128,7 +128,7 @@ class FTPManager(DataAcquirer):
             Filenames present in the directory, or ``None`` on error.
         """
         directory = remote_path or "."
-        files: list[str] = []
+        files: List[str] = []
         try:
             if not self.ftp or not self.ftp.sock:
                 logging.info("Reconnecting to FTP server for listing files.")
@@ -530,7 +530,7 @@ class FTPManager(DataAcquirer):
         write_to: Optional[str] = None,
         timeout: int = 30,
         max_retries: int = 3,
-    ) -> Optional[list[str]]:
+    ) -> Optional[List[str]]:
         """Fetch and parse the GRIB ``.idx`` for a remote path.
 
         Appends ``.idx`` to ``remote_path`` unless an explicit ``.idx`` is provided.
@@ -564,10 +564,10 @@ class FTPManager(DataAcquirer):
                 pass
         return lines
 
-    def idx_to_byteranges(self, lines: list[str], search_str: str) -> dict[str, str]:
+    def idx_to_byteranges(self, lines: List[str], search_str: str) -> Dict[str, str]:
         return _idx_to_byteranges(lines, search_str)
 
-    def get_chunks(self, remote_path: str, chunk_size: int = 500 * 1024 * 1024) -> list[str]:
+    def get_chunks(self, remote_path: str, chunk_size: int = 500 * 1024 * 1024) -> List[str]:
         size = self.get_size(remote_path)
         if size is None:
             return []
@@ -648,7 +648,7 @@ class FTPManager(DataAcquirer):
         indexed = list(enumerate(byte_ranges))
         if not indexed:
             return b""
-        results: dict[int, bytes] = {}
+        results: Dict[int, bytes] = {}
         with ThreadPoolExecutor(max_workers=max_workers) as ex:
             futs = {ex.submit(_worker, remote_path, rng): i for i, rng in indexed}
             for fut in as_completed(futs):

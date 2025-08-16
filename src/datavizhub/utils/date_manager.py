@@ -22,7 +22,7 @@ import os
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Iterable, Optional, Tuple
+from typing import Iterable, Optional, Tuple, List
 
 
 class DateManager:
@@ -42,7 +42,7 @@ class DateManager:
         when = dm.extract_date_time("frame_20240101093000.png")
     """
 
-    def __init__(self, date_formats: Optional[list[str]] = None) -> None:
+    def __init__(self, date_formats: Optional[List[str]] = None) -> None:
         """Optionally store preferred date formats for filename parsing."""
         self.date_formats = date_formats or []
 

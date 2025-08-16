@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Dict, Literal, Optional, List
 
 from pydantic import BaseModel, Field
 
@@ -27,4 +27,4 @@ class JobStatusResponse(BaseModel):
     stderr: Optional[str] = None
     exit_code: Optional[int] = None
     output_file: Optional[str] = None
-    resolved_input_paths: Optional[list[str]] = None
+    resolved_input_paths: Optional[List[str]] = None

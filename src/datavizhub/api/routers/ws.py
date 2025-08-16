@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any
+from typing import Any, Set
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, WebSocketException
 import secrets
@@ -20,7 +20,7 @@ import os
 router = APIRouter(tags=["ws"])
 
 
-def _ws_should_send(text: str, allowed: set[str] | None) -> bool:
+def _ws_should_send(text: str, allowed: Set[str] | None) -> bool:
     """Return True when a JSON message contains at least one allowed key.
 
     This helper is used to filter WebSocket traffic server-side in both Redis

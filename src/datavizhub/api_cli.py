@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import time
+from typing import List
 
 
 def _base_url(v: str | None) -> str:
@@ -95,7 +96,7 @@ def cmd_download(args: argparse.Namespace) -> int:
     return 0
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: List[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="datavizhub-cli", description="Simple CLI wrapper for the DataVizHub API")
     p.add_argument("--base-url", dest="base_url", help="API base URL (default http://localhost:8000)")
     sub = p.add_subparsers(dest="cmd", required=True)

@@ -275,7 +275,7 @@ def _cleanup_jobs() -> None:
     if ttl <= 0:
         return
     now = time.time()
-    to_delete: list[str] = []
+    to_delete: List[str] = []
     for jid, rec in list(_JOBS.items()):
         try:
             status = rec.get("status")
@@ -302,7 +302,13 @@ def submit_job(stage: str, command: str, args: Dict[str, Any]) -> str:
         r, q = _get_redis_and_queue()
         # Create a placeholder job id by enqueuing with meta; we need job id to publish channel messages
         job = q.enqueue(run_cli_job, stage, command, args)  # type: ignore[arg-type]
-        return job.get_id()
+        job_id = job.get_id()
+        # Best-effort: immediately publish a lightweight queued event so WS clients see activity
+        try:
+            _pub(f"jobs.{job_id}.progress", {"stderr": "queued"})
+        except Exception:
+            pass
+        return job_id
     else:
         import uuid
         from datavizhub.api.workers.executor import start_job as _start

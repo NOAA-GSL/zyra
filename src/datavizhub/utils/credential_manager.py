@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable, Optional, List, Dict, Set
 
 # Defer optional dependency import to method calls to avoid crashing
 # modules that import CredentialManager when python-dotenv is unavailable.
@@ -52,7 +52,7 @@ class CredentialManager:
     def __init__(self, filename: Optional[str] = None, namespace: Optional[str] = None):
         self.filename = filename
         self.namespace = namespace or ""
-        self.credentials: dict[str, str] = {}
+        self.credentials: Dict[str, str] = {}
 
     def __enter__(self):
         """Load credentials when entering a context manager block.
@@ -119,11 +119,11 @@ class CredentialManager:
             raise FileNotFoundError(f"The file {self.filename} was not found.")
 
     @property
-    def tracked_keys(self) -> set[str]:
+    def tracked_keys(self) -> Set[str]:
         """Return the set of keys currently tracked in memory."""
         return set(self.credentials.keys())
 
-    def list_credentials(self, expected_keys: Optional[Iterable[str]] = None) -> list[str]:
+    def list_credentials(self, expected_keys: Optional[Iterable[str]] = None) -> List[str]:
         """List tracked credential keys, checking for expected ones when provided.
 
         Parameters

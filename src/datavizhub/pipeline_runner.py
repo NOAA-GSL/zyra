@@ -5,10 +5,10 @@ import logging
 import io
 import json
 import os
-from typing import Any, Optional
+from typing import Any, Optional, List, Tuple, Dict
 
 
-def _load_config(path: str) -> dict[str, Any]:
+def _load_config(path: str) -> Dict[str, Any]:
     """Load a pipeline config from YAML or JSON file.
 
     Prefer YAML when available; provide a helpful error if a YAML file is used
@@ -73,7 +73,7 @@ def _expand_env(obj: Any, *, strict: bool = False) -> Any:
     return obj
 
 
-def _apply_overrides(cfg: dict[str, Any], overrides: list[tuple[str, str]] | None) -> None:
+def _apply_overrides(cfg: Dict[str, Any], overrides: List[Tuple[str, str]] | None) -> None:
     """Apply --set overrides to a config in-place.
 
     Supports forms:
@@ -134,7 +134,7 @@ def _stage_group_alias(name: str) -> str:
     }.get(name, name)
 
 
-def _build_argv_for_stage(stage: dict[str, Any]) -> list[str]:
+def _build_argv_for_stage(stage: Dict[str, Any]) -> List[str]:
     """Translate a stage mapping into a datavizhub argv vector."""
     group = _stage_group_alias(stage.get("stage", ""))
     cmd = stage.get("command")
@@ -151,10 +151,10 @@ def _build_argv_for_stage(stage: dict[str, Any]) -> list[str]:
     if group == "decimate" and (cmd in (None, "decimate")) and "backend" in args:
         cmd = str(args.pop("backend")).lower()
 
-    argv: list[str] = [group, str(cmd)]
+    argv: List[str] = [group, str(cmd)]
 
     # Known positionals for selected commands
-    positionals: list[str] = []
+    positionals: List[str] = []
     if group == "process" and cmd == "convert-format":
         positionals = ["file_or_url", "format"]
     elif group == "process" and cmd == "decode-grib2":
@@ -197,7 +197,7 @@ def _build_argv_for_stage(stage: dict[str, Any]) -> list[str]:
     return argv
 
 
-def _run_cli(argv: list[str], input_bytes: bytes | None) -> tuple[int, bytes, str]:
+def _run_cli(argv: List[str], input_bytes: bytes | None) -> Tuple[int, bytes, str]:
     """Execute a CLI stage in-process, passing stdin bytes and capturing stdout."""
     from datavizhub.cli import main as cli_main
     import sys
@@ -282,7 +282,7 @@ def _run_cli(argv: list[str], input_bytes: bytes | None) -> tuple[int, bytes, st
 
 def run_pipeline(
     config_path: str,
-    overrides: list[tuple[str, str]] | None = None,
+    overrides: List[Tuple[str, str]] | None = None,
     *,
     print_argv: bool = False,
     dry_run: bool = False,
@@ -325,7 +325,7 @@ def run_pipeline(
         raise SystemExit("--start must be <= --end")
 
     # Prepare filtered list
-    selected: list[dict[str, Any]] = []
+    selected: List[Dict[str, Any]] = []
     desired_name = _stage_group_alias(only) if only else None
     for idx, st in enumerate(stages, start=1):
         if not (s_idx <= idx <= e_idx):
@@ -361,7 +361,7 @@ def run_pipeline(
             pass
 
     # Printed structures for --print-argv-format=json
-    printed_objects: list[dict[str, Any]] = []
+    printed_objects: List[Dict[str, Any]] = []
     any_error: int | None = None
     # Set verbosity env for stages
     verbosity = os.environ.get("DATAVIZHUB_VERBOSITY", "info")
@@ -449,7 +449,7 @@ def register_cli_run(subparsers: Any) -> None:
     p.add_argument("--strict-env", action="store_true", help="Fail if ${VAR} placeholders are not set in environment")
 
     def _cmd(ns: argparse.Namespace) -> int:
-        pairs: list[tuple[str, str]] = []
+        pairs: List[Tuple[str, str]] = []
         for item in ns.overrides:
             if "=" not in item:
                 raise SystemExit("--set requires key=value")

@@ -112,7 +112,7 @@ def _to_kebab(s: str) -> str:
     return s.replace("_", "-")
 
 
-def resolve_upload_placeholders(a: Dict[str, Any]) -> tuple[Dict[str, Any], list[str], list[str]]:
+def resolve_upload_placeholders(a: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str], List[str]]:
     """Resolve file_id placeholders in args.
 
     Returns (resolved_args, resolved_paths, unresolved_ids).
@@ -120,8 +120,8 @@ def resolve_upload_placeholders(a: Dict[str, Any]) -> tuple[Dict[str, Any], list
     symlink/path traversal escaping.
     """
     out = dict(a)
-    resolved_paths: list[str] = []
-    unresolved: list[str] = []
+    resolved_paths: List[str] = []
+    unresolved: List[str] = []
 
     def _lookup_uploaded_path(fid: str) -> str | None:
         try:
@@ -168,7 +168,7 @@ def resolve_upload_placeholders(a: Dict[str, Any]) -> tuple[Dict[str, Any], list
             else:
                 unresolved.append(fid2)
         elif isinstance(val, list):
-            new_list: list[Any] = []
+            new_list: List[Any] = []
             for item in val:
                 if isinstance(item, str) and item.startswith("file_id:"):
                     fid3 = item.split(":", 1)[1]
@@ -312,7 +312,7 @@ class _StdCapture:
         return self._buf.getvalue()
 
 
-def _guess_bytes_name_and_mime(data: bytes) -> tuple[str, str]:
+def _guess_bytes_name_and_mime(data: bytes) -> Tuple[str, str]:
     """Best-effort filename and MIME detection from a bytes prefix.
 
     Returns a tuple (filename, media_type). Falls back to ``output.bin`` and
@@ -394,7 +394,7 @@ def _cleanup_jobs() -> None:
     if ttl <= 0:
         return
     now = time.time()
-    to_delete: list[str] = []
+    to_delete: List[str] = []
     for jid, rec in list(_JOBS.items()):
         try:
             status = rec.get("status")

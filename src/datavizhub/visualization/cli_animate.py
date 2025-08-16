@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from typing import List
 
 from datavizhub.visualization.cli_utils import features_from_ns
 from pathlib import Path
@@ -179,7 +180,7 @@ def handle_animate(ns) -> int:
     return 0
 
 
-def _build_ffmpeg_grid_args(*, videos: list[str], fps: int, output: str, grid_mode: str, cols: int) -> list[str]:
+def _build_ffmpeg_grid_args(*, videos: List[str], fps: int, output: str, grid_mode: str, cols: int) -> List[str]:
     """Build a safe ffmpeg command args list to compose multiple MP4s.
 
     - grid_mode 'grid' uses xstack with positions derived from first input size (w0,h0)
@@ -200,7 +201,7 @@ def _build_ffmpeg_grid_args(*, videos: list[str], fps: int, output: str, grid_mo
     out_path = Path(output).expanduser().resolve()
     if out_path.parent:
         out_path.parent.mkdir(parents=True, exist_ok=True)
-    args: list[str] = ["ffmpeg"]
+    args: List[str] = ["ffmpeg"]
     for v in videos:
         if not isinstance(v, str) or not v.strip():
             raise ValueError("invalid input video path")
@@ -213,7 +214,7 @@ def _build_ffmpeg_grid_args(*, videos: list[str], fps: int, output: str, grid_mo
         filter_desc = f"hstack=inputs={len(videos)}"
     else:
         # Build xstack layout using first input dimensions (w0,h0) as tile size.
-        layout_entries: list[str] = []
+        layout_entries: List[str] = []
         for idx in range(len(videos)):
             r = idx // cols
             c = idx % cols
