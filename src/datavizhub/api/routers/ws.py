@@ -101,8 +101,9 @@ async def job_progress_ws(
                 try:
                     msg = await asyncio.wait_for(q.get(), timeout=60.0)
                 except asyncio.TimeoutError:
-                    # keep connection alive
-                    await websocket.send_text(json.dumps({"keepalive": True}))
+                    # keep connection alive only when not filtered out
+                    if (allowed is None) or ("keepalive" in allowed):
+                        await websocket.send_json({"keepalive": True})
                     continue
                 if not _ws_should_send(msg, allowed):
                     continue
