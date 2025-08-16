@@ -112,8 +112,17 @@ async def job_progress_ws(
         finally:
             _unregister_listener(channel, q)
     else:
-        import redis.asyncio as aioredis  # type: ignore
-
+        # Redis-backed streaming. If Redis client is unavailable or errors, keep
+        # the connection open after the initial message to avoid client errors.
+        try:
+            import redis.asyncio as aioredis  # type: ignore
+        except Exception:
+            # Keep the socket open; rely on the initial message already sent
+            try:
+                while True:
+                    await asyncio.sleep(60)
+            except WebSocketDisconnect:
+                return
         redis = aioredis.from_url(redis_url())
         try:
             pubsub = redis.pubsub()
@@ -138,9 +147,22 @@ async def job_progress_ws(
                         continue
                     await websocket.send_text(text)
             finally:
-                await pubsub.unsubscribe(channel)
-                await pubsub.close()
+                try:
+                    await pubsub.unsubscribe(channel)
+                    await pubsub.close()
+                except Exception:
+                    pass
         except WebSocketDisconnect:
             return
+        except Exception:
+            # On Redis errors, keep the connection alive quietly
+            try:
+                while True:
+                    await asyncio.sleep(60)
+            except WebSocketDisconnect:
+                return
         finally:
-            await redis.close()
+            try:
+                await redis.close()
+            except Exception:
+                pass
