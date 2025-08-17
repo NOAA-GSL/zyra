@@ -23,7 +23,8 @@ router = APIRouter(tags=["jobs"])
 
 # Strict allowlists for user-controlled path segments
 SAFE_NAME_RE = re.compile(r"^[A-Za-z0-9._-]{1,255}$")
-SAFE_JOB_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+# Restrict job_id to a conservative length and charset (8–64 chars)
+SAFE_JOB_ID_RE = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
 
 
 def _is_safe_segment(segment: str, *, for_job_id: bool = False) -> bool:
@@ -69,12 +70,18 @@ def _results_dir_for(job_id: str) -> Path:
     if not SAFE_JOB_ID_RE.fullmatch(job_id):
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
 
-    root = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
-    # With strict single-segment validation above, joining is safe
-    rd = root / job_id
-    # Optionally refuse symlinked root directories
+    # Compute results dir with normalized join and containment check
+    base = os.path.normpath(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+    full = os.path.normpath(os.path.join(base, job_id))
     try:
-        if root.is_symlink():
+        if os.path.commonpath([base, full]) != base:
+            raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+    rd = Path(full)
+    # Optionally refuse symlinked root directory
+    try:
+        if Path(base).is_symlink():
             raise HTTPException(status_code=500, detail="Results root directory misconfigured (symlink not allowed)")
     except Exception:
         pass
@@ -82,48 +89,74 @@ def _results_dir_for(job_id: str) -> Path:
 
 
 def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
-    # Validate job_id early and derive results dir
+    # Validate job_id early and derive results dir (inline containment check)
     if not isinstance(job_id, str) or not job_id:
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
     if os.path.isabs(job_id) or job_id != os.path.basename(job_id) or not SAFE_JOB_ID_RE.fullmatch(job_id):
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
-    jid = job_id  # use a distinct, validated variable for clarity
-    rd = _results_dir_for(jid)
+    root = os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
+    base = os.path.normpath(root)
+    full = os.path.normpath(os.path.join(base, job_id))
+    try:
+        common = os.path.commonpath([base, full])
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+    if common != base:
+        raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+    rd = Path(full)
     if not rd.exists():
         raise HTTPException(status_code=404, detail="Results not found")
     if specific_file:
         # Only allow a single safe filename (no directories)
         if not _is_safe_segment(specific_file) or specific_file != os.path.basename(specific_file):
             raise HTTPException(status_code=400, detail="Invalid file parameter")
-        # Prevent path traversal and symlink escapes by verifying that the
-        # original path does not traverse symlinks and that the resolved
-        # target remains within the job's results directory.
-        orig = rd / specific_file
-        # Reject if any component between rd and the file is a symlink
-        cur = orig
+        # Compose file path via normalized join and verify containment again
+        base = os.path.normpath(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+        full_file = os.path.normpath(os.path.join(base, job_id, specific_file))
         try:
-            while True:
-                if cur.is_symlink():
-                    raise HTTPException(status_code=400, detail="Invalid file parameter")
-                if cur == rd or cur.parent == cur:
-                    break
-                cur = cur.parent
-        except OSError:
+            if os.path.commonpath([base, full_file]) != base:
+                raise HTTPException(status_code=400, detail="Invalid file parameter")
+        except Exception:
             raise HTTPException(status_code=400, detail="Invalid file parameter")
-        # Since specific_file is a single safe segment, orig is inside rd.
+        p = Path(full_file)
         # Enforce existence and regular file, and reject symlinks.
-        p = orig
         if p.is_symlink() or (not p.exists()) or (not p.is_file()):
             raise HTTPException(status_code=404, detail="Requested file not found")
         return p
     # Default selection: prefer zip, else first file
-    zips = list(rd.glob("*.zip"))
+    try:
+        base = os.path.normpath(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+        full = os.path.normpath(os.path.join(base, job_id))
+        if os.path.commonpath([base, full]) != base:
+            raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+        names = os.listdir(full)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Results not found")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to enumerate results")
+
+    # Prefer a zip artifact if present
+    zips: list[Path] = []
+    for name in names:
+        if name.endswith(".zip"):
+            p = Path(os.path.join(full, name))
+            if p.is_file():
+                zips.append(p)
     if zips:
+        zips.sort(key=lambda x: x.name)
         return zips[0]
-    files = [p for p in rd.iterdir() if p.is_file() and p.name != "manifest.json"]
+
+    # Otherwise, pick the first regular file (excluding manifest)
+    files: list[Path] = []
+    for name in names:
+        if name == "manifest.json":
+            continue
+        p = Path(os.path.join(full, name))
+        if p.is_file():
+            files.append(p)
     if not files:
         raise HTTPException(status_code=404, detail="No artifacts available")
-    files.sort()
+    files.sort(key=lambda x: x.name)
     return files[0]
 
 
@@ -198,11 +231,22 @@ def download_job_output(
         raise HTTPException(status_code=404, detail="Job not found")
 
     def _zip_results_dir(job_id: str) -> Optional[Path]:
-        jid = _require_safe_job_id(job_id)
-        rd = _results_dir_for(jid)
+        # Inline sanitize job_id and derive results dir
+        if not isinstance(job_id, str) or not job_id:
+            return None
+        if os.path.isabs(job_id) or job_id != os.path.basename(job_id) or not SAFE_JOB_ID_RE.fullmatch(job_id):
+            return None
+        base = os.path.normpath(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+        full = os.path.normpath(os.path.join(base, job_id))
+        try:
+            if os.path.commonpath([base, full]) != base:
+                return None
+        except Exception:
+            return None
+        rd = Path(full)
         if not rd.exists():
             return None
-        zpath = rd / f"{jid}.zip"
+        zpath = rd / f"{job_id}.zip"
         try:
             import zipfile
 
@@ -268,8 +312,19 @@ def download_job_output(
 )
 def get_job_manifest(job_id: str):
     """Return the manifest.json for job artifacts (name, path, size, mtime, media_type)."""
-    jid = _require_safe_job_id(job_id)
-    rd = _results_dir_for(jid)
+    # Inline sanitize job_id and derive results dir
+    if not isinstance(job_id, str) or not job_id:
+        raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+    if os.path.isabs(job_id) or job_id != os.path.basename(job_id) or not SAFE_JOB_ID_RE.fullmatch(job_id):
+        raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+    base = os.path.normpath(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+    full = os.path.normpath(os.path.join(base, job_id))
+    try:
+        if os.path.commonpath([base, full]) != base:
+            raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+    rd = Path(full)
     mf = rd / "manifest.json"
     if not mf.exists():
         raise HTTPException(status_code=404, detail="Manifest not found")
