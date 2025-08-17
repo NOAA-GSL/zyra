@@ -274,7 +274,16 @@ def download_job_output(
                     mf = os.path.normpath(os.path.join(base, jid, "manifest.json"))
                     if os.path.commonpath([base, mf]) == base:
                         import json
-                        data = json.loads(Path(mf).read_text(encoding="utf-8"))
+                        # Generate a manifest on demand when missing/empty
+                        try:
+                            data = json.loads(Path(mf).read_text(encoding="utf-8"))
+                        except FileNotFoundError:
+                            try:
+                                from datavizhub.api.workers.executor import write_manifest as _wm
+                                _wm(jid)
+                                data = json.loads(Path(mf).read_text(encoding="utf-8"))
+                            except Exception:
+                                data = {"artifacts": []}
                         arts = data.get("artifacts") or []
                         if arts and isinstance(arts[0], dict):
                             name = arts[0].get("name") or os.path.basename(arts[0].get("path", ""))
