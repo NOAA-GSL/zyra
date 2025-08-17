@@ -195,6 +195,7 @@ def convert_to_grib2(dataset: Any) -> bytes:
         if res.returncode != 0:  # pragma: no cover - external tool
             raise RuntimeError(res.stderr.strip() or "CDO conversion failed")
         from pathlib import Path
+
         return Path(grib_path).read_bytes()
     finally:
         from contextlib import suppress

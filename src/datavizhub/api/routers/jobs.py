@@ -105,16 +105,19 @@ def _select_download_path(job_id: str, specific_file: str | None) -> Path:
     # rd = Path(full)  # not needed
     if specific_file:
         # Only allow a single safe filename (no directories)
-        if not _is_safe_segment(specific_file) or specific_file != Path(
-            specific_file
-        ).name:
+        if (
+            not _is_safe_segment(specific_file)
+            or specific_file != Path(specific_file).name
+        ):
             raise HTTPException(status_code=400, detail="Invalid file parameter")
         # Compose file path and verify containment again
         full_file = base / job_id / specific_file
         try:
             _ = full_file.relative_to(base)
         except Exception as err:
-            raise HTTPException(status_code=400, detail="Invalid file parameter") from err
+            raise HTTPException(
+                status_code=400, detail="Invalid file parameter"
+            ) from err
         # Reject symlink targets using O_NOFOLLOW when available and ensure existence
         try:
             import errno as _errno
@@ -129,13 +132,19 @@ def _select_download_path(job_id: str, specific_file: str | None) -> Path:
             with contextlib.suppress(Exception):
                 _os.close(fd)
         except FileNotFoundError as e:
-            raise HTTPException(status_code=404, detail="Requested file not found") from e
+            raise HTTPException(
+                status_code=404, detail="Requested file not found"
+            ) from e
         except OSError as e:  # pragma: no cover - platform dependent
             # ELOOP indicates a symlink was encountered when O_NOFOLLOW is honored
             if getattr(e, "errno", None) == getattr(_errno, "ELOOP", 62):
-                raise HTTPException(status_code=400, detail="Invalid file parameter") from e
+                raise HTTPException(
+                    status_code=400, detail="Invalid file parameter"
+                ) from e
             # Fall back to conservative 404 for other OS errors
-            raise HTTPException(status_code=404, detail="Requested file not found") from e
+            raise HTTPException(
+                status_code=404, detail="Requested file not found"
+            ) from e
         return Path(full_file)
     # No specific file requested; let the caller decide (e.g., use job output_file)
     raise HTTPException(status_code=404, detail="No artifacts available")
@@ -315,9 +324,7 @@ def download_job_output(
                             data = {"artifacts": []}
                     arts = data.get("artifacts") or []
                     if arts and isinstance(arts[0], dict):
-                        name = arts[0].get("name") or Path(
-                            arts[0].get("path", "")
-                        ).name
+                        name = arts[0].get("name") or Path(arts[0].get("path", "")).name
                         if isinstance(name, str) and name:
                             p = base_dir / jid / name
             except Exception:
@@ -328,9 +335,7 @@ def download_job_output(
     # Re-anchor the selected path under the contained base/jid using only its basename,
     # and obtain a file descriptor for TTL checks without path-based stat calls.
     try:
-        base = Path(
-            os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
-        )
+        base = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
         # Support when p is a Path or a string
         pname = p.name if hasattr(p, "name") else str(p)
         fname = Path(pname).name
@@ -352,11 +357,15 @@ def download_job_output(
             with contextlib.suppress(Exception):
                 _os.close(fd)
     except FileNotFoundError as e:
-        raise HTTPException(status_code=410, detail="Output file no longer available") from e
+        raise HTTPException(
+            status_code=410, detail="Output file no longer available"
+        ) from e
     except OSError as e:  # pragma: no cover - platform dependent
         if getattr(e, "errno", None) == getattr(_errno, "ELOOP", 62):
             raise HTTPException(status_code=400, detail="Invalid file parameter") from e
-        raise HTTPException(status_code=410, detail="Output file no longer available") from e
+        raise HTTPException(
+            status_code=410, detail="Output file no longer available"
+        ) from e
     except HTTPException:
         raise
     except Exception as err:
@@ -374,7 +383,9 @@ def download_job_output(
         if age > ttl:
             raise HTTPException(status_code=410, detail="Output file expired")
     except FileNotFoundError as e:
-        raise HTTPException(status_code=410, detail="Output file no longer available") from e
+        raise HTTPException(
+            status_code=410, detail="Output file no longer available"
+        ) from e
 
     # MIME type detection with python-magic if present
     media_type = None
@@ -423,7 +434,9 @@ def get_job_manifest(job_id: str):
 
     try:
         # lgtm [py/path-injection] — mf is contained via normpath+commonpath, O_NOFOLLOW used
-        fd = _os.open(str(mf), getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0))
+        fd = _os.open(
+            str(mf), getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0)
+        )
         try:
             chunks: list[bytes] = []
             while True:
@@ -442,7 +455,9 @@ def get_job_manifest(job_id: str):
         raise HTTPException(status_code=404, detail="Manifest not found") from e
     except OSError as e:  # pragma: no cover - platform dependent
         if getattr(e, "errno", None) == getattr(_errno, "ELOOP", 62):
-            raise HTTPException(status_code=400, detail="Invalid job_id parameter") from e
+            raise HTTPException(
+                status_code=400, detail="Invalid job_id parameter"
+            ) from e
         raise HTTPException(status_code=500, detail="Failed to read manifest") from e
     except Exception as err:
         raise HTTPException(status_code=500, detail="Failed to read manifest") from err

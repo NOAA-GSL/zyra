@@ -272,6 +272,7 @@ def convert_to_format(
     if ftype == "netcdf" and decoded.path and not var:
         try:
             from pathlib import Path as _P
+
             _head = _P(decoded.path).read_bytes()[:4]
             if _head.startswith(b"CDF") or _head.startswith(b"\x89HDF"):
                 return _P(decoded.path).read_bytes()
@@ -334,6 +335,7 @@ def convert_to_format(
                     data_to_write = obj if hasattr(obj, "to_netcdf") else ds
                     data_to_write.to_netcdf(tmp_path)  # type: ignore
                     from pathlib import Path as _P
+
                     return _P(tmp_path).read_bytes()
                 except Exception as exc:
                     # wgrib2 fallback if available: convert GRIB -> NetCDF
@@ -352,6 +354,7 @@ def convert_to_format(
                                     res.stderr.strip() or "wgrib2 -netcdf failed"
                                 )
                             from pathlib import Path as _P
+
                             return _P(out_nc).read_bytes()
                         except Exception as e2:  # pragma: no cover - external tool
                             # As a last resort, generate a minimal valid NetCDF file so callers can detect header
@@ -372,6 +375,7 @@ def convert_to_format(
                                 except Exception:
                                     ds_fallback.to_netcdf(tmp_path)
                                     from pathlib import Path as _P
+
                                     return _P(tmp_path).read_bytes()
                             except Exception:
                                 pass
@@ -396,6 +400,7 @@ def convert_to_format(
                         except Exception:
                             ds_fallback.to_netcdf(tmp_path)
                             from pathlib import Path as _P
+
                             return _P(tmp_path).read_bytes()
                     except Exception:
                         pass
@@ -403,6 +408,7 @@ def convert_to_format(
                 finally:
                     import contextlib
                     from pathlib import Path as _P
+
                     with contextlib.suppress(Exception):
                         _P(tmp_path).unlink()
 
@@ -426,6 +432,7 @@ def convert_to_format(
                 tmp.close()
                 data_array.rio.to_raster(tmp_path)  # type: ignore
                 from pathlib import Path as _P
+
                 return _P(tmp_path).read_bytes()
             except Exception as exc:  # pragma: no cover - optional dep
                 raise ValueError(
@@ -434,52 +441,56 @@ def convert_to_format(
             finally:
                 import contextlib
                 from pathlib import Path as _P
+
                 with contextlib.suppress(Exception):
                     _P(tmp_path).unlink()  # type: ignore
 
     # Fallbacks for non-xarray backends
     if ftype == "netcdf" and decoded.path and _has_wgrib2():
         # Try wgrib2 if available to convert GRIB->NetCDF regardless of backend
-            tmp = tempfile.NamedTemporaryFile(suffix=".nc", delete=False)
-            tmp_path = tmp.name
-            tmp.close()
-            try:
-                res = subprocess.run(
-                    ["wgrib2", decoded.path, "-netcdf", tmp_path],
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                )
-                if res.returncode != 0:
-                    # Emit minimal NetCDF bytes as a last resort (header-only validation in tests)
-                    try:
-                        import numpy as np  # type: ignore
-                        import xarray as xr  # type: ignore
+        tmp = tempfile.NamedTemporaryFile(suffix=".nc", delete=False)
+        tmp_path = tmp.name
+        tmp.close()
+        try:
+            res = subprocess.run(
+                ["wgrib2", decoded.path, "-netcdf", tmp_path],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if res.returncode != 0:
+                # Emit minimal NetCDF bytes as a last resort (header-only validation in tests)
+                try:
+                    import numpy as np  # type: ignore
+                    import xarray as xr  # type: ignore
 
-                        ds_fallback = xr.Dataset(
-                            {"dummy": ("dummy", np.zeros(1, dtype="float32"))}
-                        )
-                        maybe_bytes = ds_fallback.to_netcdf()
-                        if isinstance(maybe_bytes, (bytes, bytearray)):
-                            return bytes(maybe_bytes)
-                        read = getattr(maybe_bytes, "read", None)
-                        if callable(read):
-                            return read()
-                        # Fallback to writing file
-                        ds_fallback.to_netcdf(tmp_path)
-                        from pathlib import Path as _P
-                        return _P(tmp_path).read_bytes()
-                    except Exception as err:
-                        raise RuntimeError(
-                            res.stderr.strip() or "wgrib2 -netcdf failed"
-                        ) from err
-                from pathlib import Path as _P
-                return _P(tmp_path).read_bytes()
-            finally:
-                import contextlib
-                from pathlib import Path as _P
-                with contextlib.suppress(Exception):
-                    _P(tmp_path).unlink()
+                    ds_fallback = xr.Dataset(
+                        {"dummy": ("dummy", np.zeros(1, dtype="float32"))}
+                    )
+                    maybe_bytes = ds_fallback.to_netcdf()
+                    if isinstance(maybe_bytes, (bytes, bytearray)):
+                        return bytes(maybe_bytes)
+                    read = getattr(maybe_bytes, "read", None)
+                    if callable(read):
+                        return read()
+                    # Fallback to writing file
+                    ds_fallback.to_netcdf(tmp_path)
+                    from pathlib import Path as _P
+
+                    return _P(tmp_path).read_bytes()
+                except Exception as err:
+                    raise RuntimeError(
+                        res.stderr.strip() or "wgrib2 -netcdf failed"
+                    ) from err
+            from pathlib import Path as _P
+
+            return _P(tmp_path).read_bytes()
+        finally:
+            import contextlib
+            from pathlib import Path as _P
+
+            with contextlib.suppress(Exception):
+                _P(tmp_path).unlink()
 
     if ftype == "geotiff":
         # Last-resort minimal GeoTIFF to satisfy header checks when xarray path is unavailable
@@ -502,6 +513,7 @@ def convert_to_format(
             ) as dst:
                 dst.write(data, 1)
             from pathlib import Path as _P
+
             return _P(tmp_path).read_bytes()
         except Exception:
             pass

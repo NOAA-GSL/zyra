@@ -126,9 +126,7 @@ class CredentialManager:
         """Return the set of keys currently tracked in memory."""
         return set(self.credentials.keys())
 
-    def list_credentials(
-        self, expected_keys: Iterable[str] | None = None
-    ) -> list[str]:
+    def list_credentials(self, expected_keys: Iterable[str] | None = None) -> list[str]:
         """List tracked credential keys, checking for expected ones when provided.
 
         Parameters

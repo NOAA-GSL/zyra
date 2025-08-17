@@ -230,6 +230,7 @@ def sync_directory(
             if directory:
                 ftp.cwd(directory)
             from pathlib import Path as _P
+
             with _P(dest).open("wb") as lf:
                 ftp.retrbinary(f"RETR {filename}", lf.write)
             with contextlib.suppress(Exception):
@@ -285,6 +286,7 @@ def get_idx_lines(
         outp = write_to if write_to.endswith(".idx") else f"{write_to}.idx"
         try:
             from pathlib import Path as _P
+
             with _P(outp).open("w", encoding="utf8") as f:
                 f.write("\n".join(lines))
         except Exception:

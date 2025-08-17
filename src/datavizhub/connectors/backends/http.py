@@ -78,9 +78,7 @@ def post_bytes(
     return post_data(url, data, timeout=timeout, content_type=content_type)
 
 
-def list_files(
-    url: str, pattern: str | None = None, *, timeout: int = 60
-) -> list[str]:
+def list_files(url: str, pattern: str | None = None, *, timeout: int = 60) -> list[str]:
     """Best-effort directory listing by scraping anchor tags on index pages.
 
     Returns absolute URLs; optionally filters them via regex ``pattern``.

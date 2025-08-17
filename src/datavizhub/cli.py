@@ -147,17 +147,20 @@ def cmd_extract_variable(args: argparse.Namespace) -> int:
                         # Continue to Python fallback below
                     else:
                         from pathlib import Path as _P
+
                         with _P(out_path).open("rb") as f:
                             sys.stdout.buffer.write(f.read())
                         return 0
                 finally:
                     import contextlib
                     from pathlib import Path as _P
+
                     with contextlib.suppress(Exception):
                         _P(out_path).unlink()
             finally:
                 import contextlib
                 from pathlib import Path as _P
+
                 with contextlib.suppress(Exception):
                     _P(in_path).unlink()
 

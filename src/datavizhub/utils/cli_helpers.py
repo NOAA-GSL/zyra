@@ -53,6 +53,7 @@ def temp_file_from_bytes(data: bytes, *, suffix: str = "") -> Iterator[str]:
     finally:
         from contextlib import suppress
         from pathlib import Path
+
         with suppress(Exception):
             Path(tmp.name).unlink()
 

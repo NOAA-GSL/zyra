@@ -389,6 +389,7 @@ def run_pipeline(
                     args0 = first.get("args") or {}
                     if any(v == "-" for v in args0.values()):
                         from pathlib import Path
+
                         current = Path(default_stdin_path).read_bytes()
         except Exception:
             # Ignore seeding failures silently; normal error handling will apply later

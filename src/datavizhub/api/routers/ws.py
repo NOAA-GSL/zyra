@@ -53,7 +53,7 @@ async def job_progress_ws(
     # Determine client IP for basic throttling of failed attempts
     with contextlib.suppress(Exception):
         client_ip = getattr(getattr(websocket, "client", None), "host", None)
-    if 'client_ip' not in locals():
+    if "client_ip" not in locals():
         client_ip = None
     # Authn: reject missing key at handshake; accept then close for wrong key
     if expected and not api_key:
@@ -115,15 +115,17 @@ async def job_progress_ws(
                     to_send[k] = v
             if to_send:
                 await websocket.send_text(json.dumps(to_send))
-    if 'last' not in locals():
+    if "last" not in locals():
         last = None
 
     # If client explicitly requested progress stream and no cached progress is
     # available yet, emit an initial progress frame. This reduces test flakiness
     # and perceived latency when jobs start just after WS subscription.
     with contextlib.suppress(Exception):
-        if allowed and ("progress" in allowed) and (
-            not isinstance(last, dict) or ("progress" not in last)
+        if (
+            allowed
+            and ("progress" in allowed)
+            and (not isinstance(last, dict) or ("progress" not in last))
         ):
             await websocket.send_text(json.dumps({"progress": 0.0}))
             # Yield to flush frame promptly for TestClient

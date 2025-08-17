@@ -629,13 +629,19 @@ def write_manifest(job_id: str) -> Path | None:
             or not _SAFE_JOB_ID_RE.fullmatch(job_id)
         ):
             return None
-        base = Path(_os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+        base = Path(
+            _os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
+        )
         full = base / job_id
         full.mkdir(parents=True, exist_ok=True)
 
         items = []
         try:
-            names = sorted(name for name in (p.name for p in full.iterdir()) if name != "manifest.json")
+            names = sorted(
+                name
+                for name in (p.name for p in full.iterdir())
+                if name != "manifest.json"
+            )
         except FileNotFoundError:
             names = []
         for name in names:
@@ -654,6 +660,7 @@ def write_manifest(job_id: str) -> Path | None:
                     st = _os.fstat(fd)
                 finally:
                     import contextlib
+
                     with contextlib.suppress(Exception):
                         _os.close(fd)
             except OSError as e:  # pragma: no cover - platform dependent

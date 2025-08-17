@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
- 
+
 
 from datavizhub.utils.date_manager import DateManager
 

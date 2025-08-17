@@ -83,7 +83,7 @@ def _register_listener(channel: str) -> asyncio.Queue[str]:
     q: asyncio.Queue[str] = asyncio.Queue()
     with contextlib.suppress(RuntimeError):
         loop = asyncio.get_running_loop()
-    if 'loop' not in locals():
+    if "loop" not in locals():
         loop = None
     _SUBSCRIBERS.setdefault(channel, []).append((q, loop))
     return q

@@ -80,6 +80,7 @@ def _cmd_s3(ns: argparse.Namespace) -> int:
     if getattr(ns, "manifest", None):
         try:
             from pathlib import Path
+
             with Path(ns.manifest).open(encoding="utf-8") as f:
                 for line in f:
                     s = line.strip()
@@ -142,6 +143,7 @@ def _cmd_ftp(ns: argparse.Namespace) -> int:
     if getattr(ns, "manifest", None):
         try:
             from pathlib import Path
+
             with Path(ns.manifest).open(encoding="utf-8") as f:
                 for line in f:
                     s = line.strip()

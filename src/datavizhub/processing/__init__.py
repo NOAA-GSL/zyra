@@ -114,17 +114,20 @@ def register_cli(subparsers: Any) -> None:
                         )
                         if res.returncode == 0:
                             from pathlib import Path as _P
+
                             with _P(out_path).open("rb") as f:
                                 sys.stdout.buffer.write(f.read())
                             return 0
                     finally:
                         import contextlib
                         from pathlib import Path as _P
+
                         with contextlib.suppress(Exception):
                             _P(out_path).unlink()
                 finally:
                     import contextlib
                     from pathlib import Path as _P
+
                     with contextlib.suppress(Exception):
                         _P(in_path).unlink()
             decoded = grib_decode(data, backend=args.backend)
@@ -264,6 +267,7 @@ def register_cli(subparsers: Any) -> None:
         if not args.output:
             raise SystemExit("--output is required when not using --stdout")
         from pathlib import Path as _P
+
         with _P(args.output).open("wb") as f:
             f.write(out_bytes)
         import logging

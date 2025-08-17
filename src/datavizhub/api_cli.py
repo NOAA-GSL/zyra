@@ -99,6 +99,7 @@ def cmd_download(args: argparse.Namespace) -> int:
         params["zip"] = 1
     url = f"{base}/jobs/{args.job_id}/download"
     from pathlib import Path
+
     with requests.get(url, params=params, stream=True, timeout=60) as r:
         r.raise_for_status()
         name = args.output or r.headers.get(
