@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
       target: dev
     command: ["/bin/bash", ".devcontainer/entrypoint.sh"]
+    profiles: ["dev"]
     volumes:
       - .:/app
       - ./data/uploads:/data/uploads
@@ -47,5 +48,6 @@ services:
 
   redis:
     image: redis:7
+    profiles: ["dev"]
     ports:
       - "6379:6379"

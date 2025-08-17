@@ -12,7 +12,7 @@ from pathlib import Path
 import re
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Path
 from fastapi.responses import FileResponse
 
 from datavizhub.api.workers import jobs as jobs_backend
@@ -124,7 +124,9 @@ def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
 
 
 @router.get("/jobs/{job_id}", response_model=JobStatusResponse, summary="Get job status")
-def get_job_status(job_id: str) -> JobStatusResponse:
+def get_job_status(
+    job_id: str = Path(..., pattern=r"^[A-Za-z0-9._-]{1,64}$", description="Opaque job ID")
+) -> JobStatusResponse:
     """Return current job status, stdio captures, exit code, and resolved inputs.
 
     Parameters
@@ -145,7 +147,9 @@ def get_job_status(job_id: str) -> JobStatusResponse:
 
 
 @router.delete("/jobs/{job_id}", summary="Cancel a queued job")
-def cancel_job_endpoint(job_id: str) -> dict:
+def cancel_job_endpoint(
+    job_id: str = Path(..., pattern=r"^[A-Za-z0-9._-]{1,64}$", description="Opaque job ID")
+) -> dict:
     """Attempt to cancel a queued job.
 
     Returns {"status":"canceled","job_id":job_id} on success or 409 if the
@@ -171,7 +175,7 @@ def cancel_job_endpoint(job_id: str) -> dict:
     },
 )
 def download_job_output(
-    job_id: str,
+    job_id: str = Path(..., pattern=r"^[A-Za-z0-9._-]{1,64}$", description="Opaque job ID"),
     file: Optional[str] = Query(
         default=None,
         description="Specific filename from manifest.json",
@@ -257,7 +261,9 @@ def download_job_output(
         "modified time (mtime), and media_type. Use the `name` entries with `?file=` on /download."
     ),
 )
-def get_job_manifest(job_id: str):
+def get_job_manifest(
+    job_id: str = Path(..., pattern=r"^[A-Za-z0-9._-]{1,64}$", description="Opaque job ID")
+):
     """Return the manifest.json for job artifacts (name, path, size, mtime, media_type)."""
     jid = _require_safe_job_id(job_id)
     rd = _results_dir_for(jid)

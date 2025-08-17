@@ -9,7 +9,7 @@ while [[ ${1:-} ]]; do
   case "$1" in
     --force) FORCE_UPDATE=1; shift ;;
     --refresh-seconds) REFRESH_SECONDS="$2"; shift 2 ;;
-    *) echo "[entrypoint] Unknown option: $1" >&2; exit 2 ;;
+    *) echo "[entrypoint] Unknown option: "$1"" >&2; exit 2 ;;
   esac
 done
 
@@ -39,8 +39,9 @@ elif [[ $FORCE_UPDATE -eq 1 ]]; then
 else
   last_sync=0
   if [[ -f "$META_FILE" ]]; then
-    source "$META_FILE" || true
-    last_sync=${last_sync_epoch:-0}
+    # Avoid sourcing untrusted content; parse the expected key instead
+    last_sync=$(grep -E '^last_sync_epoch=' "$META_FILE" | tail -n1 | cut -d'=' -f2 | tr -d '"' || true)
+    last_sync=${last_sync:-0}
   fi
   now=$(now_epoch)
   age=$(( now - last_sync ))
@@ -82,6 +83,11 @@ echo "[entrypoint] ===== $(date) RQ worker session =====" >> .cache/rq.log
 wait_for_redis() {
   local url host port
   url="${DATAVIZHUB_REDIS_URL:-redis://redis:6379/0}"
+  # Basic validation to avoid accidental command injection or bad values
+  if ! [[ "$url" =~ ^redis://[A-Za-z0-9._-]+(:[0-9]{1,5})?(/[0-9]+)?$ ]]; then
+    echo "[entrypoint] ERROR: Invalid DATAVIZHUB_REDIS_URL: "$url"" >&2
+    return 1
+  fi
   host=$(echo "$url" | sed -E 's#^redis://([^:/]+):?([0-9]+)?.*#\1#')
   port=$(echo "$url" | sed -E 's#^redis://([^:/]+):?([0-9]+)?.*#\2#')
   [[ -z "$port" ]] && port=6379
@@ -119,8 +125,12 @@ if [[ "$AUTOSTART_RQ" == "1" && "$DATAVIZHUB_USE_REDIS" == "1" ]]; then
   wait_for_redis || exit 1
 fi
 
-[[ "$AUTOSTART_RQ" == "1" ]] && start_rq_worker
-[[ "$AUTOSTART_API" == "1" ]] && start_api
+if [[ "$AUTOSTART_RQ" == "1" ]]; then
+  start_rq_worker
+fi
+if [[ "$AUTOSTART_API" == "1" ]]; then
+  start_api
+fi
 
 # Keep container running
 tail -f /dev/null

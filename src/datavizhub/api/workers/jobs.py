@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from typing import Any, Dict, Optional, List, Tuple
+import re
 import asyncio
 import time
 
@@ -37,6 +38,9 @@ def is_redis_enabled() -> bool:
         return False
     try:
         url = redis_url()
+        # Validate URL format defensively
+        if not _is_valid_redis_url(url):
+            return False
         client = redis.Redis.from_url(url, socket_connect_timeout=1.0)  # type: ignore[arg-type]
         client.ping()
         return True
@@ -94,8 +98,10 @@ def _get_redis_and_queue():  # lazy init to avoid hard dependency
     global _redis_client, _rq_queue
     if _redis_client is None:
         from redis import Redis
-
-        _redis_client = Redis.from_url(redis_url())
+        url = redis_url()
+        if not _is_valid_redis_url(url):
+            raise RuntimeError("Invalid Redis URL in environment")
+        _redis_client = Redis.from_url(url)
     if _rq_queue is None:
         from rq import Queue
 
@@ -506,4 +512,12 @@ def cancel_job(job_id: str) -> bool:
             rec["status"] = "canceled"
             rec["updated_at"] = time.time()
             return True
+        return False
+
+
+def _is_valid_redis_url(url: str) -> bool:
+    """Conservative validation for redis://host[:port][/db] to avoid unsafe values from env."""
+    try:
+        return bool(re.fullmatch(r"redis://[A-Za-z0-9._-]+(?::\d{1,5})?(?:/\d+)?", url))
+    except Exception:
         return False
