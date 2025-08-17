@@ -157,10 +157,9 @@ def cancel_job_endpoint(job_id: str) -> dict:
 )
 def download_job_output(
     job_id: str,
-    filename: Optional[str] = Query(
+    file: Optional[str] = Query(
         default=None,
         description="Specific filename from manifest.json",
-        alias="file",
     ),
     zip: Optional[int] = Query(default=None, description="If 1, package all artifacts into a zip on demand"),
 ):
@@ -198,7 +197,7 @@ def download_job_output(
             raise HTTPException(status_code=404, detail="No artifacts to zip")
         p = zp
     else:
-        p = _select_download_path(job_id, filename)
+        p = _select_download_path(job_id, file)
 
     if not p.exists():
         # If TTL cleanup removed it
