@@ -1,10 +1,21 @@
+# Reporting security issues
+
+- Private reporting: Use GitHub Security Advisories (Security > Report a
+  vulnerability). Please do not open public issues or PRs containing exploit
+  details.
+- What to include: affected version/commit, minimal reproducer or PoC,
+  expected/actual impact, and environment details (OS, Python, config).
+- Response: Maintainers acknowledge within 3 business days and coordinate a
+  fix and disclosure timeline. If a CodeQL alert appears exploitable, include a
+  PoC via the advisory channel.
+
 # Security Posture: Jobs Paths and Artifacts
 
 This service handles user-provided identifiers (e.g., `job_id`) and file names
 to locate artifacts on disk. We implement strict validation and containment to
 prevent path traversal and symlink escape.
 
-Key defenses
+## Key defenses
 
 - Single-segment allowlists: `job_id` and `file` must match conservative regexes
   and equal their basename; separators and traversal tokens are rejected.
@@ -25,7 +36,7 @@ Where necessary, we suppress with `# lgtm [py/path-injection]` on lines that use
 contained, validated paths (e.g., `os.open` with `O_NOFOLLOW`, `open(mf)` after
 `commonpath` checks). Suppressions are limited and justified in-line.
 
-Operational guidance
+## Operational guidance
 
 - Configure `DATAVIZHUB_RESULTS_DIR` to a dedicated directory owned by the
   service. Do not point it at shared or sensitive system paths.
