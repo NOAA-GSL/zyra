@@ -56,8 +56,19 @@ def _require_safe_job_id(unsafe_job_id: str) -> str:
 
 
 def _results_dir_for(job_id: str) -> Path:
-    # Validate job_id before any path operations
-    job_id = _require_safe_job_id(job_id)
+    # Inline, explicit sanitization for static analysis and defense-in-depth
+    if not isinstance(job_id, str) or not job_id:
+        raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+    # Reject absolute paths and traversal/separators
+    if os.path.isabs(job_id):
+        raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+    if job_id != os.path.basename(job_id):
+        # Ensures no separators and no traversal like "../x"
+        raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+    # Allowlist characters (tighten further than basename check)
+    if not SAFE_JOB_ID_RE.fullmatch(job_id):
+        raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+
     root = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
     # Normalize and check that the job_id does not escape the root directory
     rd = (root / job_id).resolve()
@@ -73,14 +84,17 @@ def _results_dir_for(job_id: str) -> Path:
 
 
 def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
-    # Validate job_id early for clarity in static analysis
-    job_id = _require_safe_job_id(job_id)
+    # Validate job_id early and derive results dir
+    if not isinstance(job_id, str) or not job_id:
+        raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+    if os.path.isabs(job_id) or job_id != os.path.basename(job_id) or not SAFE_JOB_ID_RE.fullmatch(job_id):
+        raise HTTPException(status_code=400, detail="Invalid job_id parameter")
     rd = _results_dir_for(job_id)
     if not rd.exists():
         raise HTTPException(status_code=404, detail="Results not found")
     if specific_file:
         # Only allow a single safe filename (no directories)
-        if not _is_safe_segment(specific_file):
+        if not _is_safe_segment(specific_file) or specific_file != os.path.basename(specific_file):
             raise HTTPException(status_code=400, detail="Invalid file parameter")
         # Prevent path traversal and symlink escapes by verifying that the
         # original path does not traverse symlinks and that the resolved
