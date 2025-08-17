@@ -4,6 +4,10 @@ set -euo pipefail
 # ====== WIKI SYNC SECTION ======
 FORCE_UPDATE=0
 REFRESH_SECONDS=${DOCS_REFRESH_SECONDS:-3600} # default 1 hour
+# Allow skipping wiki sync entirely (useful in restricted-network envs)
+SKIP_WIKI=${DATAVIZHUB_SKIP_WIKI_SYNC:-0}
+# Hard timeout for git clone so startup never blocks indefinitely
+GIT_CLONE_TIMEOUT_SECONDS=${GIT_TIMEOUT_SECONDS:-20}
 
 while [[ ${1:-} ]]; do
   case "$1" in
@@ -50,24 +54,57 @@ else
   fi
 fi
 
-if [[ $should_update -eq 1 ]]; then
-  echo "[entrypoint] Cloning wiki..."
-  tmp_dir="${DOCS_DIR}.new"
-  rm -rf "$tmp_dir"
-  if git clone --depth=1 "$WIKI_URL" "$tmp_dir"; then
-    rm -rf "$tmp_dir/.git"
-    echo "source_url=\"$WIKI_URL\"" > "$tmp_dir/.mirror_meta"
-    echo "last_sync_epoch=$(now_epoch)" >> "$tmp_dir/.mirror_meta"
-    rm -rf "$DOCS_DIR" || true
-    mv "$tmp_dir" "$DOCS_DIR" || cp -R "$tmp_dir"/. "$DOCS_DIR"
-    rm -rf "$tmp_dir"
-    echo "[entrypoint] Wiki synced"
-  else
-    echo "[entrypoint] WARN: Wiki clone failed; leaving existing wiki"
-    rm -rf "$tmp_dir"
-  fi
+if [[ "$SKIP_WIKI" == "1" ]]; then
+  echo "[entrypoint] Skipping wiki sync (DATAVIZHUB_SKIP_WIKI_SYNC=1)"
 else
-  echo "[entrypoint] Wiki is fresh; skipping sync"
+  if [[ $should_update -eq 1 ]]; then
+    echo "[entrypoint] Cloning wiki (timeout ${GIT_CLONE_TIMEOUT_SECONDS}s)..."
+    tmp_dir="${DOCS_DIR}.new"
+    rm -rf "$tmp_dir"
+    CLONE_CMD=(git clone --depth=1 "$WIKI_URL" "$tmp_dir")
+    if command -v timeout >/dev/null 2>&1; then
+      if timeout "${GIT_CLONE_TIMEOUT_SECONDS}s" "${CLONE_CMD[@]}"; then
+        clone_ok=1
+      else
+        clone_ok=0
+      fi
+    else
+      # Fallback: run clone in background and wait up to N seconds
+      set +e
+      "${CLONE_CMD[@]}" &
+      pid=$!
+      waited=0
+      while kill -0 "$pid" >/dev/null 2>&1; do
+        if [[ $waited -ge $GIT_CLONE_TIMEOUT_SECONDS ]]; then
+          echo "[entrypoint] WARN: git clone exceeded ${GIT_CLONE_TIMEOUT_SECONDS}s; continuing without wiki"
+          kill "$pid" >/dev/null 2>&1 || true
+          clone_ok=0
+          break
+        fi
+        sleep 1
+        waited=$(( waited + 1 ))
+      done
+      if [[ ${clone_ok:-1} -ne 0 && ! -d "$tmp_dir" ]]; then
+        # If the process finished but dir not present, treat as failure
+        clone_ok=0
+      fi
+      set -e
+    fi
+    if [[ ${clone_ok:-0} -eq 1 ]]; then
+      rm -rf "$tmp_dir/.git"
+      echo "source_url=\"$WIKI_URL\"" > "$tmp_dir/.mirror_meta"
+      echo "last_sync_epoch=$(now_epoch)" >> "$tmp_dir/.mirror_meta"
+      rm -rf "$DOCS_DIR" || true
+      mv "$tmp_dir" "$DOCS_DIR" || cp -R "$tmp_dir"/. "$DOCS_DIR"
+      rm -rf "$tmp_dir"
+      echo "[entrypoint] Wiki synced"
+    else
+      echo "[entrypoint] WARN: Wiki clone skipped/failed; proceeding without update"
+      rm -rf "$tmp_dir" || true
+    fi
+  else
+    echo "[entrypoint] Wiki is fresh; skipping sync"
+  fi
 fi
 
 # ====== SERVICE START SECTION ======

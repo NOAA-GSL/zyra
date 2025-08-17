@@ -6,6 +6,11 @@
   "service": "datavizhub",
   "workspaceFolder": "/app",
   "overrideCommand": false,
+
+  // ✅ Ensures VS Code starts the right services
+  "runServices": ["datavizhub", "redis"],
+  "composeProfiles": ["dev"],
+
   "customizations": {
     "vscode": {
       "settings": {},
@@ -15,5 +20,10 @@
       ]
     }
   },
-  "forwardPorts": [8000, 6379]
+
+  // ✅ Forward API & Redis ports
+  "forwardPorts": [8000, 6379],
+
+  // ✅ Inject secrets cleanly
+  "runArgs": ["--env-file", ".env"]
 }

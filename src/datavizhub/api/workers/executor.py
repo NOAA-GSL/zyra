@@ -621,6 +621,7 @@ def write_manifest(job_id: str) -> Path | None:
 
         items = []
         try:
+            # lgtm [py/path-injection] — full is contained via normpath+commonpath
             names = sorted(name for name in _os.listdir(full) if name != "manifest.json")
         except FileNotFoundError:
             names = []
@@ -636,6 +637,7 @@ def write_manifest(job_id: str) -> Path | None:
                 continue
             # Stat via descriptor and reject symlinks (ELOOP)
             try:
+                # lgtm [py/path-injection] — p is contained via normpath+commonpath, O_NOFOLLOW used
                 fd = _os.open(p, getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0))
                 try:
                     st = _os.fstat(fd)
@@ -667,6 +669,7 @@ def write_manifest(job_id: str) -> Path | None:
         except Exception:
             return None
         try:
+            # lgtm [py/path-injection] — mf is contained via normpath+commonpath
             with open(mf, "w", encoding="utf-8") as _fh:
                 _fh.write(json.dumps(manifest, indent=2))
         except Exception:

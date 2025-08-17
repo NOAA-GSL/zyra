@@ -121,6 +121,7 @@ def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
             import errno as _errno, os as _os
             flags = getattr(_os, "O_RDONLY", 0)
             nofollow = getattr(_os, "O_NOFOLLOW", 0)
+            # lgtm [py/path-injection] — full_file is validated (single-segment, normpath+commonpath, O_NOFOLLOW)
             fd = _os.open(full_file, flags | nofollow)
             try:
                 _os.close(fd)
@@ -299,12 +300,14 @@ def download_job_output(
                         import json
                         # Generate a manifest on demand when missing/empty
                         try:
+                            # lgtm [py/path-injection] — mf is contained via normpath+commonpath
                             with open(mf, "r", encoding="utf-8") as _fh:
                                 data = json.load(_fh)
                         except FileNotFoundError:
                             try:
                                 from datavizhub.api.workers.executor import write_manifest as _wm
                                 _wm(jid)
+                                # lgtm [py/path-injection] — mf is contained via normpath+commonpath
                                 with open(mf, "r", encoding="utf-8") as _fh:
                                     data = json.load(_fh)
                             except Exception:
@@ -334,6 +337,7 @@ def download_job_output(
         if os.path.commonpath([base, fullp]) != base:
             raise HTTPException(status_code=400, detail="Invalid file parameter")
         import os as _os, errno as _errno
+        # lgtm [py/path-injection] — fullp is contained via normpath+commonpath, O_NOFOLLOW used
         fd = _os.open(fullp, getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0))
         try:
             st = _os.fstat(fd)
@@ -409,6 +413,7 @@ def get_job_manifest(job_id: str):
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
     import json, os as _os, errno as _errno
     try:
+        # lgtm [py/path-injection] — mf is contained via normpath+commonpath, O_NOFOLLOW used
         fd = _os.open(mf, getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0))
         try:
             chunks: list[bytes] = []
