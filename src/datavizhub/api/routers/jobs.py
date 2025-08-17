@@ -175,27 +175,14 @@ def download_job_output(
 
     def _zip_results_dir(job_id: str) -> Optional[Path]:
         rd = _results_dir_for(job_id)
-        # Path traversal protection: ensure rd is within the safe root
-        base_results_dir = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub/results")).resolve()
-        try:
-            rd_resolved = rd.resolve()
-        except Exception:
-            raise HTTPException(status_code=400, detail="Invalid job_id or results directory")
-        if not str(rd_resolved).startswith(str(base_results_dir)):
-            raise HTTPException(status_code=403, detail="Access denied")
         if not rd.exists():
             return None
         zpath = rd / f"{job_id}.zip"
         try:
-            zpath_resolved = zpath.resolve()
-            if not str(zpath_resolved).startswith(str(base_results_dir)):
-                raise HTTPException(status_code=403, detail="Access denied")
             import zipfile
 
             with zipfile.ZipFile(str(zpath), mode="w", compression=zipfile.ZIP_DEFLATED) as zf:  # type: ignore[attr-defined]
                 for p in rd.iterdir():
-        except HTTPException:
-            raise
                     if p.name in {"manifest.json", zpath.name} or not p.is_file():
                         continue
                     zf.write(str(p), p.name)
