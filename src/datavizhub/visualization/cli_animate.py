@@ -233,8 +233,13 @@ def _build_ffmpeg_grid_args(*, videos: List[str], fps: int, output: str, grid_mo
     for v in videos:
         if not isinstance(v, str) or not v.strip():
             raise ValueError("invalid input video path")
+        if v.lstrip().startswith("-"):
+            # Prevent ffmpeg from interpreting a bare input path as an option value
+            raise ValueError("input video path cannot start with '-' (may be interpreted as an option)")
         # Resolve and ensure it's a file to reduce the chance of injecting options via paths
         vp = Path(v).expanduser().resolve()
+        if vp.name.startswith("-"):
+            raise ValueError("input video basename cannot start with '-' (may be interpreted as an option)")
         if not vp.is_file():
             raise ValueError(f"input video not found: {vp}")
         args.extend(["-i", str(vp)])

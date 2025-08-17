@@ -54,7 +54,7 @@ def _should_throttle(count: int) -> bool:
     return count >= maxf
 
 
-async def require_api_key(api_key: str | None = Security(api_key_header), request: Request | None = None) -> bool:
+async def require_api_key(api_key: str | None = Security(api_key_header), request: Request = None) -> bool:
     """Require an API key when `DATAVIZHUB_API_KEY` is set.
 
     Behavior
