@@ -4,8 +4,8 @@ import tempfile
 
 def test_timeseries_manager_csv():
     try:
-        from datavizhub.visualization import TimeSeriesManager
         import matplotlib  # noqa: F401
+        from datavizhub.visualization import TimeSeriesManager
     except Exception as e:
         import pytest
 
@@ -40,9 +40,11 @@ def test_cli_timeseries_csv_smoke():
 
         pytest.skip(f"Visualization deps missing: {e}")
 
+    import subprocess
+    import sys
+
     import numpy as np
     import pandas as pd
-    import subprocess, sys
 
     with tempfile.TemporaryDirectory() as td:
         csv_path = os.path.join(td, "ts.csv")
