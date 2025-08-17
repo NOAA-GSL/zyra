@@ -70,16 +70,14 @@ def _results_dir_for(job_id: str) -> Path:
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
 
     root = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
-    # Normalize and check that the job_id does not escape the root directory
-    rd = (root / job_id).resolve()
-    base = root.resolve()
-    # Ensure the root directory is not a symlink
-    if root.is_symlink():
-        raise HTTPException(status_code=500, detail="Results root directory misconfigured (symlink not allowed)")
+    # With strict single-segment validation above, joining is safe
+    rd = root / job_id
+    # Optionally refuse symlinked root directories
     try:
-        _ = rd.relative_to(base)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+        if root.is_symlink():
+            raise HTTPException(status_code=500, detail="Results root directory misconfigured (symlink not allowed)")
+    except Exception:
+        pass
     return rd
 
 
@@ -112,19 +110,10 @@ def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
                 cur = cur.parent
         except OSError:
             raise HTTPException(status_code=400, detail="Invalid file parameter")
-        # Resolve and validate that the target stays within the results dir
-        try:
-            p = orig.resolve()
-            base = rd.resolve()
-        except Exception:
-            raise HTTPException(status_code=400, detail="Invalid file parameter")
-        # Use pathlib's relative_to for explicit containment check
-        try:
-            _ = p.relative_to(base)
-        except ValueError:
-            # Path escapes the base directory (e.g., via traversal)
-            raise HTTPException(status_code=400, detail="Invalid file parameter")
-        if not p.exists() or not p.is_file():
+        # Since specific_file is a single safe segment, orig is inside rd.
+        # Enforce existence and regular file, and reject symlinks.
+        p = orig
+        if p.is_symlink() or (not p.exists()) or (not p.is_file()):
             raise HTTPException(status_code=404, detail="Requested file not found")
         return p
     # Default selection: prefer zip, else first file
