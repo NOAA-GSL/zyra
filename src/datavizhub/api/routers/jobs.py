@@ -9,6 +9,7 @@ from __future__ import annotations
 import mimetypes
 import os
 from pathlib import Path
+import re
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -20,11 +21,33 @@ from datavizhub.api.models.cli_request import JobStatusResponse
 
 router = APIRouter(tags=["jobs"])
 
+# Strict allowlists for user-controlled path segments
+SAFE_NAME_RE = re.compile(r"^[A-Za-z0-9._-]{1,255}$")
+SAFE_JOB_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+
+
+def _is_safe_segment(segment: str, *, for_job_id: bool = False) -> bool:
+    """Return True if ``segment`` is a safe single path component.
+
+    Allows only a conservative set of characters and rejects any separators,
+    traversal tokens, or empty values. ``for_job_id`` applies a tighter length
+    constraint appropriate for job identifiers.
+    """
+    if not isinstance(segment, str) or not segment:
+        return False
+    # Reject path separators outright
+    if "/" in segment or "\\" in segment:
+        return False
+    if segment in {".", ".."}:
+        return False
+    pat = SAFE_JOB_ID_RE if for_job_id else SAFE_NAME_RE
+    return bool(pat.fullmatch(segment))
+
 
 def _results_dir_for(job_id: str) -> Path:
     root = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
-    # Explicitly reject absolute paths and path traversal in job_id
-    if Path(job_id).is_absolute() or any(part == ".." for part in Path(job_id).parts):
+    # Strict allowlist on job_id and reject any separators/traversal
+    if not _is_safe_segment(job_id, for_job_id=True):
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
     # Normalize and check that the job_id does not escape the root directory
     rd = (root / job_id).resolve()
@@ -41,8 +64,8 @@ def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
     if not rd.exists():
         raise HTTPException(status_code=404, detail="Results not found")
     if specific_file:
-        # Explicitly reject absolute paths and path traversal in specific_file
-        if Path(specific_file).is_absolute() or any(part == ".." for part in Path(specific_file).parts):
+        # Only allow a single safe filename (no directories)
+        if not _is_safe_segment(specific_file):
             raise HTTPException(status_code=400, detail="Invalid file parameter")
         # Prevent path traversal and symlink escapes by verifying that the
         # original path does not traverse symlinks and that the resolved
@@ -134,7 +157,11 @@ def cancel_job_endpoint(job_id: str) -> dict:
 )
 def download_job_output(
     job_id: str,
-    file: Optional[str] = Query(default=None, description="Specific filename from manifest.json"),
+    filename: Optional[str] = Query(
+        default=None,
+        description="Specific filename from manifest.json",
+        alias="file",
+    ),
     zip: Optional[int] = Query(default=None, description="If 1, package all artifacts into a zip on demand"),
 ):
     """Stream the selected job artifact (ZIP or individual file).
@@ -171,7 +198,7 @@ def download_job_output(
             raise HTTPException(status_code=404, detail="No artifacts to zip")
         p = zp
     else:
-        p = _select_download_path(job_id, file)
+        p = _select_download_path(job_id, filename)
 
     if not p.exists():
         # If TTL cleanup removed it
