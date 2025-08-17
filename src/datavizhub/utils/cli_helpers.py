@@ -3,9 +3,9 @@ from __future__ import annotations
 import contextlib
 import os
 import tempfile
-from typing import BinaryIO, Iterator, Optional, List
+from typing import Iterator
 
-from .io_utils import open_input, open_output  # re-export
+from .io_utils import open_input  # re-export
 
 
 def read_all_bytes(path_or_dash: str) -> bytes:
@@ -51,13 +51,13 @@ def temp_file_from_bytes(data: bytes, *, suffix: str = "") -> Iterator[str]:
         tmp.close()
         yield tmp.name
     finally:
-        try:
-            os.remove(tmp.name)
-        except Exception:
-            pass
+        from contextlib import suppress
+        from pathlib import Path
+        with suppress(Exception):
+            Path(tmp.name).unlink()
 
 
-def parse_levels_arg(val) -> int | List[float]:
+def parse_levels_arg(val) -> int | list[float]:
     """Parse levels from int or comma-separated floats."""
     if isinstance(val, int):
         return val
@@ -89,9 +89,7 @@ def configure_logging_from_env(default: str = "info") -> None:
 
     logging.basicConfig(level=level, format="%(levelname)s: %(message)s")
     for name in ("matplotlib", "cartopy", "botocore", "urllib3", "requests"):
-        try:
+        with contextlib.suppress(Exception):
             logging.getLogger(name).setLevel(
                 max(level, logging.WARNING) if verb != "debug" else level
             )
-        except Exception:
-            pass

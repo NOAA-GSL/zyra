@@ -4,13 +4,12 @@ import argparse
 from typing import Any
 
 from datavizhub.cli_common import add_output_option
-from datavizhub.utils.cli_helpers import configure_logging_from_env
-from datavizhub.utils.io_utils import open_output
-from datavizhub.utils.date_manager import DateManager
+from datavizhub.connectors.backends import ftp as ftp_backend
 from datavizhub.connectors.backends import http as http_backend
 from datavizhub.connectors.backends import s3 as s3_backend
-from datavizhub.connectors.backends import ftp as ftp_backend
-from datavizhub.connectors.backends import vimeo as vimeo_backend
+from datavizhub.utils.cli_helpers import configure_logging_from_env
+from datavizhub.utils.date_manager import DateManager
+from datavizhub.utils.io_utils import open_output
 
 
 def _cmd_http(ns: argparse.Namespace) -> int:
@@ -19,13 +18,15 @@ def _cmd_http(ns: argparse.Namespace) -> int:
     inputs = list(getattr(ns, "inputs", []) or [])
     if getattr(ns, "manifest", None):
         try:
-            with open(ns.manifest, "r", encoding="utf-8") as f:
+            from pathlib import Path
+
+            with Path(ns.manifest).open(encoding="utf-8") as f:
                 for line in f:
                     s = line.strip()
                     if s and not s.startswith("#"):
                         inputs.append(s)
         except Exception as e:
-            raise SystemExit(f"Failed to read manifest: {e}")
+            raise SystemExit(f"Failed to read manifest: {e}") from e
     # Listing mode
     if getattr(ns, "list", False):
         urls = http_backend.list_files(ns.url, pattern=getattr(ns, "pattern", None))
@@ -78,13 +79,14 @@ def _cmd_s3(ns: argparse.Namespace) -> int:
     inputs = list(getattr(ns, "inputs", []) or [])
     if getattr(ns, "manifest", None):
         try:
-            with open(ns.manifest, "r", encoding="utf-8") as f:
+            from pathlib import Path
+            with Path(ns.manifest).open(encoding="utf-8") as f:
                 for line in f:
                     s = line.strip()
                     if s and not s.startswith("#"):
                         inputs.append(s)
         except Exception as e:
-            raise SystemExit(f"Failed to read manifest: {e}")
+            raise SystemExit(f"Failed to read manifest: {e}") from e
     # Listing mode
     if getattr(ns, "list", False):
         # Prefer full s3:// URL when provided
@@ -139,13 +141,14 @@ def _cmd_ftp(ns: argparse.Namespace) -> int:
     inputs = list(getattr(ns, "inputs", []) or [])
     if getattr(ns, "manifest", None):
         try:
-            with open(ns.manifest, "r", encoding="utf-8") as f:
+            from pathlib import Path
+            with Path(ns.manifest).open(encoding="utf-8") as f:
                 for line in f:
                     s = line.strip()
                     if s and not s.startswith("#"):
                         inputs.append(s)
         except Exception as e:
-            raise SystemExit(f"Failed to read manifest: {e}")
+            raise SystemExit(f"Failed to read manifest: {e}") from e
     # Listing mode
     if getattr(ns, "list", False):
         names = (

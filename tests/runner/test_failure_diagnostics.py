@@ -1,6 +1,4 @@
 import json
-import sys
-from pathlib import Path
 
 from datavizhub.pipeline_runner import run_pipeline
 

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import json
-import pytest
-from fastapi.testclient import TestClient
 
+import pytest
 from datavizhub.api.server import app
 from datavizhub.api.workers import jobs as jb
+from fastapi.testclient import TestClient
 
 
 def test_ws_api_key_enforcement(monkeypatch) -> None:

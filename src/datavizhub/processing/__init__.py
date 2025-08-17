@@ -1,20 +1,20 @@
 from .base import DataProcessor
-from .video_processor import VideoProcessor
 from .grib_data_processor import GRIBDataProcessor, interpolate_time_steps
 from .grib_utils import (
     DecodedGRIB,
     VariableNotFoundError,
-    grib_decode,
-    extract_variable,
     convert_to_format,
-    validate_subset,
     extract_metadata,
+    extract_variable,
+    grib_decode,
+    validate_subset,
 )
 from .netcdf_data_processor import (
+    convert_to_grib2,
     load_netcdf,
     subset_netcdf,
-    convert_to_grib2,
 )
+from .video_processor import VideoProcessor
 
 __all__ = [
     "DataProcessor",
@@ -35,8 +35,8 @@ __all__ = [
 
 # ---- CLI registration ---------------------------------------------------------------
 
-from typing import Any
 import sys
+from typing import Any
 
 
 def register_cli(subparsers: Any) -> None:
@@ -47,8 +47,10 @@ def register_cli(subparsers: Any) -> None:
     import argparse
 
     from datavizhub.utils.cli_helpers import (
-        read_all_bytes as _read_bytes,
         is_netcdf_bytes,
+    )
+    from datavizhub.utils.cli_helpers import (
+        read_all_bytes as _read_bytes,
     )
 
     def cmd_decode_grib2(args: argparse.Namespace) -> int:
@@ -79,9 +81,9 @@ def register_cli(subparsers: Any) -> None:
 
         from datavizhub.processing import grib_decode
         from datavizhub.processing.grib_utils import (
-            extract_variable,
             VariableNotFoundError,
             convert_to_format,
+            extract_variable,
         )
 
         data = _read_bytes(args.file_or_url)
@@ -111,23 +113,20 @@ def register_cli(subparsers: Any) -> None:
                             args_list, capture_output=True, text=True, check=False
                         )
                         if res.returncode == 0:
-                            with open(out_path, "rb") as f:
+                            from pathlib import Path as _P
+                            with _P(out_path).open("rb") as f:
                                 sys.stdout.buffer.write(f.read())
                             return 0
                     finally:
-                        try:
-                            import os
-
-                            os.remove(out_path)
-                        except Exception:
-                            pass
+                        import contextlib
+                        from pathlib import Path as _P
+                        with contextlib.suppress(Exception):
+                            _P(out_path).unlink()
                 finally:
-                    try:
-                        import os
-
-                        os.remove(in_path)
-                    except Exception:
-                        pass
+                    import contextlib
+                    from pathlib import Path as _P
+                    with contextlib.suppress(Exception):
+                        _P(in_path).unlink()
             decoded = grib_decode(data, backend=args.backend)
             if out_fmt == "netcdf":
                 out_bytes = convert_to_format(decoded, "netcdf", var=args.pattern)
@@ -141,7 +140,6 @@ def register_cli(subparsers: Any) -> None:
                 logging.error(str(exc))
                 return 2
             try:
-                import xarray as xr  # type: ignore
                 from datavizhub.processing.netcdf_data_processor import convert_to_grib2
 
                 ds = (
@@ -198,10 +196,11 @@ def register_cli(subparsers: Any) -> None:
             outdir = getattr(args, "output_dir", None)
             if not outdir:
                 raise SystemExit("--output-dir is required when using --inputs")
+            import logging
+            from pathlib import Path
+
             from datavizhub.processing import grib_decode
             from datavizhub.processing.grib_utils import convert_to_format
-            from pathlib import Path
-            import logging
 
             outdir_p = Path(outdir)
             outdir_p.mkdir(parents=True, exist_ok=True)
@@ -242,10 +241,13 @@ def register_cli(subparsers: Any) -> None:
         # Read input first so we can short-circuit pass-through without heavy imports
         data = _read_bytes(args.file_or_url)
         # If reading NetCDF and writing NetCDF with --stdout, pass-through
-        if getattr(args, "stdout", False) and args.format == "netcdf":
-            if is_netcdf_bytes(data):
-                sys.stdout.buffer.write(data)
-                return 0
+        if (
+            getattr(args, "stdout", False)
+            and args.format == "netcdf"
+            and is_netcdf_bytes(data)
+        ):
+            sys.stdout.buffer.write(data)
+            return 0
 
         # Otherwise, decode and convert based on requested format
         # Lazy-import heavy GRIB dependencies only when needed
@@ -261,7 +263,8 @@ def register_cli(subparsers: Any) -> None:
             return 0
         if not args.output:
             raise SystemExit("--output is required when not using --stdout")
-        with open(args.output, "wb") as f:
+        from pathlib import Path as _P
+        with _P(args.output).open("wb") as f:
             f.write(out_bytes)
         import logging
 

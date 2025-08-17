@@ -1,5 +1,6 @@
 import os
 import tempfile
+
 import pytest
 
 # Skip Cartopy-heavy tests unless explicitly enabled
@@ -41,7 +42,8 @@ def test_cli_heatmap_crs_warning():
 
         pytest.skip(f"Visualization deps missing: {e}")
 
-    import subprocess, sys
+    import subprocess
+    import sys
 
     with tempfile.TemporaryDirectory() as td:
         nc = os.path.join(td, "crs.nc")
@@ -75,7 +77,8 @@ def test_cli_heatmap_crs_override_suppresses_warning():
 
         pytest.skip(f"Visualization deps missing: {e}")
 
-    import subprocess, sys
+    import subprocess
+    import sys
 
     with tempfile.TemporaryDirectory() as td:
         nc = os.path.join(td, "crs.nc")

@@ -1,15 +1,11 @@
-from io import BytesIO
-from pathlib import Path
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import Mock, patch
 
 import pytest
 from botocore.exceptions import ClientError
-
 from datavizhub.acquisition.base import DataAcquirer
-from datavizhub.acquisition.s3_manager import S3Manager
-from datavizhub.acquisition.http_manager import HTTPHandler
 from datavizhub.acquisition.ftp_manager import FTPManager
-
+from datavizhub.acquisition.http_manager import HTTPHandler
+from datavizhub.acquisition.s3_manager import S3Manager
 
 # ---- S3/HTTP/FTP: pattern filters and retries -----------------------------------------
 

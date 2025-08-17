@@ -13,13 +13,11 @@ Internal helpers support streaming bytes via stdin/stdout, GRIB ``.idx``
 subsetting, and S3 URL parsing.
 """
 
-from typing import Optional
 import argparse
-import sys
-
 import re
+import sys
 from pathlib import Path
-from typing import Optional, Tuple, List
+from typing import Tuple
 
 
 def _parse_s3_url(url: str) -> Tuple[str, str]:
@@ -30,7 +28,7 @@ def _parse_s3_url(url: str) -> Tuple[str, str]:
 
 
 def _read_bytes(
-    path_or_url: str, *, idx_pattern: Optional[str] = None, unsigned: bool = False
+    path_or_url: str, *, idx_pattern: str | None = None, unsigned: bool = False
 ) -> bytes:
     # stdin
     if path_or_url == "-":
@@ -52,7 +50,7 @@ def _read_bytes(
                 return http_backend.download_byteranges(path_or_url, ranges.keys())
             return http_backend.fetch_bytes(path_or_url)
         except Exception as exc:  # pragma: no cover - optional dep
-            raise SystemExit(f"Failed to fetch from URL: {exc}")
+            raise SystemExit(f"Failed to fetch from URL: {exc}") from exc
 
     # S3
     if path_or_url.startswith("s3://"):
@@ -68,7 +66,7 @@ def _read_bytes(
                 )
             return s3_backend.fetch_bytes(path_or_url, unsigned=unsigned)
         except Exception as exc:  # pragma: no cover - optional dep
-            raise SystemExit(f"Failed to fetch from S3: {exc}")
+            raise SystemExit(f"Failed to fetch from S3: {exc}") from exc
 
     raise SystemExit(f"Input not found or unsupported scheme: {path_or_url}")
 
@@ -101,10 +99,9 @@ def cmd_extract_variable(args: argparse.Namespace) -> int:
 
     from datavizhub.processing import grib_decode
     from datavizhub.processing.grib_utils import (
-        extract_variable,
         VariableNotFoundError,
-        DecodedGRIB,
         convert_to_format,
+        extract_variable,
     )
 
     data = _read_bytes(args.file_or_url)
@@ -149,19 +146,20 @@ def cmd_extract_variable(args: argparse.Namespace) -> int:
                         # wgrib2 failed; will fall back to Python conversion after this block
                         # Continue to Python fallback below
                     else:
-                        with open(out_path, "rb") as f:
+                        from pathlib import Path as _P
+                        with _P(out_path).open("rb") as f:
                             sys.stdout.buffer.write(f.read())
                         return 0
                 finally:
-                    try:
-                        os.remove(out_path)
-                    except Exception:
-                        pass
+                    import contextlib
+                    from pathlib import Path as _P
+                    with contextlib.suppress(Exception):
+                        _P(out_path).unlink()
             finally:
-                try:
-                    os.remove(in_path)
-                except Exception:
-                    pass
+                import contextlib
+                from pathlib import Path as _P
+                with contextlib.suppress(Exception):
+                    _P(in_path).unlink()
 
         # Fallback: decode via Python and convert
         decoded = grib_decode(data, backend=args.backend)
@@ -178,7 +176,6 @@ def cmd_extract_variable(args: argparse.Namespace) -> int:
             return 2
         # Export to NetCDF then convert to GRIB2 using NetCDF processor (may require CDO)
         try:
-            import xarray as xr  # type: ignore
             from datavizhub.processing.netcdf_data_processor import convert_to_grib2
 
             ds = (
@@ -231,7 +228,7 @@ def cmd_convert_format(args: argparse.Namespace) -> int:
       another format).
     """
     from datavizhub.processing import grib_decode
-    from datavizhub.processing.grib_utils import convert_to_format, DecodedGRIB
+    from datavizhub.processing.grib_utils import DecodedGRIB, convert_to_format
 
     if not args.output and not args.stdout:
         raise SystemExit("--output or --stdout is required for convert-format")
@@ -279,7 +276,7 @@ def cmd_convert_format(args: argparse.Namespace) -> int:
             # Fallback: assume GRIB2 and try to decode
             decoded = grib_decode(data, backend=args.backend)
     except Exception as exc:
-        raise SystemExit(f"Failed to open input: {exc}")
+        raise SystemExit(f"Failed to open input: {exc}") from exc
 
     out_bytes = convert_to_format(decoded, args.format, var=args.var)
     if args.stdout:
@@ -472,7 +469,7 @@ def _viz_wind_cmd(ns: argparse.Namespace) -> int:
     return _viz_vector_cmd(ns)
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="datavizhub")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
@@ -527,11 +524,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         pass
     else:
         # Fallback: register the full CLI tree when we cannot infer the target
-        from datavizhub.connectors import ingest as _ingest_mod
-        from datavizhub.connectors import egress as _egress_mod
+        import datavizhub.transform as _transform_mod
         from datavizhub import processing as _process_mod
         from datavizhub import visualization as _visual_mod
-        import datavizhub.transform as _transform_mod
+        from datavizhub.connectors import egress as _egress_mod
+        from datavizhub.connectors import ingest as _ingest_mod
 
         p_acq = sub.add_parser("acquire", help="Acquire/ingest data from sources")
         acq_sub = p_acq.add_subparsers(dest="acquire_cmd", required=True)

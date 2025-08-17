@@ -1,10 +1,9 @@
 import os
 import tempfile
+from importlib.resources import as_file, files
 
 import numpy as np
 import pytest
-
-from importlib.resources import files, as_file
 
 # Skip Cartopy-heavy tests unless explicitly enabled
 _has_cartopy = False
@@ -92,7 +91,8 @@ def test_cli_heatmap_smoke():
         out = os.path.join(td, "out.png")
         np.save(npy, arr)
 
-        import subprocess, sys
+        import subprocess
+        import sys
 
         cmd = [
             sys.executable,

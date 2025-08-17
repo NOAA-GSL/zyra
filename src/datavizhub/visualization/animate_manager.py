@@ -6,15 +6,15 @@ does not invoke FFmpeg; composing video is left to downstream tools.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Sequence
 
 from .base import Renderer
-from .styles import DEFAULT_EXTENT, FIGURE_DPI
-from .heatmap_manager import HeatmapManager
 from .contour_manager import ContourManager
+from .heatmap_manager import HeatmapManager
+from .styles import DEFAULT_EXTENT, FIGURE_DPI
 from .vector_field_manager import VectorFieldManager
 
 
@@ -22,7 +22,7 @@ from .vector_field_manager import VectorFieldManager
 class FrameInfo:
     index: int
     path: str
-    timestamp: Optional[str] = None
+    timestamp: str | None = None
 
 
 class AnimateManager(Renderer):
@@ -46,9 +46,9 @@ class AnimateManager(Renderer):
         self,
         *,
         mode: str = "heatmap",
-        basemap: Optional[str] = None,
-        extent: Optional[Sequence[float]] = None,
-        output_dir: Optional[str] = None,
+        basemap: str | None = None,
+        extent: Sequence[float] | None = None,
+        output_dir: str | None = None,
         filename_template: str = "frame_{index:04d}.png",
     ) -> None:
         self.mode = mode
@@ -56,7 +56,7 @@ class AnimateManager(Renderer):
         self.extent = list(extent) if extent is not None else list(DEFAULT_EXTENT)
         self.output_dir = Path(output_dir) if output_dir else None
         self.filename_template = filename_template
-        self._manifest: Dict[str, Any] = {}
+        self._manifest: dict[str, Any] = {}
 
     # Renderer API
     def configure(self, **kwargs: Any) -> None:
@@ -72,13 +72,13 @@ class AnimateManager(Renderer):
         self,
         data: Any = None,
         *,
-        input_path: Optional[str] = None,
-        var: Optional[str] = None,
-        xarray_engine: Optional[str] = None,
-    ) -> Tuple["np.ndarray", List[Optional[str]]]:
+        input_path: str | None = None,
+        var: str | None = None,
+        xarray_engine: str | None = None,
+    ) -> tuple[Any, list[str | None]]:
         import numpy as np
 
-        timestamps: List[Optional[str]] = []
+        timestamps: list[str | None] = []
         if data is not None:
             arr = np.asarray(data)
             if arr.ndim != 3:
@@ -134,10 +134,8 @@ class AnimateManager(Renderer):
         raise ValueError("Unsupported input; use .npy or .nc for animation")
 
     def render(self, data: Any = None, **kwargs: Any):
-        import json
-        from importlib.resources import files, as_file
-        import numpy as np
         import matplotlib.pyplot as plt
+        import numpy as np
 
         width = int(kwargs.get("width", 1024))
         height = int(kwargs.get("height", 512))
@@ -172,7 +170,7 @@ class AnimateManager(Renderer):
         reproject = bool(kwargs.get("reproject", False))
 
         output_dir.mkdir(parents=True, exist_ok=True)
-        frames: List[FrameInfo] = []
+        frames: list[FrameInfo] = []
         if mode == "vector":
             import numpy as np
 
@@ -185,7 +183,7 @@ class AnimateManager(Renderer):
                 if U.shape != V.shape:
                     raise ValueError("U and V stacks must have the same shape")
                 t_count = U.shape[0]
-                timestamps: List[Optional[str]] = [None] * t_count
+                timestamps: list[Optional[str]] = [None] * t_count
             elif input_path and (str(input_path).lower().endswith((".nc", ".nc4"))):
                 import xarray as xr
 
@@ -259,7 +257,7 @@ class AnimateManager(Renderer):
             # Allow external timestamps override via CSV (one per line)
             if timestamps_csv:
                 try:
-                    with open(timestamps_csv, "r", encoding="utf-8") as f:
+                    with open(timestamps_csv, encoding="utf-8") as f:
                         timestamps = [line.strip() for line in f if line.strip()]
                 except Exception:
                     pass
@@ -360,7 +358,7 @@ class AnimateManager(Renderer):
             out_dir = (
                 Path(self._manifest["frames"][0]["path"]).parent
                 if self._manifest.get("frames")
-                else Path(".")
+                else Path()
             )
             output_path = str(Path(out_dir) / "manifest.json")
         Path(output_path).write_text(

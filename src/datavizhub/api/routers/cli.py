@@ -16,24 +16,21 @@ from __future__ import annotations
 
 import argparse
 import os
-from typing import Any, Dict, List
-
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
-from fastapi.responses import HTMLResponse
-from fastapi import Request
+from typing import Any
 
 from datavizhub.api.models.cli_request import (
     CLIRunRequest,
     CLIRunResponse,
 )
-from datavizhub.api.workers.executor import run_cli, resolve_upload_placeholders
 from datavizhub.api.workers import jobs as jobs_backend
-
+from datavizhub.api.workers.executor import resolve_upload_placeholders, run_cli
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi.responses import HTMLResponse
 
 router = APIRouter(tags=["cli"])
 
 
-_CLI_MATRIX: Dict[str, Any] | None = None
+_CLI_MATRIX: dict[str, Any] | None = None
 
 
 def _type_name(t: Any) -> str | None:
@@ -47,9 +44,9 @@ def _type_name(t: Any) -> str | None:
         return None
 
 
-def _extract_parser_schema(p: argparse.ArgumentParser) -> List[Dict[str, Any]]:
+def _extract_parser_schema(p: argparse.ArgumentParser) -> list[dict[str, Any]]:
     """Extract a simple argument schema from an argparse parser."""
-    out: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     for act in getattr(p, "_actions", []):
         # Skip help actions
         if (
@@ -59,7 +56,7 @@ def _extract_parser_schema(p: argparse.ArgumentParser) -> List[Dict[str, Any]]:
             continue
         if getattr(act, "dest", None) in {"help", "_help"}:
             continue
-        item: Dict[str, Any] = {
+        item: dict[str, Any] = {
             "name": getattr(act, "dest", None),
             "flags": list(getattr(act, "option_strings", []) or []),
             "positional": not bool(getattr(act, "option_strings", [])),
@@ -84,25 +81,26 @@ def _extract_parser_schema(p: argparse.ArgumentParser) -> List[Dict[str, Any]]:
     return out
 
 
-def _compute_cli_matrix() -> Dict[str, Any]:
-    import datavizhub.connectors.ingest as ingest
+def _compute_cli_matrix() -> dict[str, Any]:
     import datavizhub.connectors.egress as egress
+    import datavizhub.connectors.ingest as ingest
     import datavizhub.processing as processing
+    import datavizhub.transform as transform
     import datavizhub.visualization as visualization
 
-    def parsers_from_register(register_fn) -> Dict[str, argparse.ArgumentParser]:
+    def parsers_from_register(register_fn) -> dict[str, argparse.ArgumentParser]:
         parser = argparse.ArgumentParser(prog="datavizhub")
         sub = parser.add_subparsers(dest="sub")
         register_fn(sub)
         # type: ignore[attr-defined]
         return dict(getattr(sub, "choices", {}))
 
-    result: Dict[str, Any] = {}
+    result: dict[str, Any] = {}
 
     def _with_examples(
-        stage: str, command: str, schema_list: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
-        def ex(name: str, meta: Dict[str, Any]) -> Any:
+        stage: str, command: str, schema_list: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        def ex(name: str, meta: dict[str, Any]) -> Any:
             # Heuristic examples by name
             if name in {"url"}:
                 if stage in {"acquire"} and command == "http":
@@ -169,8 +167,6 @@ def _compute_cli_matrix() -> Dict[str, Any]:
                 m["example"] = example
         return schema_list
 
-    import datavizhub.transform as transform
-
     for stage, reg in (
         ("acquire", ingest.register_cli),
         ("process", processing.register_cli),
@@ -198,7 +194,7 @@ def _compute_cli_matrix() -> Dict[str, Any]:
     return result
 
 
-def get_cli_matrix() -> Dict[str, Any]:
+def get_cli_matrix() -> dict[str, Any]:
     global _CLI_MATRIX
     if _CLI_MATRIX is None:
         _CLI_MATRIX = _compute_cli_matrix()
@@ -206,7 +202,7 @@ def get_cli_matrix() -> Dict[str, Any]:
 
 
 @router.get("/cli/commands")
-def list_cli_commands() -> Dict[str, Any]:
+def list_cli_commands() -> dict[str, Any]:
     """Return a discovery matrix mapping stages to commands and argument schemas.
 
     The schema includes basic per-argument metadata and heuristic example values
@@ -216,13 +212,13 @@ def list_cli_commands() -> Dict[str, Any]:
 
 
 @router.get("/cli/examples")
-def list_cli_examples() -> Dict[str, Any]:
+def list_cli_examples() -> dict[str, Any]:
     """Return curated example bodies for /cli/run and sample pipeline paths."""
     """Curated examples for common workflows.
 
     These are example request bodies for POST /cli/run and pipeline configs.
     """
-    examples: List[Dict[str, Any]] = []
+    examples: list[dict[str, Any]] = []
 
     # 1) Acquire HTTP -> convert to NetCDF -> write to local file (via pipeline)
     examples.append(

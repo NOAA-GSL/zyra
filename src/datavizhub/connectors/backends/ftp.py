@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """FTP connector backend.
 
 Thin functional wrappers around the FTPManager to support simple byte fetches
@@ -10,18 +8,20 @@ The URL parser supports anonymous and credentialed forms, e.g.:
 ``ftp://host/path``, ``ftp://user@host/path``, ``ftp://user:pass@host/path``.
 """
 
-import tempfile
-from typing import Tuple, Optional, List, Iterable
+from __future__ import annotations
+
+import contextlib
 import re
 from datetime import datetime
+from ftplib import FTP
 from io import BytesIO
-from ftplib import FTP, error_perm, error_temp
+from typing import Iterable
 
 from datavizhub.utils.date_manager import DateManager
-from datavizhub.utils.grib import ensure_idx_path, parse_idx_lines, compute_chunks
+from datavizhub.utils.grib import compute_chunks, ensure_idx_path, parse_idx_lines
 
 
-def parse_ftp_path(url_or_path: str) -> Tuple[str, str, Optional[str], Optional[str]]:
+def parse_ftp_path(url_or_path: str) -> tuple[str, str, str | None, str | None]:
     """Return ``(host, remote_path, username, password)`` parsed from an FTP path."""
     s = url_or_path
     if s.startswith("ftp://"):
@@ -55,10 +55,8 @@ def fetch_bytes(url_or_path: str) -> bytes:
         ftp.cwd(directory)
     buf = BytesIO()
     ftp.retrbinary(f"RETR {filename}", buf.write)
-    try:
+    with contextlib.suppress(Exception):
         ftp.quit()
-    except Exception:
-        pass
     return buf.getvalue()
 
 
@@ -77,21 +75,19 @@ def upload_bytes(data: bytes, url_or_path: str) -> bool:
         ftp.cwd(directory)
     with BytesIO(data) as bio:
         ftp.storbinary(f"STOR {filename}", bio)
-    try:
+    with contextlib.suppress(Exception):
         ftp.quit()
-    except Exception:
-        pass
     return True
 
 
 def list_files(
     url_or_dir: str,
-    pattern: Optional[str] = None,
+    pattern: str | None = None,
     *,
-    since: Optional[str] = None,
-    until: Optional[str] = None,
-    date_format: Optional[str] = None,
-) -> Optional[List[str]]:
+    since: str | None = None,
+    until: str | None = None,
+    date_format: str | None = None,
+) -> list[str] | None:
     """List FTP directory contents with optional regex and date filtering."""
     host, remote_dir, user, pwd = parse_ftp_path(url_or_dir)
     ftp = FTP(timeout=30)
@@ -180,10 +176,10 @@ def sync_directory(
     url_or_dir: str,
     local_dir: str,
     *,
-    pattern: Optional[str] = None,
-    since: Optional[str] = None,
-    until: Optional[str] = None,
-    date_format: Optional[str] = None,
+    pattern: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
+    date_format: str | None = None,
     clean_zero_bytes: bool = False,
 ) -> None:
     """Sync files from a remote FTP directory to a local directory.
@@ -194,12 +190,8 @@ def sync_directory(
     """
     host, remote_dir, user, pwd = parse_ftp_path(url_or_dir)
     if pattern is None and not (since or until):
-        # Fast path: use existing sync by period if provided via since/until mapping
-        period = ""
-        if since and until:
-            # If both provided, approximate via DateManager period when possible is complex;
-            # fall back to manager's file-by-file logic by listing then fetching.
-            pass
+        # Fast path placeholder reserved for future optimization.
+        pass
     # List, filter, then fetch missing/zero-size files
     names = (
         list_files(
@@ -216,20 +208,16 @@ def sync_directory(
 
     Path(local_dir).mkdir(parents=True, exist_ok=True)
     if clean_zero_bytes:
-        try:
+        with contextlib.suppress(Exception):
             for fp in Path(local_dir).iterdir():
                 if fp.is_file() and fp.stat().st_size == 0:
                     fp.unlink()
-        except Exception:
-            pass
     local_set = {p.name for p in Path(local_dir).iterdir() if p.is_file()}
     # Remove locals not on server
     remote_set = set(Path(n).name for n in names)
     for fname in list(local_set - remote_set):
-        try:
+        with contextlib.suppress(Exception):
             (Path(local_dir) / fname).unlink()
-        except Exception:
-            pass
     for name in names:
         dest = str(Path(local_dir) / Path(name).name)
         if (not Path(dest).exists()) or Path(dest).stat().st_size == 0:
@@ -241,15 +229,14 @@ def sync_directory(
             filename = Path(name).name
             if directory:
                 ftp.cwd(directory)
-            with open(dest, "wb") as lf:
+            from pathlib import Path as _P
+            with _P(dest).open("wb") as lf:
                 ftp.retrbinary(f"RETR {filename}", lf.write)
-            try:
+            with contextlib.suppress(Exception):
                 ftp.quit()
-            except Exception:
-                pass
 
 
-def get_size(url_or_path: str) -> Optional[int]:
+def get_size(url_or_path: str) -> int | None:
     """Return remote file size in bytes via FTP SIZE."""
     host, remote_path, user, pwd = parse_ftp_path(url_or_path)
     ftp = FTP(timeout=30)
@@ -272,10 +259,10 @@ def get_size(url_or_path: str) -> Optional[int]:
 def get_idx_lines(
     url_or_path: str,
     *,
-    write_to: Optional[str] = None,
+    write_to: str | None = None,
     timeout: int = 30,
     max_retries: int = 3,
-) -> Optional[List[str]]:
+) -> list[str] | None:
     """Fetch and parse the GRIB ``.idx`` for a remote path via FTP."""
     host, remote_path, user, pwd = parse_ftp_path(url_or_path)
     ftp = FTP(timeout=30)
@@ -291,22 +278,21 @@ def get_idx_lines(
         ftp.cwd(directory)
     buf = BytesIO()
     ftp.retrbinary(f"RETR {filename}", buf.write)
-    try:
+    with contextlib.suppress(Exception):
         ftp.quit()
-    except Exception:
-        pass
     lines = parse_idx_lines(buf.getvalue())
     if write_to:
         outp = write_to if write_to.endswith(".idx") else f"{write_to}.idx"
         try:
-            with open(outp, "w", encoding="utf8") as f:
+            from pathlib import Path as _P
+            with _P(outp).open("w", encoding="utf8") as f:
                 f.write("\n".join(lines))
         except Exception:
             pass
     return lines
 
 
-def get_chunks(url_or_path: str, chunk_size: int = 500 * 1024 * 1024) -> List[str]:
+def get_chunks(url_or_path: str, chunk_size: int = 500 * 1024 * 1024) -> list[str]:
     """Compute contiguous chunk ranges for an FTP file."""
     size = get_size(url_or_path)
     if size is None:
@@ -362,19 +348,15 @@ def download_byteranges(
         try:
             ftp.retrbinary(f"RETR {filename}", _cb, rest=start)
         except _Stop:
-            try:
+            with contextlib.suppress(Exception):
                 ftp.abort()
-            except Exception:
-                pass
-        try:
+        with contextlib.suppress(Exception):
             ftp.quit()
-        except Exception:
-            pass
         return out.getvalue()
 
     from concurrent.futures import ThreadPoolExecutor
 
-    results: List[bytes] = []
+    results: list[bytes] = []
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
         results = list(ex.map(_worker, list(byte_ranges)))
     return b"".join(results)

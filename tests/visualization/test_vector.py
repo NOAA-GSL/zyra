@@ -1,4 +1,5 @@
 import os
+
 import pytest
 
 # Skip Cartopy-heavy tests unless explicitly enabled
@@ -27,7 +28,9 @@ def test_cli_vector_quiver_npy_smoke(ensure_uv_stacks):
 
         pytest.skip(f"Visualization deps missing: {e}")
 
-    import subprocess, sys, tempfile
+    import subprocess
+    import sys
+    import tempfile
 
     up, vp = ensure_uv_stacks
     with tempfile.TemporaryDirectory() as td:

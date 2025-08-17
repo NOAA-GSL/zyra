@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 import pytest
-
 from datavizhub.api.security import require_api_key
 from fastapi import HTTPException
 
 
-@pytest.mark.anyio
+@pytest.mark.anyio()
 async def test_require_api_key_disabled_when_env_unset(monkeypatch) -> None:
     monkeypatch.delenv("DATAVIZHUB_API_KEY", raising=False)
     assert await require_api_key(None) is True
     assert await require_api_key("anything") is True
 
 
-@pytest.mark.anyio
+@pytest.mark.anyio()
 async def test_require_api_key_enforced(monkeypatch) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "secret")
     # Missing

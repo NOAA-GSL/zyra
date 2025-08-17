@@ -25,7 +25,6 @@ pytestmark = pytest.mark.skipif(
 def test_heatmap_manager_colorbar_axes():
     try:
         from datavizhub.visualization import HeatmapManager
-        import matplotlib
     except Exception as e:
         import pytest
 

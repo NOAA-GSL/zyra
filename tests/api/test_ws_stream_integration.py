@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+
 from datavizhub.api.workers import jobs as jb
 
 

@@ -6,12 +6,13 @@ Use for winds, ocean currents, or any horizontal vector field on a lon/lat grid.
 from __future__ import annotations
 
 from io import BytesIO
-from typing import Any, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence
+
+from datavizhub.utils.geo_utils import detect_crs_from_path, warn_if_mismatch
 
 from .base import Renderer
 from .basemap import add_basemap_cartopy, add_basemap_tile
 from .styles import DEFAULT_EXTENT, FIGURE_DPI, MAP_STYLES, apply_matplotlib_style
-from datavizhub.utils.geo_utils import detect_crs_from_path, warn_if_mismatch
 
 
 class VectorFieldManager(Renderer):
@@ -67,7 +68,7 @@ class VectorFieldManager(Renderer):
         u_path: Optional[str] = None,
         v_path: Optional[str] = None,
         xarray_engine: Optional[str] = None,
-    ) -> Tuple["np.ndarray", "np.ndarray"]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         import numpy as np
 
         if u_path and v_path:

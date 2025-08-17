@@ -3,7 +3,7 @@ import shutil
 import subprocess
 import tempfile
 from contextlib import contextmanager
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Any, Iterable, Iterator
 
 
 def _has_wgrib2() -> bool:
@@ -18,7 +18,7 @@ def _has_wgrib2() -> bool:
 
 
 @contextmanager
-def load_netcdf(path_or_bytes: Union[str, bytes]) -> Iterator[Any]:
+def load_netcdf(path_or_bytes: str | bytes) -> Iterator[Any]:
     """Context manager that opens a NetCDF dataset from a path or bytes.
 
     Uses xarray under the hood. For byte inputs, a temporary file is created.
@@ -45,7 +45,7 @@ def load_netcdf(path_or_bytes: Union[str, bytes]) -> Iterator[Any]:
     except Exception as exc:  # pragma: no cover - optional dep
         raise RuntimeError("xarray is required to load NetCDF data") from exc
 
-    tmp_path: Optional[str] = None
+    tmp_path: str | None = None
     ds = None
     try:
         if isinstance(path_or_bytes, (bytes, bytearray)):
@@ -61,22 +61,23 @@ def load_netcdf(path_or_bytes: Union[str, bytes]) -> Iterator[Any]:
         raise RuntimeError(f"Failed to open NetCDF: {exc}") from exc
     finally:
         if ds is not None:
-            try:
+            from contextlib import suppress
+
+            with suppress(Exception):
                 ds.close()
-            except Exception:
-                pass
         if tmp_path is not None:
-            try:
-                os.remove(tmp_path)
-            except Exception:
-                pass
+            from contextlib import suppress
+            from pathlib import Path
+
+            with suppress(Exception):
+                Path(tmp_path).unlink()
 
 
 def subset_netcdf(
     dataset: Any,
-    variables: Optional[Iterable[str]] = None,
-    bbox: Optional[Tuple[float, float, float, float]] = None,
-    time_range: Optional[Tuple[Any, Any]] = None,
+    variables: Iterable[str] | None = None,
+    bbox: tuple[float, float, float, float] | None = None,
+    time_range: tuple[Any, Any] | None = None,
 ) -> Any:
     """Subset an ``xarray.Dataset`` by variables, spatial extent, and time.
 
@@ -193,11 +194,12 @@ def convert_to_grib2(dataset: Any) -> bytes:
         )
         if res.returncode != 0:  # pragma: no cover - external tool
             raise RuntimeError(res.stderr.strip() or "CDO conversion failed")
-        with open(grib_path, "rb") as g:
-            return g.read()
+        from pathlib import Path
+        return Path(grib_path).read_bytes()
     finally:
+        from contextlib import suppress
+        from pathlib import Path
+
         for p in (nc_path, grib_path):
-            try:
-                os.remove(p)
-            except Exception:
-                pass
+            with suppress(Exception):
+                Path(p).unlink()

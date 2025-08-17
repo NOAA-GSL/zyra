@@ -14,7 +14,8 @@ import json
 import os
 import sys
 import tempfile
-from typing import Any, Dict
+from pathlib import Path
+from typing import Any
 
 
 def _print_section(title: str, payload: Any) -> None:
@@ -57,10 +58,10 @@ def main(argv: list[str] | None = None) -> int:
         tmp.write(content)
         tmp.flush()
         tmp.seek(0)
-        files = {"file": (os.path.basename(tmp.name) or "smoke.txt", tmp, "text/plain")}
+        files = {"file": (Path(tmp.name).name or "smoke.txt", tmp, "text/plain")}
         r = requests.post(f"{base}/upload", files=files, timeout=10)
         try:
-            payload: Dict[str, Any] = r.json()
+            payload: dict[str, Any] = r.json()
         except Exception:
             payload = {"status": r.status_code, "text": r.text}
         _print_section("POST /upload", payload)

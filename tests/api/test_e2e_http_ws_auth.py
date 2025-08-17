@@ -5,12 +5,11 @@ import json
 import time
 
 import pytest
+from datavizhub.api.server import app
 from fastapi.testclient import TestClient
 
-from datavizhub.api.server import app
 
-
-@pytest.mark.anyio
+@pytest.mark.anyio()
 def test_http_ws_e2e_with_api_key(monkeypatch) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
     client = TestClient(app)

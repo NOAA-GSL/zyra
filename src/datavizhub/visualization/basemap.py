@@ -34,9 +34,9 @@ def add_basemap_cartopy(
         Opacity for the background image.
     """
     # Lazy imports to avoid heavy deps at import-time
-    import matplotlib.pyplot as plt
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
+    import matplotlib.pyplot as plt
 
     if extent is not None:
         try:
@@ -93,8 +93,8 @@ def add_basemap_tile(
     - The axis is expected to use PlateCarree.
     """
     try:
-        import contextily as cx  # type: ignore
         import cartopy.crs as ccrs
+        import contextily as cx  # type: ignore
     except Exception:
         return  # graceful no-op
 

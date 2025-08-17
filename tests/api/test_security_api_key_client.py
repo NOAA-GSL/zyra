@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import pytest
-from fastapi.testclient import TestClient
-
 from datavizhub.api.server import app
+from fastapi.testclient import TestClient
 
 
 def test_cli_commands_requires_api_key(monkeypatch) -> None:

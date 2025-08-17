@@ -22,7 +22,7 @@ import os
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Iterable, Optional, Tuple, List
+from typing import Iterable
 
 
 class DateManager:
@@ -42,14 +42,14 @@ class DateManager:
         when = dm.extract_date_time("frame_20240101093000.png")
     """
 
-    def __init__(self, date_formats: Optional[List[str]] = None) -> None:
+    def __init__(self, date_formats: list[str] | None = None) -> None:
         """Optionally store preferred date formats for filename parsing."""
         self.date_formats = date_formats or []
 
     # The remainder of this class mirrors the original DateManager implementation
     # with docstrings retained or added where relevant.
 
-    def get_date_range(self, period: str) -> Tuple[datetime, datetime]:
+    def get_date_range(self, period: str) -> tuple[datetime, datetime]:
         """Compute a date range ending at the current minute from a period spec.
 
         Parameters
@@ -79,7 +79,7 @@ class DateManager:
             raise ValueError(f"Unsupported period unit in: {period}")
         return start, now
 
-    def get_date_range_iso(self, iso_duration: str) -> Tuple[datetime, datetime]:
+    def get_date_range_iso(self, iso_duration: str) -> tuple[datetime, datetime]:
         """Compute a date range ending now from an ISO-8601 duration (e.g., P1Y, P6M, P7D, PT24H).
 
         Supports a subset of ISO-8601: years (Y), months (M), days (D), hours (H)
@@ -151,7 +151,7 @@ class DateManager:
             logging.error(f"No valid date extracted from filename: {filename}")
         return False
 
-    def extract_date_time(self, string: str) -> Optional[str]:
+    def extract_date_time(self, string: str) -> str | None:
         """Extract a date string from a filename/text using known formats.
 
         Tries known formats first; falls back to a simple ISO-like pattern.
@@ -182,7 +182,7 @@ class DateManager:
             ".bmp",
             ".dds",
         ),
-    ) -> Tuple[Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None]:
         """Extract dates from the first and last image file names in a directory.
 
         Parameters

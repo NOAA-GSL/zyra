@@ -1,20 +1,20 @@
 import os
 import tempfile
+from pathlib import Path
 
 import numpy as np
-from pathlib import Path
 
 
 def test_interactive_folium_heatmap_html():
     try:
         import folium  # noqa: F401
-        import matplotlib  # used to render overlay
     except Exception as e:
         import pytest
 
         pytest.skip(f"Optional interactive deps missing: {e}")
 
-    import subprocess, sys
+    import subprocess
+    import sys
 
     arr = np.random.rand(10, 20).astype("float32")
     with tempfile.TemporaryDirectory() as td:
@@ -39,7 +39,7 @@ def test_interactive_folium_heatmap_html():
         assert proc.returncode == 0, proc.stderr
         assert os.path.exists(out)
         # Basic HTML structure
-        text = open(out, "r", encoding="utf-8").read(200).lower()
+        text = open(out, encoding="utf-8").read(200).lower()
         assert "<html" in text
 
 
@@ -51,7 +51,8 @@ def test_interactive_plotly_heatmap_html():
 
         pytest.skip(f"Optional interactive deps missing: {e}")
 
-    import subprocess, sys
+    import subprocess
+    import sys
 
     arr = np.random.rand(6, 12).astype("float32")
     with tempfile.TemporaryDirectory() as td:
@@ -79,7 +80,7 @@ def test_interactive_plotly_heatmap_html():
         proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
         assert proc.returncode == 0, proc.stderr
         assert os.path.exists(out)
-        text = open(out, "r", encoding="utf-8").read(200).lower()
+        text = open(out, encoding="utf-8").read(200).lower()
         assert "<html" in text
 
 
@@ -91,7 +92,10 @@ def test_interactive_folium_points_html():
 
         pytest.skip(f"Optional interactive deps missing: {e}")
 
-    import subprocess, sys, tempfile, os
+    import os
+    import subprocess
+    import sys
+    import tempfile
 
     # Use provided samples/points.csv
     repo_root = Path(__file__).resolve().parents[2]
@@ -120,7 +124,7 @@ def test_interactive_folium_points_html():
         proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
         assert proc.returncode == 0, proc.stderr
         assert os.path.exists(out)
-        text = open(out, "r", encoding="utf-8").read(200).lower()
+        text = open(out, encoding="utf-8").read(200).lower()
         assert "<html" in text
 
 
@@ -132,7 +136,11 @@ def test_interactive_folium_vector_quiver_html():
 
         pytest.skip(f"Optional interactive deps missing: {e}")
 
-    import subprocess, sys, tempfile, os
+    import os
+    import subprocess
+    import sys
+    import tempfile
+
     import numpy as np
 
     ny, nx = 10, 20
@@ -163,20 +171,23 @@ def test_interactive_folium_vector_quiver_html():
         proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
         assert proc.returncode == 0, proc.stderr
         assert os.path.exists(out)
-        text = open(out, "r", encoding="utf-8").read(200).lower()
+        text = open(out, encoding="utf-8").read(200).lower()
         assert "<html" in text
 
 
 def test_interactive_folium_vector_streamlines_html():
     try:
         import folium  # noqa: F401
-        import matplotlib  # streamplot rendering
     except Exception as e:
         import pytest
 
         pytest.skip(f"Optional interactive deps missing: {e}")
 
-    import subprocess, sys, tempfile, os
+    import os
+    import subprocess
+    import sys
+    import tempfile
+
     import numpy as np
 
     ny, nx = 10, 20
@@ -212,5 +223,5 @@ def test_interactive_folium_vector_streamlines_html():
         proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
         assert proc.returncode == 0, proc.stderr
         assert os.path.exists(out)
-        text = open(out, "r", encoding="utf-8").read(200).lower()
+        text = open(out, encoding="utf-8").read(200).lower()
         assert "<html" in text

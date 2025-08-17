@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Optional
+ 
 
 from datavizhub.utils.date_manager import DateManager
 
@@ -65,7 +65,7 @@ class JSONFileManager:
             logging.error(f"Error decoding JSON from file: {self.file_path}")
             self.data = None
 
-    def save_file(self, new_file_path: Optional[str] = None) -> None:
+    def save_file(self, new_file_path: str | None = None) -> None:
         """Write the in-memory data back to disk.
 
         Parameters

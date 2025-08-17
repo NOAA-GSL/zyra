@@ -1,7 +1,11 @@
+from .animate_manager import AnimateManager
 from .base import Renderer
-from .colormap_manager import ColormapManager
-from .plot_manager import PlotManager
 from .basemap import add_basemap_cartopy, add_basemap_tile
+from .colormap_manager import ColormapManager
+from .contour_manager import ContourManager
+from .heatmap_manager import HeatmapManager
+from .interactive_manager import InteractiveManager
+from .plot_manager import PlotManager
 from .styles import (
     DEFAULT_CMAP,
     DEFAULT_EXTENT,
@@ -9,13 +13,9 @@ from .styles import (
     MAP_STYLES,
     apply_matplotlib_style,
 )
-from .heatmap_manager import HeatmapManager
-from .contour_manager import ContourManager
 from .timeseries_manager import TimeSeriesManager
 from .vector_field_manager import VectorFieldManager
 from .vector_particles_manager import VectorParticlesManager
-from .interactive_manager import InteractiveManager
-from .animate_manager import AnimateManager
 
 __all__ = [
     "Renderer",
@@ -40,13 +40,14 @@ __all__ = [
 # ---- CLI registration ---------------------------------------------------------------
 
 from typing import Any
-from datavizhub.visualization.cli_heatmap import handle_heatmap
-from datavizhub.visualization.cli_contour import handle_contour
-from datavizhub.visualization.cli_timeseries import handle_timeseries
-from datavizhub.visualization.cli_vector import handle_vector
+
 from datavizhub.visualization.cli_animate import handle_animate
 from datavizhub.visualization.cli_compose_video import handle_compose_video
+from datavizhub.visualization.cli_contour import handle_contour
+from datavizhub.visualization.cli_heatmap import handle_heatmap
 from datavizhub.visualization.cli_interactive import handle_interactive
+from datavizhub.visualization.cli_timeseries import handle_timeseries
+from datavizhub.visualization.cli_vector import handle_vector
 
 
 def register_cli(subparsers: Any) -> None:
@@ -55,8 +56,6 @@ def register_cli(subparsers: Any) -> None:
     Adds: heatmap, contour, timeseries, vector, wind, animate, compose-video, interactive
     Reuses existing CLI handlers where possible to avoid duplication.
     """
-    import argparse
-    import sys
 
     # Removed duplicate per-command handlers in favor of dedicated modules
 

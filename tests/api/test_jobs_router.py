@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from datavizhub.api.routers import jobs as jobs_router
-from datavizhub.api.workers import jobs as jb
 from datavizhub.api.server import app
+from datavizhub.api.workers import jobs as jb
 
 
 def test_get_job_status_returns_expected_keys(tmp_path: Path) -> None:
@@ -55,7 +55,8 @@ def test_download_ttl_expired_returns_410(monkeypatch, tmp_path: Path) -> None:
     out = rd / "old.bin"
     out.write_bytes(b"123")
     # Set file mtime in the past
-    import os, time
+    import os
+    import time
 
     old_time = time.time() - 10_000
     os.utime(out, (old_time, old_time))

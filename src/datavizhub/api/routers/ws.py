@@ -1,26 +1,20 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
-from typing import Any
-
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, WebSocketException
+import os
 import secrets
 
+from datavizhub.api.security import _auth_limits, _record_failure
 from datavizhub.api.workers.jobs import (
-    is_redis_enabled,
-    redis_url,
+    _get_last_message,
     _register_listener,
     _unregister_listener,
-    _get_last_message,
+    is_redis_enabled,
+    redis_url,
 )
-from datavizhub.api.security import (
-    _auth_limits,
-    _record_failure,
-    _should_throttle,
-)  # internal helpers
-import os
-
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect, WebSocketException
 
 router = APIRouter(tags=["ws"])
 
@@ -57,9 +51,9 @@ async def job_progress_ws(
     """
     expected = os.environ.get("DATAVIZHUB_API_KEY")
     # Determine client IP for basic throttling of failed attempts
-    try:
+    with contextlib.suppress(Exception):
         client_ip = getattr(getattr(websocket, "client", None), "host", None)
-    except Exception:
+    if 'client_ip' not in locals():
         client_ip = None
     # Authn: reject missing key at handshake; accept then close for wrong key
     if expected and not api_key:
@@ -71,10 +65,8 @@ async def job_progress_ws(
         except Exception:
             pass
         if client_ip:
-            try:
+            with contextlib.suppress(Exception):
                 _ = _record_failure(client_ip)
-            except Exception:
-                pass
         # Raise during handshake so TestClient.connect errors immediately
         raise WebSocketException(code=1008)
     await websocket.accept()
@@ -91,16 +83,12 @@ async def job_progress_ws(
         except Exception:
             pass
         if client_ip:
-            try:
+            with contextlib.suppress(Exception):
                 _ = _record_failure(client_ip)
-            except Exception:
-                pass
         # Send an explicit error payload, then close with policy violation
-        try:
+        with contextlib.suppress(Exception):
             await websocket.send_text(json.dumps({"error": "Unauthorized"}))
             await asyncio.sleep(0)
-        except Exception:
-            pass
         await websocket.close(code=1008)
         return
     allowed = None
@@ -109,16 +97,14 @@ async def job_progress_ws(
     # Emit a lightweight initial frame so clients don't block when Redis is
     # requested but no worker is running. This mirrors prior passing behavior
     # and helps tests that only require seeing some stderr/stdout activity.
-    try:
+    with contextlib.suppress(Exception):
         initial = {"stderr": "listening"}
-        if (allowed is None) or any(k in allowed for k in initial.keys()):
+        if (allowed is None) or any(k in allowed for k in initial):
             await websocket.send_text(json.dumps(initial))
             await asyncio.sleep(0)
-    except Exception:
-        pass
     # Replay last known progress on connect (in-memory mode caches last message)
     last = None
-    try:
+    with contextlib.suppress(Exception):
         channel = f"jobs.{job_id}.progress"
         last = _get_last_message(channel)
         if last:
@@ -129,21 +115,19 @@ async def job_progress_ws(
                     to_send[k] = v
             if to_send:
                 await websocket.send_text(json.dumps(to_send))
-    except Exception:
-        # Best-effort; absence of cache is fine
+    if 'last' not in locals():
         last = None
 
     # If client explicitly requested progress stream and no cached progress is
     # available yet, emit an initial progress frame. This reduces test flakiness
     # and perceived latency when jobs start just after WS subscription.
-    try:
-        if allowed and ("progress" in allowed):
-            if not isinstance(last, dict) or ("progress" not in last):
-                await websocket.send_text(json.dumps({"progress": 0.0}))
-                # Yield to flush frame promptly for TestClient
-                await asyncio.sleep(0)
-    except Exception:
-        pass
+    with contextlib.suppress(Exception):
+        if allowed and ("progress" in allowed) and (
+            not isinstance(last, dict) or ("progress" not in last)
+        ):
+            await websocket.send_text(json.dumps({"progress": 0.0}))
+            # Yield to flush frame promptly for TestClient
+            await asyncio.sleep(0)
     if not is_redis_enabled():
         # In-memory streaming: subscribe to local queue
         channel = f"jobs.{job_id}.progress"

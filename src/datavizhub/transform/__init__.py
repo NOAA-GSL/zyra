@@ -2,24 +2,23 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
+from datavizhub.utils.cli_helpers import configure_logging_from_env
 from datavizhub.utils.date_manager import DateManager
 from datavizhub.utils.io_utils import open_output
-from datavizhub.utils.cli_helpers import configure_logging_from_env
 
 
 def _compute_frames_metadata(
     frames_dir: str,
     *,
-    pattern: Optional[str] = None,
-    datetime_format: Optional[str] = None,
-    period_seconds: Optional[int] = None,
-) -> Dict[str, Any]:
+    pattern: str | None = None,
+    datetime_format: str | None = None,
+    period_seconds: int | None = None,
+) -> dict[str, Any]:
     """Compute summary metadata for a directory of frame images.
 
     Scans a directory for image files (optionally filtered by regex), parses
@@ -43,7 +42,7 @@ def _compute_frames_metadata(
     names.sort()
 
     # Parse timestamps from filenames
-    timestamps: List[datetime] = []
+    timestamps: list[datetime] = []
     if datetime_format:
         dm = DateManager([datetime_format])
         timestamps = dm.parse_timestamps_from_filenames(names, datetime_format)
@@ -52,16 +51,16 @@ def _compute_frames_metadata(
         for n in names:
             s = dm.extract_date_time(n)
             if s:
-                try:
+                from contextlib import suppress
+
+                with suppress(Exception):
                     timestamps.append(datetime.fromisoformat(s))
-                except Exception:
-                    pass
     timestamps.sort()
 
     start_dt = timestamps[0] if timestamps else None
     end_dt = timestamps[-1] if timestamps else None
 
-    out: Dict[str, Any] = {
+    out: dict[str, Any] = {
         "frames_dir": str(p),
         "pattern": pattern,
         "datetime_format": datetime_format,
@@ -76,7 +75,7 @@ def _compute_frames_metadata(
         out["frame_count_expected"] = exp
         # Compute missing timestamps grid
         have: set[str] = {t.isoformat() for t in timestamps}
-        miss: List[str] = []
+        miss: list[str] = []
         cur = start_dt
         step = timedelta(seconds=int(period_seconds))
         for _ in range(exp):
@@ -149,7 +148,7 @@ def register_cli(subparsers: Any) -> None:
         try:
             base = fm.read_json(ns.frames_meta)
         except Exception as exc:
-            raise SystemExit(f"Failed to read frames metadata: {exc}")
+            raise SystemExit(f"Failed to read frames metadata: {exc}") from exc
         if not isinstance(base, dict):
             base = {}
         # Attach dataset_id
@@ -226,7 +225,7 @@ def register_cli(subparsers: Any) -> None:
             else:
                 raw = Path(ns.input_file).read_bytes()
         except Exception as exc:
-            raise SystemExit(f"Failed to read dataset JSON: {exc}")
+            raise SystemExit(f"Failed to read dataset JSON: {exc}") from exc
         # Load metadata source (either explicit args or meta file/stdin)
         start = ns.start
         end = ns.end
@@ -254,7 +253,7 @@ def register_cli(subparsers: Any) -> None:
         try:
             data = json.loads(raw.decode("utf-8", errors="ignore"))
         except Exception as exc:
-            raise SystemExit(f"Invalid dataset JSON: {exc}")
+            raise SystemExit(f"Invalid dataset JSON: {exc}") from exc
         # Build dataLink from Vimeo if requested
         data_link = None
         if vimeo_uri and ns.set_data_link:

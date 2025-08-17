@@ -8,20 +8,21 @@ servers in development or production.
 
 from __future__ import annotations
 
+import asyncio
 import os
 import shutil
-import asyncio
 import time
 from pathlib import Path
-from fastapi import FastAPI, Depends, Request
-from fastapi.responses import HTMLResponse
+
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 
 from datavizhub.api import __version__ as dvh_version
 from datavizhub.api.routers import cli as cli_router
 from datavizhub.api.routers import files as files_router
-from datavizhub.api.routers import ws as ws_router
 from datavizhub.api.routers import jobs as jobs_router
+from datavizhub.api.routers import ws as ws_router
 from datavizhub.api.security import require_api_key
 
 
@@ -96,7 +97,7 @@ def create_app() -> FastAPI:
             disk_ok = False
 
         # Queue/worker readiness (Redis optional)
-        from datavizhub.api.workers.jobs import is_redis_enabled, redis_url, queue_name
+        from datavizhub.api.workers.jobs import is_redis_enabled, queue_name, redis_url
 
         use_redis = is_redis_enabled()
         queue = {
@@ -106,7 +107,10 @@ def create_app() -> FastAPI:
         if use_redis:
             try:
                 import redis  # type: ignore
-                from datavizhub.api.workers.jobs import _get_redis_and_queue  # type: ignore
+
+                from datavizhub.api.workers.jobs import (
+                    _get_redis_and_queue,  # type: ignore
+                )
 
                 url = redis_url()
                 client = redis.Redis.from_url(url, socket_connect_timeout=0.5)  # type: ignore[arg-type]

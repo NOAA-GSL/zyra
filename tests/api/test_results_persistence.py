@@ -5,8 +5,8 @@ from pathlib import Path
 from datavizhub.api.workers import jobs as jb
 from datavizhub.api.workers.executor import (
     RunResult,
-    _maybe_copy_output,
     _ensure_results_dir,
+    _maybe_copy_output,
 )
 
 

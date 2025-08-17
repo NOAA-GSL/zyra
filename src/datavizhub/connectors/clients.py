@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Optional OO connector clients.
 
 These thin wrappers provide a small amount of state (e.g., host or bucket)
@@ -8,12 +6,14 @@ when you want to reuse configuration across several calls in a script while
 keeping the core API functional and composable.
 """
 
-from pathlib import Path
-from typing import Iterable, Optional, List
+from __future__ import annotations
 
-from .base import Connector
+from typing import Iterable
+
 from datavizhub.connectors.backends import ftp as ftp_backend
 from datavizhub.connectors.backends import s3 as s3_backend
+
+from .base import Connector
 
 
 class FTPConnector(Connector):
@@ -56,12 +56,12 @@ class FTPConnector(Connector):
     def list_files(
         self,
         remote_dir: str,
-        pattern: Optional[str] = None,
+        pattern: str | None = None,
         *,
-        since: Optional[str] = None,
-        until: Optional[str] = None,
-        date_format: Optional[str] = None,
-    ) -> Optional[List[str]]:
+        since: str | None = None,
+        until: str | None = None,
+        date_format: str | None = None,
+    ) -> list[str] | None:
         """List files under a remote directory with optional filters."""
         return ftp_backend.list_files(
             self._url(remote_dir),
@@ -88,10 +88,10 @@ class FTPConnector(Connector):
         remote_dir: str,
         local_dir: str,
         *,
-        pattern: Optional[str] = None,
-        since: Optional[str] = None,
-        until: Optional[str] = None,
-        date_format: Optional[str] = None,
+        pattern: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        date_format: str | None = None,
     ) -> None:
         """Mirror a remote directory on this FTP host to a local directory."""
         return ftp_backend.sync_directory(
@@ -130,13 +130,13 @@ class S3Connector(Connector):
 
     def list_files(
         self,
-        prefix: Optional[str] = None,
+        prefix: str | None = None,
         *,
-        pattern: Optional[str] = None,
-        since: Optional[str] = None,
-        until: Optional[str] = None,
-        date_format: Optional[str] = None,
-    ) -> Optional[List[str]]:
+        pattern: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        date_format: str | None = None,
+    ) -> list[str] | None:
         """List keys under an optional prefix with optional filters."""
         url = self._url(prefix) if prefix else f"s3://{self.bucket}/"
         return s3_backend.list_files(
@@ -160,7 +160,7 @@ class S3Connector(Connector):
         return s3_backend.stat(self._url(key))
 
     # GRIB helpers
-    def get_idx_lines(self, key: str) -> List[str]:
+    def get_idx_lines(self, key: str) -> list[str]:
         """Fetch and parse the GRIB ``.idx`` for an object in the bucket."""
         return s3_backend.get_idx_lines(self._url(key), unsigned=self.unsigned)
 

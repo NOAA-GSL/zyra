@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import sys
+import logging
+import os
+from pathlib import Path
 
 from datavizhub.processing.video_processor import VideoProcessor
 from datavizhub.utils.cli_helpers import configure_logging_from_env
-import logging
-from pathlib import Path
-import os
 
 
 def handle_compose_video(ns) -> int:

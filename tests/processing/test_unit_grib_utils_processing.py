@@ -8,8 +8,8 @@ def test_variable_not_found_error():
     xr = pytest.importorskip("xarray")
     from datavizhub.processing.grib_utils import (
         DecodedGRIB,
-        extract_variable,
         VariableNotFoundError,
+        extract_variable,
     )
 
     ds = xr.Dataset({"a": xr.DataArray([1, 2, 3], dims=["x"])})
@@ -34,7 +34,7 @@ def test_geotiff_multivar_requires_var():
 
 
 def test_wgrib2_json_fallback(monkeypatch):
-    from datavizhub.processing.grib_utils import grib_decode, extract_variable
+    from datavizhub.processing.grib_utils import extract_variable, grib_decode
 
     # Pretend wgrib2 exists
     monkeypatch.setattr(

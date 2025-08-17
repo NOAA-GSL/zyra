@@ -1,5 +1,4 @@
-from unittest.mock import patch, Mock
-from io import BytesIO
+from unittest.mock import patch
 
 from datavizhub.acquisition.ftp_manager import FTPManager
 

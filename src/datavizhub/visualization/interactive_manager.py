@@ -11,14 +11,15 @@ import base64
 from io import BytesIO
 from typing import Any, Optional, Sequence
 
+from datavizhub.utils.geo_utils import (
+    TARGET_CRS,
+    detect_crs_from_csv,
+    detect_crs_from_path,
+    warn_if_mismatch,
+)
+
 from .base import Renderer
 from .styles import DEFAULT_EXTENT, MAP_STYLES, timestamp_anchor
-from datavizhub.utils.geo_utils import (
-    detect_crs_from_path,
-    detect_crs_from_csv,
-    warn_if_mismatch,
-    TARGET_CRS,
-)
 
 
 class InteractiveManager(Renderer):
@@ -147,11 +148,10 @@ class InteractiveManager(Renderer):
         input_path=None,
         src_crs=None,
     ):
-        import folium
-        from folium.raster_layers import ImageOverlay
-        from folium.plugins import FloatImage
-        import matplotlib.pyplot as plt
         import cartopy.crs as ccrs
+        import folium
+        import matplotlib.pyplot as plt
+        from folium.raster_layers import ImageOverlay
 
         west, east, south, north = self.extent
 
@@ -449,10 +449,10 @@ class InteractiveManager(Renderer):
         wms_transparent=True,
         layer_control=False,
     ):
-        import folium
-        import numpy as np
-        import matplotlib.pyplot as plt
         import cartopy.crs as ccrs
+        import folium
+        import matplotlib.pyplot as plt
+        import numpy as np
 
         west, east, south, north = self.extent
         ny, nx = U.shape[-2], U.shape[-1]

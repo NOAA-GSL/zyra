@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from datavizhub.utils.cli_helpers import parse_levels_arg, configure_logging_from_env
 import logging
-from datavizhub.visualization.contour_manager import ContourManager
-from datavizhub.visualization.cli_utils import features_from_ns
 from pathlib import Path
+
+from datavizhub.utils.cli_helpers import configure_logging_from_env, parse_levels_arg
+from datavizhub.visualization.cli_utils import features_from_ns
+from datavizhub.visualization.contour_manager import ContourManager
 
 
 def handle_contour(ns) -> int:

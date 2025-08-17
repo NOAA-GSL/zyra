@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """HTTP connector backend.
 
 Provides functional helpers to fetch and list resources over HTTP(S), as well
@@ -10,8 +8,10 @@ Functions are intentionally small and dependency-light so they can be used by
 the CLI, pipelines, or higher-level wrappers without imposing heavy imports.
 """
 
-from typing import Optional, List, Iterable
+from __future__ import annotations
+
 import re
+from typing import Iterable
 from urllib.parse import urljoin
 
 
@@ -57,7 +57,7 @@ def fetch_json(url: str, *, timeout: int = 60):
 
 
 def post_data(
-    url: str, data: bytes, *, timeout: int = 60, content_type: Optional[str] = None
+    url: str, data: bytes, *, timeout: int = 60, content_type: str | None = None
 ) -> int:
     """POST raw bytes to a URL and return the HTTP status code."""
     try:
@@ -72,15 +72,15 @@ def post_data(
 
 
 def post_bytes(
-    url: str, data: bytes, *, timeout: int = 60, content_type: Optional[str] = None
+    url: str, data: bytes, *, timeout: int = 60, content_type: str | None = None
 ) -> int:
     """Backward-compat wrapper for ``post_data``."""
     return post_data(url, data, timeout=timeout, content_type=content_type)
 
 
 def list_files(
-    url: str, pattern: Optional[str] = None, *, timeout: int = 60
-) -> List[str]:
+    url: str, pattern: str | None = None, *, timeout: int = 60
+) -> list[str]:
     """Best-effort directory listing by scraping anchor tags on index pages.
 
     Returns absolute URLs; optionally filters them via regex ``pattern``.
@@ -94,7 +94,7 @@ def list_files(
     r.raise_for_status()
     text = r.text
     hrefs = re.findall(r'href=["\']([^"\']+)["\']', text, re.IGNORECASE)
-    results: List[str] = []
+    results: list[str] = []
     for href in hrefs:
         if href.startswith("?") or href.startswith("#"):
             continue
@@ -105,7 +105,7 @@ def list_files(
     return results
 
 
-def get_idx_lines(url: str, *, timeout: int = 60, max_retries: int = 3) -> List[str]:
+def get_idx_lines(url: str, *, timeout: int = 60, max_retries: int = 3) -> list[str]:
     """Fetch and parse the GRIB ``.idx`` file for a URL."""
     try:
         import requests  # type: ignore
@@ -152,7 +152,7 @@ def download_byteranges(
     )
 
 
-def get_size(url: str, *, timeout: int = 60) -> Optional[int]:
+def get_size(url: str, *, timeout: int = 60) -> int | None:
     """Return Content-Length for a URL via HTTP HEAD when provided."""
     try:
         import requests  # type: ignore

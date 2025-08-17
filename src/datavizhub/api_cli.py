@@ -5,7 +5,6 @@ import json
 import os
 import sys
 import time
-from typing import List
 
 
 def _base_url(v: str | None) -> str:
@@ -16,8 +15,11 @@ def cmd_upload(args: argparse.Namespace) -> int:
     import requests  # type: ignore
 
     url = _base_url(args.base_url) + "/upload"
-    with open(args.file, "rb") as f:
-        files = {"file": (os.path.basename(args.file), f)}
+    from pathlib import Path
+
+    p = Path(args.file)
+    with p.open("rb") as f:
+        files = {"file": (p.name, f)}
         r = requests.post(url, files=files, timeout=60)
     r.raise_for_status()
     print(json.dumps(r.json(), indent=2))
@@ -96,12 +98,13 @@ def cmd_download(args: argparse.Namespace) -> int:
     if args.zip:
         params["zip"] = 1
     url = f"{base}/jobs/{args.job_id}/download"
+    from pathlib import Path
     with requests.get(url, params=params, stream=True, timeout=60) as r:
         r.raise_for_status()
         name = args.output or r.headers.get(
             "Content-Disposition", "attachment; filename=output.bin"
         ).split("filename=")[-1].strip().strip('"')
-        with open(name, "wb") as f:
+        with Path(name).open("wb") as f:
             for chunk in r.iter_content(chunk_size=1 << 20):
                 if chunk:
                     f.write(chunk)
@@ -109,7 +112,7 @@ def cmd_download(args: argparse.Namespace) -> int:
     return 0
 
 
-def main(argv: List[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         prog="datavizhub-cli", description="Simple CLI wrapper for the DataVizHub API"
     )

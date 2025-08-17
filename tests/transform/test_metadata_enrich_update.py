@@ -1,7 +1,4 @@
 import json
-from pathlib import Path
-
-import pytest
 
 from datavizhub.transform import _compute_frames_metadata as compute_meta
 from datavizhub.transform import register_cli as register_transform

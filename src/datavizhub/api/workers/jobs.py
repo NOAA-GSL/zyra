@@ -1,23 +1,23 @@
 from __future__ import annotations
 
+import asyncio
+import contextlib
+import io
 import json
 import os
-from typing import Any, Dict, Optional, List, Tuple
 import re
-import asyncio
-import time
-
-import io
-import sys
-from datavizhub.api.workers.executor import (
-    run_cli,
-    _args_dict_to_argv,
-    zip_output_dir,
-    write_manifest,
-    resolve_upload_placeholders,
-)
-from pathlib import Path
 import shutil
+import sys
+import time
+from pathlib import Path
+from typing import Any
+
+from datavizhub.api.workers.executor import (
+    _args_dict_to_argv,
+    resolve_upload_placeholders,
+    write_manifest,
+    zip_output_dir,
+)
 
 
 def is_redis_enabled() -> bool:
@@ -67,11 +67,11 @@ _rq_queue = None
 
 # In-memory pub/sub for WebSocket parity
 # Store (queue, loop) to support thread-safe puts into the listener's event loop.
-_SUBSCRIBERS: Dict[
-    str, List[Tuple[asyncio.Queue[str], Optional[asyncio.AbstractEventLoop]]]
+_SUBSCRIBERS: dict[
+    str, list[tuple[asyncio.Queue[str], asyncio.AbstractEventLoop | None]]
 ] = {}
 # In-memory last-message cache per channel for quick replay on new subscribers
-_LAST_MESSAGES: Dict[str, Dict[str, Any]] = {}
+_LAST_MESSAGES: dict[str, dict[str, Any]] = {}
 
 
 def _register_listener(channel: str) -> asyncio.Queue[str]:
@@ -81,9 +81,9 @@ def _register_listener(channel: str) -> asyncio.Queue[str]:
     without Redis. Returns an asyncio.Queue that receives JSON strings.
     """
     q: asyncio.Queue[str] = asyncio.Queue()
-    try:
+    with contextlib.suppress(RuntimeError):
         loop = asyncio.get_running_loop()
-    except RuntimeError:
+    if 'loop' not in locals():
         loop = None
     _SUBSCRIBERS.setdefault(channel, []).append((q, loop))
     return q
@@ -121,7 +121,7 @@ def _get_redis_and_queue():  # lazy init to avoid hard dependency
     return _redis_client, _rq_queue
 
 
-def _pub(channel: str, message: Dict[str, Any]) -> None:
+def _pub(channel: str, message: dict[str, Any]) -> None:
     """Publish a message to a channel (Redis when enabled; in-memory otherwise).
 
     Messages are JSON-serialized dictionaries. In-memory subscribers receive
@@ -148,14 +148,12 @@ def _pub(channel: str, message: Dict[str, Any]) -> None:
                 continue
         return
     r, _q = _get_redis_and_queue()
-    try:
-        r.publish(channel, payload)
-    except Exception:
+    with contextlib.suppress(Exception):
         # Best effort publish; do not crash job
-        pass
+        r.publish(channel, payload)
 
 
-def _get_last_message(channel: str) -> Optional[Dict[str, Any]]:
+def _get_last_message(channel: str) -> dict[str, Any] | None:
     """Return the last cached message dict for a channel (in-memory mode only)."""
     if is_redis_enabled():
         return None
@@ -180,16 +178,14 @@ class _PubTee(io.StringIO):
         if not s:
             return 0
         n = super().write(s)
-        try:
+        with contextlib.suppress(Exception):
             _pub(self._channel, {self._key: s})
-        except Exception:
-            pass
         return n
 
 
 def run_cli_job(
-    stage: str, command: str, args: Dict[str, Any], job_id: Optional[str] = None
-) -> Dict[str, Any]:
+    stage: str, command: str, args: dict[str, Any], job_id: str | None = None
+) -> dict[str, Any]:
     """RQ worker entry: run the CLI and stream progress/logs.
 
     Behavior
@@ -240,7 +236,7 @@ def run_cli_job(
     finally:
         sys.stdout, sys.stderr = old_out, old_err
 
-    payload: Dict[str, Any] = {
+    payload: dict[str, Any] = {
         "stdout": stdout_buf.getvalue(),
         "stderr": stderr_buf.getvalue(),
         "exit_code": code,
@@ -292,10 +288,8 @@ def run_cli_job(
             if out_file:
                 payload["output_file"] = out_file
             # Write manifest listing all artifacts
-            try:
+            with contextlib.suppress(Exception):
                 write_manifest(job_id)
-            except Exception:
-                pass
     except Exception:
         pass
     if channel:
@@ -309,7 +303,7 @@ def run_cli_job(
 # datavizhub.api.workers.executor._JOBS, which backs the low-level CLI execution
 # helpers and some unit tests. Keeping the stores separate avoids tight coupling
 # and circular imports. They serve different purposes but share similar shapes.
-_JOBS: Dict[str, Dict[str, Any]] = {}
+_JOBS: dict[str, dict[str, Any]] = {}
 
 
 def _jobs_ttl_seconds() -> int:
@@ -329,7 +323,7 @@ def _cleanup_jobs() -> None:
     if ttl <= 0:
         return
     now = time.time()
-    to_delete: List[str] = []
+    to_delete: list[str] = []
     for jid, rec in list(_JOBS.items()):
         try:
             status = rec.get("status")
@@ -345,13 +339,11 @@ def _cleanup_jobs() -> None:
         except Exception:
             continue
     for jid in to_delete:
-        try:
+        with contextlib.suppress(Exception):
             _JOBS.pop(jid, None)
-        except Exception:
-            pass
 
 
-def submit_job(stage: str, command: str, args: Dict[str, Any]) -> str:
+def submit_job(stage: str, command: str, args: dict[str, Any]) -> str:
     if is_redis_enabled():
         r, q = _get_redis_and_queue()
         # Create a placeholder job id by enqueuing with meta; we need job id to publish channel messages
@@ -359,7 +351,6 @@ def submit_job(stage: str, command: str, args: Dict[str, Any]) -> str:
         return job.get_id()
     else:
         import uuid
-        from datavizhub.api.workers.executor import start_job as _start
 
         _cleanup_jobs()
         job_id = uuid.uuid4().hex
@@ -375,7 +366,7 @@ def submit_job(stage: str, command: str, args: Dict[str, Any]) -> str:
         return job_id
 
 
-def start_job(job_id: str, stage: str, command: str, args: Dict[str, Any]) -> None:
+def start_job(job_id: str, stage: str, command: str, args: dict[str, Any]) -> None:
     if is_redis_enabled():
         # When using Redis/RQ, jobs are started by workers; nothing to do here
         return
@@ -390,7 +381,8 @@ def start_job(job_id: str, stage: str, command: str, args: Dict[str, Any]) -> No
     channel = f"jobs.{job_id}.progress"
     _pub(channel, {"progress": 0.0})
     # Capture stdio with publishers (similar to Redis worker path)
-    import io, sys
+    import io
+    import sys
 
     class _LocalPubTee(io.StringIO):
         def __init__(self, key: str):
@@ -401,10 +393,8 @@ def start_job(job_id: str, stage: str, command: str, args: Dict[str, Any]) -> No
             if not s:
                 return 0
             n = super().write(s)
-            try:
+            with contextlib.suppress(Exception):
                 _pub(channel, {self._key: s})
-            except Exception:
-                pass
             return n
 
     out_buf = _LocalPubTee("stdout")
@@ -469,10 +459,8 @@ def start_job(job_id: str, stage: str, command: str, args: Dict[str, Any]) -> No
         if resolved_paths:
             rec["resolved_input_paths"] = resolved_paths
         # Write manifest listing all artifacts
-        try:
+        with contextlib.suppress(Exception):
             write_manifest(job_id)
-        except Exception:
-            pass
     except Exception:
         rec["output_file"] = None
     payload = {
@@ -489,7 +477,7 @@ def start_job(job_id: str, stage: str, command: str, args: Dict[str, Any]) -> No
     _cleanup_jobs()
 
 
-def get_job(job_id: str) -> Optional[Dict[str, Any]]:
+def get_job(job_id: str) -> dict[str, Any] | None:
     if is_redis_enabled():
         from rq.job import Job
 

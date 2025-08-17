@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-import sys
-from typing import List
-
-from datavizhub.visualization.cli_utils import features_from_ns
-from pathlib import Path
-import subprocess
-from datavizhub.utils.cli_helpers import configure_logging_from_env
 import logging
 import os
+import subprocess
+from pathlib import Path
+
+from datavizhub.utils.cli_helpers import configure_logging_from_env
+from datavizhub.visualization.cli_utils import features_from_ns
 
 
 def handle_animate(ns) -> int:
@@ -18,8 +16,8 @@ def handle_animate(ns) -> int:
     if getattr(ns, "inputs", None):
         if not ns.output_dir:
             raise SystemExit("--output-dir is required when using --inputs")
-        from datavizhub.visualization.animate_manager import AnimateManager
         from datavizhub.processing.video_processor import VideoProcessor
+        from datavizhub.visualization.animate_manager import AnimateManager
 
         outdir = Path(ns.output_dir)
         outdir.mkdir(parents=True, exist_ok=True)
@@ -95,10 +93,10 @@ def handle_animate(ns) -> int:
                 logging.warning("Failed to compose grid video")
         return 0
     if ns.mode == "particles":
+        from datavizhub.processing.video_processor import VideoProcessor
         from datavizhub.visualization.vector_particles_manager import (
             VectorParticlesManager,
         )
-        from datavizhub.processing.video_processor import VideoProcessor
 
         mgr = VectorParticlesManager(basemap=ns.basemap, extent=ns.extent)
         manifest = mgr.render(
@@ -156,8 +154,8 @@ def handle_animate(ns) -> int:
                 logging.info(str(out_path))
         return 0
 
-    from datavizhub.visualization.animate_manager import AnimateManager
     from datavizhub.processing.video_processor import VideoProcessor
+    from datavizhub.visualization.animate_manager import AnimateManager
 
     mgr = AnimateManager(
         mode=ns.mode, basemap=ns.basemap, extent=ns.extent, output_dir=ns.output_dir
@@ -230,8 +228,8 @@ def handle_animate(ns) -> int:
 
 
 def _build_ffmpeg_grid_args(
-    *, videos: List[str], fps: int, output: str, grid_mode: str, cols: int
-) -> List[str]:
+    *, videos: list[str], fps: int, output: str, grid_mode: str, cols: int
+) -> list[str]:
     """Build a safe ffmpeg command args list to compose multiple MP4s.
 
     - grid_mode 'grid' uses xstack with positions derived from first input size (w0,h0)
@@ -260,7 +258,7 @@ def _build_ffmpeg_grid_args(
             raise ValueError("output is outside of allowed output root")
     if out_path.parent:
         out_path.parent.mkdir(parents=True, exist_ok=True)
-    args: List[str] = ["ffmpeg"]
+    args: list[str] = ["ffmpeg"]
     for v in videos:
         if not isinstance(v, str) or not v.strip():
             raise ValueError("invalid input video path")
@@ -282,7 +280,7 @@ def _build_ffmpeg_grid_args(
         filter_desc = f"hstack=inputs={len(videos)}"
     else:
         # Build xstack layout using first input dimensions (w0,h0) as tile size.
-        layout_entries: List[str] = []
+        layout_entries: list[str] = []
         for idx in range(len(videos)):
             r = idx // cols
             c = idx % cols

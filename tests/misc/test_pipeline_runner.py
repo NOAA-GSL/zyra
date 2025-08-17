@@ -1,8 +1,6 @@
-import io
-import sys
-import tempfile
-from pathlib import Path
 import json
+from pathlib import Path
+
 import pytest
 
 
@@ -14,7 +12,7 @@ def _run_cli(args, input_bytes: bytes | None = None):
     return subprocess.run(cmd, input=input_bytes, capture_output=True)
 
 
-@pytest.mark.pipeline
+@pytest.mark.pipeline()
 def test_run_process_convert_format_passthrough(tmp_path: Path):
     # Pipeline: processing convert-format - netcdf --stdout; stdin is demo.nc
     cfg = {
@@ -39,7 +37,7 @@ def test_run_process_convert_format_passthrough(tmp_path: Path):
     assert out.startswith(b"CDF") or out.startswith(b"\x89HDF")
 
 
-@pytest.mark.pipeline
+@pytest.mark.pipeline()
 def test_run_dry_run_builds_acquire_and_decimate_args(tmp_path: Path):
     # Use backend-style for acquire (per wiki), and local decimation
     cfg = {
@@ -82,7 +80,7 @@ def test_run_dry_run_builds_acquire_and_decimate_args(tmp_path: Path):
     assert "decimate local" in text and str(tmp_path / "out.bin") in text
 
 
-@pytest.mark.pipeline
+@pytest.mark.pipeline()
 def test_dry_run_json_emits_objects_with_stage_and_name(tmp_path: Path):
     cfg = {
         "name": "JSON ARGV shape",
@@ -122,7 +120,7 @@ def test_dry_run_json_emits_objects_with_stage_and_name(tmp_path: Path):
     )
 
 
-@pytest.mark.pipeline
+@pytest.mark.pipeline()
 def test_dry_run_json_with_only_preserves_ids_and_reindexes(tmp_path: Path):
     cfg = {
         "name": "JSON only",
@@ -168,7 +166,7 @@ def test_dry_run_json_with_only_preserves_ids_and_reindexes(tmp_path: Path):
     )
 
 
-@pytest.mark.pipeline
+@pytest.mark.pipeline()
 def test_dry_run_json_start_end_preserves_ids_and_reindexes(tmp_path: Path):
     cfg = {
         "name": "JSON start-end",
@@ -217,7 +215,7 @@ def test_dry_run_json_start_end_preserves_ids_and_reindexes(tmp_path: Path):
     assert isinstance(items[0]["argv"], list) and items[0]["argv"][0] == "datavizhub"
 
 
-@pytest.mark.pipeline
+@pytest.mark.pipeline()
 def test_run_process_then_decimate_local(tmp_path: Path):
     # Convert NetCDF stdin (pass-through) then write to a file via decimate local
     cfg = {
@@ -249,7 +247,7 @@ def test_run_process_then_decimate_local(tmp_path: Path):
     assert data.startswith(b"CDF") or data.startswith(b"\x89HDF")
 
 
-@pytest.mark.pipeline
+@pytest.mark.pipeline()
 def test_stage_name_overrides_apply_correctly(tmp_path: Path):
     # Use stage-name overrides to change arguments on targeted stages
     cfg = {
@@ -283,7 +281,7 @@ def test_stage_name_overrides_apply_correctly(tmp_path: Path):
     assert not (tmp_path / "ORIG.nc").exists()
 
 
-@pytest.mark.pipeline
+@pytest.mark.pipeline()
 def test_run_start_end_subset(tmp_path: Path):
     # Stages: [1] process convert, [2] process convert, [3] decimate local
     # Run only stage 2 via --start/--end and assert stdout NetCDF header
@@ -318,7 +316,7 @@ def test_run_start_end_subset(tmp_path: Path):
     assert res.stdout.startswith(b"CDF") or res.stdout.startswith(b"\x89HDF")
 
 
-@pytest.mark.pipeline
+@pytest.mark.pipeline()
 def test_run_only_stage_name(tmp_path: Path):
     # Only run process stage and emit stdout NetCDF
     cfg = {

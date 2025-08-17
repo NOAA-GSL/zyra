@@ -9,8 +9,7 @@ and optional OO wrappers where persistent configuration/state is useful.
 
 from __future__ import annotations
 
-from abc import ABC
-from typing import Iterable, Optional, Protocol, runtime_checkable, Any, Set
+from typing import Any, Iterable, Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -27,7 +26,7 @@ class Uploadable(Protocol):
 
 @runtime_checkable
 class Listable(Protocol):
-    def list_files(self, *args: Any, **kwargs: Any) -> Optional[Iterable[str]]:
+    def list_files(self, *args: Any, **kwargs: Any) -> Iterable[str] | None:
         ...
 
 
@@ -61,7 +60,7 @@ class ByteRanged(Protocol):
         ...
 
 
-class Connector(ABC):
+class Connector:
     """Minimal abstract base for connector wrappers.
 
     Provides only introspection helpers and context manager convenience. It does
@@ -76,6 +75,6 @@ class Connector(ABC):
         return False
 
     @property
-    def capabilities(self) -> Set[str]:
+    def capabilities(self) -> set[str]:
         caps = getattr(type(self), "CAPABILITIES", None)
         return set(caps) if caps else set()

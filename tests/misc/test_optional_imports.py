@@ -1,4 +1,4 @@
-from datavizhub import acquisition, processing, visualization, utils
+from datavizhub import acquisition, processing, utils, visualization
 
 
 def test_import_processing_package_without_viz():

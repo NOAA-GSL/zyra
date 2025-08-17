@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """S3 connector backend.
 
 Functional helpers for working with Amazon S3 using the existing S3Manager
@@ -8,25 +6,27 @@ introspection utilities, plus GRIB-centric helpers for ``.idx`` and ranged
 downloads.
 """
 
+from __future__ import annotations
+
 import re
 import tempfile
-from typing import Optional, Tuple, Iterable, List
+from typing import Iterable
 
 import boto3
 from botocore import config as _botocore_config
 from botocore.exceptions import ClientError
+
 from datavizhub.utils.date_manager import DateManager
 from datavizhub.utils.grib import (
     ensure_idx_path,
-    parse_idx_lines,
     parallel_download_byteranges,
+    parse_idx_lines,
 )
-
 
 _S3_RE = re.compile(r"^s3://([^/]+)/(.+)$")
 
 
-def parse_s3_url(url: str) -> Tuple[str, str]:
+def parse_s3_url(url: str) -> tuple[str, str]:
     m = _S3_RE.match(url)
     if not m:
         raise ValueError("Invalid s3 URL. Expected s3://bucket/key")
@@ -34,7 +34,7 @@ def parse_s3_url(url: str) -> Tuple[str, str]:
 
 
 def fetch_bytes(
-    url_or_bucket: str, key: Optional[str] = None, *, unsigned: bool = False
+    url_or_bucket: str, key: str | None = None, *, unsigned: bool = False
 ) -> bytes:
     """Fetch an object's full bytes using ranged GET semantics.
 
@@ -56,7 +56,7 @@ def fetch_bytes(
     return resp["Body"].read()
 
 
-def upload_bytes(data: bytes, url_or_bucket: str, key: Optional[str] = None) -> bool:
+def upload_bytes(data: bytes, url_or_bucket: str, key: str | None = None) -> bool:
     """Upload bytes to an S3 object by writing to a temporary file first."""
     if key is None:
         bucket, key = parse_s3_url(url_or_bucket)
@@ -72,13 +72,13 @@ def upload_bytes(data: bytes, url_or_bucket: str, key: Optional[str] = None) -> 
 
 
 def list_files(
-    prefix_or_url: Optional[str] = None,
+    prefix_or_url: str | None = None,
     *,
-    pattern: Optional[str] = None,
-    since: Optional[str] = None,
-    until: Optional[str] = None,
-    date_format: Optional[str] = None,
-) -> Optional[List[str]]:
+    pattern: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
+    date_format: str | None = None,
+) -> list[str]:
     """List S3 keys with optional regex and date filtering.
 
     Accepts either a full ``s3://bucket/prefix`` or ``bucket`` only (prefix
@@ -94,7 +94,7 @@ def list_files(
     c = boto3.client("s3")
     paginator = c.get_paginator("list_objects_v2")
     page_iter = paginator.paginate(Bucket=bucket, Prefix=prefix or "")
-    keys: List[str] = []
+    keys: list[str] = []
     for page in page_iter:
         for obj in page.get("Contents", []) or []:
             k = obj.get("Key")
@@ -114,7 +114,7 @@ def list_files(
     return keys
 
 
-def exists(url_or_bucket: str, key: Optional[str] = None) -> bool:
+def exists(url_or_bucket: str, key: str | None = None) -> bool:
     """Return True if an S3 object exists."""
     if key is None:
         bucket, key = parse_s3_url(url_or_bucket)
@@ -131,7 +131,7 @@ def exists(url_or_bucket: str, key: Optional[str] = None) -> bool:
         return False
 
 
-def delete(url_or_bucket: str, key: Optional[str] = None) -> bool:
+def delete(url_or_bucket: str, key: str | None = None) -> bool:
     """Delete an object by URL or bucket+key."""
     if key is None:
         bucket, key = parse_s3_url(url_or_bucket)
@@ -142,7 +142,7 @@ def delete(url_or_bucket: str, key: Optional[str] = None) -> bool:
     return True
 
 
-def stat(url_or_bucket: str, key: Optional[str] = None):
+def stat(url_or_bucket: str, key: str | None = None):
     """Return a basic metadata mapping for an object (size/etag/last_modified)."""
     if key is None:
         bucket, key = parse_s3_url(url_or_bucket)
@@ -160,7 +160,7 @@ def stat(url_or_bucket: str, key: Optional[str] = None):
         return None
 
 
-def get_size(url_or_bucket: str, key: Optional[str] = None) -> Optional[int]:
+def get_size(url_or_bucket: str, key: str | None = None) -> int | None:
     """Return the size in bytes for an S3 object, or None if unknown."""
     if key is None:
         bucket, key = parse_s3_url(url_or_bucket)
@@ -176,12 +176,12 @@ def get_size(url_or_bucket: str, key: Optional[str] = None) -> Optional[int]:
 
 def get_idx_lines(
     url_or_bucket: str,
-    key: Optional[str] = None,
+    key: str | None = None,
     *,
     unsigned: bool = False,
     timeout: int = 30,
     max_retries: int = 3,
-) -> List[str]:
+) -> list[str]:
     """Fetch and parse the GRIB .idx content for an S3 object.
 
     Accepts either a full s3:// URL or (bucket, key).
@@ -208,7 +208,7 @@ def get_idx_lines(
 
 def download_byteranges(
     url_or_bucket: str,
-    key: Optional[str],
+    key: str | None,
     byte_ranges: Iterable[str],
     *,
     unsigned: bool = False,

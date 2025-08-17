@@ -1,10 +1,8 @@
-import re
-
 from datavizhub.acquisition.grib_utils import (
-    ensure_idx_path,
-    parse_idx_lines,
-    idx_to_byteranges,
     compute_chunks,
+    ensure_idx_path,
+    idx_to_byteranges,
+    parse_idx_lines,
 )
 
 

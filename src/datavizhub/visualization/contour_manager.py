@@ -5,6 +5,8 @@ from __future__ import annotations
 from io import BytesIO
 from typing import Any, Optional, Sequence
 
+from datavizhub.utils.geo_utils import detect_crs_from_path, warn_if_mismatch
+
 from .base import Renderer
 from .basemap import add_basemap_cartopy, add_basemap_tile
 from .styles import (
@@ -15,7 +17,6 @@ from .styles import (
     apply_matplotlib_style,
     timestamp_anchor,
 )
-from datavizhub.utils.geo_utils import detect_crs_from_path, warn_if_mismatch
 
 
 class ContourManager(Renderer):
@@ -136,8 +137,8 @@ class ContourManager(Renderer):
 
         # Lazy imports
         apply_matplotlib_style()
-        import numpy as np
         import matplotlib.pyplot as plt
+        import numpy as np
 
         try:
             import cartopy.crs as ccrs

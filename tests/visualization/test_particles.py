@@ -30,7 +30,8 @@ def test_cli_particles_npy_smoke(ensure_uv_stacks):
 
         pytest.skip(f"Visualization deps missing: {e}")
 
-    import subprocess, sys
+    import subprocess
+    import sys
 
     up, vp = ensure_uv_stacks
     with tempfile.TemporaryDirectory() as td:

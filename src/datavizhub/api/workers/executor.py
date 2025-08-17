@@ -1,23 +1,24 @@
 from __future__ import annotations
 
+import contextlib
 import io
-import sys
-import uuid
-from dataclasses import dataclass, field
+import logging
 import os
-from pathlib import Path
 import re
 import shutil
-import zipfile
+import sys
 import time
-from typing import Any, Dict, List, Tuple
-import logging
+import uuid
+import zipfile
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
 
-from datavizhub.cli import main as cli_main
 from datavizhub.api.routers import files as files_router
+from datavizhub.cli import main as cli_main
 
 
-def _normalize_args(stage: str, command: str, args: Dict[str, Any]) -> Dict[str, Any]:
+def _normalize_args(stage: str, command: str, args: dict[str, Any]) -> dict[str, Any]:
     """Normalize friendly API arg names to strict CLI arg names.
 
     Applies a per-(stage,command) mapping plus general synonyms before argv generation.
@@ -34,7 +35,7 @@ def _normalize_args(stage: str, command: str, args: Dict[str, Any]) -> Dict[str,
     }
 
     # Per-command mappings for friendlier API names
-    per_cmd: Dict[Tuple[str, str], Dict[str, str]] = {
+    per_cmd: dict[tuple[str, str], dict[str, str]] = {
         ("process", "decode-grib2"): {
             "input": "file_or_url",
             "pattern": "pattern",
@@ -103,10 +104,8 @@ def _normalize_args(stage: str, command: str, args: Dict[str, Any]) -> Dict[str,
     for src, dst in per_cmd.get((stage, command), {}).items():
         if src in out and dst not in out:
             out[dst] = out[src]
-            try:
+            with contextlib.suppress(Exception):
                 del out[src]
-            except Exception:
-                pass
     return out
 
 
@@ -115,8 +114,8 @@ def _to_kebab(s: str) -> str:
 
 
 def resolve_upload_placeholders(
-    a: Dict[str, Any],
-) -> Tuple[Dict[str, Any], List[str], List[str]]:
+    a: dict[str, Any],
+) -> tuple[dict[str, Any], list[str], list[str]]:
     """Resolve file_id placeholders in args.
 
     Returns (resolved_args, resolved_paths, unresolved_ids).
@@ -124,8 +123,8 @@ def resolve_upload_placeholders(
     symlink/path traversal escaping.
     """
     out = dict(a)
-    resolved_paths: List[str] = []
-    unresolved: List[str] = []
+    resolved_paths: list[str] = []
+    unresolved: list[str] = []
 
     def _lookup_uploaded_path(fid: str) -> str | None:
         try:
@@ -185,7 +184,7 @@ def resolve_upload_placeholders(
             else:
                 unresolved.append(fid2)
         elif isinstance(val, list):
-            new_list: List[Any] = []
+            new_list: list[Any] = []
             for item in val:
                 if isinstance(item, str) and item.startswith("file_id:"):
                     fid3 = item.split(":", 1)[1]
@@ -203,7 +202,7 @@ def resolve_upload_placeholders(
     return out, resolved_paths, unresolved
 
 
-def _args_dict_to_argv(stage: str, command: str, args: Dict[str, Any]) -> List[str]:
+def _args_dict_to_argv(stage: str, command: str, args: dict[str, Any]) -> list[str]:
     """Transform an args dict into CLI argv list (excluding program name).
 
     Heuristic mapping:
@@ -221,7 +220,7 @@ def _args_dict_to_argv(stage: str, command: str, args: Dict[str, Any]) -> List[s
     # Resolve uploaded file_id references into absolute paths
     args, _resolved_paths, _unresolved = resolve_upload_placeholders(args)
 
-    argv: List[str] = [stage, command]
+    argv: list[str] = [stage, command]
 
     # Normalize friendly names to strict CLI names
     norm_args = _normalize_args(stage, command, args)
@@ -234,7 +233,7 @@ def _args_dict_to_argv(stage: str, command: str, args: Dict[str, Any]) -> List[s
             argv.append(str(cfg))
 
     # Known positional layouts per command for better UX
-    positional_map: Dict[Tuple[str, str], List[str]] = {
+    positional_map: dict[tuple[str, str], list[str]] = {
         ("process", "decode-grib2"): ["file_or_url"],
         ("process", "extract-variable"): ["file_or_url", "pattern"],
         ("process", "convert-format"): ["file_or_url", "format"],
@@ -288,7 +287,7 @@ class RunResult:
     stdout: str
     stderr: str
     exit_code: int
-    argv: List[str] = field(default_factory=list)
+    argv: list[str] = field(default_factory=list)
     stdout_bytes: bytes = b""
     stderr_bytes: bytes = b""
 
@@ -332,7 +331,7 @@ class _StdCapture:
         return self._buf.getvalue()
 
 
-def _guess_bytes_name_and_mime(data: bytes) -> Tuple[str, str]:
+def _guess_bytes_name_and_mime(data: bytes) -> tuple[str, str]:
     """Best-effort filename and MIME detection from a bytes prefix.
 
     Returns a tuple (filename, media_type). Falls back to ``output.bin`` and
@@ -340,8 +339,6 @@ def _guess_bytes_name_and_mime(data: bytes) -> Tuple[str, str]:
     """
     # Simple signature-based detection
     try:
-        import mimetypes
-
         if data.startswith(b"\x89PNG\r\n\x1a\n"):
             return ("output.png", "image/png")
         if data.startswith(b"GRIB"):
@@ -358,7 +355,7 @@ def _guess_bytes_name_and_mime(data: bytes) -> Tuple[str, str]:
         return ("output.bin", "application/octet-stream")
 
 
-def run_cli(stage: str, command: str, args: Dict[str, Any]) -> RunResult:
+def run_cli(stage: str, command: str, args: dict[str, Any]) -> RunResult:
     """Run the CLI synchronously in-process and capture output and exit code."""
     argv = _args_dict_to_argv(stage, command, args)
     # Capture stdio (binary-safe)
@@ -395,7 +392,7 @@ def run_cli(stage: str, command: str, args: Dict[str, Any]) -> RunResult:
 
 
 # In-memory job store (simple, non-persistent)
-_JOBS: Dict[str, Dict[str, Any]] = {}
+_JOBS: dict[str, dict[str, Any]] = {}
 
 
 def _jobs_ttl_seconds() -> int:
@@ -415,7 +412,7 @@ def _cleanup_jobs() -> None:
     if ttl <= 0:
         return
     now = time.time()
-    to_delete: List[str] = []
+    to_delete: list[str] = []
     for jid, rec in list(_JOBS.items()):
         try:
             status = rec.get("status")
@@ -430,13 +427,11 @@ def _cleanup_jobs() -> None:
         except Exception:
             continue
     for jid in to_delete:
-        try:
+        with contextlib.suppress(Exception):
             _JOBS.pop(jid, None)
-        except Exception:
-            pass
 
 
-def submit_job(stage: str, command: str, args: Dict[str, Any]) -> str:
+def submit_job(stage: str, command: str, args: dict[str, Any]) -> str:
     _cleanup_jobs()
     job_id = uuid.uuid4().hex
     _JOBS[job_id] = {
@@ -452,7 +447,7 @@ def submit_job(stage: str, command: str, args: Dict[str, Any]) -> str:
     return job_id
 
 
-def start_job(job_id: str, stage: str, command: str, args: Dict[str, Any]) -> None:
+def start_job(job_id: str, stage: str, command: str, args: dict[str, Any]) -> None:
     rec = _JOBS.get(job_id)
     if not rec:
         return
@@ -474,7 +469,7 @@ def start_job(job_id: str, stage: str, command: str, args: Dict[str, Any]) -> No
     _cleanup_jobs()
 
 
-def get_job(job_id: str) -> Dict[str, Any] | None:
+def get_job(job_id: str) -> dict[str, Any] | None:
     _cleanup_jobs()
     return _JOBS.get(job_id)
 
@@ -508,23 +503,16 @@ def _ensure_results_dir(job_id: str) -> Path:
     if not isinstance(job_id, str) or not job_id:
         raise ValueError("invalid job_id")
     if (
-        os.path.isabs(job_id)
-        or job_id != os.path.basename(job_id)
+        Path(job_id).is_absolute()
+        or job_id != Path(job_id).name
         or not _SAFE_JOB_ID_RE.fullmatch(job_id)
     ):
         raise ValueError("invalid job_id")
-    base = os.path.normpath(
-        os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
-    )
-    full = os.path.normpath(os.path.join(base, job_id))
-    try:
-        if os.path.commonpath([base, full]) != base:
-            raise ValueError("invalid job_id")
-    except Exception:
-        raise ValueError("invalid job_id")
-    # Create directory lazily without using Path-joins on untrusted input
-    os.makedirs(full, exist_ok=True)
-    return Path(full)
+    base = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+    # Join using Path with validated single-segment job_id
+    full = base / job_id
+    full.mkdir(parents=True, exist_ok=True)
+    return full
 
 
 def zip_output_dir(job_id: str, output_dir: str) -> str | None:
@@ -550,9 +538,7 @@ def zip_output_dir(job_id: str, output_dir: str) -> str | None:
         return None
 
 
-def _maybe_copy_output(
-    args: Dict[str, Any], res: "RunResult", job_id: str
-) -> str | None:
+def _maybe_copy_output(args: dict[str, Any], res: RunResult, job_id: str) -> str | None:
     """Try to persist an output artifact for this job.
 
     Priority:
@@ -629,34 +615,27 @@ def write_manifest(job_id: str) -> Path | None:
     path-based operations on user-influenced values.
     """
     try:
-        import json, mimetypes, os as _os, errno as _errno
+        import errno as _errno
+        import json
+        import mimetypes
+        import os as _os
 
         # Derive contained results directory
         if not isinstance(job_id, str) or not job_id:
             return None
         if (
-            _os.path.isabs(job_id)
-            or job_id != _os.path.basename(job_id)
+            Path(job_id).is_absolute()
+            or job_id != Path(job_id).name
             or not _SAFE_JOB_ID_RE.fullmatch(job_id)
         ):
             return None
-        base = _os.path.normpath(
-            _os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
-        )
-        full = _os.path.normpath(_os.path.join(base, job_id))
-        try:
-            if _os.path.commonpath([base, full]) != base:
-                return None
-        except Exception:
-            return None
-        _os.makedirs(full, exist_ok=True)
+        base = Path(_os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+        full = base / job_id
+        full.mkdir(parents=True, exist_ok=True)
 
         items = []
         try:
-            # lgtm [py/path-injection] — full is contained via normpath+commonpath
-            names = sorted(
-                name for name in _os.listdir(full) if name != "manifest.json"
-            )
+            names = sorted(name for name in (p.name for p in full.iterdir()) if name != "manifest.json")
         except FileNotFoundError:
             names = []
         for name in names:
@@ -665,25 +644,18 @@ def write_manifest(job_id: str) -> Path | None:
                 r"^[A-Za-z0-9._-]{1,255}$", name
             ):
                 continue
-            p = _os.path.normpath(_os.path.join(full, name))
-            try:
-                if _os.path.commonpath([base, p]) != base:
-                    continue
-            except Exception:
-                continue
+            p = full / name
             # Stat via descriptor and reject symlinks (ELOOP)
             try:
-                # lgtm [py/path-injection] — p is contained via normpath+commonpath, O_NOFOLLOW used
                 fd = _os.open(
-                    p, getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0)
+                    str(p), getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0)
                 )
                 try:
                     st = _os.fstat(fd)
                 finally:
-                    try:
+                    import contextlib
+                    with contextlib.suppress(Exception):
                         _os.close(fd)
-                    except Exception:
-                        pass
             except OSError as e:  # pragma: no cover - platform dependent
                 if getattr(e, "errno", None) == getattr(_errno, "ELOOP", 62):
                     continue
@@ -693,25 +665,19 @@ def write_manifest(job_id: str) -> Path | None:
             items.append(
                 {
                     "name": name,
-                    "path": p,
+                    "path": str(p),
                     "size": st.st_size,
                     "mtime": int(st.st_mtime),
                     "media_type": media_type or "application/octet-stream",
                 }
             )
         manifest = {"job_id": job_id, "artifacts": items}
-        mf = _os.path.normpath(_os.path.join(full, "manifest.json"))
+        mf = full / "manifest.json"
         try:
-            if _os.path.commonpath([base, mf]) != base:
-                return None
-        except Exception:
-            return None
-        try:
-            # lgtm [py/path-injection] — mf is contained via normpath+commonpath
-            with open(mf, "w", encoding="utf-8") as _fh:
+            with mf.open("w", encoding="utf-8") as _fh:
                 _fh.write(json.dumps(manifest, indent=2))
         except Exception:
             return None
-        return Path(mf)
+        return mf
     except Exception:
         return None

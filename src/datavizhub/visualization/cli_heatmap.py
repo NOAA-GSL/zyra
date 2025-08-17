@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from datavizhub.visualization.heatmap_manager import HeatmapManager
-from datavizhub.utils.cli_helpers import configure_logging_from_env
-import logging
 import json
-from datavizhub.visualization.cli_utils import features_from_ns
+import logging
 from pathlib import Path
+
+from datavizhub.utils.cli_helpers import configure_logging_from_env
+from datavizhub.visualization.cli_utils import features_from_ns
+from datavizhub.visualization.heatmap_manager import HeatmapManager
 
 
 def handle_heatmap(ns) -> int:

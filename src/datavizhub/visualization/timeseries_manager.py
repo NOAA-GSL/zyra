@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from io import BytesIO
-from typing import Any, Optional, Sequence
+from typing import Any, Optional
 
 from .base import Renderer
 from .styles import FIGURE_DPI, apply_matplotlib_style

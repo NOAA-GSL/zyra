@@ -6,15 +6,15 @@ config), thin connector classes are available in ``datavizhub.connectors.clients
 """
 
 from .base import (
-    Connector,
-    Fetchable,
-    Uploadable,
-    Listable,
-    Existsable,
-    Deletable,
-    Statable,
-    Indexable,
     ByteRanged,
+    Connector,
+    Deletable,
+    Existsable,
+    Fetchable,
+    Indexable,
+    Listable,
+    Statable,
+    Uploadable,
 )
 from .clients import FTPConnector, S3Connector
 

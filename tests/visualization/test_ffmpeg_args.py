@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
-import pytest
 
+import pytest
 from datavizhub.visualization.cli_animate import _build_ffmpeg_grid_args
 
 

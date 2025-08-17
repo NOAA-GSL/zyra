@@ -2,7 +2,7 @@ import logging
 import os
 import subprocess
 from pathlib import Path
-from typing import Any, Optional, Tuple, List
+from typing import Any, List, Optional, Tuple
 
 import numpy as np
 import pygrib

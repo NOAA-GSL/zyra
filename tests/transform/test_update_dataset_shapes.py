@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 
 from datavizhub.transform import register_cli as register_transform
 

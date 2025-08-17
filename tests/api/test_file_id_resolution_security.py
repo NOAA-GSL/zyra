@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-import importlib
 
 from datavizhub.api.routers import files as files_router
 from datavizhub.api.workers.executor import resolve_upload_placeholders

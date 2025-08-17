@@ -16,7 +16,7 @@ from __future__ import annotations
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from io import BytesIO
-from typing import Callable, Iterable, List, Dict
+from typing import Callable, Iterable
 
 
 def ensure_idx_path(path: str) -> str:
@@ -36,7 +36,7 @@ def ensure_idx_path(path: str) -> str:
     return path if path.endswith(".idx") else f"{path}.idx"
 
 
-def parse_idx_lines(idx_bytes_or_text: bytes | str) -> List[str]:
+def parse_idx_lines(idx_bytes_or_text: bytes | str) -> list[str]:
     """Parse a GRIB index payload into non-empty lines.
 
     Parameters
@@ -57,7 +57,7 @@ def parse_idx_lines(idx_bytes_or_text: bytes | str) -> List[str]:
     return lines
 
 
-def idx_to_byteranges(lines: List[str], search_regex: str) -> Dict[str, str]:
+def idx_to_byteranges(lines: list[str], search_regex: str) -> dict[str, str]:
     """Convert `.idx` lines plus a variable regex into HTTP Range headers.
 
     Parameters
@@ -74,7 +74,7 @@ def idx_to_byteranges(lines: List[str], search_regex: str) -> Dict[str, str]:
         use as Range headers.
     """
     expr = re.compile(search_regex)
-    byte_ranges: Dict[str, str] = {}
+    byte_ranges: dict[str, str] = {}
     for n, line in enumerate(lines, start=1):
         if expr.search(line):
             parts = line.split(":")
@@ -94,7 +94,7 @@ def idx_to_byteranges(lines: List[str], search_regex: str) -> Dict[str, str]:
     return byte_ranges
 
 
-def compute_chunks(total_size: int, chunk_size: int = 500 * 1024 * 1024) -> List[str]:
+def compute_chunks(total_size: int, chunk_size: int = 500 * 1024 * 1024) -> list[str]:
     """Compute contiguous byte ranges that partition a file.
 
     The final range uses the file size as the inclusive end byte (matching
@@ -114,7 +114,7 @@ def compute_chunks(total_size: int, chunk_size: int = 500 * 1024 * 1024) -> List
     """
     if total_size <= 0:
         return []
-    ranges: List[str] = []
+    ranges: list[str] = []
     start_byte = 0
     # Build split points like [chunk, 2*chunk, ...] up to but not including total_size
     split_points = list(range(0, total_size, chunk_size))[1:]
@@ -155,7 +155,7 @@ def parallel_download_byteranges(
     indexed = list(enumerate(byte_ranges))
     if not indexed:
         return b""
-    results: Dict[int, bytes] = {}
+    results: dict[int, bytes] = {}
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_map = {
             executor.submit(download_func, key_or_url, rng): idx for idx, rng in indexed

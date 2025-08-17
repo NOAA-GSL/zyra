@@ -14,6 +14,7 @@ Usage (from repo root or samples/):
 from __future__ import annotations
 
 import argparse
+import contextlib
 from pathlib import Path
 
 import numpy as np
@@ -97,10 +98,8 @@ def main():
     outdir.mkdir(parents=True, exist_ok=True)
     np.save(outdir / "u_stack.npy", U)
     np.save(outdir / "v_stack.npy", V)
-    try:
+    with contextlib.suppress(Exception):
         write_netcdf(outdir, U, V)
-    except Exception:
-        pass
     print(
         f"Wrote: {outdir/'u_stack.npy'}, {outdir/'v_stack.npy'} and uv_stack.nc (if supported)"
     )

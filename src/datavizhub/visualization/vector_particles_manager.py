@@ -9,12 +9,13 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence
+
+from datavizhub.utils.geo_utils import detect_crs_from_path, warn_if_mismatch
 
 from .base import Renderer
 from .basemap import add_basemap_cartopy
 from .styles import DEFAULT_EXTENT, FIGURE_DPI, MAP_STYLES, apply_matplotlib_style
-from datavizhub.utils.geo_utils import detect_crs_from_path, warn_if_mismatch
 
 
 @dataclass
@@ -56,7 +57,7 @@ class VectorParticlesManager(Renderer):
         vvar: Optional[str] = None,
         u_path: Optional[str] = None,
         v_path: Optional[str] = None,
-    ) -> Tuple["np.ndarray", "np.ndarray"]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         import numpy as np
 
         if u_path and v_path:
@@ -82,7 +83,7 @@ class VectorParticlesManager(Renderer):
     # Seeding helpers
     def _seed_particles(
         self, seed: str, particles: int
-    ) -> Tuple["np.ndarray", "np.ndarray"]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         import numpy as np
 
         west, east, south, north = self.extent
@@ -103,8 +104,7 @@ class VectorParticlesManager(Renderer):
                 "custom seeding requires render(..., custom_seed=path_to_csv)"
             )
 
-    def _seed_custom(self, csv_path: str) -> Tuple["np.ndarray", "np.ndarray"]:
-        import numpy as np
+    def _seed_custom(self, csv_path: str) -> tuple[np.ndarray, np.ndarray]:
         import pandas as pd
 
         df = pd.read_csv(csv_path)
@@ -114,8 +114,8 @@ class VectorParticlesManager(Renderer):
 
     # Velocity sampling (nearest neighbor for simplicity)
     def _sample_uv(
-        self, U: "np.ndarray", V: "np.ndarray", lon: "np.ndarray", lat: "np.ndarray"
-    ) -> Tuple["np.ndarray", "np.ndarray"]:
+        self, U: np.ndarray, V: np.ndarray, lon: np.ndarray, lat: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
         import numpy as np
 
         ny, nx = U.shape[-2], U.shape[-1]
@@ -129,23 +129,23 @@ class VectorParticlesManager(Renderer):
 
     def _step_euler(
         self,
-        U: "np.ndarray",
-        V: "np.ndarray",
-        lon: "np.ndarray",
-        lat: "np.ndarray",
+        U: np.ndarray,
+        V: np.ndarray,
+        lon: np.ndarray,
+        lat: np.ndarray,
         dt: float,
-    ) -> Tuple["np.ndarray", "np.ndarray"]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         u, v = self._sample_uv(U, V, lon, lat)
         return lon + u * dt, lat + v * dt
 
     def _step_rk2(
         self,
-        U: "np.ndarray",
-        V: "np.ndarray",
-        lon: "np.ndarray",
-        lat: "np.ndarray",
+        U: np.ndarray,
+        V: np.ndarray,
+        lon: np.ndarray,
+        lat: np.ndarray,
         dt: float,
-    ) -> Tuple["np.ndarray", "np.ndarray"]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         # Midpoint method
         u1, v1 = self._sample_uv(U, V, lon, lat)
         lon_mid = lon + 0.5 * dt * u1
@@ -154,8 +154,8 @@ class VectorParticlesManager(Renderer):
         return lon + dt * u2, lat + dt * v2
 
     def _wrap_clamp(
-        self, lon: "np.ndarray", lat: "np.ndarray"
-    ) -> Tuple["np.ndarray", "np.ndarray"]:
+        self, lon: np.ndarray, lat: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
         import numpy as np
 
         west, east, south, north = self.extent
@@ -187,9 +187,9 @@ class VectorParticlesManager(Renderer):
         output_dir = Path(kwargs.get("output_dir", "."))
         filename_template = kwargs.get("filename_template", "frame_{index:04d}.png")
 
-        import numpy as np
-        import matplotlib.pyplot as plt
         import cartopy.crs as ccrs
+        import matplotlib.pyplot as plt
+        import numpy as np
 
         # CRS detection
         try:
@@ -238,7 +238,7 @@ class VectorParticlesManager(Renderer):
             lon, lat = self._seed_particles(seed, particles)
 
         output_dir.mkdir(parents=True, exist_ok=True)
-        frames: List[ParticleFrame] = []
+        frames: list[ParticleFrame] = []
 
         # Select integrator
         step_fn = (
@@ -314,7 +314,7 @@ class VectorParticlesManager(Renderer):
         if output_path is None:
             # default manifest next to frames
             first = self._manifest.get("frames", [{}])[0].get("path")
-            base = Path(first).parent if first else Path(".")
+            base = Path(first).parent if first else Path()
             output_path = str(base / "manifest.json")
         Path(output_path).write_text(
             json.dumps(self._manifest, indent=2), encoding="utf-8"

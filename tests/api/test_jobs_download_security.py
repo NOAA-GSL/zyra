@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
-import os
-import pytest
 
+import pytest
 from datavizhub.api.routers import jobs as jobs_router
 from fastapi import HTTPException
 

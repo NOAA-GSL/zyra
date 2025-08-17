@@ -1,12 +1,11 @@
-import os
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
 
-@pytest.mark.cli
+@pytest.mark.cli()
 def test_cli_timeseries_samples_csv(tmp_path):
     try:
         import matplotlib  # noqa: F401

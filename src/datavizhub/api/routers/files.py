@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 import os
+import re
 import uuid
 from pathlib import Path
-import re
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
-
 
 router = APIRouter(tags=["files"])
 
 UPLOAD_DIR = Path(os.environ.get("DATAVIZHUB_UPLOAD_DIR", "/tmp/datavizhub_uploads"))
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+# Avoid B008: evaluate File() at module import and reuse as default
+_FILE_REQUIRED = File(...)
 
 
 def _sanitize_filename(name: str) -> str:
@@ -29,7 +31,7 @@ def _sanitize_filename(name: str) -> str:
 
 
 @router.post("/upload")
-async def upload_file(file: UploadFile = File(...)) -> dict:
+async def upload_file(file: UploadFile = _FILE_REQUIRED) -> dict:
     file_id = uuid.uuid4().hex
     safe_name = _sanitize_filename(file.filename or "")
     # Compose destination under uploads dir and ensure it resolves within
@@ -42,8 +44,8 @@ async def upload_file(file: UploadFile = File(...)) -> dict:
             raise HTTPException(status_code=400, detail="Invalid upload path")
     except HTTPException:
         raise
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid upload path")
+    except Exception as err:
+        raise HTTPException(status_code=400, detail="Invalid upload path") from err
     try:
         with dest.open("wb") as f:
             while True:
@@ -52,5 +54,5 @@ async def upload_file(file: UploadFile = File(...)) -> dict:
                     break
                 f.write(chunk)
     except Exception as exc:  # pragma: no cover
-        raise HTTPException(status_code=500, detail=f"Upload failed: {exc}")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {exc}") from exc
     return {"file_id": file_id, "path": str(dest)}

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from datavizhub.api.routers import jobs as jobs_router
 from datavizhub.api.workers import jobs as jb
 from datavizhub.api.workers.executor import write_manifest
-from datavizhub.api.routers import jobs as jobs_router
 
 
 def test_e2e_results_manifest_and_download(tmp_path: Path) -> None:

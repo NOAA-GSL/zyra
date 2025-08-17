@@ -1,18 +1,16 @@
 from __future__ import annotations
 
-from typing import Dict, List, Set
-
 # Avoid external dependencies and sockets: call router functions directly.
 from datavizhub.api.routers import cli as cli_router
 
 
-def _get_commands() -> Dict[str, dict]:
+def _get_commands() -> dict[str, dict]:
     data = cli_router.list_cli_commands()
     assert isinstance(data, dict)
     return data
 
 
-def _get_examples() -> List[dict]:
+def _get_examples() -> list[dict]:
     payload = cli_router.list_cli_examples()
     assert isinstance(payload, dict) and "examples" in payload
     examples = payload["examples"]
@@ -49,7 +47,7 @@ def test_examples_args_match_schema() -> None:
         args = req.get("args", {}) or {}
         stage_info = cmds[stage]
         schema_items = stage_info.get("schema", {}).get(command) or []
-        allowed: Set[str] = {
+        allowed: set[str] = {
             item.get("name") for item in schema_items if item.get("name")
         }
         unknown = sorted(set(args.keys()) - allowed)

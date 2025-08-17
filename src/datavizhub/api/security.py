@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-import os
-import time
-import logging
 import asyncio
+import logging
+import os
 import secrets
+import time
 from threading import Lock
-from typing import Dict, List
 
-from fastapi import HTTPException, Security, Request
+from fastapi import HTTPException, Request, Security
 from fastapi.security.api_key import APIKeyHeader
-
 
 API_KEY_ENV = "DATAVIZHUB_API_KEY"
 API_KEY_HEADER_ENV = "DATAVIZHUB_API_KEY_HEADER"
@@ -19,7 +17,7 @@ HEADER_NAME = os.environ.get(API_KEY_HEADER_ENV, "X-API-Key")
 api_key_header = APIKeyHeader(name=HEADER_NAME, auto_error=False)
 
 # Simple in-memory throttle for failed auth attempts (per client IP)
-_FAIL_LOG: Dict[str, List[float]] = {}
+_FAIL_LOG: dict[str, list[float]] = {}
 _FAIL_LOCK: Lock = Lock()
 
 

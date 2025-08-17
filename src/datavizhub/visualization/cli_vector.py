@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from datavizhub.visualization.vector_field_manager import VectorFieldManager
-from datavizhub.utils.cli_helpers import configure_logging_from_env
-from datavizhub.visualization.cli_utils import features_from_ns
+import json
 import logging
 from pathlib import Path
-import json
+
+from datavizhub.utils.cli_helpers import configure_logging_from_env
+from datavizhub.visualization.cli_utils import features_from_ns
+from datavizhub.visualization.vector_field_manager import VectorFieldManager
 
 
 def handle_vector(ns) -> int:

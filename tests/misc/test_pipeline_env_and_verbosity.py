@@ -1,5 +1,4 @@
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -12,7 +11,7 @@ def _run_cli(args, input_bytes: bytes | None = None):
     return subprocess.run(cmd, input=input_bytes, capture_output=True)
 
 
-@pytest.mark.pipeline
+@pytest.mark.pipeline()
 def test_env_interpolation_expands_and_strict_errors(tmp_path: Path, monkeypatch):
     cfg = {
         "name": "env-expand",
@@ -80,7 +79,7 @@ def test_env_interpolation_expands_and_strict_errors(tmp_path: Path, monkeypatch
     assert b"Environment variable not set" in res2.stderr or res2.stdout
 
 
-@pytest.mark.pipeline
+@pytest.mark.pipeline()
 def test_runner_verbosity_flags_print_headings(tmp_path: Path):
     cfg = {
         "name": "verbosity",

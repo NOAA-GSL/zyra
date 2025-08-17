@@ -4,12 +4,12 @@ import argparse
 from typing import Any
 
 from datavizhub.cli_common import add_input_option
-from datavizhub.utils.cli_helpers import configure_logging_from_env
-from datavizhub.utils.io_utils import open_input
+from datavizhub.connectors.backends import ftp as ftp_backend
 from datavizhub.connectors.backends import http as http_backend
 from datavizhub.connectors.backends import s3 as s3_backend
-from datavizhub.connectors.backends import ftp as ftp_backend
 from datavizhub.connectors.backends import vimeo as vimeo_backend
+from datavizhub.utils.cli_helpers import configure_logging_from_env
+from datavizhub.utils.io_utils import open_input
 
 
 def _read_all(path_or_dash: str) -> bytes:
@@ -20,7 +20,6 @@ def _read_all(path_or_dash: str) -> bytes:
 def _cmd_local(ns: argparse.Namespace) -> int:
     """Write stdin or input file to a local path (creates parents)."""
     configure_logging_from_env()
-    import os
     from pathlib import Path
 
     data = _read_all(ns.input)
@@ -31,7 +30,7 @@ def _cmd_local(ns: argparse.Namespace) -> int:
         with dest.open("wb") as f:
             f.write(data)
     except OSError as exc:
-        raise SystemExit(f"Failed to write local file: {exc}")
+        raise SystemExit(f"Failed to write local file: {exc}") from exc
     import logging
 
     logging.info(str(dest))
@@ -117,10 +116,10 @@ def register_cli(dec_subparsers: Any) -> None:
                 uri = vimeo_backend.update_video(path, ns.replace_uri)
             # Optional description update
             if getattr(ns, "description", None):
-                try:
+                from contextlib import suppress
+
+                with suppress(Exception):
                     vimeo_backend.update_description(uri, ns.description)
-                except Exception:
-                    pass
         else:
             # Upload new video
             path = ns.input

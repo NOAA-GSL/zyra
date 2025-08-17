@@ -1,7 +1,8 @@
 import os
-import pytest
 import subprocess
 import sys
+
+import pytest
 
 # Skip tile tests unless contextily is available and explicitly enabled
 has_contextily = False
@@ -19,7 +20,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest.mark.cli
+@pytest.mark.cli()
 def test_heatmap_tiles_smoke(tmp_path):
     out_file = tmp_path / "heatmap_tiles.png"
     cmd = [
@@ -42,7 +43,7 @@ def test_heatmap_tiles_smoke(tmp_path):
     assert out_file.exists()
 
 
-@pytest.mark.cli
+@pytest.mark.cli()
 def test_animate_tiles_smoke(tmp_path):
     out_dir = tmp_path / "frames"
     manifest = tmp_path / "manifest.json"
@@ -77,7 +78,7 @@ def test_animate_tiles_smoke(tmp_path):
     assert first.exists()
 
 
-@pytest.mark.cli
+@pytest.mark.cli()
 def test_contour_tiles_smoke(tmp_path):
     out_file = tmp_path / "contour_tiles.png"
     cmd = [

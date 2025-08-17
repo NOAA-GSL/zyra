@@ -31,7 +31,8 @@ def test_cli_animate_heatmap_npy():
 
         pytest.skip(f"Visualization deps missing: {e}")
 
-    import subprocess, sys
+    import subprocess
+    import sys
 
     t, ny, nx = 3, 16, 32
     stack = np.random.rand(t, ny, nx).astype("float32")
@@ -92,7 +93,8 @@ def test_cli_animate_vector_npy(ensure_uv_stacks):
 
         pytest.skip(f"Visualization deps missing: {e}")
 
-    import subprocess, sys
+    import subprocess
+    import sys
 
     up, vp = ensure_uv_stacks
     with tempfile.TemporaryDirectory() as td:
