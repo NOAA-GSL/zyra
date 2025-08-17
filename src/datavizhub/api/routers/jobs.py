@@ -23,7 +23,14 @@ router = APIRouter(tags=["jobs"])
 
 def _results_dir_for(job_id: str) -> Path:
     root = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
-    return root / job_id
+    # Normalize and check that the job_id does not escape the root directory
+    rd = (root / job_id).resolve()
+    base = root.resolve()
+    try:
+        _ = rd.relative_to(base)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+    return rd
 
 
 def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
