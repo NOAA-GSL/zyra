@@ -89,7 +89,8 @@ def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
     if os.path.isabs(job_id) or job_id != os.path.basename(job_id) or not SAFE_JOB_ID_RE.fullmatch(job_id):
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
-    rd = _results_dir_for(job_id)
+    jid = job_id  # use a distinct, validated variable for clarity
+    rd = _results_dir_for(jid)
     if not rd.exists():
         raise HTTPException(status_code=404, detail="Results not found")
     if specific_file:
@@ -198,7 +199,12 @@ def download_job_output(
     - file: Specific filename from the job manifest (guards path traversal)
     - zip: When 1, package current artifacts into a zip on demand
     """
-    rec = jobs_backend.get_job(job_id)
+    # Validate job_id early and use a distinct variable to avoid taint flow
+    jid = job_id
+    if not isinstance(jid, str) or not jid or os.path.isabs(jid) or jid != os.path.basename(jid) or not SAFE_JOB_ID_RE.fullmatch(jid):
+        raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+
+    rec = jobs_backend.get_job(jid)
     if not rec:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -222,12 +228,12 @@ def download_job_output(
 
     # Choose file: either query param, or pick default in results dir
     if zip and int(zip) == 1:
-        zp = _zip_results_dir(job_id)
+        zp = _zip_results_dir(jid)
         if not zp:
             raise HTTPException(status_code=404, detail="No artifacts to zip")
         p = zp
     else:
-        p = _select_download_path(job_id, file)
+        p = _select_download_path(jid, file)
 
     if not p.exists():
         # If TTL cleanup removed it
