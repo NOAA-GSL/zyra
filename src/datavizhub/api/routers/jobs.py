@@ -52,6 +52,9 @@ def _results_dir_for(job_id: str) -> Path:
     # Normalize and check that the job_id does not escape the root directory
     rd = (root / job_id).resolve()
     base = root.resolve()
+    # Ensure the root directory is not a symlink
+    if root.is_symlink():
+        raise HTTPException(status_code=500, detail="Results root directory misconfigured (symlink not allowed)")
     try:
         _ = rd.relative_to(base)
     except ValueError:
