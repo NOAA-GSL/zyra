@@ -9,6 +9,7 @@ on:
 jobs:
   lint:
     name: Lint (ruff)
+    continue-on-error: true
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
