@@ -116,12 +116,25 @@ def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
                 raise HTTPException(status_code=400, detail="Invalid file parameter")
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid file parameter")
-        p = Path(full_file)
-        # Reject symlink targets with 400 (invalid parameter)
-        if p.is_symlink():
-            raise HTTPException(status_code=400, detail="Invalid file parameter")
-        # Existence is inferred from membership in os.listdir above; return path
-        return p
+        # Reject symlink targets using O_NOFOLLOW when available and ensure existence
+        try:
+            import errno as _errno, os as _os
+            flags = getattr(_os, "O_RDONLY", 0)
+            nofollow = getattr(_os, "O_NOFOLLOW", 0)
+            fd = _os.open(full_file, flags | nofollow)
+            try:
+                _os.close(fd)
+            except Exception:
+                pass
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail="Requested file not found")
+        except OSError as e:  # pragma: no cover - platform dependent
+            # ELOOP indicates a symlink was encountered when O_NOFOLLOW is honored
+            if getattr(e, "errno", None) == getattr(_errno, "ELOOP", 62):
+                raise HTTPException(status_code=400, detail="Invalid file parameter")
+            # Fall back to conservative 404 for other OS errors
+            raise HTTPException(status_code=404, detail="Requested file not found")
+        return Path(full_file)
     # No specific file requested; let the caller decide (e.g., use job output_file)
     raise HTTPException(status_code=404, detail="No artifacts available")
 
@@ -209,22 +222,32 @@ def download_job_output(
                 return None
         except Exception:
             return None
-        rd = Path(full)
-        zpath = rd / f"{job_id}.zip"
-        # Build zip using manifest when available (no directory iteration)
+        # Build manifest and zip paths using normalized joins (no Path ops)
         try:
             import json
             import zipfile
-            mf = rd / "manifest.json"
+            mf = os.path.normpath(os.path.join(full, "manifest.json"))
+            try:
+                if os.path.commonpath([base, mf]) != base:
+                    return None
+            except Exception:
+                return None
             items = []
             try:
-                data = json.loads(mf.read_text(encoding="utf-8"))
+                with open(mf, "r", encoding="utf-8") as _fh:
+                    data = json.load(_fh)
                 items = data.get("artifacts") or []
             except Exception:
                 items = []
             if not items:
                 return None
-            with zipfile.ZipFile(str(zpath), mode="w", compression=zipfile.ZIP_DEFLATED) as zf:  # type: ignore[attr-defined]
+            zpath = os.path.normpath(os.path.join(full, f"{job_id}.zip"))
+            try:
+                if os.path.commonpath([base, zpath]) != base:
+                    return None
+            except Exception:
+                return None
+            with zipfile.ZipFile(zpath, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:  # type: ignore[attr-defined]
                 for it in items:
                     if not isinstance(it, dict):
                         continue
@@ -245,7 +268,7 @@ def download_job_output(
                         zf.write(fp, name)
                     except Exception:
                         continue
-            return zpath
+            return Path(zpath)
         except Exception:
             return None
 
@@ -276,12 +299,14 @@ def download_job_output(
                         import json
                         # Generate a manifest on demand when missing/empty
                         try:
-                            data = json.loads(Path(mf).read_text(encoding="utf-8"))
+                            with open(mf, "r", encoding="utf-8") as _fh:
+                                data = json.load(_fh)
                         except FileNotFoundError:
                             try:
                                 from datavizhub.api.workers.executor import write_manifest as _wm
                                 _wm(jid)
-                                data = json.loads(Path(mf).read_text(encoding="utf-8"))
+                                with open(mf, "r", encoding="utf-8") as _fh:
+                                    data = json.load(_fh)
                             except Exception:
                                 data = {"artifacts": []}
                         arts = data.get("artifacts") or []
@@ -296,16 +321,33 @@ def download_job_output(
             if not p:
                 raise HTTPException(status_code=404, detail="No artifacts available")
 
-    # Re-anchor the selected path under the contained base/jid using only its basename
+    # Re-anchor the selected path under the contained base/jid using only its basename,
+    # and obtain a file descriptor for TTL checks without path-based stat calls.
     try:
         base = os.path.normpath(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
-        fname = os.path.basename(p.name)
+        # Support when p is a Path or a string
+        pname = p.name if hasattr(p, "name") else str(p)
+        fname = os.path.basename(pname)
         if not _is_safe_segment(fname):
             raise HTTPException(status_code=400, detail="Invalid file parameter")
         fullp = os.path.normpath(os.path.join(base, jid, fname))
         if os.path.commonpath([base, fullp]) != base:
             raise HTTPException(status_code=400, detail="Invalid file parameter")
-        p = Path(fullp)
+        import os as _os, errno as _errno
+        fd = _os.open(fullp, getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0))
+        try:
+            st = _os.fstat(fd)
+        finally:
+            try:
+                _os.close(fd)
+            except Exception:
+                pass
+    except FileNotFoundError:
+        raise HTTPException(status_code=410, detail="Output file no longer available")
+    except OSError as e:  # pragma: no cover - platform dependent
+        if getattr(e, "errno", None) == getattr(_errno, "ELOOP", 62):
+            raise HTTPException(status_code=400, detail="Invalid file parameter")
+        raise HTTPException(status_code=410, detail="Output file no longer available")
     except HTTPException:
         raise
     except Exception:
@@ -318,9 +360,6 @@ def download_job_output(
         ttl = 86400
     try:
         import time
-        import os as _os
-        with p.open('rb') as _fh:
-            st = _os.fstat(_fh.fileno())
         age = time.time() - st.st_mtime
         if age > ttl:
             raise HTTPException(status_code=410, detail="Output file expired")
@@ -336,7 +375,7 @@ def download_job_output(
         media_type = str(mt) if mt else None
     except Exception:
         media_type, _ = mimetypes.guess_type(p.name)
-    return FileResponse(str(p), media_type=media_type or "application/octet-stream", filename=p.name)
+    return FileResponse(fullp, media_type=media_type or "application/octet-stream", filename=fname)
 
 
 @router.get(
@@ -368,11 +407,28 @@ def get_job_manifest(job_id: str):
             raise HTTPException(status_code=400, detail="Invalid job_id parameter")
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
-    import json
+    import json, os as _os, errno as _errno
     try:
-        with open(mf, "r", encoding="utf-8") as fh:
-            return json.load(fh)
+        fd = _os.open(mf, getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0))
+        try:
+            chunks: list[bytes] = []
+            while True:
+                b = _os.read(fd, 8192)
+                if not b:
+                    break
+                chunks.append(b)
+            data = b"".join(chunks).decode("utf-8", errors="strict")
+        finally:
+            try:
+                _os.close(fd)
+            except Exception:
+                pass
+        return json.loads(data)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Manifest not found")
+    except OSError as e:  # pragma: no cover - platform dependent
+        if getattr(e, "errno", None) == getattr(_errno, "ELOOP", 62):
+            raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+        raise HTTPException(status_code=500, detail="Failed to read manifest")
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to read manifest")

@@ -6,6 +6,7 @@ import uuid
 from dataclasses import dataclass, field
 import os
 from pathlib import Path
+import re
 import shutil
 import zipfile
 import time
@@ -481,17 +482,30 @@ def cancel_job(job_id: str) -> bool:
         rec["status"] = "canceled"
         return True
     return False
+_SAFE_JOB_ID_RE = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
+
+
 def _ensure_results_dir(job_id: str) -> Path:
     """Return the results dir for a job, creating it lazily.
 
     Computes the root from ``DATAVIZHUB_RESULTS_DIR`` at call time to avoid
     module-level side effects and ensure the directory exists.
     """
-    root = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
-    root.mkdir(parents=True, exist_ok=True)
-    d = root / job_id
-    d.mkdir(parents=True, exist_ok=True)
-    return d
+    # Validate job_id as a single safe segment
+    if not isinstance(job_id, str) or not job_id:
+        raise ValueError("invalid job_id")
+    if os.path.isabs(job_id) or job_id != os.path.basename(job_id) or not _SAFE_JOB_ID_RE.fullmatch(job_id):
+        raise ValueError("invalid job_id")
+    base = os.path.normpath(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+    full = os.path.normpath(os.path.join(base, job_id))
+    try:
+        if os.path.commonpath([base, full]) != base:
+            raise ValueError("invalid job_id")
+    except Exception:
+        raise ValueError("invalid job_id")
+    # Create directory lazily without using Path-joins on untrusted input
+    os.makedirs(full, exist_ok=True)
+    return Path(full)
 
 
 def zip_output_dir(job_id: str, output_dir: str) -> str | None:
@@ -584,31 +598,79 @@ def _guess_mime_for_file(path: Path) -> str:
 
 
 def write_manifest(job_id: str) -> Path | None:
-    """Write a manifest.json listing all artifacts in the job results dir."""
+    """Write a manifest.json listing all artifacts in the job results dir.
+
+    Uses contained, normalized joins and descriptor-based stats to avoid
+    path-based operations on user-influenced values.
+    """
     try:
-        import json
-        rd = _ensure_results_dir(job_id)
+        import json, mimetypes, os as _os, errno as _errno
+        # Derive contained results directory
+        if not isinstance(job_id, str) or not job_id:
+            return None
+        if _os.path.isabs(job_id) or job_id != _os.path.basename(job_id) or not _SAFE_JOB_ID_RE.fullmatch(job_id):
+            return None
+        base = _os.path.normpath(_os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+        full = _os.path.normpath(_os.path.join(base, job_id))
+        try:
+            if _os.path.commonpath([base, full]) != base:
+                return None
+        except Exception:
+            return None
+        _os.makedirs(full, exist_ok=True)
+
         items = []
-        for p in sorted(rd.glob("*")):
-            if p.name == "manifest.json":
+        try:
+            names = sorted(name for name in _os.listdir(full) if name != "manifest.json")
+        except FileNotFoundError:
+            names = []
+        for name in names:
+            # Skip unsafe names
+            if not _SAFE_JOB_ID_RE.fullmatch(name) and not re.fullmatch(r"^[A-Za-z0-9._-]{1,255}$", name):
                 continue
-            if p.is_file():
-                try:
-                    stat = p.stat()
-                    items.append(
-                        {
-                            "name": p.name,
-                            "path": str(p),
-                            "size": stat.st_size,
-                            "mtime": int(stat.st_mtime),
-                            "media_type": _guess_mime_for_file(p),
-                        }
-                    )
-                except Exception:
+            p = _os.path.normpath(_os.path.join(full, name))
+            try:
+                if _os.path.commonpath([base, p]) != base:
                     continue
+            except Exception:
+                continue
+            # Stat via descriptor and reject symlinks (ELOOP)
+            try:
+                fd = _os.open(p, getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0))
+                try:
+                    st = _os.fstat(fd)
+                finally:
+                    try:
+                        _os.close(fd)
+                    except Exception:
+                        pass
+            except OSError as e:  # pragma: no cover - platform dependent
+                if getattr(e, "errno", None) == getattr(_errno, "ELOOP", 62):
+                    continue
+                continue
+            # Guess media type by filename only to avoid opening the file
+            media_type, _ = mimetypes.guess_type(name)
+            items.append(
+                {
+                    "name": name,
+                    "path": p,
+                    "size": st.st_size,
+                    "mtime": int(st.st_mtime),
+                    "media_type": media_type or "application/octet-stream",
+                }
+            )
         manifest = {"job_id": job_id, "artifacts": items}
-        mf = rd / "manifest.json"
-        mf.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-        return mf
+        mf = _os.path.normpath(_os.path.join(full, "manifest.json"))
+        try:
+            if _os.path.commonpath([base, mf]) != base:
+                return None
+        except Exception:
+            return None
+        try:
+            with open(mf, "w", encoding="utf-8") as _fh:
+                _fh.write(json.dumps(manifest, indent=2))
+        except Exception:
+            return None
+        return Path(mf)
     except Exception:
         return None
