@@ -201,13 +201,19 @@ def sync_directory(
             # fall back to manager's file-by-file logic by listing then fetching.
             pass
     # List, filter, then fetch missing/zero-size files
-    names = list_files(url_or_dir, pattern, since=since, until=until, date_format=date_format) or []
+    names = (
+        list_files(
+            url_or_dir, pattern, since=since, until=until, date_format=date_format
+        )
+        or []
+    )
     if since or until:
         dm = DateManager([date_format] if date_format else None)
         start = datetime.min if not since else datetime.fromisoformat(since)
         end = datetime.max if not until else datetime.fromisoformat(until)
         names = [n for n in names if dm.is_date_in_range(n, start, end)]
     from pathlib import Path
+
     Path(local_dir).mkdir(parents=True, exist_ok=True)
     if clean_zero_bytes:
         try:
@@ -263,7 +269,13 @@ def get_size(url_or_path: str) -> Optional[int]:
         return None
 
 
-def get_idx_lines(url_or_path: str, *, write_to: Optional[str] = None, timeout: int = 30, max_retries: int = 3) -> Optional[List[str]]:
+def get_idx_lines(
+    url_or_path: str,
+    *,
+    write_to: Optional[str] = None,
+    timeout: int = 30,
+    max_retries: int = 3,
+) -> Optional[List[str]]:
     """Fetch and parse the GRIB ``.idx`` for a remote path via FTP."""
     host, remote_path, user, pwd = parse_ftp_path(url_or_path)
     ftp = FTP(timeout=30)
@@ -302,9 +314,16 @@ def get_chunks(url_or_path: str, chunk_size: int = 500 * 1024 * 1024) -> List[st
     return compute_chunks(size, chunk_size)
 
 
-def download_byteranges(url_or_path: str, byte_ranges: Iterable[str], *, max_workers: int = 10, timeout: int = 30) -> bytes:
+def download_byteranges(
+    url_or_path: str,
+    byte_ranges: Iterable[str],
+    *,
+    max_workers: int = 10,
+    timeout: int = 30,
+) -> bytes:
     """Download multiple ranges via FTP REST and concatenate in the input order."""
     host, remote_path, user, pwd = parse_ftp_path(url_or_path)
+
     def _worker(_range: str) -> bytes:
         start_end = _range.replace("bytes=", "").split("-")
         start = int(start_end[0]) if start_end[0] else 0
@@ -325,8 +344,10 @@ def download_byteranges(url_or_path: str, byte_ranges: Iterable[str], *, max_wor
             ftp.cwd(directory)
         remaining = end - start + 1
         out = BytesIO()
+
         class _Stop(Exception):
             pass
+
         def _cb(chunk: bytes):
             nonlocal remaining
             if remaining <= 0:
@@ -337,6 +358,7 @@ def download_byteranges(url_or_path: str, byte_ranges: Iterable[str], *, max_wor
                 remaining -= take
             if remaining <= 0:
                 raise _Stop()
+
         try:
             ftp.retrbinary(f"RETR {filename}", _cb, rest=start)
         except _Stop:
@@ -349,7 +371,9 @@ def download_byteranges(url_or_path: str, byte_ranges: Iterable[str], *, max_wor
         except Exception:
             pass
         return out.getvalue()
+
     from concurrent.futures import ThreadPoolExecutor
+
     results: List[bytes] = []
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
         results = list(ex.map(_worker, list(byte_ranges)))
