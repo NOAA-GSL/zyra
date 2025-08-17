@@ -44,11 +44,21 @@ def _is_safe_segment(segment: str, *, for_job_id: bool = False) -> bool:
     return bool(pat.fullmatch(segment))
 
 
-def _results_dir_for(job_id: str) -> Path:
-    root = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
-    # Strict allowlist on job_id and reject any separators/traversal
-    if not _is_safe_segment(job_id, for_job_id=True):
+def _require_safe_job_id(unsafe_job_id: str) -> str:
+    """Validate and return a safe job_id or raise HTTPException(400).
+
+    Centralizes job_id sanitization to make dataflow explicit for security
+    tools and to prevent accidental bypasses.
+    """
+    if not _is_safe_segment(unsafe_job_id, for_job_id=True):
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+    return unsafe_job_id
+
+
+def _results_dir_for(job_id: str) -> Path:
+    # Validate job_id before any path operations
+    job_id = _require_safe_job_id(job_id)
+    root = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
     # Normalize and check that the job_id does not escape the root directory
     rd = (root / job_id).resolve()
     base = root.resolve()
@@ -63,6 +73,8 @@ def _results_dir_for(job_id: str) -> Path:
 
 
 def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
+    # Validate job_id early for clarity in static analysis
+    job_id = _require_safe_job_id(job_id)
     rd = _results_dir_for(job_id)
     if not rd.exists():
         raise HTTPException(status_code=404, detail="Results not found")
@@ -177,10 +189,11 @@ def download_job_output(
         raise HTTPException(status_code=404, detail="Job not found")
 
     def _zip_results_dir(job_id: str) -> Optional[Path]:
-        rd = _results_dir_for(job_id)
+        jid = _require_safe_job_id(job_id)
+        rd = _results_dir_for(jid)
         if not rd.exists():
             return None
-        zpath = rd / f"{job_id}.zip"
+        zpath = rd / f"{jid}.zip"
         try:
             import zipfile
 
@@ -246,7 +259,8 @@ def download_job_output(
 )
 def get_job_manifest(job_id: str):
     """Return the manifest.json for job artifacts (name, path, size, mtime, media_type)."""
-    rd = _results_dir_for(job_id)
+    jid = _require_safe_job_id(job_id)
+    rd = _results_dir_for(jid)
     mf = rd / "manifest.json"
     if not mf.exists():
         raise HTTPException(status_code=404, detail="Manifest not found")
