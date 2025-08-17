@@ -16,6 +16,7 @@ DataVizHub is a utility library for building data-driven visual products. It pro
 - [Install (pip extras)](#install-pip-extras)
  - [Stage-Specific Installs](#stage-specific-installs)
 - [CLI Overview](#cli-overview)
+- [API Service](#api-service)
 - [Quick Composition Examples](#quick-composition-examples)
 - [Interactive Visualization](#interactive-visualization)
 - [Real-World Implementations](#real-world-implementations)
@@ -162,6 +163,26 @@ Notes
 - Decimate
   - Upload to S3 from stdin: `cat out.png | datavizhub decimate s3 -i - --url s3://bucket/products/out.png`
 - HTTP POST JSON: `echo '{"ok":true}' | datavizhub decimate post -i - https://example.com/ingest --content-type application/json`
+
+## Batch Mode
+
+Batch-friendly commands let you process multiple inputs in one invocation. These are ideal for quick ad‑hoc jobs or for building light pipelines without YAML.
+
+| Command | Flags | Behavior |
+|--------|-------|----------|
+| `acquire http` | `--inputs <url...>`, `--manifest file.txt`, `--output-dir OUT` | Fetch multiple HTTP/HTTPS URLs to OUT (basenames preserved). |
+| `acquire s3` | `--inputs <s3://...>`, `--manifest file.txt`, `--output-dir OUT`, `--unsigned` | Fetch multiple S3 objects (s3://bucket/key) to OUT. |
+| `acquire ftp` | `--inputs <ftp://...>`, `--manifest file.txt`, `--output-dir OUT` | Fetch multiple FTP paths to OUT. |
+| `process convert-format` | `--inputs <in...>`, `--output-dir OUT`, `--format {netcdf,geotiff}` | Convert many inputs to OUT; prints `{"outputs": [...]}`. API: pass `args.files: [..]`. |
+| `visualize heatmap` | `--inputs <in...>`, `--output-dir OUT` | Render one PNG per input in OUT. |
+| `visualize contour` | `--inputs <in...>`, `--output-dir OUT`, `--levels`, `--filled` | Render one PNG per input in OUT. |
+| `visualize vector` | `--inputs <in...>`, `--output-dir OUT` | Render one PNG per input in OUT. |
+| `visualize animate` | `--inputs <in...>`, `--output-dir OUT`, `--to-video`, `--combine-to GRID.mp4`, `--grid-cols N` | For each input, writes frames under `OUT/<base>/` and optional per‑input MP4s. Optionally composes a grid MP4 from those videos. |
+
+Notes
+- Manifests: acquisition commands accept `--manifest` with one URL/path per line (blank lines and `#` comments ignored).
+- API mapping: `process convert-format` maps `args.files` to `--inputs`; other batch commands are CLI-first.
+- Output structure: batch commands write to `--output-dir` (and may also print a JSON `outputs` list for quick scripting).
 
 ## Quick Composition Examples
 
@@ -630,6 +651,8 @@ s3.disconnect()
 
 ## Documentation
 - Primary: Project wiki at https://github.com/NOAA-GSL/datavizhub/wiki
+  - API Routers and Endpoints: https://github.com/NOAA-GSL/datavizhub/wiki/DataVizHub-API-Routers-and-Endpoints
+  - Security Quickstart: https://github.com/NOAA-GSL/datavizhub/wiki/DataVizHub-API-Security-Quickstart
 - API docs (GitHub Pages): https://noaa-gsl.github.io/datavizhub/
 - Dev container: A read-only mirror of the wiki is auto-cloned into `/wiki` when the dev container starts. It auto-refreshes at most once per hour. This folder is ignored by Git and is not part of the repository on GitHub.
 - Force refresh: `bash .devcontainer/postStart.sh --force` (or set `DOCS_REFRESH_SECONDS` to adjust the hourly cadence).
@@ -663,3 +686,133 @@ Distributed under the MIT License. See [LICENSE](LICENSE).
 ## Links
 - Source: https://github.com/NOAA-GSL/datavizhub
 - PyPI: https://pypi.org/project/datavizhub/
+## API Service
+Expose the 4-stage CLI over HTTP using FastAPI.
+
+- Install with API extras: `poetry install --with dev -E api` or `--all-extras`.
+- Run locally: `poetry run uvicorn datavizhub.api.server:app --reload --host 0.0.0.0 --port 8000`.
+- Convenience script: `./scripts/start-api.sh`.
+
+Quick links:
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+- Examples page (click-to-run): http://localhost:8000/examples
+
+Endpoints:
+- `POST /cli/run` → `{ stage, command, args, mode }` where `mode` is `sync` or `async`.
+- `GET /jobs/{job_id}` → job status, `stdout`, `stderr`, `exit_code`.
+- `GET /jobs/{job_id}/manifest` → JSON list of produced artifacts (name, path, size, mtime, media_type).
+- `GET /jobs/{job_id}/download` → download job artifact.
+  - Defaults to the packaged ZIP if present; otherwise the first artifact.
+  - `?file=NAME` serves a specific file from the manifest.
+  - `?zip=1` dynamically packages current artifacts into a ZIP and serves it.
+- `POST /upload` → multipart file upload, returns `file_id` and `path`.
+- `WS /ws/jobs/{job_id}` → streaming updates (JSON messages).
+  - In-memory mode: WebSocket streaming is supported without Redis as a lightweight pub/sub for logs/progress.
+  - Messages are JSON lines with keys like `stdout`, `stderr`, `progress`, and a final payload including `exit_code` and `output_file` when available.
+
+Example request:
+```
+POST /cli/run
+{
+  "stage": "process",
+  "command": "decode-grib2",
+  "args": { "file_or_url": "s3://bucket/key.grib2", "backend": "cfgrib" },
+  "mode": "sync"
+}
+```
+
+Notes:
+- For convenience, `args.input` is treated as `file_or_url` for processing commands.
+- This service runs CLI functions in-process; no shelling out is used.
+ - Optional async backend: set `DATAVIZHUB_USE_REDIS=1` and `DATAVIZHUB_REDIS_URL=redis://host:6379/0`; run an RQ worker: `poetry run rq worker datavizhub`.
+ - WebSocket usage: connect to `ws://localhost:8000/ws/jobs/{job_id}`.
+   - Without Redis, in-memory streaming is enabled by default.
+   - websocat quickstart:
+     ```bash
+     # After creating a job and getting $JOB
+     npx wscat -c ws://localhost:8000/ws/jobs/$JOB
+     ```
+   - Python websockets:
+     ```python
+     import asyncio, json, websockets
+     async def stream(job_id: str):
+         async with websockets.connect(f"ws://localhost:8000/ws/jobs/{job_id}") as ws:
+             async for msg in ws:
+                 print(json.loads(msg))
+     asyncio.run(stream("<job_id>"))
+     ```
+
+Curl upload → run (async) → WebSocket stream → download:
+```bash
+# 1) Upload
+FID=$(curl -sF file=@samples/demo.nc http://localhost:8000/upload | jq -r .file_id)
+# 2) Run async job
+JOB=$(curl -s -H 'Content-Type: application/json' \
+  -d '{"stage":"process","command":"convert-format","mode":"async","args":{"file_or_url":"file_id:'"$FID"'","format":"netcdf","stdout":true}}' \
+  http://localhost:8000/cli/run | jq -r .job_id)
+# 3) Stream logs
+npx wscat -c ws://localhost:8000/ws/jobs/$JOB
+# 4) Download result
+curl -OJL http://localhost:8000/jobs/$JOB/download
+```
+
+Upload → Run integration:
+- `POST /upload` returns a `file_id` and `path` in the upload directory.
+- You can reference uploaded files in `/cli/run` requests by using a placeholder value `file_id:YOUR_ID` on common input args (`file_or_url`, `input`, `file`, `path`, `url`) or by passing `args.file_id` directly.
+- The API resolves placeholders to absolute paths under the upload directory before executing the CLI.
+- Example (replace the placeholder with a real `file_id`):
+
+```
+POST /cli/run
+{
+  "stage": "process",
+  "command": "convert-format",
+  "mode": "sync",
+  "args": {
+    "file_or_url": "file_id:REPLACE_WITH_FILE_ID",
+    "format": "netcdf",
+    "stdout": true
+  }
+}
+```
+
+Strict file_id resolution:
+- Set `DATAVIZHUB_STRICT_FILE_ID=1` to return `404` if any `file_id` cannot be resolved to an uploaded file path at request time.
+
+Results, TTL, and cleanup:
+- Results are stored under `DATAVIZHUB_RESULTS_DIR` (default `/tmp/datavizhub_results/{job_id}/`).
+- `/jobs/{job_id}/download` enforces TTL via `DATAVIZHUB_RESULTS_TTL_SECONDS` (default 86400s).
+- A background cleanup task removes expired files and prunes empty job dirs at `DATAVIZHUB_RESULTS_CLEAN_INTERVAL_SECONDS` (default 3600s).
+- For heavier-duty cleanup, consider a sidecar (e.g., `tmpreaper`) targeting the results dir.
+
+In‑memory job TTL (non‑Redis mode):
+- When Redis is disabled, the API uses an in‑memory job store for status/results.
+- Completed jobs (`succeeded`, `failed`, `canceled`) are pruned after `DATAVIZHUB_JOBS_TTL_SECONDS` (default 3600s).
+- Set `DATAVIZHUB_JOBS_TTL_SECONDS=0` (or negative) to disable in‑memory TTL cleanup.
+
+MIME detection (optional):
+- Install extra for richer MIME detection: `poetry install --with mime`.
+- Falls back to `mimetypes` when `python-magic` is not installed.
+
+WebSocket client extra:
+- Install `poetry install --with ws` to enable the `datavizhub-cli --ws` streaming option (bundles `websockets`).
+See Batch Mode section for multi-input workflows across acquisition, processing, and visualization.
+### Running Tests
+
+- Install dev deps and optional extras:
+  - Core dev: `poetry install --with dev`
+  - Add HTTP client for TestClient-based tests: `poetry add -G dev httpx`
+  - Optional WebSocket client for the CLI wrapper: `poetry install --with ws`
+- Run tests:
+  - All tests: `poetry run pytest -q`
+- Snapshot update (paths + hash) in one go: `bash scripts/update_openapi_snapshot.sh`
+- Snapshot check (full OpenAPI SHA256): `poetry run pytest -q -k openapi_hash_snapshot`
+- Markers: use `-m redis` for Redis-only tests (skipped by default locally).
+### Security (API Key)
+
+- Enable API key auth by setting `DATAVIZHUB_API_KEY` (and optionally `DATAVIZHUB_API_KEY_HEADER`, default `X-API-Key`).
+- All API routers (CLI, files, jobs) enforce this key; docs remain readable.
+- Clients send the key in the header (default): `X-API-Key: <your-key>`.
+- WebSocket: include `?api_key=<your-key>` in the URL (e.g., `ws://host/ws/jobs/<job_id>?api_key=KEY`).
+- `/examples` includes an API key field and will pass it in requests and WS URLs.

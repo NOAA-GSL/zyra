@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import sys
 from datavizhub.cli import main as root_main
+from typing import List
 
 
-def main(argv: list[str] | None = None) -> int:  # pragma: no cover - thin wrapper
+def main(argv: List[str] | None = None) -> int:  # pragma: no cover - thin wrapper
     return root_main(argv or sys.argv[1:])
 
 

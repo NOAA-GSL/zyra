@@ -2,7 +2,7 @@ import logging
 import os
 import subprocess
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, List
 
 import numpy as np
 import pygrib
@@ -130,7 +130,7 @@ class GRIBDataProcessor(DataProcessor):
             logging.error(f"Error reading GRIB file: {e}")
 
     @staticmethod
-    def read_grib_to_numpy(grib_file_path: str, shift_180: bool = False) -> Tuple[Optional[list], Optional[list]]:
+    def read_grib_to_numpy(grib_file_path: str, shift_180: bool = False) -> Tuple[Optional[List], Optional[List]]:
         """Convert a GRIB file into a list of 2D arrays and dates.
 
         Parameters
@@ -219,7 +219,7 @@ class GRIBDataProcessor(DataProcessor):
         return np.roll(data, shift, axis=1)
 
     @staticmethod
-    def process_grib_files_wgrib2(grib_dir: str, command: list[str], output_file: str) -> None:
+    def process_grib_files_wgrib2(grib_dir: str, command: List[str], output_file: str) -> None:
         """Invoke an external wgrib2 command for each file in a directory.
 
         Parameters

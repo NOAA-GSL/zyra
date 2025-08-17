@@ -20,7 +20,7 @@ Advanced Features
 import logging
 import re
 from pathlib import Path
-from typing import Iterable, Optional, Iterable as _Iterable
+from typing import Iterable, Optional, Iterable as _Iterable, List, Dict
 from urllib.parse import urljoin
 
 import requests
@@ -134,7 +134,7 @@ class HTTPHandler(DataAcquirer):
             return []
 
         hrefs = re.findall(r'href=["\']([^"\']+)["\']', text, re.IGNORECASE)
-        results: list[str] = []
+        results: List[str] = []
         for href in hrefs:
             if href.startswith("?") or href.startswith("#"):
                 continue
@@ -188,7 +188,7 @@ class HTTPHandler(DataAcquirer):
         write_to: Optional[str] = None,
         timeout: int = 30,
         max_retries: int = 3,
-    ) -> Optional[list[str]]:
+    ) -> Optional[List[str]]:
         """Fetch and parse the GRIB index (``.idx``) for a URL.
 
         Appends ``.idx`` to ``url`` unless an explicit ``.idx`` path is provided.
@@ -213,10 +213,10 @@ class HTTPHandler(DataAcquirer):
                 pass
         return lines
 
-    def idx_to_byteranges(self, lines: list[str], search_str: str) -> dict[str, str]:
+    def idx_to_byteranges(self, lines: List[str], search_str: str) -> Dict[str, str]:
         return _idx_to_byteranges(lines, search_str)
 
-    def get_chunks(self, url: str, chunk_size: int = 500 * 1024 * 1024) -> list[str]:
+    def get_chunks(self, url: str, chunk_size: int = 500 * 1024 * 1024) -> List[str]:
         size = self.get_size(url)
         if size is None:
             return []

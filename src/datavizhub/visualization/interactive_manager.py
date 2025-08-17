@@ -35,13 +35,13 @@ class InteractiveManager(Renderer):
         self.cmap = kwargs.get("cmap", self.cmap)
 
     # --- Input helpers -----------------------------------------------------
-    def _load_grid(self, *, input_path: str, var: Optional[str] = None):
+    def _load_grid(self, *, input_path: str, var: Optional[str] = None, xarray_engine: Optional[str] = None):
         if input_path.lower().endswith((".nc", ".nc4")):
             import xarray as xr
 
             if not var:
                 raise ValueError("--var is required for NetCDF inputs")
-            ds = xr.open_dataset(input_path)
+            ds = xr.open_dataset(input_path, engine=xarray_engine) if xarray_engine else xr.open_dataset(input_path)
             try:
                 arr = ds[var].values
             finally:
@@ -62,7 +62,7 @@ class InteractiveManager(Renderer):
             raise ValueError("CSV points require 'lat' and 'lon' columns")
         return df
 
-    def _load_vector(self, *, input_path: Optional[str] = None, uvar: Optional[str] = None, vvar: Optional[str] = None, u_path: Optional[str] = None, v_path: Optional[str] = None):
+    def _load_vector(self, *, input_path: Optional[str] = None, uvar: Optional[str] = None, vvar: Optional[str] = None, u_path: Optional[str] = None, v_path: Optional[str] = None, xarray_engine: Optional[str] = None):
         import numpy as np
         if u_path and v_path:
             U = np.load(u_path)
@@ -72,7 +72,7 @@ class InteractiveManager(Renderer):
 
             if not uvar or not vvar:
                 raise ValueError("--uvar and --vvar are required for NetCDF vector inputs")
-            ds = xr.open_dataset(input_path)
+            ds = xr.open_dataset(input_path, engine=xarray_engine) if xarray_engine else xr.open_dataset(input_path)
             try:
                 U = ds[uvar].values
                 V = ds[vvar].values
@@ -341,7 +341,7 @@ class InteractiveManager(Renderer):
         html = ""
         if engine == "folium":
             if mode in ("heatmap", "contour"):
-                arr = data if data is not None else self._load_grid(input_path=input_path, var=var)
+                arr = data if data is not None else self._load_grid(input_path=input_path, var=var, xarray_engine=kwargs.get("xarray_engine"))
                 try:
                     in_crs = detect_crs_from_path(input_path) if input_path else TARGET_CRS
                     warn_if_mismatch(in_crs, reproject=bool(kwargs.get("reproject", False)), context="interactive")
@@ -395,7 +395,7 @@ class InteractiveManager(Renderer):
                     layer_control=bool(kwargs.get("layer_control", False)),
                 )
             elif mode == "vector":
-                U, V = self._load_vector(input_path=input_path, uvar=kwargs.get("uvar"), vvar=kwargs.get("vvar"), u_path=kwargs.get("u"), v_path=kwargs.get("v"))
+                U, V = self._load_vector(input_path=input_path, uvar=kwargs.get("uvar"), vvar=kwargs.get("vvar"), u_path=kwargs.get("u"), v_path=kwargs.get("v"), xarray_engine=kwargs.get("xarray_engine"))
                 if bool(kwargs.get("streamlines", False)):
                     html = self._folium_vector_streamlines(
                         U,

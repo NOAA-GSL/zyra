@@ -38,8 +38,8 @@ jobs:
           restore-keys: |
             poetry-${{ runner.os }}-
 
-      - name: Install dependencies with Poetry
-        run: poetry install --no-root --with dev
+      - name: Install dependencies with Poetry (dev + API extras)
+        run: poetry install --no-root --with dev -E api
 
       - name: Run tests with coverage
         run: poetry run pytest --cov=src --cov-report=xml --cov-report=term-missing

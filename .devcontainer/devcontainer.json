@@ -15,6 +15,5 @@
       ]
     }
   },
-"postStartCommand": "bash .devcontainer/postStart.sh"
-
+  "forwardPorts": [8000, 6379]
 }
