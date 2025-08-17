@@ -36,4 +36,3 @@ def test_compute_chunks():
     assert len(ranges) == 4
     assert ranges[0] == "bytes=0-255"
     assert ranges[-1] == "bytes=768-1024"
-

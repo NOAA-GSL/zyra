@@ -1,2 +1,35 @@
-"""Connectors package: ingest and egress submodules and shared backends."""
+"""Connectors package: ingest and egress submodules and shared backends.
 
+Primary usage favors functional backends under ``datavizhub.connectors.backends``.
+For flows that benefit from a light OO wrapper (e.g., persisting bucket/host
+config), thin connector classes are available in ``datavizhub.connectors.clients``.
+"""
+
+from .base import (
+    Connector,
+    Fetchable,
+    Uploadable,
+    Listable,
+    Existsable,
+    Deletable,
+    Statable,
+    Indexable,
+    ByteRanged,
+)
+from .clients import FTPConnector, S3Connector
+
+__all__ = [
+    # Base typing and optional abstract
+    "Connector",
+    "Fetchable",
+    "Uploadable",
+    "Listable",
+    "Existsable",
+    "Deletable",
+    "Statable",
+    "Indexable",
+    "ByteRanged",
+    # Light OO wrappers
+    "FTPConnector",
+    "S3Connector",
+]

@@ -34,3 +34,22 @@ Modules
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: datavizhub.utils.cli_helpers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: datavizhub.utils.io_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: datavizhub.utils.geo_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: datavizhub.utils.grib
+   :members:
+   :undoc-members:
+   :show-inheritance:

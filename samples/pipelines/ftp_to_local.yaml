@@ -1,0 +1,43 @@
+name: FTP → Transform → Video → Local
+stages:
+  # 1) Acquire frames by syncing an FTP directory to local (anonymous example)
+  - stage: acquire
+    command: ftp
+    args:
+      # Anonymous FTP credentials (URL-encoded '@' in password)
+      path: ftp://anonymous:test%40example.com@ftp.example.com/pub/frames/
+      sync_dir: ./frames
+      pattern: "image_(\\d{8})\\.png"
+      since_period: "P1Y"
+      date_format: "%Y%m%d"
+
+  # 2) Compute frames metadata (JSON)
+  - stage: transform
+    command: metadata
+    args:
+      frames_dir: ./frames
+      datetime_format: "%Y%m%d"
+      period_seconds: 3600
+      output: frames_meta.json
+
+  # 3) Compose frames into a video
+  - stage: visualize
+    command: compose-video
+    args:
+      frames: ./frames
+      output: video.mp4
+      fps: 24
+
+  # 4) Copy outputs to local filesystem (no network required)
+  - stage: decimate
+    command: local
+    args:
+      input: frames_meta.json
+      path: /tmp/frames_meta.json
+
+  - stage: decimate
+    command: local
+    args:
+      input: video.mp4
+      path: /tmp/video.mp4
+

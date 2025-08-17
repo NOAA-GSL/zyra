@@ -22,7 +22,9 @@ def test_timeseries_manager_csv():
         pd.DataFrame({"time": x, "value": y}).to_csv(csv_path, index=False)
 
         mgr = TimeSeriesManager(title="Demo", xlabel="time", ylabel="value")
-        mgr.render(input_path=csv_path, x="time", y="value", width=320, height=200, dpi=96)
+        mgr.render(
+            input_path=csv_path, x="time", y="value", width=320, height=200, dpi=96
+        )
         out = os.path.join(td, "ts.png")
         path = mgr.save(out)
         assert path and os.path.exists(path)

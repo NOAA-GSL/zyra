@@ -1,0 +1,71 @@
+name: rtvideo parity: drought weekly
+stages:
+  # 1) Acquire frames from FTP (anonymous) into local directory with 1Y lookback
+  - stage: acquire
+    command: ftp
+    args:
+      path: ftp://anonymous:sosrt%40noaa.gov@ftp.nnvl.noaa.gov/SOS/DroughtRisk_Weekly
+      sync_dir: /data/images/drought
+      # Filter only weekly drought images and parse dates from filenames
+      pattern: "DroughtRisk_Weekly_(\\d{8})\\.png"
+      date_format: "%Y%m%d"
+      period: "1Y"
+
+  # 2) Compute frames metadata
+  - stage: transform
+    command: metadata
+    args:
+      frames_dir: /data/images/drought
+      # Match filename dates and expected weekly cadence
+      datetime_format: "%Y%m%d"
+      period_seconds: 604800   # 1 week cadence
+      output: /data/images/drought/frames_meta.json
+
+  # 3) Compose frames to MP4
+  - stage: visualize
+    command: compose-video
+    args:
+      frames: /data/images/drought
+      output: /data/output/drought.mp4
+      fps: 24
+
+  # 4) Upload/replace Vimeo video (prints URI to stdout)
+  - stage: decimate
+    command: vimeo
+    args:
+      input: /data/output/drought.mp4
+      replace_uri: "/videos/900195230"
+      name: "Drought Weekly"
+      description: "Weekly drought risk update"
+
+  # 5) Enrich metadata with dataset id and Vimeo URI from previous step
+  - stage: transform
+    command: enrich-metadata
+    args:
+      frames_meta: /data/images/drought/frames_meta.json
+      dataset_id: INTERNAL_SOS_DROUGHT_RT
+      read_vimeo_uri: true
+      output: /data/images/drought/enriched_meta.json
+
+  # 6) Upload enriched metadata to S3 (configure your bucket/key)
+  - stage: decimate
+    command: s3
+    args:
+      input: /data/images/drought/enriched_meta.json
+      url: s3://your-bucket/path/drought/enriched_meta.json
+
+  # 7) Fetch and update SOS Explorer dataset.json with start/end (and dataLink)
+  - stage: transform
+    command: update-dataset-json
+    args:
+      input_url: s3://metadata.sosexplorer.gov/dataset.json
+      dataset_id: INTERNAL_SOS_DROUGHT_RT
+      meta: /data/images/drought/enriched_meta.json
+      output: /data/images/drought/updated_dataset.json
+
+  # 8) Upload updated dataset.json back to S3
+  - stage: decimate
+    command: s3
+    args:
+      input: /data/images/drought/updated_dataset.json
+      url: s3://metadata.sosexplorer.gov/dataset.json

@@ -22,6 +22,7 @@ api_key_header = APIKeyHeader(name=HEADER_NAME, auto_error=False)
 _FAIL_LOG: Dict[str, List[float]] = {}
 _FAIL_LOCK: Lock = Lock()
 
+
 def _auth_limits() -> tuple[int, int, float]:
     """Return (max_failures, window_seconds, delay_seconds) from env with defaults."""
     try:
@@ -38,6 +39,7 @@ def _auth_limits() -> tuple[int, int, float]:
         delay_ms = 100
     return maxf, win, max(0.0, float(delay_ms) / 1000.0)
 
+
 def _record_failure(client_ip: str) -> int:
     """Record a failed attempt for client_ip and return recent count within window."""
     maxf, win, _delay = _auth_limits()
@@ -50,12 +52,15 @@ def _record_failure(client_ip: str) -> int:
         _FAIL_LOG[client_ip] = lst
         return len(lst)
 
+
 def _should_throttle(count: int) -> bool:
     maxf, _win, _delay = _auth_limits()
     return count >= maxf
 
 
-async def require_api_key(api_key: str | None = Security(api_key_header), request: Request = None) -> bool:
+async def require_api_key(
+    api_key: str | None = Security(api_key_header), request: Request = None
+) -> bool:
     """Require an API key when `DATAVIZHUB_API_KEY` is set.
 
     Behavior
@@ -67,7 +72,11 @@ async def require_api_key(api_key: str | None = Security(api_key_header), reques
     if not expected:
         return True  # auth disabled
     # Only compare when both are strings; otherwise treat as invalid
-    if isinstance(api_key, str) and isinstance(expected, str) and secrets.compare_digest(api_key, expected):
+    if (
+        isinstance(api_key, str)
+        and isinstance(expected, str)
+        and secrets.compare_digest(api_key, expected)
+    ):
         return True
     # Failed authentication: apply small delay and basic rate limit
     client_ip = None
@@ -84,7 +93,9 @@ async def require_api_key(api_key: str | None = Security(api_key_header), reques
             await asyncio.sleep(delay_sec)
         except Exception:
             # Fall back to blocking sleep if event loop context is unavailable
-            logging.warning("Falling back to blocking time.sleep() in require_api_key; this may block the event loop.")
+            logging.warning(
+                "Falling back to blocking time.sleep() in require_api_key; this may block the event loop."
+            )
             time.sleep(delay_sec)
     # Count and possibly throttle
     if client_ip:
@@ -93,5 +104,7 @@ async def require_api_key(api_key: str | None = Security(api_key_header), reques
             # Advise retry-after for the remaining window
             _maxf, win, _d = _auth_limits()
             headers = {"Retry-After": str(win)}
-            raise HTTPException(status_code=429, detail="Too Many Attempts", headers=headers)
+            raise HTTPException(
+                status_code=429, detail="Too Many Attempts", headers=headers
+            )
     raise HTTPException(status_code=401, detail="Unauthorized: invalid API key")

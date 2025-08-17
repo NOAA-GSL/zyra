@@ -18,4 +18,3 @@ def test_inmemory_pubsub_receives_messages() -> None:
         assert data.get("progress") == 0.25
     finally:
         _unregister_listener(channel, q)
-

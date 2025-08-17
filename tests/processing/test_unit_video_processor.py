@@ -34,4 +34,3 @@ def test_process_video(video_processor_setup):
     mock_output.assert_called_with(
         video_processor.output_file, vcodec="libx264", pix_fmt="yuv420p", g=1
     )
-

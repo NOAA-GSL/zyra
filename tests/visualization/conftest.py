@@ -26,7 +26,9 @@ def ensure_uv_stacks():
 
     # Run the generator; default creates u_stack.npy and v_stack.npy
     env = os.environ.copy()
-    proc = subprocess.run([sys.executable, str(gen)], cwd=str(repo_root), capture_output=True, text=True)
+    proc = subprocess.run(
+        [sys.executable, str(gen)], cwd=str(repo_root), capture_output=True, text=True
+    )
     if proc.returncode != 0:
         pytest.skip(f"Failed to generate U/V stacks: {proc.stderr}")
 
@@ -34,4 +36,3 @@ def ensure_uv_stacks():
         pytest.skip("Generator did not produce expected U/V stacks")
 
     return str(u_path), str(v_path)
-

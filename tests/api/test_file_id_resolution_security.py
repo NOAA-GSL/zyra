@@ -7,7 +7,9 @@ from datavizhub.api.routers import files as files_router
 from datavizhub.api.workers.executor import resolve_upload_placeholders
 
 
-def test_file_id_resolution_prevents_symlink_escape(tmp_path: Path, monkeypatch) -> None:
+def test_file_id_resolution_prevents_symlink_escape(
+    tmp_path: Path, monkeypatch
+) -> None:
     # Point uploads directory to a temp dir for isolation
     upload_dir = tmp_path / "uploads"
     upload_dir.mkdir(parents=True, exist_ok=True)
@@ -47,4 +49,3 @@ def test_file_id_resolution_prevents_symlink_escape(tmp_path: Path, monkeypatch)
     for p in paths:
         rp = Path(p).resolve()
         assert str(rp).startswith(str(upload_dir.resolve()))
-

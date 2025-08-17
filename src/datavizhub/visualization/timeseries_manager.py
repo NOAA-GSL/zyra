@@ -73,7 +73,11 @@ class TimeSeriesManager(Renderer):
                     xs = da["time"].values
                 else:
                     first_dim = list(da.coords)[0] if da.coords else da.dims[0]
-                    xs = da[first_dim].values if first_dim in da.coords else range(da.shape[0])
+                    xs = (
+                        da[first_dim].values
+                        if first_dim in da.coords
+                        else range(da.shape[0])
+                    )
                 ys = da.values
             finally:
                 ds.close()
@@ -130,4 +134,3 @@ class TimeSeriesManager(Renderer):
             output_path = "timeseries.png"
         self._fig.savefig(output_path, bbox_inches="tight", pad_inches=0)
         return output_path
-

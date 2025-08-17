@@ -100,7 +100,10 @@ class CredentialManager:
         """
         try:
             from dotenv import dotenv_values, find_dotenv  # type: ignore
-        except (ImportError, ModuleNotFoundError) as exc:  # pragma: no cover - optional dependency path
+        except (
+            ImportError,
+            ModuleNotFoundError,
+        ) as exc:  # pragma: no cover - optional dependency path
             raise ImportError(
                 "python-dotenv is required to read credentials; install the 'dev' extra or add python-dotenv"
             ) from exc
@@ -123,7 +126,9 @@ class CredentialManager:
         """Return the set of keys currently tracked in memory."""
         return set(self.credentials.keys())
 
-    def list_credentials(self, expected_keys: Optional[Iterable[str]] = None) -> List[str]:
+    def list_credentials(
+        self, expected_keys: Optional[Iterable[str]] = None
+    ) -> List[str]:
         """List tracked credential keys, checking for expected ones when provided.
 
         Parameters
@@ -167,7 +172,9 @@ class CredentialManager:
         """
         namespaced_key = self._namespaced_key(key)
         if namespaced_key not in self.credentials:
-            raise KeyError(f"Credential key '{namespaced_key}' not found in credentials.")
+            raise KeyError(
+                f"Credential key '{namespaced_key}' not found in credentials."
+            )
         return self.credentials[namespaced_key]
 
     def add_credential(self, key: str, value: str) -> None:

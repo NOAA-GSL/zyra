@@ -109,7 +109,11 @@ def grib_decode(data: bytes, backend: str = "cfgrib") -> DecodedGRIB:
                 messages = list(grbs)
                 grbs.close()
                 return DecodedGRIB(backend="pygrib", messages=messages, path=temp_path)
-            except (ImportError, OSError, pygrib.GribError) as exc:  # pragma: no cover - backend optional
+            except (
+                ImportError,
+                OSError,
+                pygrib.GribError,
+            ) as exc:  # pragma: no cover - backend optional
                 if backend == "pygrib":
                     raise RuntimeError(f"pygrib decoding failed: {exc}") from exc
                 # else fall through to wgrib2
@@ -293,7 +297,9 @@ def convert_to_format(
                 if hasattr(obj, "to_dataframe"):
                     return obj.to_dataframe().reset_index()
             except Exception as exc:  # pragma: no cover - optional dep
-                raise ValueError("Pandas/xarray required for DataFrame conversion") from exc
+                raise ValueError(
+                    "Pandas/xarray required for DataFrame conversion"
+                ) from exc
             raise ValueError("Unsupported object for DataFrame conversion")
 
         if ftype == "netcdf":
@@ -344,7 +350,9 @@ def convert_to_format(
                             )
                             if res.returncode != 0:
                                 # Fall back to emitting a minimal NetCDF header if conversion is not possible
-                                raise RuntimeError(res.stderr.strip() or "wgrib2 -netcdf failed")
+                                raise RuntimeError(
+                                    res.stderr.strip() or "wgrib2 -netcdf failed"
+                                )
                             with open(out_nc, "rb") as f:
                                 return f.read()
                         except Exception as e2:  # pragma: no cover - external tool
@@ -353,7 +361,9 @@ def convert_to_format(
                                 import xarray as xr  # type: ignore
                                 import numpy as np  # type: ignore
 
-                                ds_fallback = xr.Dataset({"dummy": ("dummy", np.zeros(1, dtype="float32"))})
+                                ds_fallback = xr.Dataset(
+                                    {"dummy": ("dummy", np.zeros(1, dtype="float32"))}
+                                )
                                 try:
                                     maybe_bytes = ds_fallback.to_netcdf()
                                     if isinstance(maybe_bytes, (bytes, bytearray)):
@@ -367,13 +377,17 @@ def convert_to_format(
                                         return f.read()
                             except Exception:
                                 pass
-                            raise RuntimeError(f"NetCDF conversion failed: {e2}") from exc
+                            raise RuntimeError(
+                                f"NetCDF conversion failed: {e2}"
+                            ) from exc
                     # If wgrib2 is unavailable or failed, attempt a minimal NetCDF fallback
                     try:
                         import xarray as xr  # type: ignore
                         import numpy as np  # type: ignore
 
-                        ds_fallback = xr.Dataset({"dummy": ("dummy", np.zeros(1, dtype="float32"))})
+                        ds_fallback = xr.Dataset(
+                            {"dummy": ("dummy", np.zeros(1, dtype="float32"))}
+                        )
                         try:
                             maybe_bytes = ds_fallback.to_netcdf()
                             if isinstance(maybe_bytes, (bytes, bytearray)):
@@ -446,7 +460,9 @@ def convert_to_format(
                         import xarray as xr  # type: ignore
                         import numpy as np  # type: ignore
 
-                        ds_fallback = xr.Dataset({"dummy": ("dummy", np.zeros(1, dtype="float32"))})
+                        ds_fallback = xr.Dataset(
+                            {"dummy": ("dummy", np.zeros(1, dtype="float32"))}
+                        )
                         maybe_bytes = ds_fallback.to_netcdf()
                         if isinstance(maybe_bytes, (bytes, bytearray)):
                             return bytes(maybe_bytes)
@@ -458,7 +474,9 @@ def convert_to_format(
                         with open(tmp_path, "rb") as f:
                             return f.read()
                     except Exception:
-                        raise RuntimeError(res.stderr.strip() or "wgrib2 -netcdf failed")
+                        raise RuntimeError(
+                            res.stderr.strip() or "wgrib2 -netcdf failed"
+                        )
                 with open(tmp_path, "rb") as f:
                     return f.read()
             finally:
@@ -476,7 +494,7 @@ def convert_to_format(
             tmp = tempfile.NamedTemporaryFile(suffix=".tif", delete=False)
             tmp_path = tmp.name
             tmp.close()
-            data = (np.zeros((1, 1), dtype="uint8"))
+            data = np.zeros((1, 1), dtype="uint8")
             with rasterio.open(
                 tmp_path,
                 "w",
@@ -564,13 +582,23 @@ def extract_metadata(decoded: DecodedGRIB) -> Dict[str, Any]:
             try:
                 # Convert to hours if a pandas/np timedelta
                 step_vals = ds.coords["step"].values
-                meta["forecast_hour"] = getattr(step_vals, "astype", lambda *_: step_vals)("timedelta64[h]").tolist()  # type: ignore
+                meta["forecast_hour"] = getattr(
+                    step_vals, "astype", lambda *_: step_vals
+                )("timedelta64[h]").tolist()  # type: ignore
             except Exception:
                 meta["forecast_hour"] = None
         # Bounding box from coordinates if present
         try:
-            lat_name = "latitude" if "latitude" in ds.coords else ("lat" if "lat" in ds.coords else None)
-            lon_name = "longitude" if "longitude" in ds.coords else ("lon" if "lon" in ds.coords else None)
+            lat_name = (
+                "latitude"
+                if "latitude" in ds.coords
+                else ("lat" if "lat" in ds.coords else None)
+            )
+            lon_name = (
+                "longitude"
+                if "longitude" in ds.coords
+                else ("lon" if "lon" in ds.coords else None)
+            )
             if lat_name and lon_name:
                 lats = ds.coords[lat_name].values
                 lons = ds.coords[lon_name].values
@@ -583,14 +611,20 @@ def extract_metadata(decoded: DecodedGRIB) -> Dict[str, Any]:
         except Exception:
             pass
         # Projection info when available
-        grid_keys = [k for k in ds.attrs.keys() if k.lower().startswith("grib") or k.lower().endswith("grid")]
+        grid_keys = [
+            k
+            for k in ds.attrs.keys()
+            if k.lower().startswith("grib") or k.lower().endswith("grid")
+        ]
         if grid_keys:
             meta["grid"] = {k: ds.attrs.get(k) for k in grid_keys}
 
     elif decoded.backend == "pygrib" and decoded.messages:
         try:
             first = decoded.messages[0]
-            meta["model_run"] = getattr(first, "analDate", None) or getattr(first, "validDate", None)
+            meta["model_run"] = getattr(first, "analDate", None) or getattr(
+                first, "validDate", None
+            )
             meta["forecast_hour"] = getattr(first, "forecastTime", None)
             try:
                 lats, lons = first.latlons()
@@ -608,9 +642,15 @@ def extract_metadata(decoded: DecodedGRIB) -> Dict[str, Any]:
     elif decoded.backend == "wgrib2" and decoded.meta:
         try:
             # Best-effort parse
-            entry0 = decoded.meta[0] if isinstance(decoded.meta, list) and decoded.meta else {}
+            entry0 = (
+                decoded.meta[0]
+                if isinstance(decoded.meta, list) and decoded.meta
+                else {}
+            )
             meta["model_run"] = entry0.get("date") or entry0.get("refTime")
-            meta["forecast_hour"] = entry0.get("fcst_time") or entry0.get("forecastTime")
+            meta["forecast_hour"] = entry0.get("fcst_time") or entry0.get(
+                "forecastTime"
+            )
         except Exception:
             pass
 

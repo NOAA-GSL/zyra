@@ -28,14 +28,14 @@ DataVizHub is a utility library for building data-driven visual products. It pro
 - [Links](#links)
 
 ## Features
-- [Acquisition](#acquisition-layer): `DataAcquirer`, `FTPManager`, `HTTPHandler`, `S3Manager`, `VimeoManager` (in `datavizhub.acquisition`).
+- [Connectors](#connectors-layer): HTTP/FTP/S3/Vimeo backends (functional API) in `datavizhub.connectors.backends` (legacy `datavizhub.acquisition` still present with deprecations).
 - [Processing](#processing-layer): `DataProcessor`, `VideoProcessor`, `GRIBDataProcessor` (in `datavizhub.processing`).
 - [Visualization](#visualization-layer): `PlotManager`, `ColormapManager` (with included basemap/overlay assets in `datavizhub.assets`).
 - [Utilities](#utilities): `CredentialManager`, `DateManager`, `FileUtils`, `ImageManager`, `JSONFileManager` (in `datavizhub.utils`).
 
 
 ## Project Structure
-- `acquisition/`: I/O helpers (S3, FTP, HTTP, Vimeo).
+- `acquisition/`: I/O helpers (S3, FTP, HTTP, Vimeo). Deprecated; migrate to `connectors/backends/` and `utils/`.
 - `processing/`: data/video processing (GRIB/NetCDF, FFmpeg-based video).
 - `visualization/`: plotting utilities and colormaps.
 - `utils/`: shared helpers (dates, files, images, credentials).
@@ -114,16 +114,16 @@ Note on interactive installs:
 
 ## CLI Overview
 
-DataVizHub ships a single `datavizhub` CLI organized into four groups that mirror the pipeline stages, plus a `run` helper for config-driven pipelines.
+DataVizHub ships a single `datavizhub` CLI organized into groups that mirror pipeline stages (plus a `transform` helper) and a `run` helper for config-driven pipelines.
 
 ### CLI Tree
 
 ```
 datavizhub
 ├─ acquire            # Ingest/fetch bytes from sources
-│  ├─ http            # acquire http <url> [-o out|-]
-│  ├─ s3              # acquire s3 --url s3://bucket/key [-o out|-]
-│  ├─ ftp             # acquire ftp <ftp://host/path or host/path> [-o out|-]
+│  ├─ http            # acquire http <url> [--list --pattern REGEX --since ISO --until ISO --date-format FMT] [-o out|-]
+│  ├─ s3              # acquire s3 --url s3://bucket/key [--unsigned] [--list --pattern REGEX --since ISO --until ISO --date-format FMT] [-o out|-]
+│  ├─ ftp             # acquire ftp <ftp://host/path or host/path> [--list|--sync-dir DIR] [--pattern REGEX --since ISO --until ISO --date-format FMT] [-o out|-]
 │  └─ vimeo           # (placeholder)
 ├─ process            # Decode, extract, convert (supports stdin/stdout)
 │  ├─ decode-grib2
@@ -139,6 +139,8 @@ datavizhub
 │  ├─ s3              # s3://bucket/key
 │  ├─ ftp             # ftp://host/path or host/path
 │  └─ post            # HTTP POST
+├─ transform          # Lightweight transforms/metadata
+│  └─ metadata        # Compute frames metadata JSON (dir scan)
 └─ run                # Run a pipeline from YAML/JSON (coming soon)
 ```
 
@@ -150,7 +152,10 @@ Notes
 
 - Acquire
   - HTTP to file: `datavizhub acquire http https://example.com/data.bin -o data.bin`
+  - HTTP list+filter: `datavizhub acquire http https://example.com/dir/ --list --pattern '\\.png$' --since 2024-01-01 --date-format %Y%m%d`
   - S3 to stdout: `datavizhub acquire s3 --url s3://bucket/key -o -`
+  - S3 list+filter: `datavizhub acquire s3 --url s3://bucket/prefix/ --list --pattern '\\.grib2$' --since 2024-08-01 --date-format %Y%m%d`
+  - FTP sync directory: `datavizhub acquire ftp ftp://host/path --sync-dir /data/frames --pattern 'image_(\\d{8})\\.png' --since 2024-08-01 --date-format %Y%m%d`
 
 - Process (streaming-friendly)
   - Decode GRIB2 to raw bytes via `.idx` subset: `datavizhub process decode-grib2 s3://bucket/file.grib2 --pattern ":TMP:surface:" --raw > subset.grib2`
@@ -186,84 +191,100 @@ Notes
 
 ## Quick Composition Examples
 
-## Acquisition Layer
+## Connectors Layer
 
-The `datavizhub.acquisition` package standardizes data source integrations under a common `DataAcquirer` interface.
+The `datavizhub.connectors.backends` package provides functional helpers for ingress/egress:
 
-- DataAcquirer: abstract base with `connect()`, `fetch(remote, local=None)`, `list_files(remote=None)`, `upload(local, remote)`, `disconnect()`.
-- Helpers: context manager support (`with` auto-connect/disconnect), `fetch_many()` batch helper, and utility methods for path handling and simple retries.
-- Managers: `FTPManager`, `HTTPHandler`, `S3Manager`, `VimeoManager` expose consistent behavior and capability flags.
-  - Capabilities: each manager advertises a `CAPABILITIES` set, e.g. `{'fetch','upload','list'}` for FTP/S3.
-  - Unsupported ops raise `NotSupportedError` (e.g., `HTTPHandler.upload`).
+- HTTP: `fetch_bytes`, `fetch_text`, `fetch_json`, `post_data`, `list_files`, `get_idx_lines`, `download_byteranges`.
+- S3: `fetch_bytes`, `upload_bytes`, `list_files`, `exists`, `delete`, `stat`, `get_idx_lines`, `download_byteranges`.
+- FTP: `fetch_bytes`, `upload_bytes`, `list_files`, `exists`, `delete`, `stat`, `sync_directory`.
+- Vimeo: `upload_path`, `update_video`, `update_description`.
 
 Examples:
 
 ```
-from datavizhub.acquisition.ftp_manager import FTPManager
+from datavizhub.connectors.backends import ftp as ftp_backend, s3 as s3_backend
 
-with FTPManager(host="ftp.example.com") as ftp:
-    ftp.fetch("/pub/file.txt", "file.txt")
+# FTP: read a remote file to bytes and write locally
+data = ftp_backend.fetch_bytes("ftp://ftp.example.com/pub/file.txt")
+with open("file.txt", "wb") as f:
+    f.write(data)
 
-from datavizhub.acquisition.s3_manager import S3Manager
-s3 = S3Manager(access_key, secret_key, "my-bucket")
-s3.connect()
-s3.upload("local.nc", "path/object.nc")
-s3.disconnect()
+# S3: upload local file bytes
+with open("local.nc", "rb") as f:
+    s3_backend.upload_bytes(f.read(), "s3://my-bucket/path/object.nc")
 ```
 
-### Advanced Acquisition: GRIB subsetting, byte ranges, and listing
+### Advanced Connectors: GRIB subsetting, byte ranges, and listing
 
-Managers expose optional advanced helpers (inspired by NODD) to speed up GRIB workflows and large file transfers.
+Optional helpers speed up GRIB workflows and large file transfers.
 
-- .idx subsetting
-  - S3 example (public bucket, unsigned):
-    ```python
-    from datavizhub.acquisition.s3_manager import S3Manager
+- .idx subsetting (S3 public bucket, unsigned):
+  ```python
+  from datavizhub.connectors.backends import s3 as s3_backend
+  from datavizhub.utils.grib import idx_to_byteranges
 
-    s3 = S3Manager(None, None, bucket_name="noaa-hrrr-bdp-pds", unsigned=True)
-    lines = s3.get_idx_lines("hrrr.20230801/conus/hrrr.t00z.wrfsfcf00.grib2")
-    ranges = s3.idx_to_byteranges(lines, r"(:TMP:surface|:PRATE:surface)")
-    data = s3.download_byteranges("hrrr.20230801/conus/hrrr.t00z.wrfsfcf00.grib2", ranges.keys())
-    ```
+  url = "s3://noaa-hrrr-bdp-pds/hrrr.20230801/conus/hrrr.t00z.wrfsfcf00.grib2"
+  lines = s3_backend.get_idx_lines(url, unsigned=True)
+  ranges = idx_to_byteranges(lines, r"(:TMP:surface|:PRATE:surface)")
+  data = s3_backend.download_byteranges(url, None, ranges.keys(), unsigned=True)
+  ```
 
 - Pattern-based listing (regex)
   - S3 prefix listing with regex filter:
     ```python
-    keys = s3.list_files("hrrr.20230801/conus/", pattern=r"wrfsfcf\d+\.grib2$")
+    from datavizhub.connectors.backends import s3 as s3_backend
+    keys = s3_backend.list_files("s3://bucket/hrrr.20230801/conus/", pattern=r"wrfsfcf\d+\.grib2$")
     ```
   - HTTP directory-style index scraping with regex filter:
     ```python
-    from datavizhub.acquisition import HTTPManager
-    urls = HTTPManager().list_files(
+    from datavizhub.connectors.backends import http as http_backend
+    urls = http_backend.list_files(
         "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/",
         pattern=r"\.grib2$",
     )
     ```
 
-- Parallel range downloads
-  - HTTP byte ranges:
-    ```python
-    from datavizhub.acquisition import HTTPManager
-    http = HTTPManager()
-    lines = http.get_idx_lines("https://example.com/path/file.grib2")
-    ranges = http.idx_to_byteranges(lines, r"GUST")
-    blob = http.download_byteranges("https://example.com/path/file.grib2", ranges.keys(), max_workers=10)
-    ```
-  - FTP byte ranges (uses REST and one connection per thread):
-    ```python
-    from datavizhub.acquisition import FTPManager
-    ftp = FTPManager(host="ftp.example.com")
-    ftp.connect()
-    lines = ftp.get_idx_lines("/pub/file.grib2")
-    ranges = ftp.idx_to_byteranges(lines, r"PRES:surface")
-    blob = ftp.download_byteranges("/pub/file.grib2", ranges.keys(), max_workers=4)
-    ftp.disconnect()
-    ```
+- Parallel HTTP range downloads via `.idx`:
+  ```python
+  from datavizhub.connectors.backends import http as http_backend
+  from datavizhub.utils.grib import idx_to_byteranges
+
+  lines = http_backend.get_idx_lines("https://example.com/path/file.grib2")
+  ranges = idx_to_byteranges(lines, r"GUST")
+  blob = http_backend.download_byteranges("https://example.com/path/file.grib2", ranges.keys())
+  ```
 
 Notes
+- Migration: `datavizhub.acquisition.*` is deprecated. Prefer `datavizhub.connectors.backends.*` and `datavizhub.utils.grib`.
 - Pattern filters use Python regular expressions (`re.search`) applied to full keys/paths/URLs.
 - `.idx` resolution appends `.idx` to the GRIB path unless a fully qualified `.idx` path is given.
 - For unsigned public S3 buckets, pass `unsigned=True` as shown above.
+
+Credentials
+- FTP: supply credentials inline in the URL `ftp://user:pass@host/path` (for quick runs) or use the OO wrapper `FTPConnector(host, username=..., password=...)` in code. Avoid committing secrets; prefer env injection in CI or use `.env` with `CredentialManager` when scripting.
+- S3: prefer IAM roles or environment variables; the S3 backend/manager follows standard AWS resolution when not using unsigned mode.
+- Vimeo: use API token/keys via environment variables per `CredentialManager` guidance, or pass explicitly when constructing a client in code.
+
+YAML templating with environment variables
+- Template credentials in YAML configs and enable strict checking:
+  ```yaml
+  # Example: inject FTP creds from environment
+  - stage: acquire
+    command: ftp
+    args:
+      path: ftp://${FTP_USER}:${FTP_PASS}@ftp.example.com/pub/frames/
+      sync_dir: ./frames
+      pattern: "image_(\\d{8})\\.png"
+      since_period: "P1Y"
+      date_format: "%Y%m%d"
+  ```
+  - Run with strict env: `datavizhub run pipeline.yaml --strict-env`
+  - Provide env: `export FTP_USER=anonymous; export FTP_PASS='test@example.com'` (when embedding directly, URL-encode `@` as `%40`).
+
+Transform: Frames Metadata
+- Compute metadata for a frames directory between acquire and visualize:
+  - CLI: `datavizhub transform metadata --frames-dir ./frames --datetime-format %Y%m%d --period-seconds 3600 -o frames_meta.json`
 
 ## Processing Layer
 
@@ -352,6 +373,11 @@ Sample pipeline configs live under `samples/pipelines/`:
 - `nc_to_file.yaml`: read NetCDF from stdin, then write to `out.nc` via `decimate local`.
   - Usage: `cat tests/testdata/demo.nc | datavizhub run samples/pipelines/nc_to_file.yaml`
 - `ftp_to_s3.yaml`: template for FTP → video composition → S3 upload (placeholders, not CI-safe).
+  - Dry-run mapping: `datavizhub run samples/pipelines/ftp_to_s3.yaml --dry-run`
+  - Notes: Requires network access and credentials when running without `--dry-run`.
+- `ftp_to_local.yaml`: FTP → transform → video → local file copy (no S3/Vimeo).
+  - Dry-run mapping: `datavizhub run samples/pipelines/ftp_to_local.yaml --dry-run`
+  - Live run: writes `/tmp/frames_meta.json` and `/tmp/video.mp4` locally. Requires FTP network access only.
 - `extract_variable_to_file.yaml`: extract TMP from stdin, convert to NetCDF, and write to file.
   - Usage: `cat tests/testdata/demo.nc | datavizhub run samples/pipelines/extract_variable_to_file.yaml`
 - `compose_video_to_local.yaml`: compose frames in a directory to MP4 and copy locally.
@@ -559,19 +585,17 @@ CRS notes
 Compose FTP fetch + video + Vimeo upload
 
 ```python
-from datavizhub.acquisition.ftp_manager import FTPManager
-from datavizhub.acquisition.vimeo_manager import VimeoManager
+from datavizhub.connectors.backends import ftp as ftp_backend, vimeo as vimeo_backend
 from datavizhub.processing import VideoProcessor
 
-ftp = FTPManager(host="ftp.example.com", username="anonymous", password="test@test.com")
-ftp.connect()
-ftp.fetch("/pub/images/img_0001.png", "/tmp/frames/img_0001.png")
-# ...download the rest of the frames as needed...
+# Download a frame from FTP and write it to disk (repeat for remaining frames)
+frame_bytes = ftp_backend.fetch_bytes("ftp://ftp.example.com/pub/images/img_0001.png")
+import os; os.makedirs("/tmp/frames", exist_ok=True)
+open("/tmp/frames/img_0001.png", "wb").write(frame_bytes)
 
 VideoProcessor("/tmp/frames", "/tmp/out.mp4").process_videos(fps=30)
 
-vimeo = VimeoManager(client_id="...", client_secret="...", access_token="...")
-vimeo.upload_video("/tmp/out.mp4", "Latest Render")
+vimeo_backend.upload_path("/tmp/out.mp4", name="Latest Render")
 ```
 
 ## Utilities
@@ -604,19 +628,19 @@ start, end = dm.get_date_range("7D")
 print(dm.is_date_in_range("frame_20240102.png", start, end))
 ```
 
-Capabilities and batch fetching:
+Batch fetching (functional connectors):
 
 ```
-from datavizhub.acquisition import DataAcquirer
-from datavizhub.acquisition.ftp_manager import FTPManager
+from datavizhub.connectors.backends import http as http_backend
 
-acq: DataAcquirer = FTPManager("ftp.example.com")
-print(acq.capabilities)  # e.g., {'fetch','upload','list'}
-
-with acq:
-    results = acq.fetch_many(["/pub/a.txt", "/pub/b.txt"], dest_dir="downloads")
-    for remote, ok in results:
-        print(remote, ok)
+urls = [
+  "https://example.com/a.bin",
+  "https://example.com/b.bin",
+]
+import os; os.makedirs("downloads", exist_ok=True)
+for u in urls:
+    data = http_backend.fetch_bytes(u)
+    open(os.path.join("downloads", u.rsplit("/", 1)[-1]), "wb").write(data)
 ```
 
 
@@ -624,7 +648,7 @@ Minimal pipeline: build video from images and upload to S3
 
 ```python
 from datavizhub.processing import VideoProcessor
-from datavizhub.acquisition.s3_manager import S3Manager
+from datavizhub.connectors.backends import s3 as s3_backend
 
 vp = VideoProcessor(input_directory="/data/images", output_file="/data/out/movie.mp4")
 vp.load("/data/images")
@@ -632,10 +656,8 @@ if vp.validate():
     vp.process()
     vp.save("/data/out/movie.mp4")
 
-s3 = S3Manager("ACCESS_KEY", "SECRET_KEY", "my-bucket")
-s3.connect()
-s3.upload("/data/out/movie.mp4", "videos/movie.mp4")
-s3.disconnect()
+with open("/data/out/movie.mp4", "rb") as f:
+    s3_backend.upload_bytes(f.read(), "s3://my-bucket/videos/movie.mp4")
 ```
 
 ## Real-World Implementations
@@ -670,11 +692,7 @@ CAPABILITIES vs. FEATURES:
 
 Examples:
 ```
-from datavizhub.acquisition.s3_manager import S3Manager
 from datavizhub.processing.video_processor import VideoProcessor
-
-s3 = S3Manager("AKIA...", "SECRET...", "my-bucket"); s3.connect()
-print(s3.capabilities)  # {'fetch','upload','list'}
 
 vp = VideoProcessor("./frames", "./out.mp4")
 print(vp.features)      # {'load','process','save','validate'}

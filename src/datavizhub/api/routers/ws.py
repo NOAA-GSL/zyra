@@ -14,7 +14,11 @@ from datavizhub.api.workers.jobs import (
     _unregister_listener,
     _get_last_message,
 )
-from datavizhub.api.security import _auth_limits, _record_failure, _should_throttle  # internal helpers
+from datavizhub.api.security import (
+    _auth_limits,
+    _record_failure,
+    _should_throttle,
+)  # internal helpers
 import os
 
 
@@ -37,8 +41,13 @@ def _ws_should_send(text: str, allowed: set[str] | None) -> bool:
 async def job_progress_ws(
     websocket: WebSocket,
     job_id: str,
-    stream: str | None = Query(default=None, description="Comma-separated keys to stream: stdout,stderr,progress"),
-    api_key: str | None = Query(default=None, description="API key (when DATAVIZHUB_API_KEY is set)"),
+    stream: str | None = Query(
+        default=None,
+        description="Comma-separated keys to stream: stdout,stderr,progress",
+    ),
+    api_key: str | None = Query(
+        default=None, description="API key (when DATAVIZHUB_API_KEY is set)"
+    ),
 ) -> None:
     """WebSocket for streaming job logs and progress with optional filtering.
 
@@ -69,7 +78,11 @@ async def job_progress_ws(
         # Raise during handshake so TestClient.connect errors immediately
         raise WebSocketException(code=1008)
     await websocket.accept()
-    if expected and not (isinstance(api_key, str) and isinstance(expected, str) and secrets.compare_digest(api_key, expected)):
+    if expected and not (
+        isinstance(api_key, str)
+        and isinstance(expected, str)
+        and secrets.compare_digest(api_key, expected)
+    ):
         # Failed auth after accept: delay and record failure, then close with policy violation
         try:
             _maxf, _win, delay_sec = _auth_limits()
@@ -92,7 +105,7 @@ async def job_progress_ws(
         return
     allowed = None
     if stream:
-        allowed = {s.strip().lower() for s in str(stream).split(',') if s.strip()}
+        allowed = {s.strip().lower() for s in str(stream).split(",") if s.strip()}
     # Emit a lightweight initial frame so clients don't block when Redis is
     # requested but no worker is running. This mirrors prior passing behavior
     # and helps tests that only require seeing some stderr/stdout activity.

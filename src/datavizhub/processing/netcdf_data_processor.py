@@ -121,11 +121,21 @@ def subset_netcdf(
     # Spatial selection
     if bbox is not None:
         min_lon, min_lat, max_lon, max_lat = bbox
-        lat_name = "latitude" if "latitude" in ds.coords else ("lat" if "lat" in ds.coords else None)
-        lon_name = "longitude" if "longitude" in ds.coords else ("lon" if "lon" in ds.coords else None)
+        lat_name = (
+            "latitude"
+            if "latitude" in ds.coords
+            else ("lat" if "lat" in ds.coords else None)
+        )
+        lon_name = (
+            "longitude"
+            if "longitude" in ds.coords
+            else ("lon" if "lon" in ds.coords else None)
+        )
         if not lat_name or not lon_name:
             raise ValueError("Dataset lacks lat/lon coordinates for bbox selection")
-        ds = ds.sel({lat_name: slice(min_lat, max_lat), lon_name: slice(min_lon, max_lon)})
+        ds = ds.sel(
+            {lat_name: slice(min_lat, max_lat), lon_name: slice(min_lon, max_lon)}
+        )
 
     if time_range is not None and "time" in ds.coords:
         start, end = time_range

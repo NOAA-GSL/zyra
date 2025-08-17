@@ -12,11 +12,12 @@ def handle_vector(ns) -> int:
     """Handle ``visualize vector`` CLI subcommand."""
     configure_logging_from_env()
     # Batch mode
-    if getattr(ns, 'inputs', None):
-        outdir = getattr(ns, 'output_dir', None)
+    if getattr(ns, "inputs", None):
+        outdir = getattr(ns, "output_dir", None)
         if not outdir:
             raise SystemExit("--output-dir is required when using --inputs")
-        outdir_p = Path(outdir); outdir_p.mkdir(parents=True, exist_ok=True)
+        outdir_p = Path(outdir)
+        outdir_p.mkdir(parents=True, exist_ok=True)
         features = features_from_ns(ns)
         outputs = []
         for src in ns.inputs:

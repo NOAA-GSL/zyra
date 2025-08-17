@@ -79,7 +79,13 @@ def detect_crs_from_path(path: str, *, var: Optional[str] = None) -> Optional[st
         return TARGET_CRS
 
 
-def warn_if_mismatch(input_crs: Optional[str], *, target_crs: str = TARGET_CRS, reproject: bool = False, context: str = "") -> None:
+def warn_if_mismatch(
+    input_crs: Optional[str],
+    *,
+    target_crs: str = TARGET_CRS,
+    reproject: bool = False,
+    context: str = "",
+) -> None:
     if not input_crs:
         print(f"Warning: Input CRS unknown; assuming {target_crs}.", file=sys.stderr)
         return

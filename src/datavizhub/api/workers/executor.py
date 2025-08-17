@@ -114,7 +114,9 @@ def _to_kebab(s: str) -> str:
     return s.replace("_", "-")
 
 
-def resolve_upload_placeholders(a: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str], List[str]]:
+def resolve_upload_placeholders(
+    a: Dict[str, Any],
+) -> Tuple[Dict[str, Any], List[str], List[str]]:
     """Resolve file_id placeholders in args.
 
     Returns (resolved_args, resolved_paths, unresolved_ids).
@@ -136,7 +138,10 @@ def resolve_upload_placeholders(a: Dict[str, Any]) -> Tuple[Dict[str, Any], List
                     rp = p.resolve()
                 except Exception:
                     # Could not resolve candidate path; skip
-                    logging.debug("Security: failed to resolve uploaded path candidate: %s", str(p))
+                    logging.debug(
+                        "Security: failed to resolve uploaded path candidate: %s",
+                        str(p),
+                    )
                     continue
                 # Ensure the resolved path is within the uploads base
                 try:
@@ -162,7 +167,9 @@ def resolve_upload_placeholders(a: Dict[str, Any]) -> Tuple[Dict[str, Any], List
         if p:
             resolved_paths.append(p)
             # Default to 'input' when no other input-like keys
-            if not any(k in out for k in ("input", "file_or_url", "file", "path", "url")):
+            if not any(
+                k in out for k in ("input", "file_or_url", "file", "path", "url")
+            ):
                 out["input"] = p
         else:
             unresolved.append(fid)
@@ -206,7 +213,9 @@ def _args_dict_to_argv(stage: str, command: str, args: Dict[str, Any]) -> List[s
     - Supports user-provided "argv" to bypass mapping entirely.
     """
     # Allow explicit argv passthrough when provided
-    if isinstance(args.get("argv"), list) and all(isinstance(x, str) for x in args["argv"]):
+    if isinstance(args.get("argv"), list) and all(
+        isinstance(x, str) for x in args["argv"]
+    ):
         return args["argv"]
 
     # Resolve uploaded file_id references into absolute paths
@@ -301,6 +310,7 @@ class _StdCapture:
     - This class is not a full ``io.TextIOBase`` replacement and is intended
       for internal use.
     """
+
     def __init__(self) -> None:
         self._buf = io.BytesIO()
 
@@ -331,6 +341,7 @@ def _guess_bytes_name_and_mime(data: bytes) -> Tuple[str, str]:
     # Simple signature-based detection
     try:
         import mimetypes
+
         if data.startswith(b"\x89PNG\r\n\x1a\n"):
             return ("output.png", "image/png")
         if data.startswith(b"GRIB"):
@@ -482,6 +493,8 @@ def cancel_job(job_id: str) -> bool:
         rec["status"] = "canceled"
         return True
     return False
+
+
 _SAFE_JOB_ID_RE = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
 
 
@@ -494,9 +507,15 @@ def _ensure_results_dir(job_id: str) -> Path:
     # Validate job_id as a single safe segment
     if not isinstance(job_id, str) or not job_id:
         raise ValueError("invalid job_id")
-    if os.path.isabs(job_id) or job_id != os.path.basename(job_id) or not _SAFE_JOB_ID_RE.fullmatch(job_id):
+    if (
+        os.path.isabs(job_id)
+        or job_id != os.path.basename(job_id)
+        or not _SAFE_JOB_ID_RE.fullmatch(job_id)
+    ):
         raise ValueError("invalid job_id")
-    base = os.path.normpath(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+    base = os.path.normpath(
+        os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
+    )
     full = os.path.normpath(os.path.join(base, job_id))
     try:
         if os.path.commonpath([base, full]) != base:
@@ -518,7 +537,9 @@ def zip_output_dir(job_id: str, output_dir: str) -> str | None:
     zip_path = results_dir / f"{job_id}.zip"
     try:
         # Build zip preserving relative paths
-        with zipfile.ZipFile(str(zip_path), mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        with zipfile.ZipFile(
+            str(zip_path), mode="w", compression=zipfile.ZIP_DEFLATED
+        ) as zf:
             for root, _dirs, files in os.walk(d):
                 for name in files:
                     p = Path(root) / name
@@ -529,7 +550,9 @@ def zip_output_dir(job_id: str, output_dir: str) -> str | None:
         return None
 
 
-def _maybe_copy_output(args: Dict[str, Any], res: "RunResult", job_id: str) -> str | None:
+def _maybe_copy_output(
+    args: Dict[str, Any], res: "RunResult", job_id: str
+) -> str | None:
     """Try to persist an output artifact for this job.
 
     Priority:
@@ -589,10 +612,12 @@ def _guess_mime_for_file(path: Path) -> str:
     # Try python-magic if available, fall back to mimetypes
     try:
         import magic  # type: ignore
+
         m = magic.Magic(mime=True)
         return str(m.from_file(str(path))) or "application/octet-stream"
     except Exception:
         import mimetypes
+
         mt, _ = mimetypes.guess_type(str(path))
         return mt or "application/octet-stream"
 
@@ -605,12 +630,19 @@ def write_manifest(job_id: str) -> Path | None:
     """
     try:
         import json, mimetypes, os as _os, errno as _errno
+
         # Derive contained results directory
         if not isinstance(job_id, str) or not job_id:
             return None
-        if _os.path.isabs(job_id) or job_id != _os.path.basename(job_id) or not _SAFE_JOB_ID_RE.fullmatch(job_id):
+        if (
+            _os.path.isabs(job_id)
+            or job_id != _os.path.basename(job_id)
+            or not _SAFE_JOB_ID_RE.fullmatch(job_id)
+        ):
             return None
-        base = _os.path.normpath(_os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+        base = _os.path.normpath(
+            _os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
+        )
         full = _os.path.normpath(_os.path.join(base, job_id))
         try:
             if _os.path.commonpath([base, full]) != base:
@@ -622,12 +654,16 @@ def write_manifest(job_id: str) -> Path | None:
         items = []
         try:
             # lgtm [py/path-injection] — full is contained via normpath+commonpath
-            names = sorted(name for name in _os.listdir(full) if name != "manifest.json")
+            names = sorted(
+                name for name in _os.listdir(full) if name != "manifest.json"
+            )
         except FileNotFoundError:
             names = []
         for name in names:
             # Skip unsafe names
-            if not _SAFE_JOB_ID_RE.fullmatch(name) and not re.fullmatch(r"^[A-Za-z0-9._-]{1,255}$", name):
+            if not _SAFE_JOB_ID_RE.fullmatch(name) and not re.fullmatch(
+                r"^[A-Za-z0-9._-]{1,255}$", name
+            ):
                 continue
             p = _os.path.normpath(_os.path.join(full, name))
             try:
@@ -638,7 +674,9 @@ def write_manifest(job_id: str) -> Path | None:
             # Stat via descriptor and reject symlinks (ELOOP)
             try:
                 # lgtm [py/path-injection] — p is contained via normpath+commonpath, O_NOFOLLOW used
-                fd = _os.open(p, getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0))
+                fd = _os.open(
+                    p, getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0)
+                )
                 try:
                     st = _os.fstat(fd)
                 finally:

@@ -24,4 +24,3 @@ def test_s3_unsigned_client_and_ranges():
         br = mgr.idx_to_byteranges(lines, r"b")
         data = mgr.download_byteranges("key", br.keys(), max_workers=2)
         assert data == b"0123456789abcdefghij"
-

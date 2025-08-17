@@ -55,7 +55,9 @@ def test_extract_variable_stdout_netcdf_simulated(monkeypatch, capsysbinary):
     monkeypatch.setattr(sys, "stdin", fake_stdin)
 
     # Pretend wgrib2 exists
-    monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/wgrib2" if name == "wgrib2" else None)
+    monkeypatch.setattr(
+        "shutil.which", lambda name: "/usr/bin/wgrib2" if name == "wgrib2" else None
+    )
 
     # Fake subprocess to write demo.nc to the requested output path
     def fake_run(args, capture_output, text, check):
@@ -66,7 +68,9 @@ def test_extract_variable_stdout_netcdf_simulated(monkeypatch, capsysbinary):
 
     monkeypatch.setattr("subprocess.run", fake_run)
 
-    rc = main(["process", "extract-variable", "-", "TMP", "--stdout", "--format", "netcdf"])
+    rc = main(
+        ["process", "extract-variable", "-", "TMP", "--stdout", "--format", "netcdf"]
+    )
     assert rc == 0
     captured = capsysbinary.readouterr()
     # Output should be exactly the NetCDF bytes produced by fake wgrib2
@@ -111,7 +115,9 @@ def test_grib2_to_netcdf_pipeline_header_check():
     # Pipe raw GRIB2 into: datavizhub convert-format - netcdf --stdout
     demo_path = Path("tests/testdata/demo.grib2")
     raw = _run_cli(["process", "decode-grib2", str(demo_path), "--raw"]).stdout
-    res = _run_cli(["process", "convert-format", "-", "netcdf", "--stdout"], input_bytes=raw)
+    res = _run_cli(
+        ["process", "convert-format", "-", "netcdf", "--stdout"], input_bytes=raw
+    )
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     # Validate NetCDF magic numbers: classic CDF or HDF5-based NetCDF4
     assert res.stdout.startswith(b"CDF") or res.stdout.startswith(b"\x89HDF")
@@ -125,7 +131,17 @@ def test_grib2_extract_variable_stdout_netcdf_header():
         pytest.skip("xarray/cfgrib not available for NetCDF conversion")
     # datavizhub extract-variable tests/testdata/demo.grib2 "TMP" --stdout --format netcdf
     demo_path = Path("tests/testdata/demo.grib2")
-    res = _run_cli(["process", "extract-variable", str(demo_path), "TMP", "--stdout", "--format", "netcdf"])
+    res = _run_cli(
+        [
+            "process",
+            "extract-variable",
+            str(demo_path),
+            "TMP",
+            "--stdout",
+            "--format",
+            "netcdf",
+        ]
+    )
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     assert res.stdout.startswith(b"CDF") or res.stdout.startswith(b"\x89HDF")
 
@@ -141,7 +157,9 @@ def test_grib2_to_geotiff_pipeline_header_check():
     # Pipe raw GRIB2 into: datavizhub convert-format - geotiff --stdout
     demo_path = Path("tests/testdata/demo.grib2")
     raw = _run_cli(["process", "decode-grib2", str(demo_path), "--raw"]).stdout
-    res = _run_cli(["process", "convert-format", "-", "geotiff", "--stdout"], input_bytes=raw)
+    res = _run_cli(
+        ["process", "convert-format", "-", "geotiff", "--stdout"], input_bytes=raw
+    )
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     # GeoTIFF header is either little-endian "II" or big-endian "MM"
     assert res.stdout.startswith(b"II") or res.stdout.startswith(b"MM")

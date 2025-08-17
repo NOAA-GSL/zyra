@@ -7,4 +7,3 @@ def test_import_processing_package_without_viz():
     assert hasattr(processing, "VideoProcessor")
     assert hasattr(visualization, "PlotManager")
     assert hasattr(utils, "DateManager")
-

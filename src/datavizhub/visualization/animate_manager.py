@@ -92,14 +92,20 @@ class AnimateManager(Renderer):
             if arr.ndim == 2:
                 arr = arr[None, ...]
             if arr.ndim != 3:
-                raise ValueError(".npy stack must be 2D or 3D; 3D required as [time, y, x]")
+                raise ValueError(
+                    ".npy stack must be 2D or 3D; 3D required as [time, y, x]"
+                )
             return arr, timestamps
         if input_path.lower().endswith((".nc", ".nc4")):
             import xarray as xr
 
             if not var:
                 raise ValueError("var is required for NetCDF inputs")
-            ds = xr.open_dataset(input_path, engine=xarray_engine) if xarray_engine else xr.open_dataset(input_path)
+            ds = (
+                xr.open_dataset(input_path, engine=xarray_engine)
+                if xarray_engine
+                else xr.open_dataset(input_path)
+            )
             try:
                 da = ds[var]
                 if da.ndim < 3:
@@ -169,6 +175,7 @@ class AnimateManager(Renderer):
         frames: List[FrameInfo] = []
         if mode == "vector":
             import numpy as np
+
             # Resolve U/V stacks
             if u_input and v_input:
                 U = np.load(u_input)
@@ -183,7 +190,9 @@ class AnimateManager(Renderer):
                 import xarray as xr
 
                 if not uvar or not vvar:
-                    raise ValueError("--uvar and --vvar are required for NetCDF vector animation")
+                    raise ValueError(
+                        "--uvar and --vvar are required for NetCDF vector animation"
+                    )
                 ds = xr.open_dataset(input_path)
                 try:
                     U = ds[uvar].values
@@ -207,16 +216,39 @@ class AnimateManager(Renderer):
                     raise ValueError("U and V shapes must match")
                 t_count = U.shape[0]
             else:
-                raise ValueError("Provide --u/--v .npy stacks or --input .nc with --uvar/--vvar for vector mode")
+                raise ValueError(
+                    "Provide --u/--v .npy stacks or --input .nc with --uvar/--vvar for vector mode"
+                )
 
             for i in range(t_count):
-                mgr = VectorFieldManager(basemap=self.basemap, extent=self.extent,)
-                mgr.render(u=U[i], v=V[i], width=width, height=height, dpi=dpi, density=density, scale=scale, color=color, map_type=map_type, tile_source=tile_source, tile_zoom=tile_zoom)
+                mgr = VectorFieldManager(
+                    basemap=self.basemap,
+                    extent=self.extent,
+                )
+                mgr.render(
+                    u=U[i],
+                    v=V[i],
+                    width=width,
+                    height=height,
+                    dpi=dpi,
+                    density=density,
+                    scale=scale,
+                    color=color,
+                    map_type=map_type,
+                    tile_source=tile_source,
+                    tile_zoom=tile_zoom,
+                )
                 fname = self.filename_template.format(index=i)
                 fpath = output_dir / fname
                 mgr.save(str(fpath))
                 plt.close("all")
-                frames.append(FrameInfo(index=i, path=str(fpath), timestamp=(timestamps[i] if i < len(timestamps) else None)))
+                frames.append(
+                    FrameInfo(
+                        index=i,
+                        path=str(fpath),
+                        timestamp=(timestamps[i] if i < len(timestamps) else None),
+                    )
+                )
         else:
             stack, timestamps = self._resolve_stack(
                 data,
@@ -233,16 +265,23 @@ class AnimateManager(Renderer):
                     pass
             # CRS detection/warn for grid stacks
             try:
-                from datavizhub.utils.geo_utils import detect_crs_from_path, warn_if_mismatch
+                from datavizhub.utils.geo_utils import (
+                    detect_crs_from_path,
+                    warn_if_mismatch,
+                )
 
-                in_crs = user_crs or (detect_crs_from_path(input_path) if input_path else None)
+                in_crs = user_crs or (
+                    detect_crs_from_path(input_path) if input_path else None
+                )
                 warn_if_mismatch(in_crs, reproject=reproject, context="animate")
             except Exception:
                 pass
             for i in range(stack.shape[0]):
                 arr = stack[i]
                 if mode == "contour":
-                    mgr = ContourManager(basemap=self.basemap, extent=self.extent, cmap=cmap, filled=True)
+                    mgr = ContourManager(
+                        basemap=self.basemap, extent=self.extent, cmap=cmap, filled=True
+                    )
                     mgr.render(
                         arr,
                         width=width,
@@ -252,14 +291,20 @@ class AnimateManager(Renderer):
                         colorbar=add_colorbar,
                         label=cbar_label,
                         units=cbar_units,
-                        timestamp=(timestamps[i] if (show_timestamp and i < len(timestamps)) else None),
+                        timestamp=(
+                            timestamps[i]
+                            if (show_timestamp and i < len(timestamps))
+                            else None
+                        ),
                         timestamp_loc=timestamp_loc,
                         map_type=map_type,
                         tile_source=tile_source,
                         tile_zoom=tile_zoom,
                     )
                 else:  # heatmap
-                    mgr = HeatmapManager(basemap=self.basemap, extent=self.extent, cmap=cmap)
+                    mgr = HeatmapManager(
+                        basemap=self.basemap, extent=self.extent, cmap=cmap
+                    )
                     mgr.render(
                         arr,
                         width=width,
@@ -270,7 +315,11 @@ class AnimateManager(Renderer):
                         colorbar=add_colorbar,
                         label=cbar_label,
                         units=cbar_units,
-                        timestamp=(timestamps[i] if (show_timestamp and i < len(timestamps)) else None),
+                        timestamp=(
+                            timestamps[i]
+                            if (show_timestamp and i < len(timestamps))
+                            else None
+                        ),
                         timestamp_loc=timestamp_loc,
                         map_type=map_type,
                         tile_source=tile_source,
@@ -281,7 +330,13 @@ class AnimateManager(Renderer):
                 fpath = output_dir / fname
                 mgr.save(str(fpath))
                 plt.close("all")
-                frames.append(FrameInfo(index=i, path=str(fpath), timestamp=timestamps[i] if i < len(timestamps) else None))
+                frames.append(
+                    FrameInfo(
+                        index=i,
+                        path=str(fpath),
+                        timestamp=timestamps[i] if i < len(timestamps) else None,
+                    )
+                )
 
         self._manifest = {
             "mode": mode,
@@ -302,7 +357,13 @@ class AnimateManager(Renderer):
             return bio
         if output_path is None:
             # default alongside frames
-            out_dir = Path(self._manifest["frames"][0]["path"]).parent if self._manifest.get("frames") else Path(".")
+            out_dir = (
+                Path(self._manifest["frames"][0]["path"]).parent
+                if self._manifest.get("frames")
+                else Path(".")
+            )
             output_path = str(Path(out_dir) / "manifest.json")
-        Path(output_path).write_text(json.dumps(self._manifest, indent=2), encoding="utf-8")
+        Path(output_path).write_text(
+            json.dumps(self._manifest, indent=2), encoding="utf-8"
+        )
         return output_path

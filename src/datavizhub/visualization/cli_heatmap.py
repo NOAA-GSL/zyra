@@ -12,8 +12,8 @@ def handle_heatmap(ns) -> int:
     """Handle ``visualize heatmap`` CLI subcommand."""
     configure_logging_from_env()
     # Batch mode: --inputs with --output-dir
-    if getattr(ns, 'inputs', None):
-        outdir = getattr(ns, 'output_dir', None)
+    if getattr(ns, "inputs", None):
+        outdir = getattr(ns, "output_dir", None)
         if not outdir:
             raise SystemExit("--output-dir is required when using --inputs")
         features = features_from_ns(ns)

@@ -67,7 +67,9 @@ def add_basemap_cartopy(
                 ax.add_feature(cfeature.BORDERS, linewidth=0.5, edgecolor="#33333380")
             elif f == "gridlines":
                 try:
-                    gl = ax.gridlines(draw_labels=False, linewidth=0.2, color="#00000033")
+                    gl = ax.gridlines(
+                        draw_labels=False, linewidth=0.2, color="#00000033"
+                    )
                     gl.xlocator = None  # let Cartopy choose
                     gl.ylocator = None
                 except Exception:
@@ -112,4 +114,3 @@ def add_basemap_tile(
     except Exception:
         # Network or provider errors are ignored.
         return
-

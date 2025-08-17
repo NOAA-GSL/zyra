@@ -90,6 +90,8 @@ def configure_logging_from_env(default: str = "info") -> None:
     logging.basicConfig(level=level, format="%(levelname)s: %(message)s")
     for name in ("matplotlib", "cartopy", "botocore", "urllib3", "requests"):
         try:
-            logging.getLogger(name).setLevel(max(level, logging.WARNING) if verb != "debug" else level)
+            logging.getLogger(name).setLevel(
+                max(level, logging.WARNING) if verb != "debug" else level
+            )
         except Exception:
             pass

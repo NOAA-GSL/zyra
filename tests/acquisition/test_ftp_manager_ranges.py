@@ -62,4 +62,3 @@ def test_ftp_get_size_and_ranges_and_idx():
         br = mgr.idx_to_byteranges(lines, r"b")
         data = mgr.download_byteranges("/dir/file.grib2", br.keys(), max_workers=2)
         assert data == b"0123456789abcdefghij"
-

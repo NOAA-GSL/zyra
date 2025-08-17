@@ -28,7 +28,11 @@ def is_redis_enabled() -> bool:
     - Requires a fast PING to succeed (<= 0.25s connect timeout)
     Falls back to in-memory otherwise to keep tests and local runs robust.
     """
-    use_env = os.environ.get("DATAVIZHUB_USE_REDIS", "0").lower() in {"1", "true", "yes"}
+    use_env = os.environ.get("DATAVIZHUB_USE_REDIS", "0").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
     if not use_env:
         return False
     try:
@@ -47,8 +51,13 @@ def is_redis_enabled() -> bool:
     except Exception:
         return False
 
+
 def redis_url() -> str:
-    return os.environ.get("DATAVIZHUB_REDIS_URL", os.environ.get("REDIS_URL", "redis://localhost:6379/0"))
+    return os.environ.get(
+        "DATAVIZHUB_REDIS_URL", os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+    )
+
+
 def queue_name() -> str:
     return os.environ.get("DATAVIZHUB_QUEUE", "datavizhub")
 
@@ -58,7 +67,9 @@ _rq_queue = None
 
 # In-memory pub/sub for WebSocket parity
 # Store (queue, loop) to support thread-safe puts into the listener's event loop.
-_SUBSCRIBERS: Dict[str, List[Tuple[asyncio.Queue[str], Optional[asyncio.AbstractEventLoop]]]] = {}
+_SUBSCRIBERS: Dict[
+    str, List[Tuple[asyncio.Queue[str], Optional[asyncio.AbstractEventLoop]]]
+] = {}
 # In-memory last-message cache per channel for quick replay on new subscribers
 _LAST_MESSAGES: Dict[str, Dict[str, Any]] = {}
 
@@ -98,6 +109,7 @@ def _get_redis_and_queue():  # lazy init to avoid hard dependency
     global _redis_client, _rq_queue
     if _redis_client is None:
         from redis import Redis
+
         url = redis_url()
         if not _is_valid_redis_url(url):
             raise RuntimeError("Invalid Redis URL in environment")
@@ -126,7 +138,7 @@ def _pub(channel: str, message: Dict[str, Any]) -> None:
         except Exception:
             pass
         # Broadcast to in-memory subscribers; respect listener loop if running
-        for (q, loop) in list(_SUBSCRIBERS.get(channel, []) or []):
+        for q, loop in list(_SUBSCRIBERS.get(channel, []) or []):
             try:
                 if loop is not None and loop.is_running():
                     loop.call_soon_threadsafe(q.put_nowait, payload)
@@ -175,7 +187,9 @@ class _PubTee(io.StringIO):
         return n
 
 
-def run_cli_job(stage: str, command: str, args: Dict[str, Any], job_id: Optional[str] = None) -> Dict[str, Any]:
+def run_cli_job(
+    stage: str, command: str, args: Dict[str, Any], job_id: Optional[str] = None
+) -> Dict[str, Any]:
     """RQ worker entry: run the CLI and stream progress/logs.
 
     Behavior
@@ -237,7 +251,9 @@ def run_cli_job(stage: str, command: str, args: Dict[str, Any], job_id: Optional
     # Persist output artifact if present
     try:
         # Results dir
-        results_root = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+        results_root = Path(
+            os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
+        )
         if job_id:
             results_dir = results_root / job_id
             results_dir.mkdir(parents=True, exist_ok=True)
@@ -344,6 +360,7 @@ def submit_job(stage: str, command: str, args: Dict[str, Any]) -> str:
     else:
         import uuid
         from datavizhub.api.workers.executor import start_job as _start
+
         _cleanup_jobs()
         job_id = uuid.uuid4().hex
         _JOBS[job_id] = {
@@ -374,10 +391,12 @@ def start_job(job_id: str, stage: str, command: str, args: Dict[str, Any]) -> No
     _pub(channel, {"progress": 0.0})
     # Capture stdio with publishers (similar to Redis worker path)
     import io, sys
+
     class _LocalPubTee(io.StringIO):
         def __init__(self, key: str):
             super().__init__()
             self._key = key
+
         def write(self, s: str) -> int:  # type: ignore[override]
             if not s:
                 return 0
@@ -387,6 +406,7 @@ def start_job(job_id: str, stage: str, command: str, args: Dict[str, Any]) -> No
             except Exception:
                 pass
             return n
+
     out_buf = _LocalPubTee("stdout")
     err_buf = _LocalPubTee("stderr")
     old_out, old_err = sys.stdout, sys.stderr
@@ -395,6 +415,7 @@ def start_job(job_id: str, stage: str, command: str, args: Dict[str, Any]) -> No
     try:
         try:
             from datavizhub.cli import main as cli_main
+
             code = cli_main(_args_dict_to_argv(stage, command, args_resolved))  # type: ignore[arg-type]
             if not isinstance(code, int):
                 code = int(code) if code is not None else 0
@@ -410,7 +431,9 @@ def start_job(job_id: str, stage: str, command: str, args: Dict[str, Any]) -> No
     rec["exit_code"] = code
     # Persist output artifact similar to Redis path
     try:
-        results_root = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+        results_root = Path(
+            os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
+        )
         results_dir = results_root / job_id
         results_dir.mkdir(parents=True, exist_ok=True)
         out_file = None
@@ -469,6 +492,7 @@ def start_job(job_id: str, stage: str, command: str, args: Dict[str, Any]) -> No
 def get_job(job_id: str) -> Optional[Dict[str, Any]]:
     if is_redis_enabled():
         from rq.job import Job
+
         r, _q = _get_redis_and_queue()
         job = Job.fetch(job_id, connection=r)
         # Derive a simple status and attach result if available
@@ -484,10 +508,18 @@ def get_job(job_id: str) -> Optional[Dict[str, Any]]:
         result = job.result if status == "succeeded" else None
         return {
             "status": status,
-            "stdout": (result or {}).get("stdout") if isinstance(result, dict) else None,
-            "stderr": (result or {}).get("stderr") if isinstance(result, dict) else None,
-            "exit_code": (result or {}).get("exit_code") if isinstance(result, dict) else None,
-            "output_file": (result or {}).get("output_file") if isinstance(result, dict) else None,
+            "stdout": (result or {}).get("stdout")
+            if isinstance(result, dict)
+            else None,
+            "stderr": (result or {}).get("stderr")
+            if isinstance(result, dict)
+            else None,
+            "exit_code": (result or {}).get("exit_code")
+            if isinstance(result, dict)
+            else None,
+            "output_file": (result or {}).get("output_file")
+            if isinstance(result, dict)
+            else None,
         }
     else:
         _cleanup_jobs()
@@ -497,6 +529,7 @@ def get_job(job_id: str) -> Optional[Dict[str, Any]]:
 def cancel_job(job_id: str) -> bool:
     if is_redis_enabled():
         from rq.job import Job
+
         r, _q = _get_redis_and_queue()
         try:
             job = Job.fetch(job_id, connection=r)

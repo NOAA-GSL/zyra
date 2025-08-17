@@ -13,6 +13,7 @@ from .json_file_manager import JSONFileManager
 # image_manager depends on optional heavy deps (numpy/Pillow). Import lazily when available.
 try:  # pragma: no cover - optional path
     from .image_manager import ImageManager  # type: ignore
+
     _HAS_IMAGE = True
 except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional path
     _HAS_IMAGE = False

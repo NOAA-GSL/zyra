@@ -7,6 +7,7 @@ import sys
 has_contextily = False
 try:  # pragma: no cover - import guard
     import contextily  # noqa: F401
+
     has_contextily = True
 except Exception:
     pass

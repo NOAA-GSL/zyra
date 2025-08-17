@@ -13,6 +13,7 @@ from datavizhub.acquisition.ftp_manager import FTPManager
 
 # ---- S3/HTTP/FTP: pattern filters and retries -----------------------------------------
 
+
 def test_s3_list_files_pattern_filters():
     with patch("datavizhub.acquisition.s3_manager.boto3.client") as m_client:
         client = Mock()
@@ -97,7 +98,9 @@ def test_http_get_idx_lines_retries_then_success():
         import requests
 
         e = requests.exceptions.RequestException("boom")
-        good = Mock(); good.raise_for_status = lambda: None; good.content = b"1:0:a\n"
+        good = Mock()
+        good.raise_for_status = lambda: None
+        good.content = b"1:0:a\n"
         m_get.side_effect = [e, good]
         lines = HTTPHandler().get_idx_lines(url)
         assert lines == ["1:0:a"]
@@ -161,25 +164,32 @@ def test_base_with_retries_before_retry_and_final_raise():
 
     stub = _Stub()
     with pytest.raises(ValueError):
-        stub._with_retries(func, attempts=2, exceptions=(ValueError,), before_retry=hook)
+        stub._with_retries(
+            func, attempts=2, exceptions=(ValueError,), before_retry=hook
+        )
     assert len(seen["retry"]) == 1
 
 
 def test_http_head_without_content_length_and_no_anchors():
     with patch("datavizhub.acquisition.http_manager.requests.head") as m_head:
-        r = Mock(); r.raise_for_status = lambda: None; r.headers = {}
+        r = Mock()
+        r.raise_for_status = lambda: None
+        r.headers = {}
         m_head.return_value = r
         assert HTTPHandler().get_size("https://x") is None
 
     with patch("datavizhub.acquisition.http_manager.requests.get") as m_get:
-        g = Mock(); g.raise_for_status = lambda: None; g.text = "<html>no links</html>"
+        g = Mock()
+        g.raise_for_status = lambda: None
+        g.text = "<html>no links</html>"
         m_get.return_value = g
         assert HTTPHandler().list_files("https://x") == []
 
 
 def test_s3_upload_success_and_failure(tmp_path):
     with patch("datavizhub.acquisition.s3_manager.boto3.client") as m_client:
-        client = Mock(); m_client.return_value = client
+        client = Mock()
+        m_client.return_value = client
         s3 = S3Manager(None, None, "bucket", unsigned=True)
         client.upload_file.return_value = None
         assert s3.upload_file(str(tmp_path / "f.txt"), "k") is True
@@ -191,8 +201,10 @@ def test_s3_upload_success_and_failure(tmp_path):
 
 def test_s3_list_files_error_returns_none():
     with patch("datavizhub.acquisition.s3_manager.boto3.client") as m_client:
-        client = Mock(); m_client.return_value = client
-        paginator = Mock(); client.get_paginator.return_value = paginator
+        client = Mock()
+        m_client.return_value = client
+        paginator = Mock()
+        client.get_paginator.return_value = paginator
         paginator.paginate.side_effect = ClientError(
             {"Error": {"Code": "ExpiredToken", "Message": "Expired"}}, "ListObjectsV2"
         )
@@ -202,6 +214,7 @@ def test_s3_list_files_error_returns_none():
 
 class _UploadRetryFTP:
     _global_calls = 0
+
     def __init__(self, timeout=30):
         self.timeout = timeout
         self.sock = object()
@@ -282,4 +295,3 @@ def test_ftp_exists_delete_stat_paths():
         assert ftp.delete("/dir/missing.bin") is False
         assert ftp.stat("/dir/b.bin") == {"size": 10}
         assert ftp.stat("/dir/missing.bin") == {"size": None}
-

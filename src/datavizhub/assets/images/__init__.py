@@ -14,4 +14,3 @@ Obtain a path-like object to a packaged image::
     with as_file(resource) as p:
         path = str(p)
 """
-

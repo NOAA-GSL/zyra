@@ -79,7 +79,46 @@ class DateManager:
             raise ValueError(f"Unsupported period unit in: {period}")
         return start, now
 
-    def is_date_in_range(self, filepath: str, start_date: datetime, end_date: datetime) -> bool:
+    def get_date_range_iso(self, iso_duration: str) -> Tuple[datetime, datetime]:
+        """Compute a date range ending now from an ISO-8601 duration (e.g., P1Y, P6M, P7D, PT24H).
+
+        Supports a subset of ISO-8601: years (Y), months (M), days (D), hours (H)
+        with the "P...T..." structure. Examples: "P1Y", "P6M", "P7D", "PT24H".
+        """
+        now = datetime.now().replace(second=0, microsecond=0)
+        years = months = days = hours = 0
+        s = iso_duration.strip().upper()
+        if not s.startswith("P"):
+            raise ValueError(f"Invalid ISO-8601 duration: {iso_duration}")
+        # Split date and time parts
+        date_part = s[1:]
+        time_part = ""
+        if "T" in date_part:
+            date_part, time_part = date_part.split("T", 1)
+        # Parse date components
+        m = re.findall(r"(\d+)([YMD])", date_part)
+        for num, unit in m:
+            n = int(num)
+            if unit == "Y":
+                years = n
+            elif unit == "M":
+                months = n
+            elif unit == "D":
+                days = n
+        # Parse time components (hours only, minimal subset)
+        tm = re.findall(r"(\d+)([H])", time_part)
+        for num, unit in tm:
+            n = int(num)
+            if unit == "H":
+                hours = n
+        from dateutil.relativedelta import relativedelta
+
+        start = now - relativedelta(years=years, months=months, days=days, hours=hours)
+        return start, now
+
+    def is_date_in_range(
+        self, filepath: str, start_date: datetime, end_date: datetime
+    ) -> bool:
         """Check if a filename contains a date within a range.
 
         Parameters
@@ -105,7 +144,9 @@ class DateManager:
                 extracted_date = datetime.fromisoformat(extracted_date_str)
                 return start_date <= extracted_date <= end_date
             except ValueError as e:
-                logging.error(f"Error converting extracted date string to datetime: {e}")
+                logging.error(
+                    f"Error converting extracted date string to datetime: {e}"
+                )
         else:
             logging.error(f"No valid date extracted from filename: {filename}")
         return False
@@ -133,7 +174,14 @@ class DateManager:
     def extract_dates_from_filenames(
         self,
         directory_path: str,
-        image_extensions: Iterable[str] = (".jpg", ".jpeg", ".png", ".gif", ".bmp", ".dds"),
+        image_extensions: Iterable[str] = (
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".gif",
+            ".bmp",
+            ".dds",
+        ),
     ) -> Tuple[Optional[str], Optional[str]]:
         """Extract dates from the first and last image file names in a directory.
 
@@ -149,14 +197,20 @@ class DateManager:
         tuple
             ``(first_date, last_date)`` as strings, or ``(None, None)``.
         """
-        files = sorted(file for file in os.listdir(directory_path) if file.lower().endswith(tuple(image_extensions)))
+        files = sorted(
+            file
+            for file in os.listdir(directory_path)
+            if file.lower().endswith(tuple(image_extensions))
+        )
         first_file = files[0] if files else None
         last_file = files[-1] if files else None
         first_file_date = self.extract_date_time(first_file) if first_file else None
         last_file_date = self.extract_date_time(last_file) if last_file else None
         return first_file_date, last_file_date
 
-    def calculate_expected_frames(self, start_datetime: datetime, end_datetime: datetime, period_seconds: int) -> int:
+    def calculate_expected_frames(
+        self, start_datetime: datetime, end_datetime: datetime, period_seconds: int
+    ) -> int:
         """Calculate expected frame count between two datetimes at a cadence.
 
         Returns
@@ -169,7 +223,14 @@ class DateManager:
 
     def datetime_format_to_regex(self, datetime_format: str) -> str:
         """Convert a datetime format string to a regex pattern."""
-        format_to_regex = {"%Y": r"\d{4}", "%m": r"\d{2}", "%d": r"\d{2}", "%H": r"\d{2}", "%M": r"\d{2}", "%S": r"\d{2}"}
+        format_to_regex = {
+            "%Y": r"\d{4}",
+            "%m": r"\d{2}",
+            "%d": r"\d{2}",
+            "%H": r"\d{2}",
+            "%M": r"\d{2}",
+            "%S": r"\d{2}",
+        }
         regex = datetime_format
         for format_spec, regex_spec in format_to_regex.items():
             regex = regex.replace(format_spec, regex_spec)
@@ -178,7 +239,11 @@ class DateManager:
     def parse_timestamps_from_filenames(self, filenames, datetime_format):
         """Parse timestamps from filenames based on the given format."""
         timestamps = []
-        regex = self.datetime_format_to_regex(datetime_format) if datetime_format is not None else None
+        regex = (
+            self.datetime_format_to_regex(datetime_format)
+            if datetime_format is not None
+            else None
+        )
         for filename in filenames:
             try:
                 ts = re.search(regex, filename).group()
@@ -195,11 +260,17 @@ class DateManager:
             return None, None
         start_datetime_str = self.extract_date_time(files[0])
         end_datetime_str = self.extract_date_time(files[-1])
-        start_datetime = datetime.fromisoformat(start_datetime_str) if start_datetime_str else None
-        end_datetime = datetime.fromisoformat(end_datetime_str) if end_datetime_str else None
+        start_datetime = (
+            datetime.fromisoformat(start_datetime_str) if start_datetime_str else None
+        )
+        end_datetime = (
+            datetime.fromisoformat(end_datetime_str) if end_datetime_str else None
+        )
         return start_datetime, end_datetime
 
-    def find_missing_frames_and_predict_names(self, timestamps, period_seconds, filename_pattern):
+    def find_missing_frames_and_predict_names(
+        self, timestamps, period_seconds, filename_pattern
+    ):
         """Find gaps and overfrequent frames in timestamps and predict names."""
         gaps = []
         additional_frames = []
@@ -218,7 +289,12 @@ class DateManager:
                     predicted_frame = missing_date.strftime(filename_pattern)
                     predicted_missing_frames.append(predicted_frame)
                     missing_date += timedelta(seconds=period_seconds)
-        return (gaps, additional_frames, predicted_missing_frames, predicted_additional_frames)
+        return (
+            gaps,
+            additional_frames,
+            predicted_missing_frames,
+            predicted_additional_frames,
+        )
 
     def find_missing_frames(
         self,
@@ -232,28 +308,40 @@ class DateManager:
     ):
         """Find missing frames in a local directory with inconsistent period, only for image files."""
         all_filenames = os.listdir(directory)
-        filtered_filenames = [f for f in all_filenames if f.lower().endswith((".jpg", ".png", ".jpeg", ".dds"))]
+        filtered_filenames = [
+            f
+            for f in all_filenames
+            if f.lower().endswith((".jpg", ".png", ".jpeg", ".dds"))
+        ]
         actual_filenames = []
         if filename_format != "":
             for filename in filtered_filenames:
                 try:
                     date_str = re.search(filename_format, filename).group(1)
                     file_date = datetime.strptime(date_str, datetime_format)
-                    if (start_datetime is None or file_date >= start_datetime) and (end_datetime is None or file_date <= end_datetime):
+                    if (start_datetime is None or file_date >= start_datetime) and (
+                        end_datetime is None or file_date <= end_datetime
+                    ):
                         actual_filenames.append(filename)
                 except Exception as e:
                     logging.error(f"Error parsing date from {filename}: {e}")
         else:
             actual_filenames = filtered_filenames
         actual_frame_count = len(actual_filenames)
-        expected_frame_count = self.calculate_expected_frames(start_datetime, end_datetime, period_seconds)
-        timestamps = self.parse_timestamps_from_filenames(actual_filenames, datetime_format)
+        expected_frame_count = self.calculate_expected_frames(
+            start_datetime, end_datetime, period_seconds
+        )
+        timestamps = self.parse_timestamps_from_filenames(
+            actual_filenames, datetime_format
+        )
         (
             gaps,
             additional_frames,
             predicted_missing_frames,
             predicted_additional_frames,
-        ) = self.find_missing_frames_and_predict_names(timestamps, period_seconds, filename_mask + datetime_format)
+        ) = self.find_missing_frames_and_predict_names(
+            timestamps, period_seconds, filename_mask + datetime_format
+        )
         return (
             actual_frame_count,
             expected_frame_count,

@@ -22,8 +22,12 @@ def test_http_get_size_and_idx_and_ranges():
         idx_resp.raise_for_status = lambda: None
         idx_resp.content = b"1:0:date:VAR:a:b:\n2:10:date:VAR:a:b:\n"
 
-        r1 = Mock(); r1.raise_for_status = lambda: None; r1.content = b"ABCDEFGHIJ"  # 10 bytes
-        r2 = Mock(); r2.raise_for_status = lambda: None; r2.content = b"KLMNOPQRST"  # next 10 bytes
+        r1 = Mock()
+        r1.raise_for_status = lambda: None
+        r1.content = b"ABCDEFGHIJ"  # 10 bytes
+        r2 = Mock()
+        r2.raise_for_status = lambda: None
+        r2.content = b"KLMNOPQRST"  # next 10 bytes
 
         m_get.side_effect = [idx_resp, r1, r2]
 
@@ -46,4 +50,3 @@ def test_http_list_files_scrape():
         m_get.return_value = resp
         files = mgr.list_files(page)
         assert any("file1.bin" in f for f in files)
-

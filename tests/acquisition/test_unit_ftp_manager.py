@@ -26,9 +26,7 @@ def test_connect(ftp_manager):
 
     mock_ftp_class.assert_called_once()
     mock_ftp.connect.assert_called_once_with("ftp.example.com", 21)
-    mock_ftp.login.assert_called_once_with(
-        user="anonymous", passwd="test@test.com"
-    )
+    mock_ftp.login.assert_called_once_with(user="anonymous", passwd="test@test.com")
 
 
 @pytest.mark.skip()
@@ -58,4 +56,3 @@ def test_exists_and_stat_and_delete(ftp_manager):
 
     mock_ftp.nlst.return_value = ["other.txt"]
     assert manager.exists("dir/file.txt") is False
-

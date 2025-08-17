@@ -63,17 +63,19 @@ def test_visualize_heatmap_npy_group(tmp_path: Path):
     out = tmp_path / "out.png"
     np.save(npy, arr)
 
-    res = _run_cli([
-        "visualize",
-        "heatmap",
-        "--input",
-        str(npy),
-        "--output",
-        str(out),
-        "--no-coastline",
-        "--no-borders",
-        "--no-gridlines",
-    ])
+    res = _run_cli(
+        [
+            "visualize",
+            "heatmap",
+            "--input",
+            str(npy),
+            "--output",
+            str(out),
+            "--no-coastline",
+            "--no-borders",
+            "--no-gridlines",
+        ]
+    )
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     assert out.exists()
     # PNG signature
@@ -96,20 +98,22 @@ def test_visualize_contour_npy_group(tmp_path: Path):
     out = tmp_path / "contour.png"
     np.save(npy, arr)
 
-    res = _run_cli([
-        "visualize",
-        "contour",
-        "--input",
-        str(npy),
-        "--output",
-        str(out),
-        "--levels",
-        "5",
-        "--filled",
-        "--no-coastline",
-        "--no-borders",
-        "--no-gridlines",
-    ])
+    res = _run_cli(
+        [
+            "visualize",
+            "contour",
+            "--input",
+            str(npy),
+            "--output",
+            str(out),
+            "--levels",
+            "5",
+            "--filled",
+            "--no-coastline",
+            "--no-borders",
+            "--no-gridlines",
+        ]
+    )
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     assert out.exists()
     assert out.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
@@ -133,19 +137,21 @@ def test_visualize_vector_npy_group(tmp_path: Path):
     np.save(up, u)
     np.save(vp, v)
 
-    res = _run_cli([
-        "visualize",
-        "vector",
-        "--u",
-        str(up),
-        "--v",
-        str(vp),
-        "--output",
-        str(out),
-        "--no-coastline",
-        "--no-borders",
-        "--no-gridlines",
-    ])
+    res = _run_cli(
+        [
+            "visualize",
+            "vector",
+            "--u",
+            str(up),
+            "--v",
+            str(vp),
+            "--output",
+            str(out),
+            "--no-coastline",
+            "--no-borders",
+            "--no-gridlines",
+        ]
+    )
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     assert out.exists()
     assert out.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
@@ -154,6 +160,7 @@ def test_visualize_vector_npy_group(tmp_path: Path):
 # Optional: tile-based map rendering path (requires contextily and opt-in via env)
 def _has_contextily_tiles_enabled() -> bool:
     import os
+
     try:
         import contextily  # type: ignore  # noqa: F401
     except Exception:
@@ -162,7 +169,10 @@ def _has_contextily_tiles_enabled() -> bool:
 
 
 @pytest.mark.cli
-@pytest.mark.skipif(not _has_contextily_tiles_enabled(), reason="contextily not installed or tile tests not enabled")
+@pytest.mark.skipif(
+    not _has_contextily_tiles_enabled(),
+    reason="contextily not installed or tile tests not enabled",
+)
 def test_visualize_contour_with_tiles(tmp_path: Path):
     import numpy as np  # type: ignore
 
@@ -171,31 +181,36 @@ def test_visualize_contour_with_tiles(tmp_path: Path):
     out = tmp_path / "contour_tiles.png"
     np.save(npy, arr)
 
-    res = _run_cli([
-        "visualize",
-        "contour",
-        "--input",
-        str(npy),
-        "--output",
-        str(out),
-        "--levels",
-        "5",
-        "--filled",
-        "--map-type",
-        "tile",
-        "--tile-zoom",
-        "1",
-        "--no-coastline",
-        "--no-borders",
-        "--no-gridlines",
-    ])
+    res = _run_cli(
+        [
+            "visualize",
+            "contour",
+            "--input",
+            str(npy),
+            "--output",
+            str(out),
+            "--levels",
+            "5",
+            "--filled",
+            "--map-type",
+            "tile",
+            "--tile-zoom",
+            "1",
+            "--no-coastline",
+            "--no-borders",
+            "--no-gridlines",
+        ]
+    )
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     assert out.exists()
     assert out.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
 
 
 @pytest.mark.cli
-@pytest.mark.skipif(not _has_contextily_tiles_enabled(), reason="contextily not installed or tile tests not enabled")
+@pytest.mark.skipif(
+    not _has_contextily_tiles_enabled(),
+    reason="contextily not installed or tile tests not enabled",
+)
 def test_visualize_vector_with_tiles(tmp_path: Path):
     import numpy as np  # type: ignore
 
@@ -207,23 +222,25 @@ def test_visualize_vector_with_tiles(tmp_path: Path):
     np.save(up, u)
     np.save(vp, v)
 
-    res = _run_cli([
-        "visualize",
-        "vector",
-        "--u",
-        str(up),
-        "--v",
-        str(vp),
-        "--output",
-        str(out),
-        "--map-type",
-        "tile",
-        "--tile-zoom",
-        "1",
-        "--no-coastline",
-        "--no-borders",
-        "--no-gridlines",
-    ])
+    res = _run_cli(
+        [
+            "visualize",
+            "vector",
+            "--u",
+            str(up),
+            "--v",
+            str(vp),
+            "--output",
+            str(out),
+            "--map-type",
+            "tile",
+            "--tile-zoom",
+            "1",
+            "--no-coastline",
+            "--no-borders",
+            "--no-gridlines",
+        ]
+    )
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     assert out.exists()
     assert out.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"

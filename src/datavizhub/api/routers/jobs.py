@@ -71,7 +71,9 @@ def _results_dir_for(job_id: str) -> Path:
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
 
     # Compute results dir with normalized join and containment check
-    base = os.path.normpath(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+    base = os.path.normpath(
+        os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
+    )
     full = os.path.normpath(os.path.join(base, job_id))
     try:
         if os.path.commonpath([base, full]) != base:
@@ -82,7 +84,10 @@ def _results_dir_for(job_id: str) -> Path:
     # Optionally refuse symlinked root directory
     try:
         if Path(base).is_symlink():
-            raise HTTPException(status_code=500, detail="Results root directory misconfigured (symlink not allowed)")
+            raise HTTPException(
+                status_code=500,
+                detail="Results root directory misconfigured (symlink not allowed)",
+            )
     except Exception:
         pass
     return rd
@@ -92,7 +97,11 @@ def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
     # Validate job_id early and derive results dir (inline containment check)
     if not isinstance(job_id, str) or not job_id:
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
-    if os.path.isabs(job_id) or job_id != os.path.basename(job_id) or not SAFE_JOB_ID_RE.fullmatch(job_id):
+    if (
+        os.path.isabs(job_id)
+        or job_id != os.path.basename(job_id)
+        or not SAFE_JOB_ID_RE.fullmatch(job_id)
+    ):
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
     root = os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
     base = os.path.normpath(root)
@@ -106,10 +115,14 @@ def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
     rd = Path(full)
     if specific_file:
         # Only allow a single safe filename (no directories)
-        if not _is_safe_segment(specific_file) or specific_file != os.path.basename(specific_file):
+        if not _is_safe_segment(specific_file) or specific_file != os.path.basename(
+            specific_file
+        ):
             raise HTTPException(status_code=400, detail="Invalid file parameter")
         # Compose file path via normalized join and verify containment again
-        base = os.path.normpath(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+        base = os.path.normpath(
+            os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
+        )
         full_file = os.path.normpath(os.path.join(base, job_id, specific_file))
         try:
             if os.path.commonpath([base, full_file]) != base:
@@ -119,6 +132,7 @@ def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
         # Reject symlink targets using O_NOFOLLOW when available and ensure existence
         try:
             import errno as _errno, os as _os
+
             flags = getattr(_os, "O_RDONLY", 0)
             nofollow = getattr(_os, "O_NOFOLLOW", 0)
             # lgtm [py/path-injection] — full_file is validated (single-segment, normpath+commonpath, O_NOFOLLOW)
@@ -140,7 +154,9 @@ def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
     raise HTTPException(status_code=404, detail="No artifacts available")
 
 
-@router.get("/jobs/{job_id}", response_model=JobStatusResponse, summary="Get job status")
+@router.get(
+    "/jobs/{job_id}", response_model=JobStatusResponse, summary="Get job status"
+)
 def get_job_status(job_id: str) -> JobStatusResponse:
     """Return current job status, stdio captures, exit code, and resolved inputs.
 
@@ -193,7 +209,9 @@ def download_job_output(
         default=None,
         description="Specific filename from manifest.json",
     ),
-    zip: Optional[int] = Query(default=None, description="If 1, package all artifacts into a zip on demand"),
+    zip: Optional[int] = Query(
+        default=None, description="If 1, package all artifacts into a zip on demand"
+    ),
 ):
     """Stream the selected job artifact (ZIP or individual file).
 
@@ -203,7 +221,13 @@ def download_job_output(
     """
     # Validate job_id early and use a distinct variable to avoid taint flow
     jid = job_id
-    if not isinstance(jid, str) or not jid or os.path.isabs(jid) or jid != os.path.basename(jid) or not SAFE_JOB_ID_RE.fullmatch(jid):
+    if (
+        not isinstance(jid, str)
+        or not jid
+        or os.path.isabs(jid)
+        or jid != os.path.basename(jid)
+        or not SAFE_JOB_ID_RE.fullmatch(jid)
+    ):
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
 
     rec = jobs_backend.get_job(jid)
@@ -214,9 +238,15 @@ def download_job_output(
         # Inline sanitize job_id and derive results dir
         if not isinstance(job_id, str) or not job_id:
             return None
-        if os.path.isabs(job_id) or job_id != os.path.basename(job_id) or not SAFE_JOB_ID_RE.fullmatch(job_id):
+        if (
+            os.path.isabs(job_id)
+            or job_id != os.path.basename(job_id)
+            or not SAFE_JOB_ID_RE.fullmatch(job_id)
+        ):
             return None
-        base = os.path.normpath(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+        base = os.path.normpath(
+            os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
+        )
         full = os.path.normpath(os.path.join(base, job_id))
         try:
             if os.path.commonpath([base, full]) != base:
@@ -227,6 +257,7 @@ def download_job_output(
         try:
             import json
             import zipfile
+
             mf = os.path.normpath(os.path.join(full, "manifest.json"))
             try:
                 if os.path.commonpath([base, mf]) != base:
@@ -248,7 +279,9 @@ def download_job_output(
                     return None
             except Exception:
                 return None
-            with zipfile.ZipFile(zpath, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:  # type: ignore[attr-defined]
+            with zipfile.ZipFile(
+                zpath, mode="w", compression=zipfile.ZIP_DEFLATED
+            ) as zf:  # type: ignore[attr-defined]
                 for it in items:
                     if not isinstance(it, dict):
                         continue
@@ -285,7 +318,9 @@ def download_job_output(
         else:
             # Prefer recorded output_file but re-anchor under results dir for containment
             p = None
-            base = os.path.normpath(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+            base = os.path.normpath(
+                os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
+            )
             try:
                 out = rec.get("output_file")
                 if isinstance(out, str) and out:
@@ -298,6 +333,7 @@ def download_job_output(
                     mf = os.path.normpath(os.path.join(base, jid, "manifest.json"))
                     if os.path.commonpath([base, mf]) == base:
                         import json
+
                         # Generate a manifest on demand when missing/empty
                         try:
                             # lgtm [py/path-injection] — mf is contained via normpath+commonpath
@@ -305,7 +341,10 @@ def download_job_output(
                                 data = json.load(_fh)
                         except FileNotFoundError:
                             try:
-                                from datavizhub.api.workers.executor import write_manifest as _wm
+                                from datavizhub.api.workers.executor import (
+                                    write_manifest as _wm,
+                                )
+
                                 _wm(jid)
                                 # lgtm [py/path-injection] — mf is contained via normpath+commonpath
                                 with open(mf, "r", encoding="utf-8") as _fh:
@@ -314,7 +353,9 @@ def download_job_output(
                                 data = {"artifacts": []}
                         arts = data.get("artifacts") or []
                         if arts and isinstance(arts[0], dict):
-                            name = arts[0].get("name") or os.path.basename(arts[0].get("path", ""))
+                            name = arts[0].get("name") or os.path.basename(
+                                arts[0].get("path", "")
+                            )
                             if isinstance(name, str) and name:
                                 full2 = os.path.normpath(os.path.join(base, jid, name))
                                 if os.path.commonpath([base, full2]) == base:
@@ -327,7 +368,9 @@ def download_job_output(
     # Re-anchor the selected path under the contained base/jid using only its basename,
     # and obtain a file descriptor for TTL checks without path-based stat calls.
     try:
-        base = os.path.normpath(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+        base = os.path.normpath(
+            os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
+        )
         # Support when p is a Path or a string
         pname = p.name if hasattr(p, "name") else str(p)
         fname = os.path.basename(pname)
@@ -337,8 +380,11 @@ def download_job_output(
         if os.path.commonpath([base, fullp]) != base:
             raise HTTPException(status_code=400, detail="Invalid file parameter")
         import os as _os, errno as _errno
+
         # lgtm [py/path-injection] — fullp is contained via normpath+commonpath, O_NOFOLLOW used
-        fd = _os.open(fullp, getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0))
+        fd = _os.open(
+            fullp, getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0)
+        )
         try:
             st = _os.fstat(fd)
         finally:
@@ -364,6 +410,7 @@ def download_job_output(
         ttl = 86400
     try:
         import time
+
         age = time.time() - st.st_mtime
         if age > ttl:
             raise HTTPException(status_code=410, detail="Output file expired")
@@ -379,7 +426,9 @@ def download_job_output(
         media_type = str(mt) if mt else None
     except Exception:
         media_type, _ = mimetypes.guess_type(p.name)
-    return FileResponse(fullp, media_type=media_type or "application/octet-stream", filename=fname)
+    return FileResponse(
+        fullp, media_type=media_type or "application/octet-stream", filename=fname
+    )
 
 
 @router.get(
@@ -395,9 +444,15 @@ def get_job_manifest(job_id: str):
     # Inline sanitize job_id and derive results dir
     if not isinstance(job_id, str) or not job_id:
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
-    if os.path.isabs(job_id) or job_id != os.path.basename(job_id) or not SAFE_JOB_ID_RE.fullmatch(job_id):
+    if (
+        os.path.isabs(job_id)
+        or job_id != os.path.basename(job_id)
+        or not SAFE_JOB_ID_RE.fullmatch(job_id)
+    ):
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
-    base = os.path.normpath(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+    base = os.path.normpath(
+        os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
+    )
     full = os.path.normpath(os.path.join(base, job_id))
     try:
         if os.path.commonpath([base, full]) != base:
@@ -412,6 +467,7 @@ def get_job_manifest(job_id: str):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
     import json, os as _os, errno as _errno
+
     try:
         # lgtm [py/path-injection] — mf is contained via normpath+commonpath, O_NOFOLLOW used
         fd = _os.open(mf, getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0))

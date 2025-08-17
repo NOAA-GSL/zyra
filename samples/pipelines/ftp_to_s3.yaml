@@ -1,24 +1,56 @@
 # Example: FTP -> compose video -> upload to S3
 # Note: This is a template and requires network access and credentials.
 # It is not intended to run in minimal CI environments.
-name: FTP to S3 Video Pipeline
+name: FTP → Transform → Video → S3
 stages:
+  # 1) Acquire frames by syncing an FTP directory to local
   - stage: acquire
     command: ftp
     args:
-      path: ftp://ftp.example.com/pub/frames/frame_*.png  # placeholder
-      output: -
+      # Anonymous FTP credentials (URL-encoded '@' in password)
+      path: ftp://anonymous:test%40example.com@ftp.example.com/pub/frames/
+      sync_dir: ./frames                             # materialize frames locally
+      pattern: "image_(\\d{8})\\.png"              # optional: filter via regex
+      since_period: "P1Y"                              # look back one year from today
+      date_format: "%Y%m%d"                          # match date in filenames
 
+  # 2) Compute frames metadata (JSON) — optional
+  - stage: transform
+    command: metadata
+    args:
+      frames_dir: ./frames
+      datetime_format: "%Y%m%d"
+      period_seconds: 3600
+      output: frames_meta.json
+
+  # 3) Compose frames into a video
   - stage: visualize
     command: compose-video
     args:
-      frames: ./frames              # you would materialize frames before composing
+      frames: ./frames
       output: video.mp4
       fps: 24
 
+  # 4) Upload video to Vimeo (prints Vimeo URI to stdout)
+  - stage: decimate
+    command: vimeo
+    args:
+      input: video.mp4
+      name: "Sample FTP → Video"
+      description: "Latest render from synced frames"
+
+  # 5) Enrich metadata with Vimeo URI (read from previous step stdout)
+  - stage: transform
+    command: enrich-metadata
+    args:
+      frames_meta: frames_meta.json
+      dataset_id: sample_dataset
+      read_vimeo_uri: true
+      output: enriched_meta.json
+
+  # 6) Upload enriched metadata to S3
   - stage: decimate
     command: s3
     args:
-      input: video.mp4
-      url: s3://your-bucket/path/video.mp4
-
+      input: enriched_meta.json
+      url: s3://your-bucket/path/enriched_meta.json

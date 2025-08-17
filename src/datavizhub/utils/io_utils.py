@@ -10,4 +10,3 @@ def open_input(path_or_dash: str) -> BinaryIO:
 def open_output(path_or_dash: str) -> BinaryIO:
     """Return a writable binary file-like for path or '-' (stdout)."""
     return sys.stdout.buffer if path_or_dash == "-" else open(path_or_dash, "wb")
-

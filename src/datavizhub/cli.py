@@ -1,3 +1,18 @@
+"""DataVizHub CLI entrypoint and command wiring.
+
+Organizes commands into groups that mirror pipeline stages:
+
+- acquire: ingress from HTTP/S3/FTP/Vimeo backends
+- process: GRIB/NetCDF decoding, extraction, format conversion
+- visualize: static and animated rendering
+- decimate: egress (local, S3, FTP, HTTP POST, Vimeo)
+- transform: lightweight metadata and JSON transforms
+- run: run a config-driven pipeline (YAML/JSON)
+
+Internal helpers support streaming bytes via stdin/stdout, GRIB ``.idx``
+subsetting, and S3 URL parsing.
+"""
+
 from typing import Optional
 import argparse
 import sys
@@ -14,7 +29,9 @@ def _parse_s3_url(url: str) -> Tuple[str, str]:
     return m.group(1), m.group(2)
 
 
-def _read_bytes(path_or_url: str, *, idx_pattern: Optional[str] = None, unsigned: bool = False) -> bytes:
+def _read_bytes(
+    path_or_url: str, *, idx_pattern: Optional[str] = None, unsigned: bool = False
+) -> bytes:
     # stdin
     if path_or_url == "-":
         return sys.stdin.buffer.read()
@@ -26,41 +43,30 @@ def _read_bytes(path_or_url: str, *, idx_pattern: Optional[str] = None, unsigned
     # HTTP(S)
     if path_or_url.startswith("http://") or path_or_url.startswith("https://"):
         try:
-            from datavizhub.acquisition.http_manager import HTTPHandler
+            from datavizhub.connectors.backends import http as http_backend
+            from datavizhub.utils.grib import idx_to_byteranges
 
-            http = HTTPHandler()
             if idx_pattern:
-                lines = http.get_idx_lines(path_or_url)
-                if lines:
-                    ranges = http.idx_to_byteranges(lines, idx_pattern)
-                    return http.download_byteranges(path_or_url, ranges.keys())
-            # Fallback: full file
-            import requests  # type: ignore
-
-            r = requests.get(path_or_url, timeout=60)
-            r.raise_for_status()
-            return r.content
+                lines = http_backend.get_idx_lines(path_or_url)
+                ranges = idx_to_byteranges(lines, idx_pattern)
+                return http_backend.download_byteranges(path_or_url, ranges.keys())
+            return http_backend.fetch_bytes(path_or_url)
         except Exception as exc:  # pragma: no cover - optional dep
             raise SystemExit(f"Failed to fetch from URL: {exc}")
 
     # S3
     if path_or_url.startswith("s3://"):
         try:
-            from datavizhub.acquisition.s3_manager import S3Manager
+            from datavizhub.connectors.backends import s3 as s3_backend
+            from datavizhub.utils.grib import idx_to_byteranges
 
-            bucket, key = _parse_s3_url(path_or_url)
-            s3 = S3Manager(None, None, bucket_name=bucket, unsigned=unsigned)
             if idx_pattern:
-                lines = s3.get_idx_lines(key)
-                if lines:
-                    ranges = s3.idx_to_byteranges(lines, idx_pattern)
-                    return s3.download_byteranges(key, ranges.keys())
-            # Fallback: full object using a single range
-            size = s3.get_size(key)
-            if size is None:
-                raise SystemExit("Failed to determine S3 object size")
-            rng = [f"bytes=0-{size}"]
-            return s3.download_byteranges(key, rng)
+                lines = s3_backend.get_idx_lines(path_or_url, unsigned=unsigned)
+                ranges = idx_to_byteranges(lines, idx_pattern)
+                return s3_backend.download_byteranges(
+                    path_or_url, None, ranges.keys(), unsigned=unsigned
+                )
+            return s3_backend.fetch_bytes(path_or_url, unsigned=unsigned)
         except Exception as exc:  # pragma: no cover - optional dep
             raise SystemExit(f"Failed to fetch from S3: {exc}")
 
@@ -71,7 +77,9 @@ def cmd_decode_grib2(args: argparse.Namespace) -> int:
     from datavizhub.processing import grib_decode
     from datavizhub.processing.grib_utils import extract_metadata
 
-    data = _read_bytes(args.file_or_url, idx_pattern=args.pattern, unsigned=args.unsigned)
+    data = _read_bytes(
+        args.file_or_url, idx_pattern=args.pattern, unsigned=args.unsigned
+    )
 
     if getattr(args, "raw", False):
         # Emit the (optionally subsetted) raw GRIB2 bytes directly to stdout
@@ -105,7 +113,9 @@ def cmd_extract_variable(args: argparse.Namespace) -> int:
     if getattr(args, "stdout", False):
         out_fmt = (args.format or "netcdf").lower()
         if out_fmt not in ("netcdf", "grib2"):
-            raise SystemExit("Unsupported --format for extract-variable: use 'netcdf' or 'grib2'")
+            raise SystemExit(
+                "Unsupported --format for extract-variable: use 'netcdf' or 'grib2'"
+            )
 
         # Prefer wgrib2 for precise on-disk subsetting to GRIB2/NetCDF
         wgrib2 = shutil.which("wgrib2")
@@ -125,10 +135,16 @@ def cmd_extract_variable(args: argparse.Namespace) -> int:
                         args_list += ["-grib", out_path]
                     else:
                         args_list += ["-netcdf", out_path]
-                    res = subprocess.run(args_list, capture_output=True, text=True, check=False)
+                    res = subprocess.run(
+                        args_list, capture_output=True, text=True, check=False
+                    )
                     if res.returncode != 0:
                         # Gracefully fall back to Python conversion when wgrib2 lacks NetCDF support
-                        print(res.stderr.strip() or "wgrib2 subsetting failed; falling back to Python conversion", file=sys.stderr)
+                        print(
+                            res.stderr.strip()
+                            or "wgrib2 subsetting failed; falling back to Python conversion",
+                            file=sys.stderr,
+                        )
                         # Do not return; continue to Python fallback below
                         # wgrib2 failed; will fall back to Python conversion after this block
                         # Continue to Python fallback below
@@ -165,9 +181,16 @@ def cmd_extract_variable(args: argparse.Namespace) -> int:
             import xarray as xr  # type: ignore
             from datavizhub.processing.netcdf_data_processor import convert_to_grib2
 
-            ds = var_obj.to_dataset(name=getattr(var_obj, "name", "var")) if hasattr(var_obj, "to_dataset") else None
+            ds = (
+                var_obj.to_dataset(name=getattr(var_obj, "name", "var"))
+                if hasattr(var_obj, "to_dataset")
+                else None
+            )
             if ds is None:
-                print("Selected variable cannot be converted to GRIB2 without wgrib2", file=sys.stderr)
+                print(
+                    "Selected variable cannot be converted to GRIB2 without wgrib2",
+                    file=sys.stderr,
+                )
                 return 2
             grib_bytes = convert_to_grib2(ds)
             sys.stdout.buffer.write(grib_bytes)
@@ -185,7 +208,9 @@ def cmd_extract_variable(args: argparse.Namespace) -> int:
         return 2
     # Summarize output depending on backend/object type
     try:
-        name = getattr(var, "name", None) or getattr(getattr(var, "attrs", {}), "get", lambda *_: None)("long_name")
+        name = getattr(var, "name", None) or getattr(
+            getattr(var, "attrs", {}), "get", lambda *_: None
+        )("long_name")
     except Exception:
         name = None
     print(f"Matched variable: {name or args.pattern}")
@@ -211,7 +236,9 @@ def cmd_convert_format(args: argparse.Namespace) -> int:
     if not args.output and not args.stdout:
         raise SystemExit("--output or --stdout is required for convert-format")
 
-    data = _read_bytes(args.file_or_url, idx_pattern=args.pattern, unsigned=args.unsigned)
+    data = _read_bytes(
+        args.file_or_url, idx_pattern=args.pattern, unsigned=args.unsigned
+    )
 
     # Fast-path: if input is already NetCDF and requested format is NetCDF with no var selection,
     # just pass bytes through. This avoids optional xarray dependency for a no-op conversion and
@@ -238,7 +265,9 @@ def cmd_convert_format(args: argparse.Namespace) -> int:
             from datavizhub.processing.netcdf_data_processor import load_netcdf
 
             with load_netcdf(data) as ds:
-                decoded = DecodedGRIB(backend="cfgrib", dataset=ds)  # reuse xarray-based conversions
+                decoded = DecodedGRIB(
+                    backend="cfgrib", dataset=ds
+                )  # reuse xarray-based conversions
                 out_bytes = convert_to_format(decoded, args.format, var=args.var)
                 if args.stdout:
                     sys.stdout.buffer.write(out_bytes)
@@ -370,7 +399,9 @@ def _viz_contour_cmd(ns: argparse.Namespace) -> int:
 def _viz_timeseries_cmd(ns: argparse.Namespace) -> int:
     from datavizhub.visualization.timeseries_manager import TimeSeriesManager
 
-    mgr = TimeSeriesManager(title=ns.title, xlabel=ns.xlabel, ylabel=ns.ylabel, style=ns.style)
+    mgr = TimeSeriesManager(
+        title=ns.title, xlabel=ns.xlabel, ylabel=ns.ylabel, style=ns.style
+    )
     mgr.render(
         input_path=ns.input,
         x=ns.x,
@@ -388,7 +419,13 @@ def _viz_timeseries_cmd(ns: argparse.Namespace) -> int:
 def _viz_vector_cmd(ns: argparse.Namespace) -> int:
     from datavizhub.visualization.vector_field_manager import VectorFieldManager
 
-    mgr = VectorFieldManager(basemap=ns.basemap, color=ns.color, density=ns.density, scale=ns.scale, streamlines=getattr(ns, "streamlines", False))
+    mgr = VectorFieldManager(
+        basemap=ns.basemap,
+        color=ns.color,
+        density=ns.density,
+        scale=ns.scale,
+        streamlines=getattr(ns, "streamlines", False),
+    )
     mgr.configure(extent=ns.extent)
     features = None
     if getattr(ns, "features", None):
@@ -445,6 +482,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # Always make 'run' available (lightweight)
     from datavizhub.pipeline_runner import register_cli_run as _register_run
+
     _register_run(sub)
 
     # Lazy-register only the requested top-level group when possible
@@ -457,21 +495,33 @@ def main(argv: Optional[List[str]] = None) -> int:
     elif first_non_flag == "process":
         from datavizhub import processing as _process_mod
 
-        p_proc = sub.add_parser("process", help="Processing commands (GRIB/NetCDF/GeoTIFF)")
+        p_proc = sub.add_parser(
+            "process", help="Processing commands (GRIB/NetCDF/GeoTIFF)"
+        )
         proc_sub = p_proc.add_subparsers(dest="process_cmd", required=True)
         _process_mod.register_cli(proc_sub)
     elif first_non_flag == "visualize":
         from datavizhub import visualization as _visual_mod
 
-        p_viz = sub.add_parser("visualize", help="Visualization commands (static/interactive/animation)")
+        p_viz = sub.add_parser(
+            "visualize", help="Visualization commands (static/interactive/animation)"
+        )
         viz_sub = p_viz.add_subparsers(dest="visualize_cmd", required=True)
         _visual_mod.register_cli(viz_sub)
     elif first_non_flag == "decimate":
         from datavizhub.connectors import egress as _egress_mod
 
-        p_decimate = sub.add_parser("decimate", help="Write/egress data to destinations")
+        p_decimate = sub.add_parser(
+            "decimate", help="Write/egress data to destinations"
+        )
         dec_sub = p_decimate.add_subparsers(dest="decimate_cmd", required=True)
         _egress_mod.register_cli(dec_sub)
+    elif first_non_flag == "transform":
+        import datavizhub.transform as _transform_mod
+
+        p_tr = sub.add_parser("transform", help="Transform helpers (metadata, etc.)")
+        tr_sub = p_tr.add_subparsers(dest="transform_cmd", required=True)
+        _transform_mod.register_cli(tr_sub)
     elif first_non_flag == "run":
         # Already registered above
         pass
@@ -481,22 +531,33 @@ def main(argv: Optional[List[str]] = None) -> int:
         from datavizhub.connectors import egress as _egress_mod
         from datavizhub import processing as _process_mod
         from datavizhub import visualization as _visual_mod
+        import datavizhub.transform as _transform_mod
 
         p_acq = sub.add_parser("acquire", help="Acquire/ingest data from sources")
         acq_sub = p_acq.add_subparsers(dest="acquire_cmd", required=True)
         _ingest_mod.register_cli(acq_sub)
 
-        p_proc = sub.add_parser("process", help="Processing commands (GRIB/NetCDF/GeoTIFF)")
+        p_proc = sub.add_parser(
+            "process", help="Processing commands (GRIB/NetCDF/GeoTIFF)"
+        )
         proc_sub = p_proc.add_subparsers(dest="process_cmd", required=True)
         _process_mod.register_cli(proc_sub)
 
-        p_viz = sub.add_parser("visualize", help="Visualization commands (static/interactive/animation)")
+        p_viz = sub.add_parser(
+            "visualize", help="Visualization commands (static/interactive/animation)"
+        )
         viz_sub = p_viz.add_subparsers(dest="visualize_cmd", required=True)
         _visual_mod.register_cli(viz_sub)
 
-        p_decimate = sub.add_parser("decimate", help="Write/egress data to destinations")
+        p_decimate = sub.add_parser(
+            "decimate", help="Write/egress data to destinations"
+        )
         dec_sub = p_decimate.add_subparsers(dest="decimate_cmd", required=True)
         _egress_mod.register_cli(dec_sub)
+
+        p_tr = sub.add_parser("transform", help="Transform helpers (metadata, etc.)")
+        tr_sub = p_tr.add_subparsers(dest="transform_cmd", required=True)
+        _transform_mod.register_cli(tr_sub)
 
     args = parser.parse_args(args_list)
     return args.func(args)

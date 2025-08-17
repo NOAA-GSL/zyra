@@ -130,7 +130,9 @@ class GRIBDataProcessor(DataProcessor):
             logging.error(f"Error reading GRIB file: {e}")
 
     @staticmethod
-    def read_grib_to_numpy(grib_file_path: str, shift_180: bool = False) -> Tuple[Optional[List], Optional[List]]:
+    def read_grib_to_numpy(
+        grib_file_path: str, shift_180: bool = False
+    ) -> Tuple[Optional[List], Optional[List]]:
         """Convert a GRIB file into a list of 2D arrays and dates.
 
         Parameters
@@ -187,7 +189,9 @@ class GRIBDataProcessor(DataProcessor):
         """
         with Path(file_path).open("rb") as f:
             grib_file = pygrib.open(f)
-            message = next((msg for msg in grib_file if msg.shortName == short_name), None)
+            message = next(
+                (msg for msg in grib_file if msg.shortName == short_name), None
+            )
             if message:
                 data = message.values
                 lats, lons = message.latlons()
@@ -219,7 +223,9 @@ class GRIBDataProcessor(DataProcessor):
         return np.roll(data, shift, axis=1)
 
     @staticmethod
-    def process_grib_files_wgrib2(grib_dir: str, command: List[str], output_file: str) -> None:
+    def process_grib_files_wgrib2(
+        grib_dir: str, command: List[str], output_file: str
+    ) -> None:
         """Invoke an external wgrib2 command for each file in a directory.
 
         Parameters
@@ -266,7 +272,9 @@ class GRIBDataProcessor(DataProcessor):
         return combined_data
 
 
-def interpolate_time_steps(data, current_interval_hours: int = 6, new_interval_hours: int = 1):
+def interpolate_time_steps(
+    data, current_interval_hours: int = 6, new_interval_hours: int = 1
+):
     """Interpolate a 3D time-sequenced array to a new temporal resolution.
 
     Parameters
@@ -285,7 +293,9 @@ def interpolate_time_steps(data, current_interval_hours: int = 6, new_interval_h
     """
     current_time_points = np.arange(data.shape[0]) * current_interval_hours
     total_duration = current_time_points[-1]
-    new_time_points = np.arange(0, total_duration + new_interval_hours, new_interval_hours)
+    new_time_points = np.arange(
+        0, total_duration + new_interval_hours, new_interval_hours
+    )
     interpolated_data = np.zeros((len(new_time_points), data.shape[1], data.shape[2]))
     for i in range(data.shape[1]):
         for j in range(data.shape[2]):

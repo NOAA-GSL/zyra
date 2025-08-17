@@ -14,6 +14,7 @@ def _base_url(v: str | None) -> str:
 
 def cmd_upload(args: argparse.Namespace) -> int:
     import requests  # type: ignore
+
     url = _base_url(args.base_url) + "/upload"
     with open(args.file, "rb") as f:
         files = {"file": (os.path.basename(args.file), f)}
@@ -31,6 +32,7 @@ def _stream_ws(job_id: str, base: str, stream: str | None = None) -> None:
         _poll(job_id, base)
         return
     import asyncio
+
     async def main():
         url = f"{base.replace('http','ws')}/ws/jobs/{job_id}"
         if stream:
@@ -38,11 +40,13 @@ def _stream_ws(job_id: str, base: str, stream: str | None = None) -> None:
         async with websockets.connect(url) as ws:
             async for msg in ws:
                 print(msg)
+
     asyncio.run(main())
 
 
 def _poll(job_id: str, base: str, interval: float = 1.0) -> None:
     import requests  # type: ignore
+
     url = f"{base}/jobs/{job_id}"
     while True:
         r = requests.get(url, timeout=30)
@@ -58,12 +62,18 @@ def _poll(job_id: str, base: str, interval: float = 1.0) -> None:
 
 def cmd_run(args: argparse.Namespace) -> int:
     import requests  # type: ignore
+
     base = _base_url(args.base_url)
     body = None
     if args.body:
         body = json.loads(args.body)
     else:
-        body = {"stage": args.stage, "command": args.command, "mode": args.mode, "args": json.loads(args.args or "{}")}
+        body = {
+            "stage": args.stage,
+            "command": args.command,
+            "mode": args.mode,
+            "args": json.loads(args.args or "{}"),
+        }
     r = requests.post(f"{base}/cli/run", json=body, timeout=60)
     r.raise_for_status()
     js = r.json()
@@ -78,6 +88,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 def cmd_download(args: argparse.Namespace) -> int:
     import requests  # type: ignore
+
     base = _base_url(args.base_url)
     params = {}
     if args.file:
@@ -87,9 +98,11 @@ def cmd_download(args: argparse.Namespace) -> int:
     url = f"{base}/jobs/{args.job_id}/download"
     with requests.get(url, params=params, stream=True, timeout=60) as r:
         r.raise_for_status()
-        name = args.output or r.headers.get("Content-Disposition", "attachment; filename=output.bin").split("filename=")[-1].strip().strip('"')
+        name = args.output or r.headers.get(
+            "Content-Disposition", "attachment; filename=output.bin"
+        ).split("filename=")[-1].strip().strip('"')
         with open(name, "wb") as f:
-            for chunk in r.iter_content(chunk_size=1<<20):
+            for chunk in r.iter_content(chunk_size=1 << 20):
                 if chunk:
                     f.write(chunk)
         print(name)
@@ -97,8 +110,14 @@ def cmd_download(args: argparse.Namespace) -> int:
 
 
 def main(argv: List[str] | None = None) -> int:
-    p = argparse.ArgumentParser(prog="datavizhub-cli", description="Simple CLI wrapper for the DataVizHub API")
-    p.add_argument("--base-url", dest="base_url", help="API base URL (default http://localhost:8000)")
+    p = argparse.ArgumentParser(
+        prog="datavizhub-cli", description="Simple CLI wrapper for the DataVizHub API"
+    )
+    p.add_argument(
+        "--base-url",
+        dest="base_url",
+        help="API base URL (default http://localhost:8000)",
+    )
     sub = p.add_subparsers(dest="cmd", required=True)
 
     up = sub.add_parser("upload", help="Upload a file")
@@ -112,7 +131,9 @@ def main(argv: List[str] | None = None) -> int:
     rn.add_argument("--mode", default="sync")
     rn.add_argument("--args", help="JSON for args map")
     rn.add_argument("--ws", action="store_true", help="WebSocket stream if async")
-    rn.add_argument("--stream", help="Comma-separated WS filters: stdout,stderr,progress")
+    rn.add_argument(
+        "--stream", help="Comma-separated WS filters: stdout,stderr,progress"
+    )
     rn.add_argument("--poll", action="store_true", help="HTTP poll if async")
     rn.set_defaults(func=cmd_run)
 

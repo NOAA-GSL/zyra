@@ -8,7 +8,12 @@ import logging
 def handle_timeseries(ns) -> int:
     """Handle ``visualize timeseries`` CLI subcommand."""
     configure_logging_from_env()
-    mgr = TimeSeriesManager(title=getattr(ns, "title", None), xlabel=getattr(ns, "xlabel", None), ylabel=getattr(ns, "ylabel", None), style=getattr(ns, "style", "line"))
+    mgr = TimeSeriesManager(
+        title=getattr(ns, "title", None),
+        xlabel=getattr(ns, "xlabel", None),
+        ylabel=getattr(ns, "ylabel", None),
+        style=getattr(ns, "style", "line"),
+    )
     mgr.render(
         input_path=ns.input,
         x=getattr(ns, "x", None),

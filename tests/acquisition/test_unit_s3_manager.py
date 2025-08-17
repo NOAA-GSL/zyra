@@ -38,4 +38,3 @@ def test_download_file(s3_manager):
     mock_boto3_client.return_value.download_file.assert_called_with(
         manager.bucket_name, remote_file_path, local_file_path
     )
-

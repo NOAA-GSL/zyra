@@ -66,7 +66,11 @@ class HeatmapManager(Renderer):
 
             if not var:
                 raise ValueError("var is required when reading from NetCDF")
-            ds = xr.open_dataset(input_path, engine=xarray_engine) if xarray_engine else xr.open_dataset(input_path)
+            ds = (
+                xr.open_dataset(input_path, engine=xarray_engine)
+                if xarray_engine
+                else xr.open_dataset(input_path)
+            )
             try:
                 arr = ds[var].values
             finally:
@@ -117,7 +121,9 @@ class HeatmapManager(Renderer):
         try:
             from datavizhub.utils.geo_utils import to_cartopy_crs
 
-            in_crs = user_crs or (detect_crs_from_path(input_path, var=var) if input_path else None)
+            in_crs = user_crs or (
+                detect_crs_from_path(input_path, var=var) if input_path else None
+            )
             warn_if_mismatch(in_crs, reproject=reproject, context="heatmap")
             data_transform = to_cartopy_crs(in_crs)
         except Exception:
@@ -127,6 +133,7 @@ class HeatmapManager(Renderer):
         apply_matplotlib_style()
         import numpy as np
         import matplotlib.pyplot as plt
+
         try:
             import cartopy.crs as ccrs
         except Exception as e:  # pragma: no cover - fallback path if Cartopy missing
@@ -164,7 +171,9 @@ class HeatmapManager(Renderer):
             interpolation="nearest",
         )
         if add_colorbar:
-            cbar = fig.colorbar(im, ax=ax, orientation="vertical", fraction=0.025, pad=0.02)
+            cbar = fig.colorbar(
+                im, ax=ax, orientation="vertical", fraction=0.025, pad=0.02
+            )
             if cbar_label or cbar_units:
                 label = cbar_label or ""
                 if cbar_units:
@@ -182,7 +191,9 @@ class HeatmapManager(Renderer):
                 va=va,
                 color="#ffffff",
                 fontsize=10,
-                bbox=dict(facecolor="#00000066", edgecolor="none", boxstyle="round,pad=0.2"),
+                bbox=dict(
+                    facecolor="#00000066", edgecolor="none", boxstyle="round,pad=0.2"
+                ),
             )
         ax.set_global()
         ax.axis("off")

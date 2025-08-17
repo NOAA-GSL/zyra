@@ -1,13 +1,13 @@
-import os
-import sys
 from datetime import datetime
+from pathlib import Path
+import sys
 
 # -- Path setup --------------------------------------------------------------
 
-ROOT = os.path.abspath(os.path.join(__file__, "..", "..", ".."))
-SRC = os.path.join(ROOT, "src")
-if SRC not in sys.path:
-    sys.path.insert(0, SRC)
+ROOT = Path(__file__).resolve().parents[2]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
 
 # -- Project information -----------------------------------------------------
 
@@ -48,6 +48,8 @@ html_static_path = ["_static"]
 autodoc_mock_imports = [
     "boto3",
     "botocore",
+    "fastapi",
+    "uvicorn",
     "vimeo",
     "requests",
     "cartopy",

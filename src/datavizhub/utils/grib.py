@@ -1,8 +1,8 @@
-"""GRIB utilities shared across acquisition managers.
+"""GRIB utilities used by connectors and managers.
 
-This module centralizes protocol-agnostic helpers used by S3/HTTP/FTP
-managers for working with GRIB2 index files (.idx), calculating byte ranges,
-and performing parallel multi-range downloads.
+This module centralizes protocol-agnostic helpers for working with GRIB2
+index files (.idx), calculating byte ranges, and performing parallel
+multi-range downloads.
 
 Notes
 -----

@@ -13,7 +13,12 @@ from typing import Any, Optional, Sequence
 
 from .base import Renderer
 from .styles import DEFAULT_EXTENT, MAP_STYLES, timestamp_anchor
-from datavizhub.utils.geo_utils import detect_crs_from_path, detect_crs_from_csv, warn_if_mismatch, TARGET_CRS
+from datavizhub.utils.geo_utils import (
+    detect_crs_from_path,
+    detect_crs_from_csv,
+    warn_if_mismatch,
+    TARGET_CRS,
+)
 
 
 class InteractiveManager(Renderer):
@@ -35,13 +40,23 @@ class InteractiveManager(Renderer):
         self.cmap = kwargs.get("cmap", self.cmap)
 
     # --- Input helpers -----------------------------------------------------
-    def _load_grid(self, *, input_path: str, var: Optional[str] = None, xarray_engine: Optional[str] = None):
+    def _load_grid(
+        self,
+        *,
+        input_path: str,
+        var: Optional[str] = None,
+        xarray_engine: Optional[str] = None,
+    ):
         if input_path.lower().endswith((".nc", ".nc4")):
             import xarray as xr
 
             if not var:
                 raise ValueError("--var is required for NetCDF inputs")
-            ds = xr.open_dataset(input_path, engine=xarray_engine) if xarray_engine else xr.open_dataset(input_path)
+            ds = (
+                xr.open_dataset(input_path, engine=xarray_engine)
+                if xarray_engine
+                else xr.open_dataset(input_path)
+            )
             try:
                 arr = ds[var].values
             finally:
@@ -62,8 +77,18 @@ class InteractiveManager(Renderer):
             raise ValueError("CSV points require 'lat' and 'lon' columns")
         return df
 
-    def _load_vector(self, *, input_path: Optional[str] = None, uvar: Optional[str] = None, vvar: Optional[str] = None, u_path: Optional[str] = None, v_path: Optional[str] = None, xarray_engine: Optional[str] = None):
+    def _load_vector(
+        self,
+        *,
+        input_path: Optional[str] = None,
+        uvar: Optional[str] = None,
+        vvar: Optional[str] = None,
+        u_path: Optional[str] = None,
+        v_path: Optional[str] = None,
+        xarray_engine: Optional[str] = None,
+    ):
         import numpy as np
+
         if u_path and v_path:
             U = np.load(u_path)
             V = np.load(v_path)
@@ -71,15 +96,23 @@ class InteractiveManager(Renderer):
             import xarray as xr
 
             if not uvar or not vvar:
-                raise ValueError("--uvar and --vvar are required for NetCDF vector inputs")
-            ds = xr.open_dataset(input_path, engine=xarray_engine) if xarray_engine else xr.open_dataset(input_path)
+                raise ValueError(
+                    "--uvar and --vvar are required for NetCDF vector inputs"
+                )
+            ds = (
+                xr.open_dataset(input_path, engine=xarray_engine)
+                if xarray_engine
+                else xr.open_dataset(input_path)
+            )
             try:
                 U = ds[uvar].values
                 V = ds[vvar].values
             finally:
                 ds.close()
         else:
-            raise ValueError("Provide --u/--v .npy arrays or --input .nc with --uvar/--vvar")
+            raise ValueError(
+                "Provide --u/--v .npy arrays or --input .nc with --uvar/--vvar"
+            )
         U = np.asarray(U)
         V = np.asarray(V)
         if U.ndim == 3:
@@ -91,7 +124,29 @@ class InteractiveManager(Renderer):
         return U, V
 
     # --- Folium engine -----------------------------------------------------
-    def _folium_heatmap(self, data, *, features, colorbar, label, units, timestamp, timestamp_loc, tiles, zoom, vmin=None, vmax=None, attribution=None, wms_url=None, wms_layers=None, wms_format="image/png", wms_transparent=True, layer_control=False, input_path=None, src_crs=None):
+    def _folium_heatmap(
+        self,
+        data,
+        *,
+        features,
+        colorbar,
+        label,
+        units,
+        timestamp,
+        timestamp_loc,
+        tiles,
+        zoom,
+        vmin=None,
+        vmax=None,
+        attribution=None,
+        wms_url=None,
+        wms_layers=None,
+        wms_format="image/png",
+        wms_transparent=True,
+        layer_control=False,
+        input_path=None,
+        src_crs=None,
+    ):
         import folium
         from folium.raster_layers import ImageOverlay
         from folium.plugins import FloatImage
@@ -100,7 +155,11 @@ class InteractiveManager(Renderer):
 
         west, east, south, north = self.extent
 
-        m = folium.Map(location=[(south + north) / 2, (west + east) / 2], zoom_start=zoom or 2, tiles=tiles or "OpenStreetMap")
+        m = folium.Map(
+            location=[(south + north) / 2, (west + east) / 2],
+            zoom_start=zoom or 2,
+            tiles=tiles or "OpenStreetMap",
+        )
 
         # Render with Cartopy to allow transform-based reprojection
         fig = plt.figure(figsize=(6, 3))
@@ -108,7 +167,9 @@ class InteractiveManager(Renderer):
         if not src_crs:
             from datavizhub.utils.geo_utils import detect_crs_from_path, to_cartopy_crs
 
-            src_crs = to_cartopy_crs(detect_crs_from_path(input_path) if input_path else None)
+            src_crs = to_cartopy_crs(
+                detect_crs_from_path(input_path) if input_path else None
+            )
         ax.set_extent([west, east, south, north], crs=ccrs.PlateCarree())
         ax.imshow(
             data,
@@ -123,7 +184,9 @@ class InteractiveManager(Renderer):
         plt.close(fig)
         b64 = base64.b64encode(bio.getvalue()).decode("ascii")
         uri = f"data:image/png;base64,{b64}"
-        ImageOverlay(image=uri, bounds=[[south, west], [north, east]], opacity=0.75).add_to(m)
+        ImageOverlay(
+            image=uri, bounds=[[south, west], [north, east]], opacity=0.75
+        ).add_to(m)
 
         # Timestamp overlay
         if timestamp:
@@ -151,8 +214,14 @@ class InteractiveManager(Renderer):
                 if vmin is None or vmax is None:
                     vmin = float(np.nanmin(data))
                     vmax = float(np.nanmax(data))
-                cmap_obj = mpl.colormaps.get(self.cmap) if isinstance(self.cmap, str) else self.cmap
-                sm = mpl.cm.ScalarMappable(cmap=cmap_obj, norm=mpl.colors.Normalize(vmin=vmin, vmax=vmax))
+                cmap_obj = (
+                    mpl.colormaps.get(self.cmap)
+                    if isinstance(self.cmap, str)
+                    else self.cmap
+                )
+                sm = mpl.cm.ScalarMappable(
+                    cmap=cmap_obj, norm=mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+                )
                 sm.set_array([])
                 cfig, cax = plt.subplots(figsize=(3.0, 0.35))
                 cbar = cfig.colorbar(sm, cax=cax, orientation="horizontal")
@@ -176,28 +245,63 @@ class InteractiveManager(Renderer):
 
         # Add optional base layers
         try:
-            self._add_base_layers(m, tiles=tiles, attribution=attribution, wms_url=wms_url, wms_layers=wms_layers, wms_format=wms_format, wms_transparent=wms_transparent, add_control=layer_control)
+            self._add_base_layers(
+                m,
+                tiles=tiles,
+                attribution=attribution,
+                wms_url=wms_url,
+                wms_layers=wms_layers,
+                wms_format=wms_format,
+                wms_transparent=wms_transparent,
+                add_control=layer_control,
+            )
         except Exception:
             pass
         return m.get_root().render()
 
-    def _folium_points(self, df, *, tiles, zoom, popup=None, tooltip=None, time_column: Optional[str] = None, period: str = "P1D", transition_ms: int = 200, attribution=None, wms_url=None, wms_layers=None, wms_format="image/png", wms_transparent=True, layer_control=False):
+    def _folium_points(
+        self,
+        df,
+        *,
+        tiles,
+        zoom,
+        popup=None,
+        tooltip=None,
+        time_column: Optional[str] = None,
+        period: str = "P1D",
+        transition_ms: int = 200,
+        attribution=None,
+        wms_url=None,
+        wms_layers=None,
+        wms_format="image/png",
+        wms_transparent=True,
+        layer_control=False,
+    ):
         import folium
         from folium.plugins import TimestampedGeoJson
 
         west, east, south, north = self.extent
-        m = folium.Map(location=[(south + north) / 2, (west + east) / 2], zoom_start=zoom or 2, tiles=tiles or "OpenStreetMap")
+        m = folium.Map(
+            location=[(south + north) / 2, (west + east) / 2],
+            zoom_start=zoom or 2,
+            tiles=tiles or "OpenStreetMap",
+        )
         if time_column and time_column in df.columns:
             # Build a simple GeoJSON with time properties
             features = []
             for _, row in df.iterrows():
                 feat = {
                     "type": "Feature",
-                    "geometry": {"type": "Point", "coordinates": [float(row["lon"]), float(row["lat"])]},
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [float(row["lon"]), float(row["lat"])],
+                    },
                     "properties": {
                         "time": str(row[time_column]),
                         "popup": str(row.get(popup)) if popup and popup in row else "",
-                        "tooltip": str(row.get(tooltip)) if tooltip and tooltip in row else "",
+                        "tooltip": str(row.get(tooltip))
+                        if tooltip and tooltip in row
+                        else "",
                     },
                 }
                 features.append(feat)
@@ -212,23 +316,50 @@ class InteractiveManager(Renderer):
                 add_last_point=True,
                 auto_play=False,
                 loop=False,
-                duration='P0D',
+                duration="P0D",
             ).add_to(m)
         else:
             for _, row in df.iterrows():
                 folium.CircleMarker(
-                    location=[row["lat"], row["lon"]], radius=4, color="#2c7fb8", fill=True, fill_opacity=0.9,
+                    location=[row["lat"], row["lon"]],
+                    radius=4,
+                    color="#2c7fb8",
+                    fill=True,
+                    fill_opacity=0.9,
                     popup=str(row.get(popup)) if popup and popup in row else None,
-                    tooltip=str(row.get(tooltip)) if tooltip and tooltip in row else None,
+                    tooltip=str(row.get(tooltip))
+                    if tooltip and tooltip in row
+                    else None,
                 ).add_to(m)
         try:
-            self._add_base_layers(m, tiles=tiles, attribution=attribution, wms_url=wms_url, wms_layers=wms_layers, wms_format=wms_format, wms_transparent=wms_transparent, add_control=layer_control)
+            self._add_base_layers(
+                m,
+                tiles=tiles,
+                attribution=attribution,
+                wms_url=wms_url,
+                wms_layers=wms_layers,
+                wms_format=wms_format,
+                wms_transparent=wms_transparent,
+                add_control=layer_control,
+            )
         except Exception:
             pass
         return m.get_root().render()
 
-    def _add_base_layers(self, m, *, tiles=None, attribution=None, wms_url=None, wms_layers=None, wms_format="image/png", wms_transparent=True, add_control=False):
+    def _add_base_layers(
+        self,
+        m,
+        *,
+        tiles=None,
+        attribution=None,
+        wms_url=None,
+        wms_layers=None,
+        wms_format="image/png",
+        wms_transparent=True,
+        add_control=False,
+    ):
         import folium
+
         # Tiles: custom URL or named tiles
         if tiles and ("{z}" in tiles or tiles.startswith("http")):
             folium.TileLayer(tiles=tiles, attr=attribution or "").add_to(m)
@@ -244,7 +375,23 @@ class InteractiveManager(Renderer):
         if add_control:
             folium.LayerControl().add_to(m)
 
-    def _folium_vector_quiver(self, U, V, *, density=0.2, scale=1.0, color="#333333", tiles=None, zoom=None, attribution=None, wms_url=None, wms_layers=None, wms_format="image/png", wms_transparent=True, layer_control=False):
+    def _folium_vector_quiver(
+        self,
+        U,
+        V,
+        *,
+        density=0.2,
+        scale=1.0,
+        color="#333333",
+        tiles=None,
+        zoom=None,
+        attribution=None,
+        wms_url=None,
+        wms_layers=None,
+        wms_format="image/png",
+        wms_transparent=True,
+        layer_control=False,
+    ):
         import folium
         import numpy as np
 
@@ -258,21 +405,50 @@ class InteractiveManager(Renderer):
         density = 1.0 if density <= 0 else density
         stride = max(1, int(round(1.0 / min(1.0, density))))
 
-        m = folium.Map(location=[(south + north) / 2, (west + east) / 2], zoom_start=zoom or 2, tiles=tiles or "OpenStreetMap")
+        m = folium.Map(
+            location=[(south + north) / 2, (west + east) / 2],
+            zoom_start=zoom or 2,
+            tiles=tiles or "OpenStreetMap",
+        )
         for j in range(0, ny, stride):
             for i in range(0, nx, stride):
                 x1 = float(X[j, i])
                 y1 = float(Y[j, i])
                 x2 = float(x1 + scale * U[j, i])
                 y2 = float(y1 + scale * V[j, i])
-                folium.PolyLine([[y1, x1], [y2, x2]], color=color, weight=1, opacity=0.8).add_to(m)
+                folium.PolyLine(
+                    [[y1, x1], [y2, x2]], color=color, weight=1, opacity=0.8
+                ).add_to(m)
         try:
-            self._add_base_layers(m, tiles=tiles, attribution=attribution, wms_url=wms_url, wms_layers=wms_layers, wms_format=wms_format, wms_transparent=wms_transparent, add_control=layer_control)
+            self._add_base_layers(
+                m,
+                tiles=tiles,
+                attribution=attribution,
+                wms_url=wms_url,
+                wms_layers=wms_layers,
+                wms_format=wms_format,
+                wms_transparent=wms_transparent,
+                add_control=layer_control,
+            )
         except Exception:
             pass
         return m.get_root().render()
 
-    def _folium_vector_streamlines(self, U, V, *, tiles=None, zoom=None, color="#333333", attribution=None, wms_url=None, wms_layers=None, wms_format="image/png", wms_transparent=True, layer_control=False):
+    def _folium_vector_streamlines(
+        self,
+        U,
+        V,
+        *,
+        tiles=None,
+        zoom=None,
+        color="#333333",
+        attribution=None,
+        wms_url=None,
+        wms_layers=None,
+        wms_format="image/png",
+        wms_transparent=True,
+        layer_control=False,
+    ):
         import folium
         import numpy as np
         import matplotlib.pyplot as plt
@@ -295,18 +471,35 @@ class InteractiveManager(Renderer):
         b64 = base64.b64encode(bio.getvalue()).decode("ascii")
         uri = f"data:image/png;base64,{b64}"
 
-        m = folium.Map(location=[(south + north) / 2, (west + east) / 2], zoom_start=zoom or 2, tiles=tiles or "OpenStreetMap")
+        m = folium.Map(
+            location=[(south + north) / 2, (west + east) / 2],
+            zoom_start=zoom or 2,
+            tiles=tiles or "OpenStreetMap",
+        )
         from folium.raster_layers import ImageOverlay
 
-        ImageOverlay(image=uri, bounds=[[south, west], [north, east]], opacity=0.75).add_to(m)
+        ImageOverlay(
+            image=uri, bounds=[[south, west], [north, east]], opacity=0.75
+        ).add_to(m)
         try:
-            self._add_base_layers(m, tiles=tiles, attribution=attribution, wms_url=wms_url, wms_layers=wms_layers, wms_format=wms_format, wms_transparent=wms_transparent, add_control=layer_control)
+            self._add_base_layers(
+                m,
+                tiles=tiles,
+                attribution=attribution,
+                wms_url=wms_url,
+                wms_layers=wms_layers,
+                wms_format=wms_format,
+                wms_transparent=wms_transparent,
+                add_control=layer_control,
+            )
         except Exception:
             pass
         return m.get_root().render()
 
     # --- Plotly engine -----------------------------------------------------
-    def _plotly_heatmap(self, data, *, width, height, colorbar, label, units, timestamp):
+    def _plotly_heatmap(
+        self, data, *, width, height, colorbar, label, units, timestamp
+    ):
         import plotly.graph_objects as go
 
         fig = go.Figure(data=go.Heatmap(z=data, colorscale=self.cmap))
@@ -341,10 +534,24 @@ class InteractiveManager(Renderer):
         html = ""
         if engine == "folium":
             if mode in ("heatmap", "contour"):
-                arr = data if data is not None else self._load_grid(input_path=input_path, var=var, xarray_engine=kwargs.get("xarray_engine"))
+                arr = (
+                    data
+                    if data is not None
+                    else self._load_grid(
+                        input_path=input_path,
+                        var=var,
+                        xarray_engine=kwargs.get("xarray_engine"),
+                    )
+                )
                 try:
-                    in_crs = detect_crs_from_path(input_path) if input_path else TARGET_CRS
-                    warn_if_mismatch(in_crs, reproject=bool(kwargs.get("reproject", False)), context="interactive")
+                    in_crs = (
+                        detect_crs_from_path(input_path) if input_path else TARGET_CRS
+                    )
+                    warn_if_mismatch(
+                        in_crs,
+                        reproject=bool(kwargs.get("reproject", False)),
+                        context="interactive",
+                    )
                 except Exception:
                     pass
                 html = self._folium_heatmap(
@@ -377,7 +584,11 @@ class InteractiveManager(Renderer):
                 df = self._load_points(input_path=input_path)
                 try:
                     in_crs = detect_crs_from_csv(df)
-                    warn_if_mismatch(in_crs, reproject=bool(kwargs.get("reproject", False)), context="interactive-points")
+                    warn_if_mismatch(
+                        in_crs,
+                        reproject=bool(kwargs.get("reproject", False)),
+                        context="interactive-points",
+                    )
                 except Exception:
                     pass
                 html = self._folium_points(
@@ -395,7 +606,14 @@ class InteractiveManager(Renderer):
                     layer_control=bool(kwargs.get("layer_control", False)),
                 )
             elif mode == "vector":
-                U, V = self._load_vector(input_path=input_path, uvar=kwargs.get("uvar"), vvar=kwargs.get("vvar"), u_path=kwargs.get("u"), v_path=kwargs.get("v"), xarray_engine=kwargs.get("xarray_engine"))
+                U, V = self._load_vector(
+                    input_path=input_path,
+                    uvar=kwargs.get("uvar"),
+                    vvar=kwargs.get("vvar"),
+                    u_path=kwargs.get("u"),
+                    v_path=kwargs.get("v"),
+                    xarray_engine=kwargs.get("xarray_engine"),
+                )
                 if bool(kwargs.get("streamlines", False)):
                     html = self._folium_vector_streamlines(
                         U,
@@ -427,10 +645,16 @@ class InteractiveManager(Renderer):
                         layer_control=bool(kwargs.get("layer_control", False)),
                     )
             else:
-                raise ValueError("Unsupported folium interactive mode; use heatmap|contour|points")
+                raise ValueError(
+                    "Unsupported folium interactive mode; use heatmap|contour|points"
+                )
         elif engine == "plotly":
             if mode == "heatmap":
-                arr = data if data is not None else self._load_grid(input_path=input_path, var=var)
+                arr = (
+                    data
+                    if data is not None
+                    else self._load_grid(input_path=input_path, var=var)
+                )
                 html = self._plotly_heatmap(
                     arr,
                     width=width,
@@ -448,7 +672,9 @@ class InteractiveManager(Renderer):
         self._html = html
         return html
 
-    def save(self, output_path: Optional[str] = None, *, as_buffer: bool = False) -> Optional[str]:
+    def save(
+        self, output_path: Optional[str] = None, *, as_buffer: bool = False
+    ) -> Optional[str]:
         if not self._html:
             return None
         if as_buffer:

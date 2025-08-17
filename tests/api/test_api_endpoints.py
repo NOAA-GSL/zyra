@@ -75,7 +75,9 @@ def test_async_job_lifecycle_and_ws(tmp_path):
     # WebSocket stream: best-effort tap to avoid CI flakiness.
     # Connect and attempt a brief read, but do not fail the test on timing races.
     try:
-        with client.websocket_connect(f"/ws/jobs/{job_id}?stream=stderr,progress") as ws:
+        with client.websocket_connect(
+            f"/ws/jobs/{job_id}?stream=stderr,progress"
+        ) as ws:
             try:
                 _ = ws.receive_json(timeout=1)
             except Exception:

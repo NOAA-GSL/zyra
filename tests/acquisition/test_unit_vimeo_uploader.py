@@ -30,4 +30,3 @@ def test_upload_video(vimeo_uploader):
         file_path, data={"name": video_name}
     )
     assert result == "/videos/12345"
-
