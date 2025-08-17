@@ -23,6 +23,9 @@ router = APIRouter(tags=["jobs"])
 
 def _results_dir_for(job_id: str) -> Path:
     root = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+    # Explicitly reject absolute paths and path traversal in job_id
+    if Path(job_id).is_absolute() or any(part == ".." for part in Path(job_id).parts):
+        raise HTTPException(status_code=400, detail="Invalid job_id parameter")
     # Normalize and check that the job_id does not escape the root directory
     rd = (root / job_id).resolve()
     base = root.resolve()
@@ -38,6 +41,9 @@ def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
     if not rd.exists():
         raise HTTPException(status_code=404, detail="Results not found")
     if specific_file:
+        # Explicitly reject absolute paths and path traversal in specific_file
+        if Path(specific_file).is_absolute() or any(part == ".." for part in Path(specific_file).parts):
+            raise HTTPException(status_code=400, detail="Invalid file parameter")
         # Prevent path traversal and symlink escapes by verifying that the
         # original path does not traverse symlinks and that the resolved
         # target remains within the job's results directory.
