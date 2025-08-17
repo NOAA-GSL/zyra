@@ -10,6 +10,7 @@ import shutil
 import zipfile
 import time
 from typing import Any, Dict, List, Tuple
+import logging
 
 from datavizhub.cli import main as cli_main
 from datavizhub.api.routers import files as files_router
@@ -133,11 +134,19 @@ def resolve_upload_placeholders(a: Dict[str, Any]) -> Tuple[Dict[str, Any], List
                 try:
                     rp = p.resolve()
                 except Exception:
+                    # Could not resolve candidate path; skip
+                    logging.debug("Security: failed to resolve uploaded path candidate: %s", str(p))
                     continue
                 # Ensure the resolved path is within the uploads base
                 try:
                     _ = rp.relative_to(base)
                 except Exception:
+                    # Reject paths escaping the uploads base (symlink/traversal)
+                    logging.warning(
+                        "Security: rejecting uploaded path outside base: path=%s base=%s",
+                        str(rp),
+                        str(base),
+                    )
                     continue
                 if rp.is_file():
                     return str(rp)
