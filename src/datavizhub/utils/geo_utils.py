@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import sys
- 
+
 
 TARGET_CRS = "EPSG:4326"  # PlateCarree (lon/lat)
 
