@@ -83,6 +83,7 @@ async def require_api_key(api_key: str | None = Security(api_key_header), reques
             await asyncio.sleep(delay_sec)
         except Exception:
             # Fall back to blocking sleep if event loop context is unavailable
+            logging.warning("Falling back to blocking time.sleep() in require_api_key; this may block the event loop.")
             time.sleep(delay_sec)
     # Count and possibly throttle
     if client_ip:
