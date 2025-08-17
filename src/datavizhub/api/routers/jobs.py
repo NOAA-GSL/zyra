@@ -46,14 +46,17 @@ def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
                 cur = cur.parent
         except OSError:
             raise HTTPException(status_code=400, detail="Invalid file parameter")
-        # Resolve and validate common path with the base directory
+        # Resolve and validate that the target stays within the results dir
         try:
             p = orig.resolve()
             base = rd.resolve()
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid file parameter")
-        import os as _os
-        if _os.path.commonpath([str(base), str(p)]) != str(base):
+        # Use pathlib's relative_to for explicit containment check
+        try:
+            _ = p.relative_to(base)
+        except ValueError:
+            # Path escapes the base directory (e.g., via traversal)
             raise HTTPException(status_code=400, detail="Invalid file parameter")
         if not p.exists() or not p.is_file():
             raise HTTPException(status_code=404, detail="Requested file not found")
