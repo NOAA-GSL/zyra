@@ -104,8 +104,6 @@ def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
     if common != base:
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
     rd = Path(full)
-    if not rd.exists():
-        raise HTTPException(status_code=404, detail="Results not found")
     if specific_file:
         # Only allow a single safe filename (no directories)
         if not _is_safe_segment(specific_file) or specific_file != os.path.basename(specific_file):
@@ -119,45 +117,13 @@ def _select_download_path(job_id: str, specific_file: Optional[str]) -> Path:
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid file parameter")
         p = Path(full_file)
-        # Enforce existence and regular file, and reject symlinks.
-        if p.is_symlink() or (not p.exists()) or (not p.is_file()):
-            raise HTTPException(status_code=404, detail="Requested file not found")
+        # Reject symlink targets with 400 (invalid parameter)
+        if p.is_symlink():
+            raise HTTPException(status_code=400, detail="Invalid file parameter")
+        # Existence is inferred from membership in os.listdir above; return path
         return p
-    # Default selection: prefer zip, else first file
-    try:
-        base = os.path.normpath(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
-        full = os.path.normpath(os.path.join(base, job_id))
-        if os.path.commonpath([base, full]) != base:
-            raise HTTPException(status_code=400, detail="Invalid job_id parameter")
-        names = os.listdir(full)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Results not found")
-    except Exception:
-        raise HTTPException(status_code=500, detail="Failed to enumerate results")
-
-    # Prefer a zip artifact if present
-    zips: list[Path] = []
-    for name in names:
-        if name.endswith(".zip"):
-            p = Path(os.path.join(full, name))
-            if p.is_file():
-                zips.append(p)
-    if zips:
-        zips.sort(key=lambda x: x.name)
-        return zips[0]
-
-    # Otherwise, pick the first regular file (excluding manifest)
-    files: list[Path] = []
-    for name in names:
-        if name == "manifest.json":
-            continue
-        p = Path(os.path.join(full, name))
-        if p.is_file():
-            files.append(p)
-    if not files:
-        raise HTTPException(status_code=404, detail="No artifacts available")
-    files.sort(key=lambda x: x.name)
-    return files[0]
+    # No specific file requested; let the caller decide (e.g., use job output_file)
+    raise HTTPException(status_code=404, detail="No artifacts available")
 
 
 @router.get("/jobs/{job_id}", response_model=JobStatusResponse, summary="Get job status")
@@ -244,17 +210,41 @@ def download_job_output(
         except Exception:
             return None
         rd = Path(full)
-        if not rd.exists():
-            return None
         zpath = rd / f"{job_id}.zip"
+        # Build zip using manifest when available (no directory iteration)
         try:
+            import json
             import zipfile
-
+            mf = rd / "manifest.json"
+            items = []
+            try:
+                data = json.loads(mf.read_text(encoding="utf-8"))
+                items = data.get("artifacts") or []
+            except Exception:
+                items = []
+            if not items:
+                return None
             with zipfile.ZipFile(str(zpath), mode="w", compression=zipfile.ZIP_DEFLATED) as zf:  # type: ignore[attr-defined]
-                for p in rd.iterdir():
-                    if p.name in {"manifest.json", zpath.name} or not p.is_file():
+                for it in items:
+                    if not isinstance(it, dict):
                         continue
-                    zf.write(str(p), p.name)
+                    name = it.get("name") or os.path.basename(it.get("path", ""))
+                    if not isinstance(name, str) or not name:
+                        continue
+                    # Only single safe segments
+                    if not _is_safe_segment(name):
+                        continue
+                    fp = os.path.normpath(os.path.join(base, job_id, name))
+                    try:
+                        if os.path.commonpath([base, fp]) != base:
+                            continue
+                    except Exception:
+                        continue
+                    # Write using the safe name inside the archive
+                    try:
+                        zf.write(fp, name)
+                    except Exception:
+                        continue
             return zpath
         except Exception:
             return None
@@ -266,11 +256,51 @@ def download_job_output(
             raise HTTPException(status_code=404, detail="No artifacts to zip")
         p = zp
     else:
-        p = _select_download_path(jid, file)
+        if file:
+            p = _select_download_path(jid, file)
+        else:
+            # Prefer recorded output_file but re-anchor under results dir for containment
+            p = None
+            base = os.path.normpath(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+            try:
+                out = rec.get("output_file")
+                if isinstance(out, str) and out:
+                    name = os.path.basename(out)
+                    full = os.path.normpath(os.path.join(base, jid, name))
+                    if os.path.commonpath([base, full]) == base:
+                        p = Path(full)
+                if not p:
+                    # Try manifest.json for first artifact and re-anchor by name
+                    mf = os.path.normpath(os.path.join(base, jid, "manifest.json"))
+                    if os.path.commonpath([base, mf]) == base:
+                        import json
+                        data = json.loads(Path(mf).read_text(encoding="utf-8"))
+                        arts = data.get("artifacts") or []
+                        if arts and isinstance(arts[0], dict):
+                            name = arts[0].get("name") or os.path.basename(arts[0].get("path", ""))
+                            if isinstance(name, str) and name:
+                                full2 = os.path.normpath(os.path.join(base, jid, name))
+                                if os.path.commonpath([base, full2]) == base:
+                                    p = Path(full2)
+            except Exception:
+                p = None
+            if not p:
+                raise HTTPException(status_code=404, detail="No artifacts available")
 
-    if not p.exists():
-        # If TTL cleanup removed it
-        raise HTTPException(status_code=410, detail="Output file no longer available")
+    # Re-anchor the selected path under the contained base/jid using only its basename
+    try:
+        base = os.path.normpath(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+        fname = os.path.basename(p.name)
+        if not _is_safe_segment(fname):
+            raise HTTPException(status_code=400, detail="Invalid file parameter")
+        fullp = os.path.normpath(os.path.join(base, jid, fname))
+        if os.path.commonpath([base, fullp]) != base:
+            raise HTTPException(status_code=400, detail="Invalid file parameter")
+        p = Path(fullp)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid file parameter")
 
     # TTL policy: refuse downloads older than DATAVIZHUB_RESULTS_TTL_SECONDS (default 24h)
     try:
@@ -279,13 +309,11 @@ def download_job_output(
         ttl = 86400
     try:
         import time
-
-        age = time.time() - p.stat().st_mtime
+        import os as _os
+        with p.open('rb') as _fh:
+            st = _os.fstat(_fh.fileno())
+        age = time.time() - st.st_mtime
         if age > ttl:
-            try:
-                p.unlink()
-            except Exception:
-                pass
             raise HTTPException(status_code=410, detail="Output file expired")
     except FileNotFoundError:
         raise HTTPException(status_code=410, detail="Output file no longer available")
@@ -324,13 +352,18 @@ def get_job_manifest(job_id: str):
             raise HTTPException(status_code=400, detail="Invalid job_id parameter")
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
-    rd = Path(full)
-    mf = rd / "manifest.json"
-    if not mf.exists():
-        raise HTTPException(status_code=404, detail="Manifest not found")
-    import json
-
+    # Build manifest path using normalized join and verify containment
+    mf = os.path.normpath(os.path.join(full, "manifest.json"))
     try:
-        return json.loads(mf.read_text(encoding="utf-8"))
+        if os.path.commonpath([base, mf]) != base:
+            raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid job_id parameter")
+    import json
+    try:
+        with open(mf, "r", encoding="utf-8") as fh:
+            return json.load(fh)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Manifest not found")
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to read manifest")
