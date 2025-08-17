@@ -37,7 +37,7 @@ def is_redis_enabled() -> bool:
         return False
     try:
         url = redis_url()
-        client = redis.Redis.from_url(url, socket_connect_timeout=0.25)  # type: ignore[arg-type]
+        client = redis.Redis.from_url(url, socket_connect_timeout=1.0)  # type: ignore[arg-type]
         client.ping()
         return True
     except Exception:
