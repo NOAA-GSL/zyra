@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any, Optional, Set
 
 
 class DataProcessor(ABC):
@@ -104,7 +104,7 @@ class DataProcessor(ABC):
     # ---- Introspection ---------------------------------------------------------------
 
     @property
-    def features(self) -> set[str]:
+    def features(self) -> Set[str]:
         """Set of feature strings supported by this processor.
 
         Returns

@@ -163,6 +163,50 @@ def register_cli(subparsers: Any) -> None:
         from datavizhub.utils.cli_helpers import configure_logging_from_env
         configure_logging_from_env()
 
+        # Multi-input support: --inputs with --output-dir required
+        if getattr(args, "inputs", None):
+            if getattr(args, "stdout", False):
+                raise SystemExit("--stdout is not supported with --inputs (use --output-dir)")
+            outdir = getattr(args, "output_dir", None)
+            if not outdir:
+                raise SystemExit("--output-dir is required when using --inputs")
+            from datavizhub.processing import grib_decode
+            from datavizhub.processing.grib_utils import convert_to_format
+            from pathlib import Path
+            import logging
+            outdir_p = Path(outdir)
+            outdir_p.mkdir(parents=True, exist_ok=True)
+            wrote = []
+            for src in args.inputs:
+                data = _read_bytes(src)
+                # Fast-path: NetCDF passthrough when converting to NetCDF
+                if args.format == "netcdf" and is_netcdf_bytes(data):
+                    # Write source name with .nc extension
+                    base = Path(str(src)).stem
+                    dest = outdir_p / f"{base}.nc"
+                    dest.write_bytes(data)
+                    logging.info(str(dest))
+                    wrote.append(str(dest))
+                    continue
+                decoded = grib_decode(data, backend=args.backend)
+                out_bytes = convert_to_format(decoded, args.format, var=getattr(args, "var", None))
+                # Choose extension by format
+                ext = ".nc" if args.format == "netcdf" else ".tif"
+                base = Path(str(src)).stem
+                dest = outdir_p / f"{base}{ext}"
+                with dest.open("wb") as f:
+                    f.write(out_bytes)
+                logging.info(str(dest))
+                wrote.append(str(dest))
+            # Print a simple JSON list of outputs for convenience
+            try:
+                import json
+                print(json.dumps({"outputs": wrote}))
+            except Exception:
+                pass
+            return 0
+
+        # Single-input flow
         # Read input first so we can short-circuit pass-through without heavy imports
         data = _read_bytes(args.file_or_url)
         # If reading NetCDF and writing NetCDF with --stdout, pass-through
@@ -206,10 +250,13 @@ def register_cli(subparsers: Any) -> None:
     p_ext.set_defaults(func=cmd_extract_variable)
 
     p_conv = subparsers.add_parser("convert-format", help="Convert decoded data to a format")
-    p_conv.add_argument("file_or_url")
+    p_conv.add_argument("file_or_url", nargs="?", help="Single input when not using --inputs")
     p_conv.add_argument("format", choices=["netcdf", "geotiff"])  # bytes outputs
     p_conv.add_argument("-o", "--output", dest="output")
     p_conv.add_argument("--stdout", action="store_true", help="Write binary output to stdout instead of a file")
+    # Multi-input support
+    p_conv.add_argument("--inputs", nargs="+", help="Multiple input paths or URLs")
+    p_conv.add_argument("--output-dir", dest="output_dir", help="Directory to write outputs for --inputs")
     p_conv.add_argument("--backend", default="cfgrib", choices=["cfgrib", "pygrib", "wgrib2"])
     p_conv.add_argument("--var", help="Variable name or regex for multi-var datasets")
     p_conv.add_argument("--pattern", help="Regex for .idx-based subsetting when using HTTP/S3")

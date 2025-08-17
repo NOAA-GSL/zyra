@@ -21,7 +21,7 @@ Advanced Features
 """
 
 import logging
-from typing import Iterable, Optional, Iterable as _Iterable
+from typing import Iterable, Optional, Iterable as _Iterable, List, Dict
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError
@@ -193,7 +193,7 @@ class S3Manager(DataAcquirer):
                 self.connect()
             paginator = self.s3_client.get_paginator("list_objects_v2")
             page_iter = paginator.paginate(Bucket=self.bucket_name, Prefix=prefix)
-            results: list[str] = []
+            results: List[str] = []
             for page in page_iter:
                 for obj in page.get("Contents", []):
                     key = obj.get("Key")
@@ -332,7 +332,7 @@ class S3Manager(DataAcquirer):
         timeout: int = 30,
         max_retries: int = 3,
         write_to: Optional[str] = None,
-    ) -> Optional[list[str]]:
+    ) -> Optional[List[str]]:
         """Fetch and parse the GRIB index (.idx) for ``key``.
 
         Parameters
@@ -384,11 +384,11 @@ class S3Manager(DataAcquirer):
                 pass
         return lines
 
-    def idx_to_byteranges(self, lines: list[str], search_str: str) -> dict[str, str]:
+    def idx_to_byteranges(self, lines: List[str], search_str: str) -> Dict[str, str]:
         """Wrapper for :func:`grib_utils.idx_to_byteranges` using regex filtering."""
         return _idx_to_byteranges(lines, search_str)
 
-    def get_chunks(self, key: str, chunk_size: int = 500 * 1024 * 1024) -> list[str]:
+    def get_chunks(self, key: str, chunk_size: int = 500 * 1024 * 1024) -> List[str]:
         """Compute contiguous chunk ranges for an S3 object.
 
         The final range uses the file size as the inclusive end byte.

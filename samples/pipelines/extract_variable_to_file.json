@@ -1,0 +1,31 @@
+{
+  "name": "Extract Variable to File",
+  "stages": [
+    {
+      "stage": "processing",
+      "command": "extract-variable",
+      "args": {
+        "file_or_url": "-",
+        "pattern": "TMP"
+      }
+    },
+    {
+      "stage": "processing",
+      "command": "convert-format",
+      "args": {
+        "file_or_url": "-",
+        "format": "netcdf",
+        "stdout": true
+      }
+    },
+    {
+      "stage": "decimation",
+      "command": "local",
+      "args": {
+        "input": "-",
+        "path": "temperature.nc"
+      }
+    }
+  ]
+}
+

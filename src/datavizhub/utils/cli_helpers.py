@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import os
 import tempfile
-from typing import BinaryIO, Iterator, Optional
+from typing import BinaryIO, Iterator, Optional, List
 
 from .io_utils import open_input, open_output  # re-export
 
@@ -57,7 +57,7 @@ def temp_file_from_bytes(data: bytes, *, suffix: str = "") -> Iterator[str]:
             pass
 
 
-def parse_levels_arg(val) -> int | list[float]:
+def parse_levels_arg(val) -> int | List[float]:
     """Parse levels from int or comma-separated floats."""
     if isinstance(val, int):
         return val

@@ -74,6 +74,7 @@ class AnimateManager(Renderer):
         *,
         input_path: Optional[str] = None,
         var: Optional[str] = None,
+        xarray_engine: Optional[str] = None,
     ) -> Tuple["np.ndarray", List[Optional[str]]]:
         import numpy as np
 
@@ -98,7 +99,7 @@ class AnimateManager(Renderer):
 
             if not var:
                 raise ValueError("var is required for NetCDF inputs")
-            ds = xr.open_dataset(input_path)
+            ds = xr.open_dataset(input_path, engine=xarray_engine) if xarray_engine else xr.open_dataset(input_path)
             try:
                 da = ds[var]
                 if da.ndim < 3:
@@ -217,7 +218,12 @@ class AnimateManager(Renderer):
                 plt.close("all")
                 frames.append(FrameInfo(index=i, path=str(fpath), timestamp=(timestamps[i] if i < len(timestamps) else None)))
         else:
-            stack, timestamps = self._resolve_stack(data, input_path=input_path, var=var)
+            stack, timestamps = self._resolve_stack(
+                data,
+                input_path=input_path,
+                var=var,
+                xarray_engine=kwargs.get("xarray_engine"),
+            )
             # Allow external timestamps override via CSV (one per line)
             if timestamps_csv:
                 try:

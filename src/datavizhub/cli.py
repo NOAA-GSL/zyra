@@ -4,7 +4,7 @@ import sys
 
 import re
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 
 def _parse_s3_url(url: str) -> Tuple[str, str]:
@@ -435,7 +435,7 @@ def _viz_wind_cmd(ns: argparse.Namespace) -> int:
     return _viz_vector_cmd(ns)
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(prog="datavizhub")
     sub = parser.add_subparsers(dest="cmd", required=True)
 

@@ -66,6 +66,7 @@ class VectorFieldManager(Renderer):
         vvar: Optional[str] = None,
         u_path: Optional[str] = None,
         v_path: Optional[str] = None,
+        xarray_engine: Optional[str] = None,
     ) -> Tuple["np.ndarray", "np.ndarray"]:
         import numpy as np
 
@@ -78,7 +79,7 @@ class VectorFieldManager(Renderer):
 
             if not uvar or not vvar:
                 raise ValueError("NetCDF inputs require --uvar and --vvar")
-            ds = xr.open_dataset(input_path)
+            ds = xr.open_dataset(input_path, engine=xarray_engine) if xarray_engine else xr.open_dataset(input_path)
             try:
                 U = ds[uvar].values
                 V = ds[vvar].values
@@ -136,6 +137,7 @@ class VectorFieldManager(Renderer):
                 vvar=vvar,
                 u_path=(U if isinstance(U, (str, bytes)) else u_path),
                 v_path=(V if isinstance(V, (str, bytes)) else v_path),
+                xarray_engine=kwargs.get("xarray_engine"),
             )
         else:
             import numpy as np

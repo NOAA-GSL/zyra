@@ -1,0 +1,23 @@
+{
+  "name": "NetCDF to File",
+  "stages": [
+    {
+      "stage": "processing",
+      "command": "convert-format",
+      "args": {
+        "file_or_url": "-",
+        "format": "netcdf",
+        "stdout": true
+      }
+    },
+    {
+      "stage": "decimation",
+      "command": "local",
+      "args": {
+        "input": "-",
+        "path": "output.nc"
+      }
+    }
+  ]
+}
+

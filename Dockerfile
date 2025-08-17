@@ -29,8 +29,9 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     git \
     git-lfs \
-    && rm -rf /var/lib/apt/lists/*
-
+    procps \
+ && rm -rf /var/lib/apt/lists/*
+ 
 RUN git lfs install
 
 # Install wgrib2 from source, disable AEC, OpenJPEG, and NetCDF support by passing flags to make
@@ -72,6 +73,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
 
 # Install project with dev + all extras (editable install via Poetry)
 RUN poetry install --with dev --all-extras
+
+# Healthcheck for non-compose runs
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=5 \
+  CMD sh -c "curl -fsS http://localhost:${DATAVIZHUB_API_PORT:-8000}/ready || exit 1"
 
 # Set the default command to open a bash shell
 CMD ["sleep", "infinity"]

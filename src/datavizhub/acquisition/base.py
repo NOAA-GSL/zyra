@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Callable, Iterable, Optional, Sequence, Tuple
+from typing import Callable, Iterable, Optional, Sequence, Tuple, List, Set
 
 
 class DataAcquirer(ABC):
@@ -156,7 +156,7 @@ class DataAcquirer(ABC):
             ``True`` on success, ``False`` on failure.
         """
 
-    def fetch_many(self, items: Iterable[str], dest_dir: str) -> list[Tuple[str, bool]]:
+    def fetch_many(self, items: Iterable[str], dest_dir: str) -> List[Tuple[str, bool]]:
         """Fetch multiple remote resources to a destination directory.
 
         Parameters
@@ -171,7 +171,7 @@ class DataAcquirer(ABC):
         list of (str, bool)
             A list of ``(remote_path, success)`` tuples.
         """
-        results: list[Tuple[str, bool]] = []
+        results: List[Tuple[str, bool]] = []
         dest = Path(dest_dir)
         dest.mkdir(parents=True, exist_ok=True)
         for remote in items:
@@ -243,7 +243,7 @@ class DataAcquirer(ABC):
         self._connected = bool(value)
 
     @property
-    def capabilities(self) -> set[str]:
+    def capabilities(self) -> Set[str]:
         """Set of capability strings (e.g., {'fetch','upload','list'})."""
         caps = getattr(type(self), "CAPABILITIES", None)
         return set(caps) if caps else set()

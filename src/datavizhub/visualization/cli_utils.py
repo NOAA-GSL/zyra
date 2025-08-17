@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from datavizhub.visualization.styles import MAP_STYLES
+from typing import List
 
 
-def features_from_ns(ns) -> list[str] | None:
+def features_from_ns(ns) -> List[str] | None:
     """Build a features list from argparse namespace flags.
 
     Honors ``--features`` (CSV) and negation flags ``--no-coastline``,

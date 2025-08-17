@@ -54,7 +54,14 @@ class ContourManager(Renderer):
         self.cmap = kwargs.get("cmap", self.cmap)
         self.filled = bool(kwargs.get("filled", self.filled))
 
-    def _resolve_data(self, data: Any = None, *, input_path: Optional[str] = None, var: Optional[str] = None):
+    def _resolve_data(
+        self,
+        data: Any = None,
+        *,
+        input_path: Optional[str] = None,
+        var: Optional[str] = None,
+        xarray_engine: Optional[str] = None,
+    ):
         if data is not None:
             return data
         if input_path is None:
@@ -64,7 +71,7 @@ class ContourManager(Renderer):
 
             if not var:
                 raise ValueError("var is required when reading from NetCDF")
-            ds = xr.open_dataset(input_path)
+            ds = xr.open_dataset(input_path, engine=xarray_engine) if xarray_engine else xr.open_dataset(input_path)
             try:
                 arr = ds[var].values
             finally:
@@ -101,7 +108,12 @@ class ContourManager(Renderer):
         user_crs = kwargs.get("crs", None)
         reproject = bool(kwargs.get("reproject", False))
 
-        arr = self._resolve_data(data, input_path=input_path, var=var)
+        arr = self._resolve_data(
+            data,
+            input_path=input_path,
+            var=var,
+            xarray_engine=kwargs.get("xarray_engine"),
+        )
 
         # CRS detection
         data_transform = None
