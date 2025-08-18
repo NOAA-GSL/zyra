@@ -354,13 +354,12 @@ def download_job_output(
         if not _is_safe_segment(fname):
             raise HTTPException(status_code=400, detail="Invalid file parameter")
         fullp = base / jid / fname
+        # Normalize and check containment
+        normalized_fullp = fullp.resolve()
+        if not str(normalized_fullp).startswith(str(base.resolve())):
+            raise HTTPException(status_code=400, detail="File path outside allowed directory")
         import errno as _errno
         import os as _os
-
-        # lgtm [py/path-injection] — fullp is contained via normpath+commonpath, O_NOFOLLOW used
-        fd = _os.open(
-            str(fullp), getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0)
-        )
         try:
             st = _os.fstat(fd)
         finally:
@@ -409,7 +408,7 @@ def download_job_output(
     except Exception:
         media_type, _ = mimetypes.guess_type(p.name)
     return FileResponse(
-        fullp, media_type=media_type or "application/octet-stream", filename=fname
+        normalized_fullp, media_type=media_type or "application/octet-stream", filename=fname
     )
 
 
