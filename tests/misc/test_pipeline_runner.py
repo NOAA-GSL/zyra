@@ -80,7 +80,7 @@ def test_run_dry_run_builds_acquire_and_decimate_args(tmp_path: Path):
     assert "decimate local" in text and str(tmp_path / "out.bin") in text
 
 
-@pytest.mark.pipeline()
+@pytest.mark.pipeline
 def test_dry_run_json_emits_objects_with_stage_and_name(tmp_path: Path):
     cfg = {
         "name": "JSON ARGV shape",
