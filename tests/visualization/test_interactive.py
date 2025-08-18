@@ -39,7 +39,7 @@ def test_interactive_folium_heatmap_html():
         assert proc.returncode == 0, proc.stderr
         assert os.path.exists(out)
         # Basic HTML structure
-        text = open(out, encoding="utf-8").read(200).lower()
+        text = Path(out).read_text(encoding="utf-8")[:200].lower()
         assert "<html" in text
 
 
@@ -80,7 +80,7 @@ def test_interactive_plotly_heatmap_html():
         proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
         assert proc.returncode == 0, proc.stderr
         assert os.path.exists(out)
-        text = open(out, encoding="utf-8").read(200).lower()
+        text = Path(out).read_text(encoding="utf-8")[:200].lower()
         assert "<html" in text
 
 
@@ -124,7 +124,7 @@ def test_interactive_folium_points_html():
         proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
         assert proc.returncode == 0, proc.stderr
         assert os.path.exists(out)
-        text = open(out, encoding="utf-8").read(200).lower()
+        text = Path(out).read_text(encoding="utf-8")[:200].lower()
         assert "<html" in text
 
 
@@ -171,7 +171,7 @@ def test_interactive_folium_vector_quiver_html():
         proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
         assert proc.returncode == 0, proc.stderr
         assert os.path.exists(out)
-        text = open(out, encoding="utf-8").read(200).lower()
+        text = Path(out).read_text(encoding="utf-8")[:200].lower()
         assert "<html" in text
 
 

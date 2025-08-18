@@ -298,7 +298,8 @@ class VectorParticlesManager(Renderer):
         if output_path is None:
             # default manifest next to frames
             first = self._manifest.get("frames", [{}])[0].get("path")
-            base = Path(first).parent if first else Path()
+            # Use current directory as explicit fallback when no frames exist
+            base = Path(first).parent if first else Path(".")  # noqa: PTH201
             output_path = str(base / "manifest.json")
         Path(output_path).write_text(
             json.dumps(self._manifest, indent=2), encoding="utf-8"
