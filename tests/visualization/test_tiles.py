@@ -78,7 +78,7 @@ def test_animate_tiles_smoke(tmp_path):
     assert first.exists()
 
 
-@pytest.mark.cli()
+@pytest.mark.cli
 def test_contour_tiles_smoke(tmp_path):
     out_file = tmp_path / "contour_tiles.png"
     cmd = [
