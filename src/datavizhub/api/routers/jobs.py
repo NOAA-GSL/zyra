@@ -314,8 +314,7 @@ def download_job_output(
                     try:
                         import json
 
-                        # Normalize and check containment
-                        mf_path = mf.resolve()
+                        # Normalize and check containment BEFORE resolving
                         base_dir_resolved = base_dir.resolve()
                         def _is_subpath(path, base):
                             try:
@@ -323,9 +322,10 @@ def download_job_output(
                             except AttributeError:
                                 # For Python <3.9
                                 return str(path).startswith(str(base) + os.sep)
-                        if not _is_subpath(mf_path, base_dir_resolved):
+                        mf_norm = mf.resolve()
+                        if not _is_subpath(mf_norm, base_dir_resolved):
                             raise HTTPException(status_code=400, detail="Invalid job_id: path traversal detected")
-                        with mf_path.open(encoding="utf-8") as _fh:
+                        with mf_norm.open(encoding="utf-8") as _fh:
                             data = json.load(_fh)
                     except FileNotFoundError:
                         try:
@@ -334,11 +334,12 @@ def download_job_output(
                             )
 
                             _wm(jid)
-                            mf_path = mf.resolve()
+                            # Normalize and check containment BEFORE resolving
                             base_dir_resolved = base_dir.resolve()
-                            if not _is_subpath(mf_path, base_dir_resolved):
+                            mf_norm = mf.resolve()
+                            if not _is_subpath(mf_norm, base_dir_resolved):
                                 raise HTTPException(status_code=400, detail="Invalid job_id: path traversal detected")
-                            with mf_path.open(encoding="utf-8") as _fh:
+                            with mf_norm.open(encoding="utf-8") as _fh:
                                 data = json.load(_fh)
                         except Exception:
                             data = {"artifacts": []}
