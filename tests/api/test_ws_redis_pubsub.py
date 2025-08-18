@@ -7,7 +7,7 @@ import time
 import pytest
 
 
-@pytest.mark.redis()
+@pytest.mark.redis
 def test_redis_pubsub_roundtrip(monkeypatch):
     # Skip if redis or redis server is not available
     try:
