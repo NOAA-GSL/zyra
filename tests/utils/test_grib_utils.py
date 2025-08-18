@@ -1,10 +1,8 @@
-import re
-
-from datavizhub.acquisition.grib_utils import (
-    ensure_idx_path,
-    parse_idx_lines,
-    idx_to_byteranges,
+from datavizhub.utils.grib import (
     compute_chunks,
+    ensure_idx_path,
+    idx_to_byteranges,
+    parse_idx_lines,
 )
 
 
@@ -36,4 +34,3 @@ def test_compute_chunks():
     assert len(ranges) == 4
     assert ranges[0] == "bytes=0-255"
     assert ranges[-1] == "bytes=768-1024"
-

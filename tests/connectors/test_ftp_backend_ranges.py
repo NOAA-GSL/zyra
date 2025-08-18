@@ -1,7 +1,6 @@
-from unittest.mock import patch, Mock
-from io import BytesIO
+from unittest.mock import patch
 
-from datavizhub.acquisition.ftp_manager import FTPManager
+from datavizhub.connectors.backends import ftp as ftp_backend
 
 
 class FakeFTP:
@@ -14,7 +13,7 @@ class FakeFTP:
         }
         self.sock = object()
 
-    def connect(self, host, port):
+    def connect(self, host, port=None):
         return None
 
     def login(self, user, passwd):
@@ -53,13 +52,14 @@ class FakeFTP:
 
 
 def test_ftp_get_size_and_ranges_and_idx():
-    with patch("datavizhub.acquisition.ftp_manager.FTP", FakeFTP):
-        mgr = FTPManager("host")
-        mgr.connect()
-        assert mgr.get_size("/dir/file.grib2") == 20
-        lines = mgr.get_idx_lines("/dir/file.grib2")
-        assert lines and len(lines) == 2
-        br = mgr.idx_to_byteranges(lines, r"b")
-        data = mgr.download_byteranges("/dir/file.grib2", br.keys(), max_workers=2)
-        assert data == b"0123456789abcdefghij"
+    with patch("datavizhub.connectors.backends.ftp.FTP", FakeFTP):
+        url = "ftp://host/dir/file.grib2"
+        assert ftp_backend.get_size(url) == 20
+        lines = ftp_backend.get_idx_lines(url)
+        assert lines
+        assert len(lines) == 2
+        from datavizhub.utils.grib import idx_to_byteranges
 
+        br = idx_to_byteranges(lines, r"b")
+        data = ftp_backend.download_byteranges(url, br.keys(), max_workers=2)
+        assert data == b"0123456789abcdefghij"

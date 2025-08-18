@@ -6,8 +6,8 @@ Subpackages
 
 .. toctree::
    :maxdepth: 2
-
-   datavizhub.acquisition
+   datavizhub.connectors
+   datavizhub.transform
    datavizhub.processing
    datavizhub.visualization
    datavizhub.utils
@@ -20,4 +20,3 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
-

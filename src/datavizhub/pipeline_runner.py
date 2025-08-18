@@ -1,20 +1,21 @@
 from __future__ import annotations
 
 import argparse
-import logging
 import io
 import json
+import logging
 import os
-from typing import Any, Optional, List, Tuple, Dict
+from pathlib import Path
+from typing import Any
 
 
-def _load_config(path: str) -> Dict[str, Any]:
+def _load_config(path: str) -> dict[str, Any]:
     """Load a pipeline config from YAML or JSON file.
 
     Prefer YAML when available; provide a helpful error if a YAML file is used
     but PyYAML is not installed.
     """
-    text = open(path, "r", encoding="utf-8").read()
+    text = Path(path).read_text(encoding="utf-8")
     # Try YAML first
     try:
         import yaml  # type: ignore
@@ -23,12 +24,14 @@ def _load_config(path: str) -> Dict[str, Any]:
         if path.lower().endswith((".yml", ".yaml")):
             raise SystemExit(
                 "PyYAML is not installed. Install it or use a JSON config (e.g., samples/pipelines/*.json)."
-            )
+            ) from None
     else:
         try:
             return yaml.safe_load(text)  # type: ignore[no-any-return]
         except yaml.YAMLError as e:  # Be explicit about YAML parse failures
-            logging.debug("YAML parse failed for %s: %s. Falling back to JSON.", path, e)
+            logging.debug(
+                "YAML parse failed for %s: %s. Falling back to JSON.", path, e
+            )
     # Fall back to JSON
     return json.loads(text)
 
@@ -56,12 +59,15 @@ def _expand_env(obj: Any, *, strict: bool = False) -> Any:
                 # Ignore defaulted form ${VAR:-default}
                 # We check only plain ${VAR}
                 var = m.group(1)
-                if f"${{{var}:-" in obj:  # a default exists elsewhere; skip this occurrence
+                if (
+                    f"${{{var}:-" in obj
+                ):  # a default exists elsewhere; skip this occurrence
                     continue
                 if var not in os.environ:
                     raise SystemExit(f"Environment variable not set: {var}")
         # First expand standard $VAR and ${VAR}
         s = os.path.expandvars(obj)
+
         # Then handle shell-style defaults ${VAR:-default}
         def _sub_default(mm: re.Match[str]) -> str:
             var, default = mm.group(1), mm.group(2)
@@ -73,7 +79,9 @@ def _expand_env(obj: Any, *, strict: bool = False) -> Any:
     return obj
 
 
-def _apply_overrides(cfg: Dict[str, Any], overrides: List[Tuple[str, str]] | None) -> None:
+def _apply_overrides(
+    cfg: dict[str, Any], overrides: list[tuple[str, str]] | None
+) -> None:
     """Apply --set overrides to a config in-place.
 
     Supports forms:
@@ -134,13 +142,34 @@ def _stage_group_alias(name: str) -> str:
     }.get(name, name)
 
 
-def _build_argv_for_stage(stage: Dict[str, Any]) -> List[str]:
+def _build_argv_for_stage(stage: dict[str, Any]) -> list[str]:
     """Translate a stage mapping into a datavizhub argv vector."""
     group = _stage_group_alias(stage.get("stage", ""))
     cmd = stage.get("command")
     if not group or not cmd:
         raise SystemExit("Each stage requires 'stage' and 'command'")
     args = stage.get("args") or {}
+    # Back-compat mapping: allow 'file_pattern' in configs to map to '--pattern'
+    if "file_pattern" in args and "pattern" not in args:
+        args["pattern"] = args.pop("file_pattern")
+    # Compute since from ISO period if provided and --since not set
+    if "since" not in args and "since_period" in args and args["since_period"]:
+        try:
+            from datavizhub.utils.date_manager import DateManager
+
+            start, _ = DateManager().get_date_range_iso(str(args["since_period"]))
+            args["since"] = start.isoformat()
+        except Exception:
+            pass
+    # Compute since from non-ISO period (e.g., 1Y, 6M, 7D, 24H) if provided
+    if "since" not in args and "period" in args and args["period"]:
+        try:
+            from datavizhub.utils.date_manager import DateManager
+
+            start, _ = DateManager().get_date_range(str(args["period"]))
+            args["since"] = start.isoformat()
+        except Exception:
+            pass
 
     # Special-case: acquisition 'acquire' with backend -> translate to subcommand
     args = stage.get("args") or {}
@@ -151,10 +180,10 @@ def _build_argv_for_stage(stage: Dict[str, Any]) -> List[str]:
     if group == "decimate" and (cmd in (None, "decimate")) and "backend" in args:
         cmd = str(args.pop("backend")).lower()
 
-    argv: List[str] = [group, str(cmd)]
+    argv: list[str] = [group, str(cmd)]
 
     # Known positionals for selected commands
-    positionals: List[str] = []
+    positionals: list[str] = []
     if group == "process" and cmd == "convert-format":
         positionals = ["file_or_url", "format"]
     elif group == "process" and cmd == "decode-grib2":
@@ -163,11 +192,9 @@ def _build_argv_for_stage(stage: Dict[str, Any]) -> List[str]:
         positionals = ["file_or_url", "pattern"]
     elif group == "acquire" and cmd == "http":
         positionals = ["url"]
-    elif group == "acquire" and cmd == "ftp":
-        positionals = ["path"]
-    elif group == "decimate" and cmd == "local":
-        positionals = ["path"]
-    elif group == "decimate" and cmd == "ftp":
+    elif (group == "acquire" and cmd == "ftp") or (
+        group == "decimate" and cmd in {"local", "ftp"}
+    ):
         positionals = ["path"]
     elif group == "decimate" and cmd == "post":
         positionals = ["url"]
@@ -197,10 +224,11 @@ def _build_argv_for_stage(stage: Dict[str, Any]) -> List[str]:
     return argv
 
 
-def _run_cli(argv: List[str], input_bytes: bytes | None) -> Tuple[int, bytes, str]:
+def _run_cli(argv: list[str], input_bytes: bytes | None) -> tuple[int, bytes, str]:
     """Execute a CLI stage in-process, passing stdin bytes and capturing stdout."""
-    from datavizhub.cli import main as cli_main
     import sys
+
+    from datavizhub.cli import main as cli_main
 
     # Lightweight fast-paths to avoid importing heavy dependencies when possible
     try:
@@ -208,16 +236,20 @@ def _run_cli(argv: List[str], input_bytes: bytes | None) -> Tuple[int, bytes, st
             len(argv) >= 4
             and argv[0] == "process"
             and argv[1] == "convert-format"
+            and "--stdout" in argv
+            and argv[3].lower() == "netcdf"
+            and argv[2] == "-"
+            and input_bytes
+            and (input_bytes.startswith(b"CDF") or input_bytes.startswith(b"\x89HDF"))
         ):
-            file_or_url = argv[2]
-            fmt = argv[3].lower()
-            want_stdout = "--stdout" in argv
-            if want_stdout and fmt == "netcdf" and file_or_url == "-" and input_bytes:
-                # NetCDF pass-through (classic or NetCDF4/HDF5)
-                if input_bytes.startswith(b"CDF") or input_bytes.startswith(b"\x89HDF"):
-                    return 0, input_bytes, ""
+            return 0, input_bytes, ""
         # Fast-path: decimate local with '-' input; write bytes directly
-        if len(argv) >= 3 and argv[0] == "decimate" and argv[1] == "local" and input_bytes is not None:
+        if (
+            len(argv) >= 3
+            and argv[0] == "decimate"
+            and argv[1] == "local"
+            and input_bytes is not None
+        ):
             # Positional path is argv[2]; also allow flags order-insensitive
             dest_path = argv[2]
             # If --input provided and not '-', we cannot fast-path
@@ -231,7 +263,6 @@ def _run_cli(argv: List[str], input_bytes: bytes | None) -> Tuple[int, bytes, st
                     pass
                 else:
                     try:
-                        import os
                         from pathlib import Path
 
                         p = Path(dest_path)
@@ -245,7 +276,6 @@ def _run_cli(argv: List[str], input_bytes: bytes | None) -> Tuple[int, bytes, st
             else:
                 # No explicit --input; assume stdin
                 try:
-                    import os
                     from pathlib import Path
 
                     p = Path(dest_path)
@@ -282,15 +312,15 @@ def _run_cli(argv: List[str], input_bytes: bytes | None) -> Tuple[int, bytes, st
 
 def run_pipeline(
     config_path: str,
-    overrides: List[Tuple[str, str]] | None = None,
+    overrides: list[tuple[str, str]] | None = None,
     *,
     print_argv: bool = False,
     dry_run: bool = False,
     continue_on_error: bool = False,
     print_format: str = "text",
-    start: Optional[int] = None,
-    end: Optional[int] = None,
-    only: Optional[str] = None,
+    start: int | None = None,
+    end: int | None = None,
+    only: str | None = None,
 ) -> int:
     """Execute a pipeline from YAML/JSON with optional filtering and dry-run.
 
@@ -325,18 +355,22 @@ def run_pipeline(
         raise SystemExit("--start must be <= --end")
 
     # Prepare filtered list
-    selected: List[Dict[str, Any]] = []
+    selected: list[dict[str, Any]] = []
     desired_name = _stage_group_alias(only) if only else None
     for idx, st in enumerate(stages, start=1):
         if not (s_idx <= idx <= e_idx):
             continue
-        if desired_name and _stage_group_alias(str(st.get("stage", ""))) != desired_name:
+        if (
+            desired_name
+            and _stage_group_alias(str(st.get("stage", ""))) != desired_name
+        ):
             continue
         selected.append(st)
 
     # Stream bytes between stages.
     # Seed first stage with stdin bytes when available (non-tty), enabling '-' driven pipelines.
     import sys
+
     try:
         current_stdin = None if sys.stdin.isatty() else sys.stdin.buffer.read()
     except Exception:
@@ -354,14 +388,15 @@ def run_pipeline(
                 if isinstance(first, dict):
                     args0 = first.get("args") or {}
                     if any(v == "-" for v in args0.values()):
-                        with open(default_stdin_path, "rb") as f:
-                            current = f.read()
+                        from pathlib import Path
+
+                        current = Path(default_stdin_path).read_bytes()
         except Exception:
             # Ignore seeding failures silently; normal error handling will apply later
             pass
 
     # Printed structures for --print-argv-format=json
-    printed_objects: List[Dict[str, Any]] = []
+    printed_objects: list[dict[str, Any]] = []
     any_error: int | None = None
     # Set verbosity env for stages
     verbosity = os.environ.get("DATAVIZHUB_VERBOSITY", "info")
@@ -381,8 +416,10 @@ def run_pipeline(
             else:
                 line = " ".join(["datavizhub", *argv])
                 if verbosity == "debug":
-                    os.write(1, (f"Stage {idx+1} [{_stage_group_alias(str(st.get('stage','')))}]:\n".encode("utf-8")))
-                os.write(1, (line + "\n").encode("utf-8"))
+                    sys.stdout.write(
+                        f"Stage {idx+1} [{_stage_group_alias(str(st.get('stage','')))}]:\n"
+                    )
+                sys.stdout.write(line + "\n")
         if dry_run:
             continue
         rc, out, _ = _run_cli(argv, current)
@@ -401,11 +438,24 @@ def run_pipeline(
                         "No stdin provided for first stage requiring '-' input (process convert-format --stdout).\n"
                         "Hint: pipe input bytes or set DATAVIZHUB_DEFAULT_STDIN=/path/to/file in the environment.\n"
                     )
-                    os.write(2, msg.encode("utf-8"))
+                    sys.stderr.write(msg)
             except Exception:
                 pass
         if rc != 0:
             any_error = any_error or rc
+            try:
+                # Print a helpful failure summary with the exact argv that failed
+                stage_name = _stage_group_alias(str(st.get("stage", "")))
+                cmdline = " ".join(["datavizhub", *argv])
+                msg = (
+                    f"Stage {idx+1} [{stage_name}] failed with exit code {rc}.\n"
+                    f"Command: {cmdline}\n"
+                    "Hint: re-run with --dry-run or --print-argv for mapping details, "
+                    "or set DATAVIZHUB_VERBOSITY=debug for stage headings.\n"
+                )
+                sys.stderr.write(msg)
+            except Exception:
+                pass
             if not continue_on_error:
                 return rc
             # On error, clear current bytes to avoid accidental pass-through
@@ -416,11 +466,15 @@ def run_pipeline(
 
     # Emit printed argv in JSON format if requested
     if (print_argv or dry_run) and print_format == "json":
-        os.write(1, (json.dumps(printed_objects) + "\n").encode("utf-8"))
+        sys.stdout.write(json.dumps(printed_objects) + "\n")
 
     # Write final bytes to stdout only when actually executing stages (not dry-run)
     if current is not None and not dry_run:
-        os.write(1, current)
+        try:
+            sys.stdout.buffer.write(current)
+        except Exception:
+            # Fallback to text write if buffer not available
+            sys.stdout.write(current.decode("utf-8", errors="ignore"))
     return any_error or 0
 
 
@@ -435,21 +489,43 @@ def register_cli_run(subparsers: Any) -> None:
         dest="overrides",
         help="Override key=value in args across stages",
     )
-    p.add_argument("--print-argv", action="store_true", help="Print argv per stage before running")
+    p.add_argument(
+        "--print-argv", action="store_true", help="Print argv per stage before running"
+    )
     p.add_argument("--print-argv-format", choices=["text", "json"], default="text")
-    p.add_argument("--dry-run", action="store_true", help="Only print argv; do not execute stages")
-    p.add_argument("--continue-on-error", action="store_true", help="Continue executing remaining stages even if one fails")
+    p.add_argument(
+        "--dry-run", action="store_true", help="Only print argv; do not execute stages"
+    )
+    p.add_argument(
+        "--continue-on-error",
+        action="store_true",
+        help="Continue executing remaining stages even if one fails",
+    )
     p.add_argument("--start", type=int, help="1-based index of first stage to run")
     p.add_argument("--end", type=int, help="1-based index of last stage to run")
-    p.add_argument("--only", help="Run only stages matching this alias (acquire/process/visualize/decimate)")
+    p.add_argument(
+        "--only",
+        help="Run only stages matching this alias (acquire/process/visualize/decimate)",
+    )
     # Env & verbosity controls
     vgrp = p.add_mutually_exclusive_group()
-    vgrp.add_argument("-v", "--verbose", action="store_true", help="Verbose runner output (prints stage headings)")
-    vgrp.add_argument("--quiet", action="store_true", help="Suppress runner messages when possible")
-    p.add_argument("--strict-env", action="store_true", help="Fail if ${VAR} placeholders are not set in environment")
+    vgrp.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Verbose runner output (prints stage headings)",
+    )
+    vgrp.add_argument(
+        "--quiet", action="store_true", help="Suppress runner messages when possible"
+    )
+    p.add_argument(
+        "--strict-env",
+        action="store_true",
+        help="Fail if ${VAR} placeholders are not set in environment",
+    )
 
     def _cmd(ns: argparse.Namespace) -> int:
-        pairs: List[Tuple[str, str]] = []
+        pairs: list[tuple[str, str]] = []
         for item in ns.overrides:
             if "=" not in item:
                 raise SystemExit("--set requires key=value")

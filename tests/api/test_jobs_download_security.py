@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-import os
-import pytest
 
+import pytest
 from datavizhub.api.routers import jobs as jobs_router
 from fastapi import HTTPException
 
 
-def test_select_download_path_rejects_symlink_escape(tmp_path: Path, monkeypatch) -> None:
+def test_select_download_path_rejects_symlink_escape(
+    tmp_path: Path, monkeypatch
+) -> None:
     # Point results dir to temp base
     base = tmp_path / "results"
     monkeypatch.setenv("DATAVIZHUB_RESULTS_DIR", str(base))
@@ -39,4 +40,3 @@ def test_select_download_path_rejects_symlink_escape(tmp_path: Path, monkeypatch
     with pytest.raises(HTTPException) as ei:
         jobs_router._select_download_path(job_id, "evil.txt")
     assert ei.value.status_code == 400
-

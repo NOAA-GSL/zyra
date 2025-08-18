@@ -1,4 +1,3 @@
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -24,4 +23,3 @@ def test_decimate_local_creates_parent_dirs_and_writes(tmp_path: Path):
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     assert nested.exists()
     assert nested.read_bytes() == data
-

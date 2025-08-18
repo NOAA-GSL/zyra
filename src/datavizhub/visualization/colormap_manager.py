@@ -66,13 +66,6 @@ class ColormapManager(Renderer):
             ``(cmap, norm)`` for classified, or a continuous colormap.
         """
         # Lazy imports
-        import numpy as np
-        import matplotlib.pyplot as plt
-        from matplotlib.colors import (
-            BoundaryNorm,
-            LinearSegmentedColormap,
-            ListedColormap,
-        )
 
         if isinstance(data, list):
             cmap, norm = self.create_custom_classified_cmap(data)
@@ -143,8 +136,8 @@ class ColormapManager(Renderer):
             The customized continuous colormap.
         """
         # Lazy imports
-        import numpy as np
         import matplotlib.pyplot as plt
+        import numpy as np
         from matplotlib.colors import LinearSegmentedColormap
 
         color_array = plt.get_cmap(base_cmap)(range(256))

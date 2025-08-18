@@ -1,19 +1,28 @@
+"""FastAPI application factory and system endpoints.
+
+This module wires together the API routers and adds a few system routes
+(`/health`, `/ready`, and `/`) along with CORS settings and a background
+results cleanup task. It is designed to be run with uvicorn or similar ASGI
+servers in development or production.
+"""
+
 from __future__ import annotations
 
+import asyncio
 import os
 import shutil
-import asyncio
 import time
 from pathlib import Path
-from fastapi import FastAPI, Depends, Request
-from fastapi.responses import HTMLResponse
+
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 
 from datavizhub.api import __version__ as dvh_version
 from datavizhub.api.routers import cli as cli_router
 from datavizhub.api.routers import files as files_router
-from datavizhub.api.routers import ws as ws_router
 from datavizhub.api.routers import jobs as jobs_router
+from datavizhub.api.routers import ws as ws_router
 from datavizhub.api.security import require_api_key
 
 
@@ -28,7 +37,11 @@ def create_app() -> FastAPI:
     app = FastAPI(title="DataVizHub API", version=dvh_version)
 
     # CORS (env-configurable)
-    allow_all = os.environ.get("DATAVIZHUB_CORS_ALLOW_ALL", "0").lower() in {"1", "true", "yes"}
+    allow_all = os.environ.get("DATAVIZHUB_CORS_ALLOW_ALL", "0").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
     origins_env = os.environ.get("DATAVIZHUB_CORS_ORIGINS", "")
     origins = [o.strip() for o in origins_env.split(",") if o.strip()]
     if allow_all or origins:
@@ -84,14 +97,20 @@ def create_app() -> FastAPI:
             disk_ok = False
 
         # Queue/worker readiness (Redis optional)
-        from datavizhub.api.workers.jobs import is_redis_enabled, redis_url, queue_name
+        from datavizhub.api.workers.jobs import is_redis_enabled, queue_name, redis_url
 
         use_redis = is_redis_enabled()
-        queue = {"mode": "redis" if use_redis else "in_memory", "connected": (not use_redis)}
+        queue = {
+            "mode": "redis" if use_redis else "in_memory",
+            "connected": (not use_redis),
+        }
         if use_redis:
             try:
                 import redis  # type: ignore
-                from datavizhub.api.workers.jobs import _get_redis_and_queue  # type: ignore
+
+                from datavizhub.api.workers.jobs import (
+                    _get_redis_and_queue,  # type: ignore
+                )
 
                 url = redis_url()
                 client = redis.Redis.from_url(url, socket_connect_timeout=0.5)  # type: ignore[arg-type]
@@ -105,7 +124,9 @@ def create_app() -> FastAPI:
                     if callable(cnt_attr):
                         queue["length"] = int(cnt_attr())
                     else:
-                        queue["length"] = int(cnt_attr) if cnt_attr is not None else None
+                        queue["length"] = (
+                            int(cnt_attr) if cnt_attr is not None else None
+                        )
                 except Exception:
                     queue["length"] = None
             except Exception:
@@ -115,14 +136,24 @@ def create_app() -> FastAPI:
         # Optional binaries (FFmpeg/ffprobe)
         ffmpeg_ok = shutil.which("ffmpeg") is not None
         ffprobe_ok = shutil.which("ffprobe") is not None
-        require_ffmpeg = os.environ.get("DATAVIZHUB_REQUIRE_FFMPEG", "0").lower() in {"1", "true", "yes"}
+        require_ffmpeg = os.environ.get("DATAVIZHUB_REQUIRE_FFMPEG", "0").lower() in {
+            "1",
+            "true",
+            "yes",
+        }
         binaries = {
             "ffmpeg": ffmpeg_ok,
             "ffprobe": ffprobe_ok,
             "required": require_ffmpeg,
         }
 
-        overall_ok = exists and writable and probe_ok and disk_ok and (queue.get("connected", False))
+        overall_ok = (
+            exists
+            and writable
+            and probe_ok
+            and disk_ok
+            and (queue.get("connected", False))
+        )
         if require_ffmpeg and not (ffmpeg_ok and ffprobe_ok):
             overall_ok = False
         return {
@@ -178,7 +209,10 @@ def create_app() -> FastAPI:
             return meta
         # Build a simple HTML index with clickable links
         import html as _html
-        header_name = _html.escape(os.environ.get('DATAVIZHUB_API_KEY_HEADER', 'X-API-Key'))
+
+        header_name = _html.escape(
+            os.environ.get("DATAVIZHUB_API_KEY_HEADER", "X-API-Key")
+        )
         version_text = _html.escape(str(dvh_version))
         html = f"""
         <!doctype html>

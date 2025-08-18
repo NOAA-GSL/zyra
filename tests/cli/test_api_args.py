@@ -51,9 +51,7 @@ def test_aliases_dest_target_and_src():
     assert "--output" in argv
 
     # dest -> path for decimate local
-    argv = _args_dict_to_argv(
-        "decimate", "local", {"input": "-", "dest": "./out.bin"}
-    )
+    argv = _args_dict_to_argv("decimate", "local", {"input": "-", "dest": "./out.bin"})
     assert argv[:2] == ["decimate", "local"]
     # path should be positional at the end
     assert argv[-1] == "./out.bin"

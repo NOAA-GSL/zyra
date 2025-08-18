@@ -9,12 +9,13 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence
+
+from datavizhub.utils.geo_utils import detect_crs_from_path, warn_if_mismatch
 
 from .base import Renderer
 from .basemap import add_basemap_cartopy
 from .styles import DEFAULT_EXTENT, FIGURE_DPI, MAP_STYLES, apply_matplotlib_style
-from datavizhub.utils.geo_utils import detect_crs_from_path, warn_if_mismatch
 
 
 @dataclass
@@ -56,7 +57,7 @@ class VectorParticlesManager(Renderer):
         vvar: Optional[str] = None,
         u_path: Optional[str] = None,
         v_path: Optional[str] = None,
-    ) -> Tuple["np.ndarray", "np.ndarray"]:
+    ) -> tuple[Any, Any]:
         import numpy as np
 
         if u_path and v_path:
@@ -75,10 +76,12 @@ class VectorParticlesManager(Renderer):
             finally:
                 ds.close()
             return U, V
-        raise ValueError("Provide either --u/--v .npy stacks or --input .nc with --uvar/--vvar")
+        raise ValueError(
+            "Provide either --u/--v .npy stacks or --input .nc with --uvar/--vvar"
+        )
 
     # Seeding helpers
-    def _seed_particles(self, seed: str, particles: int) -> Tuple["np.ndarray", "np.ndarray"]:
+    def _seed_particles(self, seed: str, particles: int) -> tuple[Any, Any]:
         import numpy as np
 
         west, east, south, north = self.extent
@@ -95,10 +98,11 @@ class VectorParticlesManager(Renderer):
             Y = np.random.uniform(south, north, size=particles)
             return X, Y
         else:
-            raise ValueError("custom seeding requires render(..., custom_seed=path_to_csv)")
+            raise ValueError(
+                "custom seeding requires render(..., custom_seed=path_to_csv)"
+            )
 
-    def _seed_custom(self, csv_path: str) -> Tuple["np.ndarray", "np.ndarray"]:
-        import numpy as np
+    def _seed_custom(self, csv_path: str) -> tuple[Any, Any]:
         import pandas as pd
 
         df = pd.read_csv(csv_path)
@@ -107,7 +111,7 @@ class VectorParticlesManager(Renderer):
         return df["lon"].to_numpy(), df["lat"].to_numpy()
 
     # Velocity sampling (nearest neighbor for simplicity)
-    def _sample_uv(self, U: "np.ndarray", V: "np.ndarray", lon: "np.ndarray", lat: "np.ndarray") -> Tuple["np.ndarray", "np.ndarray"]:
+    def _sample_uv(self, U: Any, V: Any, lon: Any, lat: Any) -> tuple[Any, Any]:
         import numpy as np
 
         ny, nx = U.shape[-2], U.shape[-1]
@@ -119,11 +123,15 @@ class VectorParticlesManager(Renderer):
         iy = np.clip(np.round(fy).astype(int), 0, ny - 1)
         return U[iy, ix], V[iy, ix]
 
-    def _step_euler(self, U: "np.ndarray", V: "np.ndarray", lon: "np.ndarray", lat: "np.ndarray", dt: float) -> Tuple["np.ndarray", "np.ndarray"]:
+    def _step_euler(
+        self, U: Any, V: Any, lon: Any, lat: Any, dt: float
+    ) -> tuple[Any, Any]:
         u, v = self._sample_uv(U, V, lon, lat)
         return lon + u * dt, lat + v * dt
 
-    def _step_rk2(self, U: "np.ndarray", V: "np.ndarray", lon: "np.ndarray", lat: "np.ndarray", dt: float) -> Tuple["np.ndarray", "np.ndarray"]:
+    def _step_rk2(
+        self, U: Any, V: Any, lon: Any, lat: Any, dt: float
+    ) -> tuple[Any, Any]:
         # Midpoint method
         u1, v1 = self._sample_uv(U, V, lon, lat)
         lon_mid = lon + 0.5 * dt * u1
@@ -131,7 +139,7 @@ class VectorParticlesManager(Renderer):
         u2, v2 = self._sample_uv(U, V, lon_mid, lat_mid)
         return lon + dt * u2, lat + dt * v2
 
-    def _wrap_clamp(self, lon: "np.ndarray", lat: "np.ndarray") -> Tuple["np.ndarray", "np.ndarray"]:
+    def _wrap_clamp(self, lon: Any, lat: Any) -> tuple[Any, Any]:
         import numpy as np
 
         west, east, south, north = self.extent
@@ -163,15 +171,19 @@ class VectorParticlesManager(Renderer):
         output_dir = Path(kwargs.get("output_dir", "."))
         filename_template = kwargs.get("filename_template", "frame_{index:04d}.png")
 
-        import numpy as np
-        import matplotlib.pyplot as plt
         import cartopy.crs as ccrs
+        import matplotlib.pyplot as plt
+        import numpy as np
 
         # CRS detection
         try:
             user_crs = kwargs.get("crs", None)
             reproject = bool(kwargs.get("reproject", False))
-            in_path = input_path or (u_kw if isinstance(u_kw, (str, bytes)) else None) or (v_kw if isinstance(v_kw, (str, bytes)) else None)
+            in_path = (
+                input_path
+                or (u_kw if isinstance(u_kw, (str, bytes)) else None)
+                or (v_kw if isinstance(v_kw, (str, bytes)) else None)
+            )
             in_crs = user_crs or (detect_crs_from_path(in_path) if in_path else None)
             warn_if_mismatch(in_crs, reproject=reproject, context="particles")
         except Exception:
@@ -210,10 +222,14 @@ class VectorParticlesManager(Renderer):
             lon, lat = self._seed_particles(seed, particles)
 
         output_dir.mkdir(parents=True, exist_ok=True)
-        frames: List[ParticleFrame] = []
+        frames: list[ParticleFrame] = []
 
         # Select integrator
-        step_fn = self._step_rk2 if method.lower() in ("rk2", "midpoint") else self._step_euler
+        step_fn = (
+            self._step_rk2
+            if method.lower() in ("rk2", "midpoint")
+            else self._step_euler
+        )
 
         # Frame loop
         for i in range(T):
@@ -229,8 +245,21 @@ class VectorParticlesManager(Renderer):
                 dpi=dpi,
                 subplot_kw={"projection": ccrs.PlateCarree()},
             )
-            add_basemap_cartopy(ax, self.extent, image_path=self.basemap, features=MAP_STYLES.get("features"))
-            ax.scatter(lon, lat, s=size, c=color, transform=ccrs.PlateCarree(), alpha=0.9, linewidths=0)
+            add_basemap_cartopy(
+                ax,
+                self.extent,
+                image_path=self.basemap,
+                features=MAP_STYLES.get("features"),
+            )
+            ax.scatter(
+                lon,
+                lat,
+                s=size,
+                c=color,
+                transform=ccrs.PlateCarree(),
+                alpha=0.9,
+                linewidths=0,
+            )
             ax.set_global()
             ax.axis("off")
             fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
@@ -269,7 +298,10 @@ class VectorParticlesManager(Renderer):
         if output_path is None:
             # default manifest next to frames
             first = self._manifest.get("frames", [{}])[0].get("path")
-            base = Path(first).parent if first else Path(".")
+            # Use current directory as explicit fallback when no frames exist
+            base = Path(first).parent if first else Path(".")  # noqa: PTH201
             output_path = str(base / "manifest.json")
-        Path(output_path).write_text(json.dumps(self._manifest, indent=2), encoding="utf-8")
+        Path(output_path).write_text(
+            json.dumps(self._manifest, indent=2), encoding="utf-8"
+        )
         return output_path

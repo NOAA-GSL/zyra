@@ -58,4 +58,3 @@ def test_clear_credentials():
     manager.add_credential("TEMP_KEY2", "TEMP_VALUE2")
     manager.clear_credentials()
     assert len(manager.credentials) == 0
-

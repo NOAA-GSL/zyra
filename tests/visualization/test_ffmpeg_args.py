@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
-import pytest
 
+import pytest
 from datavizhub.visualization.cli_animate import _build_ffmpeg_grid_args
 
 
@@ -60,14 +59,25 @@ def test_build_ffmpeg_grid_args_validations(tmp_path: Path) -> None:
     out = tmp_path / "out.mp4"
     # Empty videos
     with pytest.raises(ValueError):
-        _build_ffmpeg_grid_args(videos=[], fps=24, output=str(out), grid_mode="grid", cols=2)
+        _build_ffmpeg_grid_args(
+            videos=[], fps=24, output=str(out), grid_mode="grid", cols=2
+        )
     # Bad fps
     with pytest.raises(ValueError):
-        _build_ffmpeg_grid_args(videos=[str(v1)], fps=0, output=str(out), grid_mode="grid", cols=1)
+        _build_ffmpeg_grid_args(
+            videos=[str(v1)], fps=0, output=str(out), grid_mode="grid", cols=1
+        )
     # Output starting with '-'
     with pytest.raises(ValueError):
-        _build_ffmpeg_grid_args(videos=[str(v1)], fps=24, output="-bad.mp4", grid_mode="grid", cols=1)
+        _build_ffmpeg_grid_args(
+            videos=[str(v1)], fps=24, output="-bad.mp4", grid_mode="grid", cols=1
+        )
     # Missing input file
     with pytest.raises(ValueError):
-        _build_ffmpeg_grid_args(videos=[str(tmp_path / "missing.mp4")], fps=24, output=str(out), grid_mode="grid", cols=1)
-
+        _build_ffmpeg_grid_args(
+            videos=[str(tmp_path / "missing.mp4")],
+            fps=24,
+            output=str(out),
+            grid_mode="grid",
+            cols=1,
+        )

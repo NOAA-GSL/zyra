@@ -1,21 +1,18 @@
 from __future__ import annotations
 
-import pytest
-from fastapi.testclient import TestClient
-
 from datavizhub.api.server import app
+from fastapi.testclient import TestClient
 
 
 def test_cli_commands_requires_api_key(monkeypatch) -> None:
-    monkeypatch.setenv('DATAVIZHUB_API_KEY', 'k')
+    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
     client = TestClient(app)
     # Missing header
-    r = client.get('/cli/commands')
+    r = client.get("/cli/commands")
     assert r.status_code == 401
     # Wrong header
-    r = client.get('/cli/commands', headers={'X-API-Key': 'wrong'})
+    r = client.get("/cli/commands", headers={"X-API-Key": "wrong"})
     assert r.status_code == 401
     # Correct header
-    r = client.get('/cli/commands', headers={'X-API-Key': 'k'})
+    r = client.get("/cli/commands", headers={"X-API-Key": "k"})
     assert r.status_code == 200
-

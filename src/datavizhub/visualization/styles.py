@@ -6,23 +6,19 @@ Renderer.configure or function parameters.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Dict, List
-
-
-DEFAULT_EXTENT: List[float] = [-180.0, 180.0, -90.0, 90.0]
+DEFAULT_EXTENT: list[float] = [-180.0, 180.0, -90.0, 90.0]
 DEFAULT_CMAP: str = "YlOrBr"
 FIGURE_DPI: int = 96
 
 
-MAP_STYLES: Dict[str, object] = {
+MAP_STYLES: dict[str, object] = {
     "border_color": "#333333CC",
     "coastline_color": "#333333CC",
     "linewidth": 1.0,
     "features": ["coastline", "borders"],
 }
 
-FONT_SIZES: Dict[str, int] = {
+FONT_SIZES: dict[str, int] = {
     "title": 12,
     "labels": 10,
 }

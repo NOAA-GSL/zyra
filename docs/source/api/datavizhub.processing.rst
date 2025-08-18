@@ -24,3 +24,12 @@ Modules
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: datavizhub.processing.grib_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: datavizhub.processing.netcdf_data_processor
+   :members:
+   :undoc-members:
+   :show-inheritance:

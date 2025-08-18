@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import asyncio
 import json
 
-from datavizhub.api.workers.jobs import _register_listener, _unregister_listener, _pub
+from datavizhub.api.workers.jobs import _pub, _register_listener, _unregister_listener
 
 
 def test_inmemory_pubsub_receives_messages() -> None:
@@ -18,4 +17,3 @@ def test_inmemory_pubsub_receives_messages() -> None:
         assert data.get("progress") == 0.25
     finally:
         _unregister_listener(channel, q)
-

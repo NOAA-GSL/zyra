@@ -4,8 +4,8 @@ import tempfile
 
 def test_timeseries_manager_csv():
     try:
-        from datavizhub.visualization import TimeSeriesManager
         import matplotlib  # noqa: F401
+        from datavizhub.visualization import TimeSeriesManager
     except Exception as e:
         import pytest
 
@@ -22,7 +22,9 @@ def test_timeseries_manager_csv():
         pd.DataFrame({"time": x, "value": y}).to_csv(csv_path, index=False)
 
         mgr = TimeSeriesManager(title="Demo", xlabel="time", ylabel="value")
-        mgr.render(input_path=csv_path, x="time", y="value", width=320, height=200, dpi=96)
+        mgr.render(
+            input_path=csv_path, x="time", y="value", width=320, height=200, dpi=96
+        )
         out = os.path.join(td, "ts.png")
         path = mgr.save(out)
         assert path and os.path.exists(path)
@@ -38,9 +40,11 @@ def test_cli_timeseries_csv_smoke():
 
         pytest.skip(f"Visualization deps missing: {e}")
 
+    import subprocess
+    import sys
+
     import numpy as np
     import pandas as pd
-    import subprocess, sys
 
     with tempfile.TemporaryDirectory() as td:
         csv_path = os.path.join(td, "ts.csv")

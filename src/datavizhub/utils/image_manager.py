@@ -42,7 +42,11 @@ class ImageManager:
 
     def __init__(self, directory: str):
         self.directory = Path(directory)
-        self.filepaths = [p for p in sorted(self.directory.glob("*")) if p.suffix.lower() in [".jpg", ".png", ".jpeg"]]
+        self.filepaths = [
+            p
+            for p in sorted(self.directory.glob("*"))
+            if p.suffix.lower() in [".jpg", ".png", ".jpeg"]
+        ]
 
     def load_image(self, filepath: str | Path):
         """Load a single image from the specified filepath as a NumPy array.
@@ -163,9 +167,15 @@ class ImageManager:
                     raise ValueError("Cannot determine the source image format.")
                 for filename in new_filenames:
                     extension = image_type.lower()
-                    outname = filename if filename.lower().endswith(f".{extension}") else f"{filename}.{extension}"
+                    outname = (
+                        filename
+                        if filename.lower().endswith(f".{extension}")
+                        else f"{filename}.{extension}"
+                    )
                     source_image.save(outname, image_type)
-                    logging.info(f"Copied {source_image_path} to {outname} as {image_type}.")
+                    logging.info(
+                        f"Copied {source_image_path} to {outname} as {image_type}."
+                    )
         except Exception as e:
             logging.error(f"Error copying {source_image_path}: {e}")
 
@@ -184,13 +194,19 @@ class ImageManager:
                 image_extension = file.suffix
                 break
         if image_extension is None:
-            logging.error("No image files found in the directory to determine the extension.")
+            logging.error(
+                "No image files found in the directory to determine the extension."
+            )
             return
         for filename in filepaths:
             original_filepath = default_dir / (filename + image_extension)
-            new_filepath = original_filepath.with_name(original_filepath.name + ".extra")
+            new_filepath = original_filepath.with_name(
+                original_filepath.name + ".extra"
+            )
             try:
                 original_filepath.rename(new_filepath)
                 logging.info(f"Renamed {original_filepath} to {new_filepath}")
             except Exception as e:
-                logging.error(f"Error renaming {original_filepath} to {new_filepath}: {e}")
+                logging.error(
+                    f"Error renaming {original_filepath} to {new_filepath}: {e}"
+                )

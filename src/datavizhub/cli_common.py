@@ -9,9 +9,12 @@ import argparse
 
 
 def add_output_option(p: argparse.ArgumentParser, *, default: str = "-") -> None:
-    p.add_argument("-o", "--output", default=default, help="Output path or '-' for stdout")
+    p.add_argument(
+        "-o", "--output", default=default, help="Output path or '-' for stdout"
+    )
 
 
 def add_input_option(p: argparse.ArgumentParser, *, required: bool = False) -> None:
-    p.add_argument("-i", "--input", required=required, help="Input path or '-' for stdin")
-
+    p.add_argument(
+        "-i", "--input", required=required, help="Input path or '-' for stdin"
+    )

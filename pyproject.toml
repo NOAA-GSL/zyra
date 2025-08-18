@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "datavizhub"
-version = "0.1.16"
+version = "0.1.17"
 description = "A tool to ingest data from various sources and formats, create imagery or video based on that data, and send the results to various locations for dissemination."
 authors = ["Eric Hackathorn <eric.j.hackathorn@noaa.gov>"]
 include = [
@@ -64,6 +64,13 @@ rasterio = { version = "^1.3.9", optional = true }
 [tool.poetry.extras]
 # Transfer-only dependencies
 datatransfer = [
+    "boto3",
+    "PyVimeo",
+    "requests",
+]
+
+# New name aligning with code layout (alias of datatransfer)
+connectors = [
     "boto3",
     "PyVimeo",
     "requests",

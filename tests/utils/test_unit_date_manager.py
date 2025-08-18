@@ -27,4 +27,3 @@ def test_get_date_range_for_months(date_manager):
     # Placeholder for future logic; ensures fixture wiring works
     start_date, end_date = date_manager.get_date_range("1M")
     assert isinstance(start_date, datetime) and isinstance(end_date, datetime)
-

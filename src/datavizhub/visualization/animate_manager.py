@@ -6,15 +6,15 @@ does not invoke FFmpeg; composing video is left to downstream tools.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Sequence
 
 from .base import Renderer
-from .styles import DEFAULT_EXTENT, FIGURE_DPI
-from .heatmap_manager import HeatmapManager
 from .contour_manager import ContourManager
+from .heatmap_manager import HeatmapManager
+from .styles import DEFAULT_EXTENT, FIGURE_DPI
 from .vector_field_manager import VectorFieldManager
 
 
@@ -22,7 +22,7 @@ from .vector_field_manager import VectorFieldManager
 class FrameInfo:
     index: int
     path: str
-    timestamp: Optional[str] = None
+    timestamp: str | None = None
 
 
 class AnimateManager(Renderer):
@@ -46,9 +46,9 @@ class AnimateManager(Renderer):
         self,
         *,
         mode: str = "heatmap",
-        basemap: Optional[str] = None,
-        extent: Optional[Sequence[float]] = None,
-        output_dir: Optional[str] = None,
+        basemap: str | None = None,
+        extent: Sequence[float] | None = None,
+        output_dir: str | None = None,
         filename_template: str = "frame_{index:04d}.png",
     ) -> None:
         self.mode = mode
@@ -56,7 +56,7 @@ class AnimateManager(Renderer):
         self.extent = list(extent) if extent is not None else list(DEFAULT_EXTENT)
         self.output_dir = Path(output_dir) if output_dir else None
         self.filename_template = filename_template
-        self._manifest: Dict[str, Any] = {}
+        self._manifest: dict[str, Any] = {}
 
     # Renderer API
     def configure(self, **kwargs: Any) -> None:
@@ -72,13 +72,13 @@ class AnimateManager(Renderer):
         self,
         data: Any = None,
         *,
-        input_path: Optional[str] = None,
-        var: Optional[str] = None,
-        xarray_engine: Optional[str] = None,
-    ) -> Tuple["np.ndarray", List[Optional[str]]]:
+        input_path: str | None = None,
+        var: str | None = None,
+        xarray_engine: str | None = None,
+    ) -> tuple[Any, list[str | None]]:
         import numpy as np
 
-        timestamps: List[Optional[str]] = []
+        timestamps: list[str | None] = []
         if data is not None:
             arr = np.asarray(data)
             if arr.ndim != 3:
@@ -92,14 +92,20 @@ class AnimateManager(Renderer):
             if arr.ndim == 2:
                 arr = arr[None, ...]
             if arr.ndim != 3:
-                raise ValueError(".npy stack must be 2D or 3D; 3D required as [time, y, x]")
+                raise ValueError(
+                    ".npy stack must be 2D or 3D; 3D required as [time, y, x]"
+                )
             return arr, timestamps
         if input_path.lower().endswith((".nc", ".nc4")):
             import xarray as xr
 
             if not var:
                 raise ValueError("var is required for NetCDF inputs")
-            ds = xr.open_dataset(input_path, engine=xarray_engine) if xarray_engine else xr.open_dataset(input_path)
+            ds = (
+                xr.open_dataset(input_path, engine=xarray_engine)
+                if xarray_engine
+                else xr.open_dataset(input_path)
+            )
             try:
                 da = ds[var]
                 if da.ndim < 3:
@@ -128,10 +134,8 @@ class AnimateManager(Renderer):
         raise ValueError("Unsupported input; use .npy or .nc for animation")
 
     def render(self, data: Any = None, **kwargs: Any):
-        import json
-        from importlib.resources import files, as_file
-        import numpy as np
         import matplotlib.pyplot as plt
+        import numpy as np
 
         width = int(kwargs.get("width", 1024))
         height = int(kwargs.get("height", 512))
@@ -166,9 +170,10 @@ class AnimateManager(Renderer):
         reproject = bool(kwargs.get("reproject", False))
 
         output_dir.mkdir(parents=True, exist_ok=True)
-        frames: List[FrameInfo] = []
+        frames: list[FrameInfo] = []
         if mode == "vector":
             import numpy as np
+
             # Resolve U/V stacks
             if u_input and v_input:
                 U = np.load(u_input)
@@ -178,12 +183,14 @@ class AnimateManager(Renderer):
                 if U.shape != V.shape:
                     raise ValueError("U and V stacks must have the same shape")
                 t_count = U.shape[0]
-                timestamps: List[Optional[str]] = [None] * t_count
+                timestamps: list[str | None] = [None] * t_count
             elif input_path and (str(input_path).lower().endswith((".nc", ".nc4"))):
                 import xarray as xr
 
                 if not uvar or not vvar:
-                    raise ValueError("--uvar and --vvar are required for NetCDF vector animation")
+                    raise ValueError(
+                        "--uvar and --vvar are required for NetCDF vector animation"
+                    )
                 ds = xr.open_dataset(input_path)
                 try:
                     U = ds[uvar].values
@@ -207,16 +214,39 @@ class AnimateManager(Renderer):
                     raise ValueError("U and V shapes must match")
                 t_count = U.shape[0]
             else:
-                raise ValueError("Provide --u/--v .npy stacks or --input .nc with --uvar/--vvar for vector mode")
+                raise ValueError(
+                    "Provide --u/--v .npy stacks or --input .nc with --uvar/--vvar for vector mode"
+                )
 
             for i in range(t_count):
-                mgr = VectorFieldManager(basemap=self.basemap, extent=self.extent,)
-                mgr.render(u=U[i], v=V[i], width=width, height=height, dpi=dpi, density=density, scale=scale, color=color, map_type=map_type, tile_source=tile_source, tile_zoom=tile_zoom)
+                mgr = VectorFieldManager(
+                    basemap=self.basemap,
+                    extent=self.extent,
+                )
+                mgr.render(
+                    u=U[i],
+                    v=V[i],
+                    width=width,
+                    height=height,
+                    dpi=dpi,
+                    density=density,
+                    scale=scale,
+                    color=color,
+                    map_type=map_type,
+                    tile_source=tile_source,
+                    tile_zoom=tile_zoom,
+                )
                 fname = self.filename_template.format(index=i)
                 fpath = output_dir / fname
                 mgr.save(str(fpath))
                 plt.close("all")
-                frames.append(FrameInfo(index=i, path=str(fpath), timestamp=(timestamps[i] if i < len(timestamps) else None)))
+                frames.append(
+                    FrameInfo(
+                        index=i,
+                        path=str(fpath),
+                        timestamp=(timestamps[i] if i < len(timestamps) else None),
+                    )
+                )
         else:
             stack, timestamps = self._resolve_stack(
                 data,
@@ -227,22 +257,31 @@ class AnimateManager(Renderer):
             # Allow external timestamps override via CSV (one per line)
             if timestamps_csv:
                 try:
-                    with open(timestamps_csv, "r", encoding="utf-8") as f:
+                    from pathlib import Path as _P
+
+                    with _P(timestamps_csv).open(encoding="utf-8") as f:
                         timestamps = [line.strip() for line in f if line.strip()]
                 except Exception:
                     pass
             # CRS detection/warn for grid stacks
             try:
-                from datavizhub.utils.geo_utils import detect_crs_from_path, warn_if_mismatch
+                from datavizhub.utils.geo_utils import (
+                    detect_crs_from_path,
+                    warn_if_mismatch,
+                )
 
-                in_crs = user_crs or (detect_crs_from_path(input_path) if input_path else None)
+                in_crs = user_crs or (
+                    detect_crs_from_path(input_path) if input_path else None
+                )
                 warn_if_mismatch(in_crs, reproject=reproject, context="animate")
             except Exception:
                 pass
             for i in range(stack.shape[0]):
                 arr = stack[i]
                 if mode == "contour":
-                    mgr = ContourManager(basemap=self.basemap, extent=self.extent, cmap=cmap, filled=True)
+                    mgr = ContourManager(
+                        basemap=self.basemap, extent=self.extent, cmap=cmap, filled=True
+                    )
                     mgr.render(
                         arr,
                         width=width,
@@ -252,14 +291,20 @@ class AnimateManager(Renderer):
                         colorbar=add_colorbar,
                         label=cbar_label,
                         units=cbar_units,
-                        timestamp=(timestamps[i] if (show_timestamp and i < len(timestamps)) else None),
+                        timestamp=(
+                            timestamps[i]
+                            if (show_timestamp and i < len(timestamps))
+                            else None
+                        ),
                         timestamp_loc=timestamp_loc,
                         map_type=map_type,
                         tile_source=tile_source,
                         tile_zoom=tile_zoom,
                     )
                 else:  # heatmap
-                    mgr = HeatmapManager(basemap=self.basemap, extent=self.extent, cmap=cmap)
+                    mgr = HeatmapManager(
+                        basemap=self.basemap, extent=self.extent, cmap=cmap
+                    )
                     mgr.render(
                         arr,
                         width=width,
@@ -270,7 +315,11 @@ class AnimateManager(Renderer):
                         colorbar=add_colorbar,
                         label=cbar_label,
                         units=cbar_units,
-                        timestamp=(timestamps[i] if (show_timestamp and i < len(timestamps)) else None),
+                        timestamp=(
+                            timestamps[i]
+                            if (show_timestamp and i < len(timestamps))
+                            else None
+                        ),
                         timestamp_loc=timestamp_loc,
                         map_type=map_type,
                         tile_source=tile_source,
@@ -281,7 +330,13 @@ class AnimateManager(Renderer):
                 fpath = output_dir / fname
                 mgr.save(str(fpath))
                 plt.close("all")
-                frames.append(FrameInfo(index=i, path=str(fpath), timestamp=timestamps[i] if i < len(timestamps) else None))
+                frames.append(
+                    FrameInfo(
+                        index=i,
+                        path=str(fpath),
+                        timestamp=timestamps[i] if i < len(timestamps) else None,
+                    )
+                )
 
         self._manifest = {
             "mode": mode,
@@ -290,7 +345,7 @@ class AnimateManager(Renderer):
         }
         return self._manifest
 
-    def save(self, output_path: Optional[str] = None, *, as_buffer: bool = False):
+    def save(self, output_path: str | None = None, *, as_buffer: bool = False):
         import json
 
         if not self._manifest:
@@ -302,7 +357,13 @@ class AnimateManager(Renderer):
             return bio
         if output_path is None:
             # default alongside frames
-            out_dir = Path(self._manifest["frames"][0]["path"]).parent if self._manifest.get("frames") else Path(".")
+            out_dir = (
+                Path(self._manifest["frames"][0]["path"]).parent
+                if self._manifest.get("frames")
+                else Path()
+            )
             output_path = str(Path(out_dir) / "manifest.json")
-        Path(output_path).write_text(json.dumps(self._manifest, indent=2), encoding="utf-8")
+        Path(output_path).write_text(
+            json.dumps(self._manifest, indent=2), encoding="utf-8"
+        )
         return output_path
