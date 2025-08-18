@@ -4,7 +4,7 @@ import pytest
 from datavizhub.connectors.backends import ftp as ftp_backend
 
 
-@pytest.fixture()
+@pytest.fixture
 def ftp_env():
     """Provide patched FTP class for backend functions."""
     with patch("datavizhub.connectors.backends.ftp.FTP") as mock_ftp:
