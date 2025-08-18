@@ -25,6 +25,5 @@ def test_exists_and_stat_and_delete(ftp_env):
     assert ftp_backend.delete("ftp://ftp.example.com/dir/file.txt") is True
     mock_ftp.delete.assert_called_with("file.txt")
 
-
     mock_ftp.nlst.return_value = ["other.txt"]
     assert ftp_backend.exists("ftp://ftp.example.com/dir/file.txt") is False

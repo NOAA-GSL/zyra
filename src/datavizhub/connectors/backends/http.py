@@ -19,6 +19,7 @@ from urllib.parse import urljoin
 try:  # pragma: no cover - env dependent
     import requests as requests  # type: ignore
 except Exception:  # pragma: no cover
+
     class _RequestsProxy:
         pass
 

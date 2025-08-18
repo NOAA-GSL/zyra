@@ -1,11 +1,9 @@
 from unittest.mock import Mock, patch
 
-import pytest
 from botocore.exceptions import ClientError
 from datavizhub.connectors.backends import ftp as ftp_backend
 from datavizhub.connectors.backends import http as http_backend
 from datavizhub.connectors.backends import s3 as s3_backend
-from datavizhub.utils.grib import idx_to_byteranges
 
 # ---- S3/HTTP/FTP: pattern filters and retries -----------------------------------------
 
@@ -26,14 +24,17 @@ def test_s3_list_files_pattern_filters():
 
 def test_http_list_files_pattern_filters():
     html = '<a href="f1.bin">f1.bin</a> <a href="page.html">page</a> <a href="f2.grib2">f2</a>'
-    import sys, types
+    import sys
+    import types
+
     resp = Mock()
     resp.raise_for_status = lambda: None
     resp.text = html
     fake_requests = types.SimpleNamespace(get=lambda *a, **k: resp)
     with patch.dict(sys.modules, {"requests": fake_requests}):
         urls = http_backend.list_files("https://example.com/dir/", pattern=r"\.grib2$")
-        assert urls and all(u.endswith("f2.grib2") for u in urls)
+        assert urls
+        assert all(u.endswith("f2.grib2") for u in urls)
 
 
 class _RetryFTP:
@@ -77,6 +78,7 @@ class _RetryFTP:
             path = "/" + path
         callback(self.files[path])
 
+
 def test_ftp_list_files_pattern_and_get_idx():
     with patch("datavizhub.connectors.backends.ftp.FTP", _RetryFTP):
         files = ftp_backend.list_files("ftp://host/dir", pattern=r"\.grib2$")
@@ -87,9 +89,12 @@ def test_ftp_list_files_pattern_and_get_idx():
 
 def test_http_get_idx_lines_retries_then_success():
     url = "https://example.com/file.grib2"
-    import sys, types
+    import sys
+    import types
+
     class _ReqExc(Exception):
         pass
+
     good = Mock()
     good.raise_for_status = lambda: None
     good.content = b"1:0:a\n"
@@ -127,7 +132,9 @@ def test_s3_get_idx_lines_retry_and_write_and_get_size_error(tmp_path):
 
 
 def test_http_head_without_content_length_and_no_anchors():
-    import sys, types
+    import sys
+    import types
+
     r = Mock()
     r.raise_for_status = lambda: None
     r.headers = {}
@@ -135,8 +142,9 @@ def test_http_head_without_content_length_and_no_anchors():
     with patch.dict(sys.modules, {"requests": fake_requests}):
         assert http_backend.get_size("https://x") is None
 
+    import sys
+    import types
 
-    import sys, types
     g = Mock()
     g.raise_for_status = lambda: None
     g.text = "<html>no links</html>"
@@ -165,7 +173,10 @@ def test_s3_list_files_pattern_filters_again():
         ]
         out = list(
             s3_backend.list_files(
-                "s3://bucket/a/", pattern=r"\.bin$", since="2024-01-01", date_format="%Y%m%d"
+                "s3://bucket/a/",
+                pattern=r"\.bin$",
+                since="2024-01-01",
+                date_format="%Y%m%d",
             )
         )
         assert out == ["a/20240101.bin"]

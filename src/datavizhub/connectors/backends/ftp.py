@@ -29,6 +29,7 @@ class FTPManager:  # pragma: no cover - test patch hook
     The backend functions will attempt to delegate to this manager if present.
     Tests patch this attribute with a mock class exposing expected methods.
     """
+
     pass
 
 
@@ -291,7 +292,13 @@ def get_idx_lines(
     max_retries: int = 3,
 ) -> list[str] | None:
     """Fetch and parse the GRIB ``.idx`` for a remote path via FTP."""
-    v = _maybe_delegate("get_idx_lines", url_or_path, write_to=write_to, timeout=timeout, max_retries=max_retries)
+    v = _maybe_delegate(
+        "get_idx_lines",
+        url_or_path,
+        write_to=write_to,
+        timeout=timeout,
+        max_retries=max_retries,
+    )
     if v is not _DELEGATE_NONE:
         return v  # type: ignore[return-value]
     host, remote_path, user, pwd = parse_ftp_path(url_or_path)
@@ -342,7 +349,13 @@ def download_byteranges(
     timeout: int = 30,
 ) -> bytes:
     """Download multiple ranges via FTP REST and concatenate in the input order."""
-    v = _maybe_delegate("download_byteranges", url_or_path, byte_ranges, max_workers=max_workers, timeout=timeout)
+    v = _maybe_delegate(
+        "download_byteranges",
+        url_or_path,
+        byte_ranges,
+        max_workers=max_workers,
+        timeout=timeout,
+    )
     if v is not _DELEGATE_NONE:
         return v  # type: ignore[return-value]
     host, remote_path, user, pwd = parse_ftp_path(url_or_path)

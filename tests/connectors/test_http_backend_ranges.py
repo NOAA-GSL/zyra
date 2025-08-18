@@ -7,7 +7,9 @@ def test_http_get_size_and_idx_and_ranges():
     url = "https://example.com/file.grib2"
 
     # Mock HEAD for size
-    import sys, types
+    import sys
+    import types
+
     resp = Mock()
     resp.headers = {"Content-Length": "1000"}
     resp.raise_for_status = lambda: None
@@ -16,7 +18,9 @@ def test_http_get_size_and_idx_and_ranges():
         assert http_backend.get_size(url) == 1000
 
     # Mock GET for idx and range
-    import sys, types
+    import sys
+    import types
+
     # first call returns idx, second/third return ranged bytes
     idx_resp = Mock()
     idx_resp.raise_for_status = lambda: None
@@ -33,7 +37,8 @@ def test_http_get_size_and_idx_and_ranges():
     fake_requests = types.SimpleNamespace(get=Mock(side_effect=[idx_resp, r1, r2]))
     with patch.dict(sys.modules, {"requests": fake_requests}):
         lines = http_backend.get_idx_lines(url)
-        assert lines and len(lines) == 2
+        assert lines
+        assert len(lines) == 2
         # Two ranges: 0-10 and 10-EOF
         from datavizhub.utils.grib import idx_to_byteranges
 
@@ -46,7 +51,9 @@ def test_http_get_size_and_idx_and_ranges():
 def test_http_list_files_scrape():
     page = "https://example.com/list/"
     html = '<a href="file1.bin">file1.bin</a> <a href="sub/">sub/</a>'
-    import sys, types
+    import sys
+    import types
+
     resp = Mock()
     resp.raise_for_status = lambda: None
     resp.text = html

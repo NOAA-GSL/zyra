@@ -50,12 +50,14 @@ class FakeFTP:
         for i in range(0, len(view), step):
             callback(view[i : i + step].tobytes())
 
+
 def test_ftp_get_size_and_ranges_and_idx():
     with patch("datavizhub.connectors.backends.ftp.FTP", FakeFTP):
         url = "ftp://host/dir/file.grib2"
         assert ftp_backend.get_size(url) == 20
         lines = ftp_backend.get_idx_lines(url)
-        assert lines and len(lines) == 2
+        assert lines
+        assert len(lines) == 2
         from datavizhub.utils.grib import idx_to_byteranges
 
         br = idx_to_byteranges(lines, r"b")
