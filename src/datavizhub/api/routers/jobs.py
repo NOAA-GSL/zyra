@@ -442,20 +442,21 @@ def get_job_manifest(job_id: str):
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
     base = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
     full = base / job_id
-    try:
-        _ = full.relative_to(base)
-    except Exception as err:
-        raise HTTPException(status_code=400, detail="Invalid job_id parameter") from err
-    # Build manifest path and verify containment
+    # Normalize and check containment
     mf = full / "manifest.json"
     import errno as _errno
     import json
     import os as _os
+    import os.path as _ospath
+    norm_base = _ospath.abspath(str(base))
+    norm_mf = _ospath.abspath(str(mf))
+    if not norm_mf.startswith(norm_base + os.sep):
+        raise HTTPException(status_code=400, detail="Invalid job_id parameter")
 
     try:
         # lgtm [py/path-injection] — mf is contained via normpath+commonpath, O_NOFOLLOW used
         fd = _os.open(
-            str(mf), getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0)
+            norm_mf, getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0)
         )
         try:
             chunks: list[bytes] = []
