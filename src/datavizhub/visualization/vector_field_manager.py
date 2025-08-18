@@ -6,12 +6,13 @@ Use for winds, ocean currents, or any horizontal vector field on a lon/lat grid.
 from __future__ import annotations
 
 from io import BytesIO
-from typing import Any, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence
+
+from datavizhub.utils.geo_utils import detect_crs_from_path, warn_if_mismatch
 
 from .base import Renderer
 from .basemap import add_basemap_cartopy, add_basemap_tile
 from .styles import DEFAULT_EXTENT, FIGURE_DPI, MAP_STYLES, apply_matplotlib_style
-from datavizhub.utils.geo_utils import detect_crs_from_path, warn_if_mismatch
 
 
 class VectorFieldManager(Renderer):
@@ -67,7 +68,7 @@ class VectorFieldManager(Renderer):
         u_path: Optional[str] = None,
         v_path: Optional[str] = None,
         xarray_engine: Optional[str] = None,
-    ) -> Tuple["np.ndarray", "np.ndarray"]:
+    ) -> tuple[Any, Any]:
         import numpy as np
 
         if u_path and v_path:
@@ -79,14 +80,20 @@ class VectorFieldManager(Renderer):
 
             if not uvar or not vvar:
                 raise ValueError("NetCDF inputs require --uvar and --vvar")
-            ds = xr.open_dataset(input_path, engine=xarray_engine) if xarray_engine else xr.open_dataset(input_path)
+            ds = (
+                xr.open_dataset(input_path, engine=xarray_engine)
+                if xarray_engine
+                else xr.open_dataset(input_path)
+            )
             try:
                 U = ds[uvar].values
                 V = ds[vvar].values
             finally:
                 ds.close()
             return U, V
-        raise ValueError("Provide either --u/--v .npy paths or --input .nc with --uvar/--vvar")
+        raise ValueError(
+            "Provide either --u/--v .npy paths or --input .nc with --uvar/--vvar"
+        )
 
     def render(self, data: Any = None, **kwargs: Any):  # data unused
         width = int(kwargs.get("width", 1024))
@@ -102,8 +109,10 @@ class VectorFieldManager(Renderer):
         v_path = kwargs.get("v")
 
         import numpy as np
+
         apply_matplotlib_style()
         import matplotlib.pyplot as plt
+
         try:
             import cartopy.crs as ccrs
         except Exception as e:  # pragma: no cover
@@ -116,7 +125,9 @@ class VectorFieldManager(Renderer):
 
             user_crs = kwargs.get("crs", None)
             reproject = bool(kwargs.get("reproject", False))
-            in_crs = user_crs or (detect_crs_from_path(input_path) if input_path else None)
+            in_crs = user_crs or (
+                detect_crs_from_path(input_path) if input_path else None
+            )
             warn_if_mismatch(in_crs, reproject=reproject, context="vector")
             data_transform = to_cartopy_crs(in_crs)
         except Exception:
@@ -141,6 +152,7 @@ class VectorFieldManager(Renderer):
             )
         else:
             import numpy as np
+
             U = np.asarray(U)
             V = np.asarray(V)
         # If 3D stacks are provided to the static vector renderer, use first time slice

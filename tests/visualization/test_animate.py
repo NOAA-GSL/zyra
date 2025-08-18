@@ -9,11 +9,14 @@ import pytest
 _has_cartopy = False
 try:  # pragma: no cover - import guard
     import cartopy  # noqa: F401
+
     _has_cartopy = True
 except Exception:
     pass
 
-_skip_cartopy_heavy = (not _has_cartopy) or os.environ.get("DATAVIZHUB_RUN_CARTOPY_TESTS") != "1"
+_skip_cartopy_heavy = (not _has_cartopy) or os.environ.get(
+    "DATAVIZHUB_RUN_CARTOPY_TESTS"
+) != "1"
 pytestmark = pytest.mark.skipif(
     _skip_cartopy_heavy,
     reason="Cartopy-heavy tests require cartopy and opt-in (DATAVIZHUB_RUN_CARTOPY_TESTS=1)",
@@ -28,7 +31,8 @@ def test_cli_animate_heatmap_npy():
 
         pytest.skip(f"Visualization deps missing: {e}")
 
-    import subprocess, sys
+    import subprocess
+    import sys
 
     t, ny, nx = 3, 16, 32
     stack = np.random.rand(t, ny, nx).astype("float32")
@@ -89,7 +93,8 @@ def test_cli_animate_vector_npy(ensure_uv_stacks):
 
         pytest.skip(f"Visualization deps missing: {e}")
 
-    import subprocess, sys
+    import subprocess
+    import sys
 
     up, vp = ensure_uv_stacks
     with tempfile.TemporaryDirectory() as td:

@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import re
 import sys
-from typing import Optional
-
 
 TARGET_CRS = "EPSG:4326"  # PlateCarree (lon/lat)
 
 
-def _parse_epsg(s: str | None) -> Optional[str]:
+def _parse_epsg(s: str | None) -> str | None:
     if not s:
         return None
     m = re.search(r"epsg\s*:?\s*(\d+)", s, re.IGNORECASE)
@@ -19,7 +17,7 @@ def _parse_epsg(s: str | None) -> Optional[str]:
     return None
 
 
-def detect_crs_from_xarray(ds) -> Optional[str]:
+def detect_crs_from_xarray(ds) -> str | None:
     # Try CF grid_mapping reference
     try:
         gm_name = ds.attrs.get("grid_mapping") or None
@@ -40,7 +38,7 @@ def detect_crs_from_xarray(ds) -> Optional[str]:
             return epsg
     # rioxarray crs if available
     try:
-        crs = getattr(ds, "rio").crs  # type: ignore[attr-defined]
+        crs = ds.rio.crs  # type: ignore[attr-defined]
         if crs:
             return _parse_epsg(str(crs)) or str(crs)
     except Exception:
@@ -48,14 +46,14 @@ def detect_crs_from_xarray(ds) -> Optional[str]:
     return None
 
 
-def detect_crs_from_csv(df) -> Optional[str]:
+def detect_crs_from_csv(df) -> str | None:
     cols = {c.lower() for c in df.columns}
     if {"lat", "lon"}.issubset(cols) or {"latitude", "longitude"}.issubset(cols):
         return TARGET_CRS
     return None
 
 
-def detect_crs_from_path(path: str, *, var: Optional[str] = None) -> Optional[str]:
+def detect_crs_from_path(path: str, *, var: str | None = None) -> str | None:
     if path.lower().endswith((".nc", ".nc4")):
         try:
             import xarray as xr
@@ -79,7 +77,13 @@ def detect_crs_from_path(path: str, *, var: Optional[str] = None) -> Optional[st
         return TARGET_CRS
 
 
-def warn_if_mismatch(input_crs: Optional[str], *, target_crs: str = TARGET_CRS, reproject: bool = False, context: str = "") -> None:
+def warn_if_mismatch(
+    input_crs: str | None,
+    *,
+    target_crs: str = TARGET_CRS,
+    reproject: bool = False,
+    context: str = "",
+) -> None:
     if not input_crs:
         print(f"Warning: Input CRS unknown; assuming {target_crs}.", file=sys.stderr)
         return
@@ -91,7 +95,7 @@ def warn_if_mismatch(input_crs: Optional[str], *, target_crs: str = TARGET_CRS, 
         )
 
 
-def to_cartopy_crs(crs: Optional[str]):
+def to_cartopy_crs(crs: str | None):
     """Return a Cartopy CRS object for an EPSG string, defaulting to PlateCarree.
 
     Returns None if Cartopy is unavailable.

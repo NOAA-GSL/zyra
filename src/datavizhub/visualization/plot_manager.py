@@ -38,7 +38,9 @@ class PlotManager(Renderer):
         pm.save("./plot.png")
     """
 
-    def __init__(self, basemap=None, overlay=None, image_extent=None, base_cmap="YlOrBr"):
+    def __init__(
+        self, basemap=None, overlay=None, image_extent=None, base_cmap="YlOrBr"
+    ):
         if image_extent is None:
             image_extent = [-180, 180, -90, 90]
         self.basemap = basemap
@@ -125,7 +127,12 @@ class PlotManager(Renderer):
 
             if self.basemap is not None:
                 img = plt.imread(self.basemap)
-                ax.imshow(img, origin="upper", extent=self.image_extent, transform=ccrs.PlateCarree())
+                ax.imshow(
+                    img,
+                    origin="upper",
+                    extent=self.image_extent,
+                    transform=ccrs.PlateCarree(),
+                )
 
             if flip_data:
                 data = np.flipud(data)
@@ -143,9 +150,13 @@ class PlotManager(Renderer):
             )
 
             if border_color and linewidth:
-                ax.add_feature(cfeature.BORDERS, edgecolor=border_color, linewidth=linewidth)
+                ax.add_feature(
+                    cfeature.BORDERS, edgecolor=border_color, linewidth=linewidth
+                )
             if coastline_color and linewidth:
-                ax.add_feature(cfeature.COASTLINE, edgecolor=coastline_color, linewidth=linewidth)
+                ax.add_feature(
+                    cfeature.COASTLINE, edgecolor=coastline_color, linewidth=linewidth
+                )
 
             ax.set_global()
             ax.axis("off")
@@ -264,9 +275,17 @@ class PlotManager(Renderer):
             )
             basemap_img = plt.imread(basemap_path)
             if image_extent:
-                ax.imshow(basemap_img, origin="upper", extent=image_extent, transform=ccrs.PlateCarree(), alpha=1.0)
+                ax.imshow(
+                    basemap_img,
+                    origin="upper",
+                    extent=image_extent,
+                    transform=ccrs.PlateCarree(),
+                    alpha=1.0,
+                )
             else:
-                ax.imshow(basemap_img, origin="upper", transform=ccrs.PlateCarree(), alpha=1.0)
+                ax.imshow(
+                    basemap_img, origin="upper", transform=ccrs.PlateCarree(), alpha=1.0
+                )
             data_oc = np.ma.masked_invalid(data_oc)
             ax.imshow(
                 np.flipud(data_oc),
@@ -280,9 +299,13 @@ class PlotManager(Renderer):
                 interpolation="bicubic",
             )
             if border_color and linewidth:
-                ax.add_feature(cfeature.BORDERS, edgecolor=border_color, linewidth=linewidth)
+                ax.add_feature(
+                    cfeature.BORDERS, edgecolor=border_color, linewidth=linewidth
+                )
             if coastline_color and linewidth:
-                ax.add_feature(cfeature.COASTLINE, edgecolor=coastline_color, linewidth=linewidth)
+                ax.add_feature(
+                    cfeature.COASTLINE, edgecolor=coastline_color, linewidth=linewidth
+                )
             ax.set_global()
             ax.axis("off")
             fig.subplots_adjust(left=0, right=1, top=1, bottom=0)

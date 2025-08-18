@@ -14,6 +14,7 @@ Usage (from repo root or samples/):
 from __future__ import annotations
 
 import argparse
+import contextlib
 from pathlib import Path
 
 import numpy as np
@@ -40,7 +41,7 @@ def pattern_rotation(t: int, ny: int, nx: int, omega: float = 0.5):
     lats = np.linspace(-1.0, 1.0, ny)
     X, Y = np.meshgrid(lons, lats)
     U0 = -omega * Y  # dlon/dt
-    V0 = omega * X   # dlat/dt
+    V0 = omega * X  # dlat/dt
     U = np.repeat(U0[None, ...], t, axis=0).astype(np.float32)
     V = np.repeat(V0[None, ...], t, axis=0).astype(np.float32)
     return U, V
@@ -48,7 +49,9 @@ def pattern_rotation(t: int, ny: int, nx: int, omega: float = 0.5):
 
 def write_npy(outdir: Path, U: np.ndarray, V: np.ndarray):
     outdir.mkdir(parents=True, exist_ok=True)
-    (outdir / "u_stack.npy").write_bytes(np.save.__wrapped__(None, U) if hasattr(np.save, "__wrapped__") else b"")
+    (outdir / "u_stack.npy").write_bytes(
+        np.save.__wrapped__(None, U) if hasattr(np.save, "__wrapped__") else b""
+    )
     np.save(outdir / "u_stack.npy", U)
     np.save(outdir / "v_stack.npy", V)
 
@@ -95,13 +98,12 @@ def main():
     outdir.mkdir(parents=True, exist_ok=True)
     np.save(outdir / "u_stack.npy", U)
     np.save(outdir / "v_stack.npy", V)
-    try:
+    with contextlib.suppress(Exception):
         write_netcdf(outdir, U, V)
-    except Exception:
-        pass
-    print(f"Wrote: {outdir/'u_stack.npy'}, {outdir/'v_stack.npy'} and uv_stack.nc (if supported)")
+    print(
+        f"Wrote: {outdir/'u_stack.npy'}, {outdir/'v_stack.npy'} and uv_stack.nc (if supported)"
+    )
 
 
 if __name__ == "__main__":
     main()
-

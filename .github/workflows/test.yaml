@@ -2,11 +2,53 @@ name: Run Tests
 
 on:
   push:
-    branches: ["**"]
+    branches: ["main", "staging"]
+    # optionally add tags if you want releases to run tests
+    # tags: ["v*"]
   pull_request:
     branches: ["**"]
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  lint:
+    name: Lint (ruff)
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Cache Poetry cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+          key: poetry-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            poetry-${{ runner.os }}-
+
+      - name: Install dev dependencies
+        run: poetry install --no-root --with dev
+
+      - name: Ruff format check
+        run: poetry run ruff format --check .
+
+      - name: Ruff lint
+        run: poetry run ruff check --output-format=github .
+
   test:
     name: Test with Coverage
     runs-on: ubuntu-latest

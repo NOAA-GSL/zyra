@@ -1,27 +1,34 @@
 from __future__ import annotations
 
-from datavizhub.utils.cli_helpers import parse_levels_arg, configure_logging_from_env
 import logging
-from datavizhub.visualization.contour_manager import ContourManager
-from datavizhub.visualization.cli_utils import features_from_ns
 from pathlib import Path
+
+from datavizhub.utils.cli_helpers import configure_logging_from_env, parse_levels_arg
+from datavizhub.visualization.cli_utils import features_from_ns
+from datavizhub.visualization.contour_manager import ContourManager
 
 
 def handle_contour(ns) -> int:
     """Handle ``visualize contour`` CLI subcommand."""
     configure_logging_from_env()
     # Batch mode
-    if getattr(ns, 'inputs', None):
-        outdir = getattr(ns, 'output_dir', None)
+    if getattr(ns, "inputs", None):
+        outdir = getattr(ns, "output_dir", None)
         if not outdir:
             raise SystemExit("--output-dir is required when using --inputs")
         features = features_from_ns(ns)
-        outdir_p = Path(outdir); outdir_p.mkdir(parents=True, exist_ok=True)
+        outdir_p = Path(outdir)
+        outdir_p.mkdir(parents=True, exist_ok=True)
         import json
+
         outputs = []
         levels_val = parse_levels_arg(getattr(ns, "levels", 10))
         for src in ns.inputs:
-            mgr = ContourManager(basemap=ns.basemap, extent=ns.extent, filled=getattr(ns, "filled", False))
+            mgr = ContourManager(
+                basemap=ns.basemap,
+                extent=ns.extent,
+                filled=getattr(ns, "filled", False),
+            )
             mgr.render(
                 input_path=src,
                 var=ns.var,
@@ -54,7 +61,9 @@ def handle_contour(ns) -> int:
         except Exception:
             pass
         return 0
-    mgr = ContourManager(basemap=ns.basemap, extent=ns.extent, filled=getattr(ns, "filled", False))
+    mgr = ContourManager(
+        basemap=ns.basemap, extent=ns.extent, filled=getattr(ns, "filled", False)
+    )
     features = features_from_ns(ns)
     levels_val = parse_levels_arg(getattr(ns, "levels", 10))
     mgr.render(

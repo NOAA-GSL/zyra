@@ -10,4 +10,3 @@ def test_ws_filter_progress_only_filters_out_logs() -> None:
     assert _ws_should_send('{"stderr": "err"}', allowed) is False
     # No allowed set means send everything
     assert _ws_should_send('{"stdout": "hello"}', None) is True
-

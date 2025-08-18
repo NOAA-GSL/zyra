@@ -1,4 +1,3 @@
-import io
 import json
 import os
 import re
@@ -6,7 +5,7 @@ import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any
 
 
 class VariableNotFoundError(KeyError):
@@ -32,10 +31,10 @@ class DecodedGRIB:
     """
 
     backend: str
-    dataset: Optional[Any] = None
-    messages: Optional[List[Any]] = None
-    path: Optional[str] = None
-    meta: Optional[Dict[str, Any]] = None
+    dataset: Any | None = None
+    messages: list[Any] | None = None
+    path: str | None = None
+    meta: dict[str, Any] | None = None
 
 
 def _write_temp_file(data: bytes, suffix: str = ".grib2") -> str:
@@ -109,7 +108,11 @@ def grib_decode(data: bytes, backend: str = "cfgrib") -> DecodedGRIB:
                 messages = list(grbs)
                 grbs.close()
                 return DecodedGRIB(backend="pygrib", messages=messages, path=temp_path)
-            except (ImportError, OSError, pygrib.GribError) as exc:  # pragma: no cover - backend optional
+            except (
+                ImportError,
+                OSError,
+                pygrib.GribError,
+            ) as exc:  # pragma: no cover - backend optional
                 if backend == "pygrib":
                     raise RuntimeError(f"pygrib decoding failed: {exc}") from exc
                 # else fall through to wgrib2
@@ -139,11 +142,11 @@ def grib_decode(data: bytes, backend: str = "cfgrib") -> DecodedGRIB:
         raise
 
 
-def _list_variables(decoded: DecodedGRIB) -> List[str]:
+def _list_variables(decoded: DecodedGRIB) -> list[str]:
     if decoded.backend == "cfgrib" and decoded.dataset is not None:
         return list(decoded.dataset.data_vars)
     if decoded.backend == "pygrib" and decoded.messages is not None:
-        names: List[str] = []
+        names: list[str] = []
         for m in decoded.messages:
             try:
                 names.append(getattr(m, "shortName", None) or getattr(m, "name", ""))
@@ -152,7 +155,7 @@ def _list_variables(decoded: DecodedGRIB) -> List[str]:
         return [n for n in names if n]
     if decoded.backend == "wgrib2" and decoded.meta is not None:
         # meta structure depends on build; try to extract names heuristically
-        vars_found: List[str] = []
+        vars_found: list[str] = []
         try:
             for entry in decoded.meta:
                 v = entry.get("shortName") or entry.get("name")
@@ -225,7 +228,7 @@ def extract_variable(decoded: DecodedGRIB, var_name: str) -> Any:
 def convert_to_format(
     decoded: DecodedGRIB,
     format_type: str,
-    var: Optional[str] = None,
+    var: str | None = None,
 ) -> Any:
     """Convert decoded GRIB to a requested format.
 
@@ -268,11 +271,11 @@ def convert_to_format(
     # the bytes directly without decoding.
     if ftype == "netcdf" and decoded.path and not var:
         try:
-            with open(decoded.path, "rb") as _f:
-                _head = _f.read(4)
+            from pathlib import Path as _P
+
+            _head = _P(decoded.path).read_bytes()[:4]
             if _head.startswith(b"CDF") or _head.startswith(b"\x89HDF"):
-                with open(decoded.path, "rb") as _f:
-                    return _f.read()
+                return _P(decoded.path).read_bytes()
         except Exception:
             # If detection fails, continue with backend-specific handling
             pass
@@ -293,7 +296,9 @@ def convert_to_format(
                 if hasattr(obj, "to_dataframe"):
                     return obj.to_dataframe().reset_index()
             except Exception as exc:  # pragma: no cover - optional dep
-                raise ValueError("Pandas/xarray required for DataFrame conversion") from exc
+                raise ValueError(
+                    "Pandas/xarray required for DataFrame conversion"
+                ) from exc
             raise ValueError("Unsupported object for DataFrame conversion")
 
         if ftype == "netcdf":
@@ -329,8 +334,9 @@ def convert_to_format(
                 try:
                     data_to_write = obj if hasattr(obj, "to_netcdf") else ds
                     data_to_write.to_netcdf(tmp_path)  # type: ignore
-                    with open(tmp_path, "rb") as f:
-                        return f.read()
+                    from pathlib import Path as _P
+
+                    return _P(tmp_path).read_bytes()
                 except Exception as exc:
                     # wgrib2 fallback if available: convert GRIB -> NetCDF
                     if _has_wgrib2() and decoded.path:
@@ -344,16 +350,21 @@ def convert_to_format(
                             )
                             if res.returncode != 0:
                                 # Fall back to emitting a minimal NetCDF header if conversion is not possible
-                                raise RuntimeError(res.stderr.strip() or "wgrib2 -netcdf failed")
-                            with open(out_nc, "rb") as f:
-                                return f.read()
+                                raise RuntimeError(
+                                    res.stderr.strip() or "wgrib2 -netcdf failed"
+                                )
+                            from pathlib import Path as _P
+
+                            return _P(out_nc).read_bytes()
                         except Exception as e2:  # pragma: no cover - external tool
                             # As a last resort, generate a minimal valid NetCDF file so callers can detect header
                             try:
-                                import xarray as xr  # type: ignore
                                 import numpy as np  # type: ignore
+                                import xarray as xr  # type: ignore
 
-                                ds_fallback = xr.Dataset({"dummy": ("dummy", np.zeros(1, dtype="float32"))})
+                                ds_fallback = xr.Dataset(
+                                    {"dummy": ("dummy", np.zeros(1, dtype="float32"))}
+                                )
                                 try:
                                     maybe_bytes = ds_fallback.to_netcdf()
                                     if isinstance(maybe_bytes, (bytes, bytearray)):
@@ -363,17 +374,22 @@ def convert_to_format(
                                         return read()
                                 except Exception:
                                     ds_fallback.to_netcdf(tmp_path)
-                                    with open(tmp_path, "rb") as f:
-                                        return f.read()
+                                    from pathlib import Path as _P
+
+                                    return _P(tmp_path).read_bytes()
                             except Exception:
                                 pass
-                            raise RuntimeError(f"NetCDF conversion failed: {e2}") from exc
+                            raise RuntimeError(
+                                f"NetCDF conversion failed: {e2}"
+                            ) from exc
                     # If wgrib2 is unavailable or failed, attempt a minimal NetCDF fallback
                     try:
-                        import xarray as xr  # type: ignore
                         import numpy as np  # type: ignore
+                        import xarray as xr  # type: ignore
 
-                        ds_fallback = xr.Dataset({"dummy": ("dummy", np.zeros(1, dtype="float32"))})
+                        ds_fallback = xr.Dataset(
+                            {"dummy": ("dummy", np.zeros(1, dtype="float32"))}
+                        )
                         try:
                             maybe_bytes = ds_fallback.to_netcdf()
                             if isinstance(maybe_bytes, (bytes, bytearray)):
@@ -383,16 +399,18 @@ def convert_to_format(
                                 return read()
                         except Exception:
                             ds_fallback.to_netcdf(tmp_path)
-                            with open(tmp_path, "rb") as f:
-                                return f.read()
+                            from pathlib import Path as _P
+
+                            return _P(tmp_path).read_bytes()
                     except Exception:
                         pass
                     raise RuntimeError(f"NetCDF conversion failed: {exc}") from exc
                 finally:
-                    try:
-                        os.remove(tmp_path)
-                    except Exception:
-                        pass
+                    import contextlib
+                    from pathlib import Path as _P
+
+                    with contextlib.suppress(Exception):
+                        _P(tmp_path).unlink()
 
         if ftype == "geotiff":
             # Enforce single-variable requirement up-front to avoid optional deps
@@ -403,10 +421,9 @@ def convert_to_format(
             # Use rioxarray if available; otherwise rasterio
             data_array = obj if hasattr(obj, "rio") else None
             try:
-                if data_array is None:
+                if data_array is None and hasattr(ds, "to_array"):
                     # If obj is a Dataset, pick the first variable
-                    if hasattr(ds, "to_array"):
-                        data_array = ds.to_array().isel(variable=0)
+                    data_array = ds.to_array().isel(variable=0)
                 # Ensure rioxarray is available
                 import rioxarray  # noqa: F401  # type: ignore
 
@@ -414,58 +431,66 @@ def convert_to_format(
                 tmp_path = tmp.name
                 tmp.close()
                 data_array.rio.to_raster(tmp_path)  # type: ignore
-                with open(tmp_path, "rb") as f:
-                    return f.read()
+                from pathlib import Path as _P
+
+                return _P(tmp_path).read_bytes()
             except Exception as exc:  # pragma: no cover - optional dep
                 raise ValueError(
                     "GeoTIFF conversion requires rioxarray/rasterio and georeferencing"
                 ) from exc
             finally:
-                try:
-                    os.remove(tmp_path)  # type: ignore
-                except Exception:
-                    pass
+                import contextlib
+                from pathlib import Path as _P
+
+                with contextlib.suppress(Exception):
+                    _P(tmp_path).unlink()  # type: ignore
 
     # Fallbacks for non-xarray backends
-    if ftype == "netcdf" and decoded.path:
+    if ftype == "netcdf" and decoded.path and _has_wgrib2():
         # Try wgrib2 if available to convert GRIB->NetCDF regardless of backend
-        if _has_wgrib2():  # pragma: no cover - external tool
-            tmp = tempfile.NamedTemporaryFile(suffix=".nc", delete=False)
-            tmp_path = tmp.name
-            tmp.close()
-            try:
-                res = subprocess.run(
-                    ["wgrib2", decoded.path, "-netcdf", tmp_path],
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                )
-                if res.returncode != 0:
-                    # Emit minimal NetCDF bytes as a last resort (header-only validation in tests)
-                    try:
-                        import xarray as xr  # type: ignore
-                        import numpy as np  # type: ignore
-
-                        ds_fallback = xr.Dataset({"dummy": ("dummy", np.zeros(1, dtype="float32"))})
-                        maybe_bytes = ds_fallback.to_netcdf()
-                        if isinstance(maybe_bytes, (bytes, bytearray)):
-                            return bytes(maybe_bytes)
-                        read = getattr(maybe_bytes, "read", None)
-                        if callable(read):
-                            return read()
-                        # Fallback to writing file
-                        ds_fallback.to_netcdf(tmp_path)
-                        with open(tmp_path, "rb") as f:
-                            return f.read()
-                    except Exception:
-                        raise RuntimeError(res.stderr.strip() or "wgrib2 -netcdf failed")
-                with open(tmp_path, "rb") as f:
-                    return f.read()
-            finally:
+        tmp = tempfile.NamedTemporaryFile(suffix=".nc", delete=False)
+        tmp_path = tmp.name
+        tmp.close()
+        try:
+            res = subprocess.run(
+                ["wgrib2", decoded.path, "-netcdf", tmp_path],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if res.returncode != 0:
+                # Emit minimal NetCDF bytes as a last resort (header-only validation in tests)
                 try:
-                    os.remove(tmp_path)
-                except Exception:
-                    pass
+                    import numpy as np  # type: ignore
+                    import xarray as xr  # type: ignore
+
+                    ds_fallback = xr.Dataset(
+                        {"dummy": ("dummy", np.zeros(1, dtype="float32"))}
+                    )
+                    maybe_bytes = ds_fallback.to_netcdf()
+                    if isinstance(maybe_bytes, (bytes, bytearray)):
+                        return bytes(maybe_bytes)
+                    read = getattr(maybe_bytes, "read", None)
+                    if callable(read):
+                        return read()
+                    # Fallback to writing file
+                    ds_fallback.to_netcdf(tmp_path)
+                    from pathlib import Path as _P
+
+                    return _P(tmp_path).read_bytes()
+                except Exception as err:
+                    raise RuntimeError(
+                        res.stderr.strip() or "wgrib2 -netcdf failed"
+                    ) from err
+            from pathlib import Path as _P
+
+            return _P(tmp_path).read_bytes()
+        finally:
+            import contextlib
+            from pathlib import Path as _P
+
+            with contextlib.suppress(Exception):
+                _P(tmp_path).unlink()
 
     if ftype == "geotiff":
         # Last-resort minimal GeoTIFF to satisfy header checks when xarray path is unavailable
@@ -476,7 +501,7 @@ def convert_to_format(
             tmp = tempfile.NamedTemporaryFile(suffix=".tif", delete=False)
             tmp_path = tmp.name
             tmp.close()
-            data = (np.zeros((1, 1), dtype="uint8"))
+            data = np.zeros((1, 1), dtype="uint8")
             with rasterio.open(
                 tmp_path,
                 "w",
@@ -487,8 +512,9 @@ def convert_to_format(
                 dtype=data.dtype,
             ) as dst:
                 dst.write(data, 1)
-            with open(tmp_path, "rb") as f:
-                return f.read()
+            from pathlib import Path as _P
+
+            return _P(tmp_path).read_bytes()
         except Exception:
             pass
 
@@ -498,7 +524,7 @@ def convert_to_format(
     )
 
 
-def validate_subset(decoded: DecodedGRIB, expected_fields: List[str]) -> None:
+def validate_subset(decoded: DecodedGRIB, expected_fields: list[str]) -> None:
     """Validate that a decoded subset contains expected variables and shapes.
 
     This function currently validates variable presence. Shape and timestep
@@ -518,7 +544,7 @@ def validate_subset(decoded: DecodedGRIB, expected_fields: List[str]) -> None:
         If one or more variables are missing.
     """
     available = _list_variables(decoded)
-    missing: List[str] = []
+    missing: list[str] = []
     for ef in expected_fields:
         pat = re.compile(ef)
         if not any(pat.search(v) for v in available):
@@ -527,7 +553,7 @@ def validate_subset(decoded: DecodedGRIB, expected_fields: List[str]) -> None:
         raise AssertionError(f"Missing expected variables: {', '.join(missing)}")
 
 
-def extract_metadata(decoded: DecodedGRIB) -> Dict[str, Any]:
+def extract_metadata(decoded: DecodedGRIB) -> dict[str, Any]:
     """Extract common metadata from a decoded GRIB subset.
 
     Returned keys include:
@@ -547,7 +573,7 @@ def extract_metadata(decoded: DecodedGRIB) -> Dict[str, Any]:
     dict
         Metadata dictionary. Missing fields may be absent or set to None.
     """
-    meta: Dict[str, Any] = {"backend": decoded.backend}
+    meta: dict[str, Any] = {"backend": decoded.backend}
     meta["variables"] = _list_variables(decoded)
 
     if decoded.backend == "cfgrib" and decoded.dataset is not None:
@@ -564,13 +590,23 @@ def extract_metadata(decoded: DecodedGRIB) -> Dict[str, Any]:
             try:
                 # Convert to hours if a pandas/np timedelta
                 step_vals = ds.coords["step"].values
-                meta["forecast_hour"] = getattr(step_vals, "astype", lambda *_: step_vals)("timedelta64[h]").tolist()  # type: ignore
+                meta["forecast_hour"] = getattr(
+                    step_vals, "astype", lambda *_: step_vals
+                )("timedelta64[h]").tolist()  # type: ignore
             except Exception:
                 meta["forecast_hour"] = None
         # Bounding box from coordinates if present
         try:
-            lat_name = "latitude" if "latitude" in ds.coords else ("lat" if "lat" in ds.coords else None)
-            lon_name = "longitude" if "longitude" in ds.coords else ("lon" if "lon" in ds.coords else None)
+            lat_name = (
+                "latitude"
+                if "latitude" in ds.coords
+                else ("lat" if "lat" in ds.coords else None)
+            )
+            lon_name = (
+                "longitude"
+                if "longitude" in ds.coords
+                else ("lon" if "lon" in ds.coords else None)
+            )
             if lat_name and lon_name:
                 lats = ds.coords[lat_name].values
                 lons = ds.coords[lon_name].values
@@ -583,14 +619,20 @@ def extract_metadata(decoded: DecodedGRIB) -> Dict[str, Any]:
         except Exception:
             pass
         # Projection info when available
-        grid_keys = [k for k in ds.attrs.keys() if k.lower().startswith("grib") or k.lower().endswith("grid")]
+        grid_keys = [
+            k
+            for k in ds.attrs
+            if k.lower().startswith("grib") or k.lower().endswith("grid")
+        ]
         if grid_keys:
             meta["grid"] = {k: ds.attrs.get(k) for k in grid_keys}
 
     elif decoded.backend == "pygrib" and decoded.messages:
         try:
             first = decoded.messages[0]
-            meta["model_run"] = getattr(first, "analDate", None) or getattr(first, "validDate", None)
+            meta["model_run"] = getattr(first, "analDate", None) or getattr(
+                first, "validDate", None
+            )
             meta["forecast_hour"] = getattr(first, "forecastTime", None)
             try:
                 lats, lons = first.latlons()
@@ -608,9 +650,15 @@ def extract_metadata(decoded: DecodedGRIB) -> Dict[str, Any]:
     elif decoded.backend == "wgrib2" and decoded.meta:
         try:
             # Best-effort parse
-            entry0 = decoded.meta[0] if isinstance(decoded.meta, list) and decoded.meta else {}
+            entry0 = (
+                decoded.meta[0]
+                if isinstance(decoded.meta, list) and decoded.meta
+                else {}
+            )
             meta["model_run"] = entry0.get("date") or entry0.get("refTime")
-            meta["forecast_hour"] = entry0.get("fcst_time") or entry0.get("forecastTime")
+            meta["forecast_hour"] = entry0.get("fcst_time") or entry0.get(
+                "forecastTime"
+            )
         except Exception:
             pass
 

@@ -11,7 +11,8 @@ def test_cli_compose_video_smoke():
 
         pytest.skip(f"Visualization deps missing: {e}")
 
-    import subprocess, sys
+    import subprocess
+    import sys
 
     with tempfile.TemporaryDirectory() as td:
         frames = os.path.join(td, "frames")

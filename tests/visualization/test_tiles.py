@@ -1,12 +1,14 @@
 import os
-import pytest
 import subprocess
 import sys
+
+import pytest
 
 # Skip tile tests unless contextily is available and explicitly enabled
 has_contextily = False
 try:  # pragma: no cover - import guard
     import contextily  # noqa: F401
+
     has_contextily = True
 except Exception:
     pass

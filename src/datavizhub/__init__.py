@@ -1,7 +1,7 @@
 """DataVizHub package root.
 
-This module avoids eager-importing optional subpackages (acquisition,
-processing, visualization, etc.) to ensure stage-specific installs work
+This module avoids eager-importing optional subpackages (processing,
+visualization, etc.) to ensure stage-specific installs work
 with minimal dependencies. Subpackages can be imported directly, e.g.::
 
     import datavizhub.visualization
@@ -33,6 +33,6 @@ def __getattr__(name: str) -> Any:
     This preserves ``datavizhub.visualization``-style access without importing
     optional subpackages unless actually used.
     """
-    if name in {"acquisition", "assets", "processing", "utils", "visualization"}:
+    if name in {"assets", "processing", "utils", "visualization"}:
         return import_module(f"datavizhub.{name}")
     raise AttributeError(name)

@@ -1,25 +1,36 @@
+"""FastAPI router that exposes CLI discovery and execution endpoints.
+
+Endpoints
+- GET /cli/commands: return a schema of CLI groups, commands, and arg metadata
+- GET /cli/examples: curated request bodies for /cli/run and pipeline configs
+- POST /cli/run: run a CLI request synchronously or asynchronously
+- GET /examples: interactive examples page with Run buttons (HTML)
+
+Implementation notes
+- Builds parser schemas by invoking each group's ``register_cli`` function.
+- Supports dry-run toggles and example request bodies that demonstrate common
+  flows (e.g., pipeline dry-runs, conversions, uploads).
+"""
+
 from __future__ import annotations
 
 import argparse
 import os
-from typing import Any, Dict, List
-
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
-from fastapi.responses import HTMLResponse
-from fastapi import Request
+from typing import Any
 
 from datavizhub.api.models.cli_request import (
     CLIRunRequest,
     CLIRunResponse,
 )
-from datavizhub.api.workers.executor import run_cli, resolve_upload_placeholders
 from datavizhub.api.workers import jobs as jobs_backend
-
+from datavizhub.api.workers.executor import resolve_upload_placeholders, run_cli
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi.responses import HTMLResponse
 
 router = APIRouter(tags=["cli"])
 
 
-_CLI_MATRIX: Dict[str, Any] | None = None
+_CLI_MATRIX: dict[str, Any] | None = None
 
 
 def _type_name(t: Any) -> str | None:
@@ -33,16 +44,19 @@ def _type_name(t: Any) -> str | None:
         return None
 
 
-def _extract_parser_schema(p: argparse.ArgumentParser) -> List[Dict[str, Any]]:
+def _extract_parser_schema(p: argparse.ArgumentParser) -> list[dict[str, Any]]:
     """Extract a simple argument schema from an argparse parser."""
-    out: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     for act in getattr(p, "_actions", []):
         # Skip help actions
-        if getattr(act, "help", None) == argparse.SUPPRESS or act.__class__.__name__ == "_HelpAction":
+        if (
+            getattr(act, "help", None) == argparse.SUPPRESS
+            or act.__class__.__name__ == "_HelpAction"
+        ):
             continue
         if getattr(act, "dest", None) in {"help", "_help"}:
             continue
-        item: Dict[str, Any] = {
+        item: dict[str, Any] = {
             "name": getattr(act, "dest", None),
             "flags": list(getattr(act, "option_strings", []) or []),
             "positional": not bool(getattr(act, "option_strings", [])),
@@ -67,22 +81,26 @@ def _extract_parser_schema(p: argparse.ArgumentParser) -> List[Dict[str, Any]]:
     return out
 
 
-def _compute_cli_matrix() -> Dict[str, Any]:
-    import datavizhub.connectors.ingest as ingest
+def _compute_cli_matrix() -> dict[str, Any]:
     import datavizhub.connectors.egress as egress
+    import datavizhub.connectors.ingest as ingest
     import datavizhub.processing as processing
+    import datavizhub.transform as transform
     import datavizhub.visualization as visualization
 
-    def parsers_from_register(register_fn) -> Dict[str, argparse.ArgumentParser]:
+    def parsers_from_register(register_fn) -> dict[str, argparse.ArgumentParser]:
         parser = argparse.ArgumentParser(prog="datavizhub")
         sub = parser.add_subparsers(dest="sub")
         register_fn(sub)
         # type: ignore[attr-defined]
         return dict(getattr(sub, "choices", {}))
 
-    result: Dict[str, Any] = {}
-    def _with_examples(stage: str, command: str, schema_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        def ex(name: str, meta: Dict[str, Any]) -> Any:
+    result: dict[str, Any] = {}
+
+    def _with_examples(
+        stage: str, command: str, schema_list: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        def ex(name: str, meta: dict[str, Any]) -> Any:
             # Heuristic examples by name
             if name in {"url"}:
                 if stage in {"acquire"} and command == "http":
@@ -109,6 +127,8 @@ def _compute_cli_matrix() -> Dict[str, Any]:
                 return "temperature"
             if name in {"frames"}:
                 return "/data/frames"
+            if name in {"frames_dir"}:
+                return "./frames"
             if name in {"fps"}:
                 return 30
             if name in {"basemap"}:
@@ -135,6 +155,10 @@ def _compute_cli_matrix() -> Dict[str, Any]:
                 return 96
             if name in {"unsigned", "stdout", "colorbar", "reproject", "streamlines"}:
                 return False
+            if name in {"datetime_format"}:
+                return "%Y%m%d"
+            if name in {"period_seconds"}:
+                return 3600
             return None
 
         for m in schema_list:
@@ -148,22 +172,29 @@ def _compute_cli_matrix() -> Dict[str, Any]:
         ("process", processing.register_cli),
         ("visualize", visualization.register_cli),
         ("decimate", egress.register_cli),
+        ("transform", transform.register_cli),
     ):
         parsers = parsers_from_register(reg)
         cmds = sorted(list(parsers.keys()))
-        schema = {name: _with_examples(stage, name, _extract_parser_schema(parsers[name])) for name in cmds}
+        schema = {
+            name: _with_examples(stage, name, _extract_parser_schema(parsers[name]))
+            for name in cmds
+        }
         result[stage] = {"commands": cmds, "schema": schema}
 
     # Top-level 'run'
     from datavizhub.pipeline_runner import register_cli_run as _register_run
 
     parsers = parsers_from_register(_register_run)
-    schema = {name: _with_examples("run", name, _extract_parser_schema(parsers[name])) for name in parsers}
+    schema = {
+        name: _with_examples("run", name, _extract_parser_schema(parsers[name]))
+        for name in parsers
+    }
     result["run"] = {"commands": sorted(list(parsers.keys())), "schema": schema}
     return result
 
 
-def get_cli_matrix() -> Dict[str, Any]:
+def get_cli_matrix() -> dict[str, Any]:
     global _CLI_MATRIX
     if _CLI_MATRIX is None:
         _CLI_MATRIX = _compute_cli_matrix()
@@ -171,7 +202,7 @@ def get_cli_matrix() -> Dict[str, Any]:
 
 
 @router.get("/cli/commands")
-def list_cli_commands() -> Dict[str, Any]:
+def list_cli_commands() -> dict[str, Any]:
     """Return a discovery matrix mapping stages to commands and argument schemas.
 
     The schema includes basic per-argument metadata and heuristic example values
@@ -181,13 +212,13 @@ def list_cli_commands() -> Dict[str, Any]:
 
 
 @router.get("/cli/examples")
-def list_cli_examples() -> Dict[str, Any]:
+def list_cli_examples() -> dict[str, Any]:
     """Return curated example bodies for /cli/run and sample pipeline paths."""
     """Curated examples for common workflows.
 
     These are example request bodies for POST /cli/run and pipeline configs.
     """
-    examples: List[Dict[str, Any]] = []
+    examples: list[dict[str, Any]] = []
 
     # 1) Acquire HTTP -> convert to NetCDF -> write to local file (via pipeline)
     examples.append(
@@ -199,7 +230,10 @@ def list_cli_examples() -> Dict[str, Any]:
                 "stage": "run",
                 "command": "run",
                 "mode": "sync",
-                "args": {"config": "samples/pipelines/nc_to_file.json", "dry_run": True},
+                "args": {
+                    "config": "samples/pipelines/nc_to_file.json",
+                    "dry_run": True,
+                },
             },
         }
     )
@@ -214,7 +248,10 @@ def list_cli_examples() -> Dict[str, Any]:
                 "stage": "run",
                 "command": "run",
                 "mode": "sync",
-                "args": {"config": "samples/pipelines/extract_variable_to_file.json", "dry_run": True},
+                "args": {
+                    "config": "samples/pipelines/extract_variable_to_file.json",
+                    "dry_run": True,
+                },
             },
         }
     )
@@ -285,7 +322,7 @@ def list_cli_examples() -> Dict[str, Any]:
                 "mode": "sync",
                 "args": {
                     "input": "samples/demo.nc",
-                    "url": "s3://my-bucket/path/output/demo.nc"
+                    "url": "s3://my-bucket/path/output/demo.nc",
                 },
             },
         }
@@ -305,7 +342,40 @@ def list_cli_examples() -> Dict[str, Any]:
                     "input": "samples/demo.npy",
                     "output_dir": "/tmp/frames",
                     "to_video": "/tmp/output.mp4",
-                    "fps": 24
+                    "fps": 24,
+                },
+            },
+        }
+    )
+
+    # 7) FTP → Transform → Video → S3 (pipeline; dry-run only)
+    examples.append(
+        {
+            "name": "ftp_to_s3_video_pipeline",
+            "description": "Sync frames from FTP, compute metadata, compose to MP4, and upload to S3 (dry-run showcases pipeline mapping).",
+            "pipeline_config": "samples/pipelines/ftp_to_s3.yaml",
+            "request": {
+                "stage": "run",
+                "command": "run",
+                "mode": "sync",
+                "args": {"config": "samples/pipelines/ftp_to_s3.yaml", "dry_run": True},
+            },
+        }
+    )
+
+    # 8) FTP → Transform → Video → Local (pipeline; dry-run only)
+    examples.append(
+        {
+            "name": "ftp_to_local_pipeline",
+            "description": "Sync frames from FTP, compute metadata, compose to MP4, and copy outputs locally (no S3/Vimeo).",
+            "pipeline_config": "samples/pipelines/ftp_to_local.yaml",
+            "request": {
+                "stage": "run",
+                "command": "run",
+                "mode": "sync",
+                "args": {
+                    "config": "samples/pipelines/ftp_to_local.yaml",
+                    "dry_run": True,
                 },
             },
         }
@@ -328,7 +398,10 @@ def list_cli_examples() -> Dict[str, Any]:
                                 "stage": "run",
                                 "command": "run",
                                 "mode": "sync",
-                                "args": {"config": "samples/pipelines/nc_to_file.yaml", "dry_run": True},
+                                "args": {
+                                    "config": "samples/pipelines/nc_to_file.yaml",
+                                    "dry_run": True,
+                                },
                             },
                         },
                         "Convert GRIB2 to NetCDF": {
@@ -358,6 +431,18 @@ def list_cli_examples() -> Dict[str, Any]:
                                 },
                             },
                         },
+                        "Run FTP→Transform→Video→S3 (dry-run)": {
+                            "summary": "Run the FTP→Transform→Video→S3 pipeline (dry-run)",
+                            "value": {
+                                "stage": "run",
+                                "command": "run",
+                                "mode": "sync",
+                                "args": {
+                                    "config": "samples/pipelines/ftp_to_s3.yaml",
+                                    "dry_run": True,
+                                },
+                            },
+                        },
                         "Upload then Convert": {
                             "summary": "Convert an uploaded file by file_id (replace with real id)",
                             "value": {
@@ -367,9 +452,9 @@ def list_cli_examples() -> Dict[str, Any]:
                                 "args": {
                                     "file_or_url": "file_id:REPLACE_WITH_FILE_ID",
                                     "format": "netcdf",
-                                    "stdout": True
-                                }
-                            }
+                                    "stdout": True,
+                                },
+                            },
                         },
                         "Visualize Animate to MP4": {
                             "summary": "Animate frames and compose to MP4 (ffmpeg, NPY)",
@@ -382,7 +467,7 @@ def list_cli_examples() -> Dict[str, Any]:
                                     "input": "samples/demo.npy",
                                     "output_dir": "/tmp/frames",
                                     "to_video": "/tmp/output.mp4",
-                                    "fps": 24
+                                    "fps": 24,
                                 },
                             },
                         },
@@ -394,7 +479,19 @@ def list_cli_examples() -> Dict[str, Any]:
                                 "mode": "sync",
                                 "args": {
                                     "input": "samples/demo.nc",
-                                    "url": "s3://my-bucket/path/output/demo.nc"
+                                    "url": "s3://my-bucket/path/output/demo.nc",
+                                },
+                            },
+                        },
+                        "Run FTP→Transform→Video→Local (dry-run)": {
+                            "summary": "Run the FTP→Transform→Video→Local pipeline (dry-run)",
+                            "value": {
+                                "stage": "run",
+                                "command": "run",
+                                "mode": "sync",
+                                "args": {
+                                    "config": "samples/pipelines/ftp_to_local.yaml",
+                                    "dry_run": True,
                                 },
                             },
                         },
@@ -431,11 +528,18 @@ def run_cli_endpoint(req: CLIRunRequest, bg: BackgroundTasks) -> CLIRunResponse:
             },
         )
     # Optional strict file_id resolution
-    strict = str(os.environ.get("DATAVIZHUB_STRICT_FILE_ID", "0")).lower() in {"1", "true", "yes"}
+    strict = str(os.environ.get("DATAVIZHUB_STRICT_FILE_ID", "0")).lower() in {
+        "1",
+        "true",
+        "yes",
+    }
     try:
         _resolved_args, _paths, unresolved = resolve_upload_placeholders(req.args)
         if strict and unresolved:
-            raise HTTPException(status_code=404, detail={"error": "Unresolved file_id", "file_ids": unresolved})
+            raise HTTPException(
+                status_code=404,
+                detail={"error": "Unresolved file_id", "file_ids": unresolved},
+            )
     except HTTPException:
         raise
     except Exception:
@@ -457,9 +561,6 @@ def run_cli_endpoint(req: CLIRunRequest, bg: BackgroundTasks) -> CLIRunResponse:
     )
 
 
-
-
-
 @router.get("/examples", include_in_schema=False)
 def examples_page(request: Request) -> HTMLResponse:
     """Serve a minimal interactive examples page with Run buttons.
@@ -469,18 +570,32 @@ def examples_page(request: Request) -> HTMLResponse:
     The UI includes a field that propagates the key to HTTP headers and WS URLs.
     """
     # Optional: require API key for accessing the examples page itself
-    require = os.environ.get('DATAVIZHUB_REQUIRE_KEY_FOR_EXAMPLES', '0').lower() in {'1','true','yes'}
-    expected = os.environ.get('DATAVIZHUB_API_KEY')
+    require = os.environ.get("DATAVIZHUB_REQUIRE_KEY_FOR_EXAMPLES", "0").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    expected = os.environ.get("DATAVIZHUB_API_KEY")
     if require and expected:
-        header_name = os.environ.get('DATAVIZHUB_API_KEY_HEADER', 'X-API-Key')
-        provided = request.headers.get(header_name) or request.query_params.get('api_key')
+        header_name = os.environ.get("DATAVIZHUB_API_KEY_HEADER", "X-API-Key")
+        provided = request.headers.get(header_name) or request.query_params.get(
+            "api_key"
+        )
         try:
             import secrets as _secrets
-            ok = isinstance(provided, str) and isinstance(expected, str) and _secrets.compare_digest(provided, expected)
+
+            ok = (
+                isinstance(provided, str)
+                and isinstance(expected, str)
+                and _secrets.compare_digest(provided, expected)
+            )
         except Exception:
             ok = False
         if not ok:
-            return HTMLResponse(content="<h1>Unauthorized</h1><p>Provide a valid API key to access examples.</p>", status_code=401)
+            return HTMLResponse(
+                content="<h1>Unauthorized</h1><p>Provide a valid API key to access examples.</p>",
+                status_code=401,
+            )
     """Serve a minimal interactive examples page with Run buttons."""
     html = """<!doctype html>
 <html lang=\"en\">
@@ -654,6 +769,29 @@ def examples_page(request: Request) -> HTMLResponse:
             const out = el('pre', { textContent: ''});
             const runSync = el('button', { textContent: 'Run (sync)' });
             const runAsync = el('button', { textContent: 'Run (async)' });
+            const controls = el('div', { className: 'row' }, []);
+            const warn = el('div', { className: 'small', textContent: '' });
+            // Add Dry-run toggle for pipeline run examples
+            try {
+              const body = ex.request || {};
+              if (body.stage === 'run' && body.command === 'run') {
+                const dry = el('input', { type: 'checkbox', checked: true });
+                const lbl = el('label', {}, [dry, ' Dry-run']);
+                controls.appendChild(lbl);
+                controls.appendChild(el('span', { textContent: ' (validates and prints argv only)' }));
+                const updateBody = () => {
+                  try {
+                    const obj = JSON.parse(area.value);
+                    obj.args = obj.args || {};
+                    obj.args.dry_run = !!dry.checked;
+                    area.value = JSON.stringify(obj, null, 2);
+                    warn.textContent = dry.checked ? '' : 'Warning: This will attempt network I/O and may require credentials.';
+                  } catch {}
+                };
+                dry.onchange = updateBody;
+                updateBody();
+              }
+            } catch {}
             runSync.onclick = async () => {
               out.textContent = ''; status.textContent = 'Running…';
               try {
@@ -708,6 +846,8 @@ def examples_page(request: Request) -> HTMLResponse:
               el('h3', { textContent: ex.name || ('Example #' + (idx+1)) }),
               el('div', { className: 'small', textContent: ex.description || '' }),
               area,
+              controls,
+              warn,
               el('div', { className: 'row' }, [ runSync, runAsync, status ]),
               out,
             ]);

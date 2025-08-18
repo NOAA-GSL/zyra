@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Set
+from typing import Any
 
 
 class DataProcessor(ABC):
@@ -75,7 +75,7 @@ class DataProcessor(ABC):
         """
 
     @abstractmethod
-    def save(self, output_path: Optional[str] = None) -> Optional[str]:
+    def save(self, output_path: str | None = None) -> str | None:
         """Persist results and return the output path.
 
         Parameters
@@ -104,7 +104,7 @@ class DataProcessor(ABC):
     # ---- Introspection ---------------------------------------------------------------
 
     @property
-    def features(self) -> Set[str]:
+    def features(self) -> set[str]:
         """Set of feature strings supported by this processor.
 
         Returns

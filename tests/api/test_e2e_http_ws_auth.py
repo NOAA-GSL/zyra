@@ -5,33 +5,32 @@ import json
 import time
 
 import pytest
-from fastapi.testclient import TestClient
-
 from datavizhub.api.server import app
+from fastapi.testclient import TestClient
 
 
 @pytest.mark.anyio
 def test_http_ws_e2e_with_api_key(monkeypatch) -> None:
-    monkeypatch.setenv('DATAVIZHUB_API_KEY', 'k')
+    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
     client = TestClient(app)
 
     # 1) Upload
     file_content = b"hello-e2e"
     files = {"file": ("sample.txt", io.BytesIO(file_content), "text/plain")}
-    r = client.post('/upload', files=files, headers={'X-API-Key': 'k'})
+    r = client.post("/upload", files=files, headers={"X-API-Key": "k"})
     assert r.status_code == 200, r.text
-    file_id = r.json()['file_id']
+    file_id = r.json()["file_id"]
 
     # 2) Run async job (decimate local using file_id placeholder)
     body = {
         "stage": "decimate",
         "command": "local",
         "mode": "async",
-        "args": {"input": f"file_id:{file_id}", "path": f"/tmp/e2e_{file_id}.bin"}
+        "args": {"input": f"file_id:{file_id}", "path": f"/tmp/e2e_{file_id}.bin"},
     }
-    r2 = client.post('/cli/run', json=body, headers={'X-API-Key': 'k'})
+    r2 = client.post("/cli/run", json=body, headers={"X-API-Key": "k"})
     assert r2.status_code == 200, r2.text
-    job_id = r2.json()['job_id']
+    job_id = r2.json()["job_id"]
 
     # 3) WS stream progress (with api_key)
     with client.websocket_connect(f"/ws/jobs/{job_id}?api_key=k&stream=progress") as ws:
@@ -47,26 +46,26 @@ def test_http_ws_e2e_with_api_key(monkeypatch) -> None:
                 data = json.loads(msg)
             except Exception:
                 continue
-            if 'progress' in data:
+            if "progress" in data:
                 got_progress = True
-            if 'exit_code' in data:
+            if "exit_code" in data:
                 break
         assert got_progress
 
     # 4) Poll status and download
     for _ in range(10):
-        s = client.get(f"/jobs/{job_id}", headers={'X-API-Key': 'k'})
+        s = client.get(f"/jobs/{job_id}", headers={"X-API-Key": "k"})
         assert s.status_code == 200
-        st = s.json()['status']
-        if st in {'succeeded','failed','canceled'}:
+        st = s.json()["status"]
+        if st in {"succeeded", "failed", "canceled"}:
             break
         time.sleep(0.2)
-    assert st == 'succeeded'
-    d = client.get(f"/jobs/{job_id}/download", headers={'X-API-Key': 'k'})
+    assert st == "succeeded"
+    d = client.get(f"/jobs/{job_id}/download", headers={"X-API-Key": "k"})
     assert d.status_code == 200
 
     # Negative path: missing key should yield 401
-    r3 = client.get('/cli/commands')
+    r3 = client.get("/cli/commands")
     assert r3.status_code == 401
     # WS unauthorized closes immediately (handshake raises on enter)
     with pytest.raises(Exception):

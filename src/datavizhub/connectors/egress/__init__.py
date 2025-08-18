@@ -4,11 +4,12 @@ import argparse
 from typing import Any
 
 from datavizhub.cli_common import add_input_option
-from datavizhub.utils.cli_helpers import configure_logging_from_env
-from datavizhub.utils.io_utils import open_input
+from datavizhub.connectors.backends import ftp as ftp_backend
 from datavizhub.connectors.backends import http as http_backend
 from datavizhub.connectors.backends import s3 as s3_backend
-from datavizhub.connectors.backends import ftp as ftp_backend
+from datavizhub.connectors.backends import vimeo as vimeo_backend
+from datavizhub.utils.cli_helpers import configure_logging_from_env
+from datavizhub.utils.io_utils import open_input
 
 
 def _read_all(path_or_dash: str) -> bytes:
@@ -19,7 +20,6 @@ def _read_all(path_or_dash: str) -> bytes:
 def _cmd_local(ns: argparse.Namespace) -> int:
     """Write stdin or input file to a local path (creates parents)."""
     configure_logging_from_env()
-    import os
     from pathlib import Path
 
     data = _read_all(ns.input)
@@ -30,8 +30,9 @@ def _cmd_local(ns: argparse.Namespace) -> int:
         with dest.open("wb") as f:
             f.write(data)
     except OSError as exc:
-        raise SystemExit(f"Failed to write local file: {exc}")
+        raise SystemExit(f"Failed to write local file: {exc}") from exc
     import logging
+
     logging.info(str(dest))
     return 0
 
@@ -88,5 +89,67 @@ def register_cli(dec_subparsers: Any) -> None:
     p_post = dec_subparsers.add_parser("post", help="POST to HTTP endpoint")
     add_input_option(p_post, required=True)
     p_post.add_argument("url")
-    p_post.add_argument("--content-type", dest="content_type", help="Content-Type header")
+    p_post.add_argument(
+        "--content-type", dest="content_type", help="Content-Type header"
+    )
     p_post.set_defaults(func=_cmd_post)
+
+    # vimeo
+    def _cmd_vimeo(ns: argparse.Namespace) -> int:
+        configure_logging_from_env()
+        import sys
+
+        # Upload or replace
+        uri: str
+        if getattr(ns, "replace_uri", None):
+            # Replace existing video file
+            path = ns.input
+            if path == "-":
+                import tempfile
+
+                data = _read_all(ns.input)
+                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as tmp:
+                    tmp.write(data)
+                    tmp.flush()
+                    uri = vimeo_backend.update_video(tmp.name, ns.replace_uri)
+            else:
+                uri = vimeo_backend.update_video(path, ns.replace_uri)
+            # Optional description update
+            if getattr(ns, "description", None):
+                from contextlib import suppress
+
+                with suppress(Exception):
+                    vimeo_backend.update_description(uri, ns.description)
+        else:
+            # Upload new video
+            path = ns.input
+            if path == "-":
+                import tempfile
+
+                data = _read_all(ns.input)
+                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as tmp:
+                    tmp.write(data)
+                    tmp.flush()
+                    uri = vimeo_backend.upload_path(
+                        tmp.name, name=ns.name, description=ns.description
+                    )
+            else:
+                uri = vimeo_backend.upload_path(
+                    path, name=ns.name, description=ns.description
+                )
+        # Emit the resulting URI to stdout so pipelines can capture it
+        sys.stdout.write(str(uri) + "\n")
+        return 0
+
+    p_vimeo = dec_subparsers.add_parser(
+        "vimeo", help="Upload or replace a video on Vimeo"
+    )
+    add_input_option(p_vimeo, required=True)
+    p_vimeo.add_argument("--name", help="Video title")
+    p_vimeo.add_argument("--description", help="Video description")
+    p_vimeo.add_argument(
+        "--replace-uri",
+        dest="replace_uri",
+        help="Replace existing video at this Vimeo URI",
+    )
+    p_vimeo.set_defaults(func=_cmd_vimeo)

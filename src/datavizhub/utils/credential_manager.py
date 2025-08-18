@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Iterable, Optional, List, Dict, Set
+from typing import Iterable
 
 # Defer optional dependency import to method calls to avoid crashing
 # modules that import CredentialManager when python-dotenv is unavailable.
@@ -49,10 +49,10 @@ class CredentialManager:
         cm.read_credentials(expected_keys=["API_KEY"])  # expects MYAPP_API_KEY
     """
 
-    def __init__(self, filename: Optional[str] = None, namespace: Optional[str] = None):
+    def __init__(self, filename: str | None = None, namespace: str | None = None):
         self.filename = filename
         self.namespace = namespace or ""
-        self.credentials: Dict[str, str] = {}
+        self.credentials: dict[str, str] = {}
 
     def __enter__(self):
         """Load credentials when entering a context manager block.
@@ -83,7 +83,7 @@ class CredentialManager:
         """Return namespaced key when a namespace is configured."""
         return f"{self.namespace}{key}" if self.namespace else key
 
-    def read_credentials(self, expected_keys: Optional[Iterable[str]] = None) -> None:
+    def read_credentials(self, expected_keys: Iterable[str] | None = None) -> None:
         """Read credentials from the dotenv file into memory.
 
         Parameters
@@ -100,7 +100,10 @@ class CredentialManager:
         """
         try:
             from dotenv import dotenv_values, find_dotenv  # type: ignore
-        except (ImportError, ModuleNotFoundError) as exc:  # pragma: no cover - optional dependency path
+        except (
+            ImportError,
+            ModuleNotFoundError,
+        ) as exc:  # pragma: no cover - optional dependency path
             raise ImportError(
                 "python-dotenv is required to read credentials; install the 'dev' extra or add python-dotenv"
             ) from exc
@@ -119,11 +122,11 @@ class CredentialManager:
             raise FileNotFoundError(f"The file {self.filename} was not found.")
 
     @property
-    def tracked_keys(self) -> Set[str]:
+    def tracked_keys(self) -> set[str]:
         """Return the set of keys currently tracked in memory."""
         return set(self.credentials.keys())
 
-    def list_credentials(self, expected_keys: Optional[Iterable[str]] = None) -> List[str]:
+    def list_credentials(self, expected_keys: Iterable[str] | None = None) -> list[str]:
         """List tracked credential keys, checking for expected ones when provided.
 
         Parameters
@@ -167,7 +170,9 @@ class CredentialManager:
         """
         namespaced_key = self._namespaced_key(key)
         if namespaced_key not in self.credentials:
-            raise KeyError(f"Credential key '{namespaced_key}' not found in credentials.")
+            raise KeyError(
+                f"Credential key '{namespaced_key}' not found in credentials."
+            )
         return self.credentials[namespaced_key]
 
     def add_credential(self, key: str, value: str) -> None:

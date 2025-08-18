@@ -35,7 +35,13 @@ class VideoProcessor(DataProcessor):
         vp.save("./out.mp4")
     """
 
-    def __init__(self, input_directory: str, output_file: str, basemap: Optional[str] = None, fps: int = 30):
+    def __init__(
+        self,
+        input_directory: str,
+        output_file: str,
+        basemap: Optional[str] = None,
+        fps: int = 30,
+    ):
         self.input_directory = input_directory
         self.output_file = output_file
         self.basemap = basemap
@@ -103,11 +109,15 @@ class VideoProcessor(DataProcessor):
             True when both tools return version info without error.
         """
         try:
-            result_ffmpeg = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True)
+            result_ffmpeg = subprocess.run(
+                ["ffmpeg", "-version"], capture_output=True, text=True
+            )
             if result_ffmpeg.returncode != 0:
                 logging.error("FFmpeg is not installed or not found in system path.")
                 return False
-            result_ffprobe = subprocess.run(["ffprobe", "-version"], capture_output=True, text=True)
+            result_ffprobe = subprocess.run(
+                ["ffprobe", "-version"], capture_output=True, text=True
+            )
             if result_ffprobe.returncode != 0:
                 logging.error("FFprobe is not installed or not found in system path.")
                 return False
@@ -132,7 +142,9 @@ class VideoProcessor(DataProcessor):
         try:
             input_dir = Path(self.input_directory)
             logging.debug("Scanning directory for files...")
-            files = sorted([f for f in input_dir.iterdir() if f.is_file()], key=lambda f: f.name)
+            files = sorted(
+                [f for f in input_dir.iterdir() if f.is_file()], key=lambda f: f.name
+            )
             if not files:
                 logging.error("No files found in the video input directory.")
                 return False
@@ -144,13 +156,17 @@ class VideoProcessor(DataProcessor):
             ffmpeg_cmd = "ffmpeg"
             if self.basemap:
                 ffmpeg_cmd += f" -framerate {fps or self.fps} -loop 1 -i {self.basemap}"
-            ffmpeg_cmd += f" -framerate {fps or self.fps} -pattern_type glob -i '{input_pattern}'"
+            ffmpeg_cmd += (
+                f" -framerate {fps or self.fps} -pattern_type glob -i '{input_pattern}'"
+            )
             if self.basemap:
                 ffmpeg_cmd += " -filter_complex '[0:v][1:v]overlay=shortest=1'"
             ffmpeg_cmd += f" -r {fps or self.fps} -vcodec libx264 -pix_fmt yuv420p -y {output_path}"
             logging.info(f"Starting video processing using:{ffmpeg_cmd}")
             cmd = shlex.split(ffmpeg_cmd)
-            with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True) as proc:
+            with subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+            ) as proc:
                 for line in proc.stdout:
                     logging.debug(line.strip())
             logging.debug("Video processing complete.")
@@ -215,10 +231,14 @@ class VideoProcessor(DataProcessor):
                 den_s_stripped = den_s.strip()
                 try:
                     if float(den_s_stripped) == 0.0:
-                        logging.error("Frame rate reports zero denominator: %s", frame_rate_str)
+                        logging.error(
+                            "Frame rate reports zero denominator: %s", frame_rate_str
+                        )
                         return False
                 except ValueError:
-                    logging.error("Frame rate denominator is not a valid float: %s", den_s)
+                    logging.error(
+                        "Frame rate denominator is not a valid float: %s", den_s
+                    )
                     return False
                 num = float(num_s)
                 den = float(den_s_stripped)
@@ -237,8 +257,13 @@ class VideoProcessor(DataProcessor):
         if resolution not in valid_resolutions:
             logging.error(f"Invalid resolution: {resolution}")
             return False
-        if not any(abs(frame_rate - valid_fps) <= tolerance for valid_fps in valid_frame_rates_float):
-            logging.error(f"Invalid frame rate: {frame_rate} (expected one of {valid_frame_rates})")
+        if not any(
+            abs(frame_rate - valid_fps) <= tolerance
+            for valid_fps in valid_frame_rates_float
+        ):
+            logging.error(
+                f"Invalid frame rate: {frame_rate} (expected one of {valid_frame_rates})"
+            )
             return False
         logging.info(f"{video_file} is a valid video file")
         return True
@@ -284,5 +309,7 @@ class VideoProcessor(DataProcessor):
                 f"Invalid frame count: expected {expected_frame_count}, got {total_frames}"
             )
             return False
-        logging.info(f"{video_file} has the correct number of frames ({expected_frame_count})")
+        logging.info(
+            f"{video_file} has the correct number of frames ({expected_frame_count})"
+        )
         return True

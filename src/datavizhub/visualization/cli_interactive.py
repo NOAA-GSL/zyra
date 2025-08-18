@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from datavizhub.visualization.interactive_manager import InteractiveManager
-from datavizhub.visualization.cli_utils import features_from_ns
-from datavizhub.utils.cli_helpers import configure_logging_from_env
 import logging
+
+from datavizhub.utils.cli_helpers import configure_logging_from_env
+from datavizhub.visualization.cli_utils import features_from_ns
+from datavizhub.visualization.interactive_manager import InteractiveManager
 
 
 def handle_interactive(ns) -> int:

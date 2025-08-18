@@ -1,8 +1,6 @@
-import io
-import sys
-import tempfile
-from pathlib import Path
 import json
+from pathlib import Path
+
 import pytest
 
 
@@ -48,12 +46,21 @@ def test_run_dry_run_builds_acquire_and_decimate_args(tmp_path: Path):
             {
                 "stage": "acquisition",
                 "command": "acquire",
-                "args": {"backend": "s3", "bucket": "my-bucket", "key": "path/file.bin", "output": "-"},
+                "args": {
+                    "backend": "s3",
+                    "bucket": "my-bucket",
+                    "key": "path/file.bin",
+                    "output": "-",
+                },
             },
             {
                 "stage": "decimation",
                 "command": "decimate",
-                "args": {"backend": "local", "input": "-", "path": str(tmp_path / "out.bin")},
+                "args": {
+                    "backend": "local",
+                    "input": "-",
+                    "path": str(tmp_path / "out.bin"),
+                },
             },
         ],
     }
@@ -65,7 +72,11 @@ def test_run_dry_run_builds_acquire_and_decimate_args(tmp_path: Path):
     res = _run_cli(["run", str(p), "--dry-run"])
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     text = res.stdout.decode("utf-8")
-    assert "acquire s3" in text and "--bucket my-bucket" in text and "--key path/file.bin" in text
+    assert (
+        "acquire s3" in text
+        and "--bucket my-bucket" in text
+        and "--key path/file.bin" in text
+    )
     assert "decimate local" in text and str(tmp_path / "out.bin") in text
 
 
@@ -74,8 +85,18 @@ def test_dry_run_json_emits_objects_with_stage_and_name(tmp_path: Path):
     cfg = {
         "name": "JSON ARGV shape",
         "stages": [
-            {"id": "fetch-http-1", "stage": "acquisition", "command": "acquire", "args": {"backend": "http", "url": "https://example.com/a.nc"}},
-            {"id": "convert-1", "stage": "processing", "command": "convert-format", "args": {"file_or_url": "-", "format": "netcdf"}},
+            {
+                "id": "fetch-http-1",
+                "stage": "acquisition",
+                "command": "acquire",
+                "args": {"backend": "http", "url": "https://example.com/a.nc"},
+            },
+            {
+                "id": "convert-1",
+                "stage": "processing",
+                "command": "convert-format",
+                "args": {"file_or_url": "-", "format": "netcdf"},
+            },
         ],
     }
     import json
@@ -87,8 +108,16 @@ def test_dry_run_json_emits_objects_with_stage_and_name(tmp_path: Path):
     assert res.returncode == 0
     items = json.loads(res.stdout.decode("utf-8"))
     assert isinstance(items, list) and len(items) == 2
-    assert items[0]["stage"] == 1 and items[0]["name"] == "acquire" and items[0]["id"] == "fetch-http-1"
-    assert items[1]["stage"] == 2 and items[1]["name"] == "process" and items[1]["id"] == "convert-1"
+    assert (
+        items[0]["stage"] == 1
+        and items[0]["name"] == "acquire"
+        and items[0]["id"] == "fetch-http-1"
+    )
+    assert (
+        items[1]["stage"] == 2
+        and items[1]["name"] == "process"
+        and items[1]["id"] == "convert-1"
+    )
 
 
 @pytest.mark.pipeline
@@ -96,20 +125,45 @@ def test_dry_run_json_with_only_preserves_ids_and_reindexes(tmp_path: Path):
     cfg = {
         "name": "JSON only",
         "stages": [
-            {"id": "fetch1", "stage": "acquisition", "command": "acquire", "args": {"backend": "http", "url": "https://example.com/a.nc"}},
-            {"id": "proc1", "stage": "processing", "command": "convert-format", "args": {"file_or_url": "-", "format": "netcdf"}},
-            {"id": "proc2", "stage": "processing", "command": "convert-format", "args": {"file_or_url": "-", "format": "netcdf"}},
+            {
+                "id": "fetch1",
+                "stage": "acquisition",
+                "command": "acquire",
+                "args": {"backend": "http", "url": "https://example.com/a.nc"},
+            },
+            {
+                "id": "proc1",
+                "stage": "processing",
+                "command": "convert-format",
+                "args": {"file_or_url": "-", "format": "netcdf"},
+            },
+            {
+                "id": "proc2",
+                "stage": "processing",
+                "command": "convert-format",
+                "args": {"file_or_url": "-", "format": "netcdf"},
+            },
         ],
     }
     p = tmp_path / "pipe.json"
     p.write_text(json.dumps(cfg), encoding="utf-8")
-    res = _run_cli(["run", str(p), "--dry-run", "--print-argv-format=json", "--only", "process"])
+    res = _run_cli(
+        ["run", str(p), "--dry-run", "--print-argv-format=json", "--only", "process"]
+    )
     assert res.returncode == 0
     items = json.loads(res.stdout.decode("utf-8"))
     # Only process stages remain, reindexed starting at 1, ids preserved
     assert len(items) == 2
-    assert items[0]["stage"] == 1 and items[0]["name"] == "process" and items[0]["id"] == "proc1"
-    assert items[1]["stage"] == 2 and items[1]["name"] == "process" and items[1]["id"] == "proc2"
+    assert (
+        items[0]["stage"] == 1
+        and items[0]["name"] == "process"
+        and items[0]["id"] == "proc1"
+    )
+    assert (
+        items[1]["stage"] == 2
+        and items[1]["name"] == "process"
+        and items[1]["id"] == "proc2"
+    )
 
 
 @pytest.mark.pipeline
@@ -117,14 +171,40 @@ def test_dry_run_json_start_end_preserves_ids_and_reindexes(tmp_path: Path):
     cfg = {
         "name": "JSON start-end",
         "stages": [
-            {"id": "s1", "stage": "acquisition", "command": "acquire", "args": {"backend": "http", "url": "https://example.com/a.nc"}},
-            {"id": "s2", "stage": "processing", "command": "convert-format", "args": {"file_or_url": "-", "format": "netcdf"}},
-            {"id": "s3", "stage": "decimation", "command": "local", "args": {"input": "-", "path": "out.nc"}},
+            {
+                "id": "s1",
+                "stage": "acquisition",
+                "command": "acquire",
+                "args": {"backend": "http", "url": "https://example.com/a.nc"},
+            },
+            {
+                "id": "s2",
+                "stage": "processing",
+                "command": "convert-format",
+                "args": {"file_or_url": "-", "format": "netcdf"},
+            },
+            {
+                "id": "s3",
+                "stage": "decimation",
+                "command": "local",
+                "args": {"input": "-", "path": "out.nc"},
+            },
         ],
     }
     p = tmp_path / "pipe2.json"
     p.write_text(json.dumps(cfg), encoding="utf-8")
-    res = _run_cli(["run", str(p), "--dry-run", "--print-argv-format=json", "--start", "2", "--end", "3"])
+    res = _run_cli(
+        [
+            "run",
+            str(p),
+            "--dry-run",
+            "--print-argv-format=json",
+            "--start",
+            "2",
+            "--end",
+            "3",
+        ]
+    )
     assert res.returncode == 0
     items = json.loads(res.stdout.decode("utf-8"))
     assert len(items) == 2
@@ -192,7 +272,10 @@ def test_stage_name_overrides_apply_correctly(tmp_path: Path):
 
     demo = Path("tests/testdata/demo.nc").read_bytes()
     # Override the path on the decimation stage via stage-name syntax
-    res = _run_cli(["run", str(p), "--set", f"decimation.path={tmp_path/'NEW.nc'}"], input_bytes=demo)
+    res = _run_cli(
+        ["run", str(p), "--set", f"decimation.path={tmp_path/'NEW.nc'}"],
+        input_bytes=demo,
+    )
     assert res.returncode == 0, res.stderr.decode(errors="ignore")
     assert (tmp_path / "NEW.nc").exists()
     assert not (tmp_path / "ORIG.nc").exists()
@@ -205,9 +288,21 @@ def test_run_start_end_subset(tmp_path: Path):
     cfg = {
         "name": "subset",
         "stages": [
-            {"stage": "processing", "command": "convert-format", "args": {"file_or_url": "-", "format": "netcdf", "stdout": True}},
-            {"stage": "processing", "command": "convert-format", "args": {"file_or_url": "-", "format": "netcdf", "stdout": True}},
-            {"stage": "decimation", "command": "local", "args": {"input": "-", "path": str(tmp_path / "out.nc")}},
+            {
+                "stage": "processing",
+                "command": "convert-format",
+                "args": {"file_or_url": "-", "format": "netcdf", "stdout": True},
+            },
+            {
+                "stage": "processing",
+                "command": "convert-format",
+                "args": {"file_or_url": "-", "format": "netcdf", "stdout": True},
+            },
+            {
+                "stage": "decimation",
+                "command": "local",
+                "args": {"input": "-", "path": str(tmp_path / "out.nc")},
+            },
         ],
     }
     import json
@@ -227,8 +322,16 @@ def test_run_only_stage_name(tmp_path: Path):
     cfg = {
         "name": "only-process",
         "stages": [
-            {"stage": "processing", "command": "convert-format", "args": {"file_or_url": "-", "format": "netcdf", "stdout": True}},
-            {"stage": "decimation", "command": "local", "args": {"input": "-", "path": str(tmp_path / "out.nc")}},
+            {
+                "stage": "processing",
+                "command": "convert-format",
+                "args": {"file_or_url": "-", "format": "netcdf", "stdout": True},
+            },
+            {
+                "stage": "decimation",
+                "command": "local",
+                "args": {"input": "-", "path": str(tmp_path / "out.nc")},
+            },
         ],
     }
     import json
