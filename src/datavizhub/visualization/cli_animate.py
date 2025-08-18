@@ -89,8 +89,9 @@ def handle_animate(ns) -> int:
                 )
                 subprocess.run(cmd, check=False)
                 logging.info(ns.combine_to)
-            except Exception:
+            except Exception as err:
                 logging.warning("Failed to compose grid video")
+                raise SystemExit("ffmpeg grid composition failed") from err
         return 0
     if ns.mode == "particles":
         from datavizhub.processing.video_processor import VideoProcessor
@@ -139,8 +140,8 @@ def handle_animate(ns) -> int:
                     _ = out_path.resolve().relative_to(
                         Path(safe_root).expanduser().resolve()
                     )
-                except Exception:
-                    raise SystemExit("--to-video is outside of allowed output root")
+                except Exception as err:
+                    raise SystemExit("--to-video is outside of allowed output root") from err
             vp = VideoProcessor(
                 input_directory=frames_dir, output_file=str(out_path), fps=ns.fps
             )
@@ -213,8 +214,8 @@ def handle_animate(ns) -> int:
                 _ = out_path.resolve().relative_to(
                     Path(safe_root).expanduser().resolve()
                 )
-            except Exception:
-                raise SystemExit("--to-video is outside of allowed output root")
+            except Exception as err:
+                raise SystemExit("--to-video is outside of allowed output root") from err
         vp = VideoProcessor(
             input_directory=frames_dir, output_file=str(out_path), fps=ns.fps
         )
@@ -254,8 +255,8 @@ def _build_ffmpeg_grid_args(
     if safe_root:
         try:
             _ = out_path.resolve().relative_to(Path(safe_root).expanduser().resolve())
-        except Exception:
-            raise ValueError("output is outside of allowed output root")
+        except Exception as err:
+            raise ValueError("output is outside of allowed output root") from err
     if out_path.parent:
         out_path.parent.mkdir(parents=True, exist_ok=True)
     args: list[str] = ["ffmpeg"]

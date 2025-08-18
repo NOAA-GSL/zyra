@@ -21,8 +21,8 @@ def handle_compose_video(ns) -> int:
     if safe_root:
         try:
             _ = out_path.resolve().relative_to(Path(safe_root).expanduser().resolve())
-        except Exception:
-            raise SystemExit("--output is outside of allowed output root")
+        except Exception as err:
+            raise SystemExit("--output is outside of allowed output root") from err
     vp = VideoProcessor(
         input_directory=ns.frames,
         output_file=str(out_path),

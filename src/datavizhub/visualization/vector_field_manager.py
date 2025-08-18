@@ -68,7 +68,7 @@ class VectorFieldManager(Renderer):
         u_path: Optional[str] = None,
         v_path: Optional[str] = None,
         xarray_engine: Optional[str] = None,
-    ) -> tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[Any, Any]:
         import numpy as np
 
         if u_path and v_path:

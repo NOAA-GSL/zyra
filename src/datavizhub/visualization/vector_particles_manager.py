@@ -57,7 +57,7 @@ class VectorParticlesManager(Renderer):
         vvar: Optional[str] = None,
         u_path: Optional[str] = None,
         v_path: Optional[str] = None,
-    ) -> tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[Any, Any]:
         import numpy as np
 
         if u_path and v_path:
@@ -81,9 +81,7 @@ class VectorParticlesManager(Renderer):
         )
 
     # Seeding helpers
-    def _seed_particles(
-        self, seed: str, particles: int
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def _seed_particles(self, seed: str, particles: int) -> tuple[Any, Any]:
         import numpy as np
 
         west, east, south, north = self.extent
@@ -104,7 +102,7 @@ class VectorParticlesManager(Renderer):
                 "custom seeding requires render(..., custom_seed=path_to_csv)"
             )
 
-    def _seed_custom(self, csv_path: str) -> tuple[np.ndarray, np.ndarray]:
+    def _seed_custom(self, csv_path: str) -> tuple[Any, Any]:
         import pandas as pd
 
         df = pd.read_csv(csv_path)
@@ -113,9 +111,7 @@ class VectorParticlesManager(Renderer):
         return df["lon"].to_numpy(), df["lat"].to_numpy()
 
     # Velocity sampling (nearest neighbor for simplicity)
-    def _sample_uv(
-        self, U: np.ndarray, V: np.ndarray, lon: np.ndarray, lat: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def _sample_uv(self, U: Any, V: Any, lon: Any, lat: Any) -> tuple[Any, Any]:
         import numpy as np
 
         ny, nx = U.shape[-2], U.shape[-1]
@@ -127,25 +123,11 @@ class VectorParticlesManager(Renderer):
         iy = np.clip(np.round(fy).astype(int), 0, ny - 1)
         return U[iy, ix], V[iy, ix]
 
-    def _step_euler(
-        self,
-        U: np.ndarray,
-        V: np.ndarray,
-        lon: np.ndarray,
-        lat: np.ndarray,
-        dt: float,
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def _step_euler(self, U: Any, V: Any, lon: Any, lat: Any, dt: float) -> tuple[Any, Any]:
         u, v = self._sample_uv(U, V, lon, lat)
         return lon + u * dt, lat + v * dt
 
-    def _step_rk2(
-        self,
-        U: np.ndarray,
-        V: np.ndarray,
-        lon: np.ndarray,
-        lat: np.ndarray,
-        dt: float,
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def _step_rk2(self, U: Any, V: Any, lon: Any, lat: Any, dt: float) -> tuple[Any, Any]:
         # Midpoint method
         u1, v1 = self._sample_uv(U, V, lon, lat)
         lon_mid = lon + 0.5 * dt * u1
@@ -153,9 +135,7 @@ class VectorParticlesManager(Renderer):
         u2, v2 = self._sample_uv(U, V, lon_mid, lat_mid)
         return lon + dt * u2, lat + dt * v2
 
-    def _wrap_clamp(
-        self, lon: np.ndarray, lat: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def _wrap_clamp(self, lon: Any, lat: Any) -> tuple[Any, Any]:
         import numpy as np
 
         west, east, south, north = self.extent

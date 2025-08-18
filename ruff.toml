@@ -15,3 +15,25 @@ ignore = [
     "E501", # Supress line-too-long warnings: trust the formatter's judgement on this one.
     "W505", # Supress line-too-long warnings: trust the formatter's judgement on this one.
 ]
+
+[per-file-ignores]
+# Tests: relax pytest-style and pathlib/style constraints
+"tests/**/*.py" = [
+    "PT",
+    "PTH",
+    "SIM105",
+    "SIM115",
+    "SIM117",
+    "B011",
+    "B017",
+    "F841",
+]
+# Visualization modules: relax modernization and minor style requirements
+"src/datavizhub/visualization/**/*.py" = [
+    "UP007",
+    "SIM105",
+    "PTH123",
+    "F841",
+]
+# Optional ImageManager re-export
+"src/datavizhub/utils/__init__.py" = ["F401"]

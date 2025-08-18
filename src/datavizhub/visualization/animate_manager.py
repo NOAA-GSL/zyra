@@ -183,7 +183,7 @@ class AnimateManager(Renderer):
                 if U.shape != V.shape:
                     raise ValueError("U and V stacks must have the same shape")
                 t_count = U.shape[0]
-                timestamps: list[Optional[str]] = [None] * t_count
+                timestamps: list[str | None] = [None] * t_count
             elif input_path and (str(input_path).lower().endswith((".nc", ".nc4"))):
                 import xarray as xr
 
@@ -257,7 +257,9 @@ class AnimateManager(Renderer):
             # Allow external timestamps override via CSV (one per line)
             if timestamps_csv:
                 try:
-                    with open(timestamps_csv, encoding="utf-8") as f:
+                    from pathlib import Path as _P
+
+                    with _P(timestamps_csv).open(encoding="utf-8") as f:
                         timestamps = [line.strip() for line in f if line.strip()]
                 except Exception:
                     pass
@@ -343,7 +345,7 @@ class AnimateManager(Renderer):
         }
         return self._manifest
 
-    def save(self, output_path: Optional[str] = None, *, as_buffer: bool = False):
+    def save(self, output_path: str | None = None, *, as_buffer: bool = False):
         import json
 
         if not self._manifest:

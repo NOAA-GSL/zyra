@@ -1,7 +1,7 @@
+import importlib
 from unittest.mock import patch
 
 import pytest
-import importlib
 
 
 @pytest.fixture()
@@ -13,8 +13,6 @@ def vimeo_client():
 
 def test_vimeo_import_and_patch(vimeo_client):
     # The current codebase uses backends; Vimeo manager is placeholder. Ensure VimeoClient is patchable.
-    import importlib
-
     try:
         mod = importlib.import_module("vimeo")
         assert hasattr(mod, "VimeoClient")
