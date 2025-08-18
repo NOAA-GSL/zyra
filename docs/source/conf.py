@@ -19,6 +19,7 @@ copyright = f"{datetime.now():%Y}, {author}"
 
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
 ]
@@ -41,8 +42,23 @@ napoleon_use_rtype = True
 
 # -- Options for HTML output -------------------------------------------------
 
-html_theme = "alabaster"
+# Prefer the Read the Docs theme when available for left navigation
+try:  # pragma: no cover - docs build environment
+    import sphinx_rtd_theme  # type: ignore
+
+    html_theme = "sphinx_rtd_theme"
+except Exception:
+    html_theme = "alabaster"
 html_static_path = ["_static"]
+
+# Autosummary/napoleon tweaks for cleaner API pages
+autosummary_generate = True
+autosummary_imported_members = False
+html_theme_options = {
+    "navigation_depth": 3,
+    "collapse_navigation": False,
+    "sticky_navigation": True,
+}
 
 # Mock optional heavy dependencies to allow building API docs without extras
 autodoc_mock_imports = [
