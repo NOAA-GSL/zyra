@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 
-@pytest.mark.cli()
+@pytest.mark.cli
 def test_decimate_local_creates_parent_dirs_and_writes(tmp_path: Path):
     data = b"hello-world"
     nested = tmp_path / "a" / "b" / "c" / "out.bin"
