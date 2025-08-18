@@ -93,7 +93,7 @@ def test_convert_format_autodetect_netcdf_from_stdin(monkeypatch, capsysbinary):
     assert captured.out.startswith(b"CDF") or captured.out.startswith(b"\x89HDF")
 
 
-@pytest.mark.cli()
+@pytest.mark.cli
 def test_grib2_raw_matches_file_bytes():
     if not Path("tests/testdata/demo.grib2").exists():
         pytest.skip("demo.grib2 not found", allow_module_level=True)
@@ -106,7 +106,7 @@ def test_grib2_raw_matches_file_bytes():
     assert res.stderr == b""
 
 
-@pytest.mark.cli()
+@pytest.mark.cli
 def test_grib2_to_netcdf_pipeline_header_check():
     if not Path("tests/testdata/demo.grib2").exists():
         pytest.skip("demo.grib2 not found", allow_module_level=True)
@@ -123,7 +123,7 @@ def test_grib2_to_netcdf_pipeline_header_check():
     assert res.stdout.startswith(b"CDF") or res.stdout.startswith(b"\x89HDF")
 
 
-@pytest.mark.cli()
+@pytest.mark.cli
 def test_grib2_extract_variable_stdout_netcdf_header():
     if not Path("tests/testdata/demo.grib2").exists():
         pytest.skip("demo.grib2 not found", allow_module_level=True)
@@ -146,7 +146,7 @@ def test_grib2_extract_variable_stdout_netcdf_header():
     assert res.stdout.startswith(b"CDF") or res.stdout.startswith(b"\x89HDF")
 
 
-@pytest.mark.cli()
+@pytest.mark.cli
 def test_grib2_to_geotiff_pipeline_header_check():
     if not Path("tests/testdata/demo.grib2").exists():
         pytest.skip("demo.grib2 not found", allow_module_level=True)

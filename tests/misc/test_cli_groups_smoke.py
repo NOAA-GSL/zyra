@@ -17,7 +17,7 @@ def _read_demo_nc_bytes() -> bytes:
     return p.read_bytes()
 
 
-@pytest.mark.cli()
+@pytest.mark.cli
 def test_process_decode_grib2_raw_passthrough_group(monkeypatch, capsysbinary):
     # process decode-grib2 should accept NetCDF on stdin and passthrough with --raw
     from datavizhub.cli import main
@@ -33,7 +33,7 @@ def test_process_decode_grib2_raw_passthrough_group(monkeypatch, capsysbinary):
     assert captured.err == b""
 
 
-@pytest.mark.cli()
+@pytest.mark.cli
 def test_process_convert_format_autodetect_netcdf_group(monkeypatch, capsysbinary):
     # process convert-format should read NetCDF on stdin and emit NetCDF bytes
     from datavizhub.cli import main
@@ -48,7 +48,7 @@ def test_process_convert_format_autodetect_netcdf_group(monkeypatch, capsysbinar
     assert captured.out.startswith(b"CDF") or captured.out.startswith(b"\x89HDF")
 
 
-@pytest.mark.cli()
+@pytest.mark.cli
 def test_visualize_heatmap_npy_group(tmp_path: Path):
     # visualize heatmap from a small .npy array should produce a PNG
     try:
@@ -82,7 +82,7 @@ def test_visualize_heatmap_npy_group(tmp_path: Path):
     assert sig == b"\x89PNG\r\n\x1a\n"
 
 
-@pytest.mark.cli()
+@pytest.mark.cli
 def test_visualize_contour_npy_group(tmp_path: Path):
     # visualize contour from a small .npy array should produce a PNG
     try:
@@ -117,7 +117,7 @@ def test_visualize_contour_npy_group(tmp_path: Path):
     assert out.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
 
 
-@pytest.mark.cli()
+@pytest.mark.cli
 def test_visualize_vector_npy_group(tmp_path: Path):
     # visualize vector from small U/V arrays should produce a PNG
     try:
@@ -165,7 +165,7 @@ def _has_contextily_tiles_enabled() -> bool:
     return os.environ.get("DATAVIZHUB_RUN_TILE_TESTS") == "1"
 
 
-@pytest.mark.cli()
+@pytest.mark.cli
 @pytest.mark.skipif(
     not _has_contextily_tiles_enabled(),
     reason="contextily not installed or tile tests not enabled",
@@ -203,7 +203,7 @@ def test_visualize_contour_with_tiles(tmp_path: Path):
     assert out.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
 
 
-@pytest.mark.cli()
+@pytest.mark.cli
 @pytest.mark.skipif(
     not _has_contextily_tiles_enabled(),
     reason="contextily not installed or tile tests not enabled",

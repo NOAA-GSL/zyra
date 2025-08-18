@@ -247,7 +247,7 @@ def test_run_process_then_decimate_local(tmp_path: Path):
     assert data.startswith(b"CDF") or data.startswith(b"\x89HDF")
 
 
-@pytest.mark.pipeline()
+@pytest.mark.pipeline
 def test_stage_name_overrides_apply_correctly(tmp_path: Path):
     # Use stage-name overrides to change arguments on targeted stages
     cfg = {
@@ -316,7 +316,7 @@ def test_run_start_end_subset(tmp_path: Path):
     assert res.stdout.startswith(b"CDF") or res.stdout.startswith(b"\x89HDF")
 
 
-@pytest.mark.pipeline()
+@pytest.mark.pipeline
 def test_run_only_stage_name(tmp_path: Path):
     # Only run process stage and emit stdout NetCDF
     cfg = {

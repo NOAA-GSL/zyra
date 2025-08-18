@@ -54,7 +54,7 @@ def test_sync_cli_run_success_and_failure(tmp_path):
     assert d2["exit_code"] != 0
 
 
-@pytest.mark.redis()
+@pytest.mark.redis
 def test_async_job_lifecycle_and_ws(tmp_path):
     # Submit async job that will quickly fail (nonexistent input) to exercise lifecycle
     r = client.post(
