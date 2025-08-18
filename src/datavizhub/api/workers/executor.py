@@ -666,6 +666,7 @@ def write_manifest(job_id: str) -> Path | None:
                     resolved_p.relative_to(full.resolve())
                 except ValueError:
                     continue
+                # lgtm [py/path-injection] — resolved_p is contained via resolve()+relative_to, O_NOFOLLOW enforced
                 fd = _os.open(
                     str(resolved_p),
                     getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0),

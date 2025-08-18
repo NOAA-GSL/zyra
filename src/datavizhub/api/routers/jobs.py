@@ -245,9 +245,11 @@ def download_job_output(
         )
         full_dir = base_dir / job_id
         # Normalize and validate that full_dir is contained within base_dir
-        full_dir_real = Path(os.path.realpath(str(full_dir)))
-        base_dir_real = Path(os.path.realpath(str(base_dir)))
-        if not str(full_dir_real).startswith(str(base_dir_real)):
+        base_dir_real = base_dir.resolve()
+        full_dir_real = full_dir.resolve()
+        try:
+            full_dir_real.relative_to(base_dir_real)
+        except ValueError:
             return None
         # Build manifest and zip paths
         try:
