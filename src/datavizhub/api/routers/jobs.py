@@ -362,7 +362,8 @@ def download_job_output(
                 raise HTTPException(status_code=404, detail="No artifacts available")
 
     # Re-anchor the selected path under the contained base/jid using only its basename,
-    # and obtain a file descriptor for TTL checks without path-based stat calls.
+    # then open it safely (O_NOFOLLOW) to avoid symlink traversal and to run TTL checks
+    # using fstat on the opened file descriptor.
     try:
         base = Path(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
         # Support when p is a Path or a string
@@ -380,6 +381,9 @@ def download_job_output(
         import errno as _errno
         import os as _os
 
+        # Open the file descriptor with O_NOFOLLOW when available to avoid symlink targets
+        flags = getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0)
+        fd = _os.open(str(normalized_fullp), flags)
         try:
             st = _os.fstat(fd)
         finally:
@@ -423,10 +427,10 @@ def download_job_output(
     try:
         import magic  # type: ignore
 
-        mt = magic.Magic(mime=True).from_file(str(p))
+        mt = magic.Magic(mime=True).from_file(str(normalized_fullp))
         media_type = str(mt) if mt else None
     except Exception:
-        media_type, _ = mimetypes.guess_type(p.name)
+        media_type, _ = mimetypes.guess_type(fname)
     return FileResponse(
         normalized_fullp,
         media_type=media_type or "application/octet-stream",
