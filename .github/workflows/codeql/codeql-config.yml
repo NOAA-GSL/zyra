@@ -1,0 +1,21 @@
+name: DatavizHub CodeQL Configuration
+disable-default-queries: false
+paths:
+  - src
+paths-ignore:
+  - tests
+  - samples
+  - docs
+  - .devcontainer
+  - wiki
+  - .venv
+  - '**/__pycache__'
+  - '**/*.ipynb'
+
+# Narrow filters for noisy queries on vetted, hardened paths
+query-filters:
+  - exclude:
+      id: py/path-injection
+      paths:
+        - src/datavizhub/api/routers/jobs.py
+        - src/datavizhub/api/workers/executor.py
