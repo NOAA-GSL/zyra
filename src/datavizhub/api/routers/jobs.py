@@ -244,12 +244,17 @@ def download_job_output(
             os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
         )
         full_dir = base_dir / job_id
+        # Normalize and validate that full_dir is contained within base_dir
+        full_dir_real = Path(os.path.realpath(str(full_dir)))
+        base_dir_real = Path(os.path.realpath(str(base_dir)))
+        if not str(full_dir_real).startswith(str(base_dir_real)):
+            return None
         # Build manifest and zip paths
         try:
             import json
             import zipfile
 
-            mf = full_dir / "manifest.json"
+            mf = full_dir_real / "manifest.json"
             items = []
             try:
                 with mf.open(encoding="utf-8") as _fh:
@@ -259,7 +264,7 @@ def download_job_output(
                 items = []
             if not items:
                 return None
-            zpath = full_dir / f"{job_id}.zip"
+            zpath = full_dir_real / f"{job_id}.zip"
             with zipfile.ZipFile(
                 str(zpath), mode="w", compression=zipfile.ZIP_DEFLATED
             ) as zf:  # type: ignore[attr-defined]
@@ -272,7 +277,7 @@ def download_job_output(
                     # Only single safe segments
                     if not _is_safe_segment(name):
                         continue
-                    fp = full_dir / name
+                    fp = full_dir_real / name
                     # Write using the safe name inside the archive
                     try:
                         zf.write(str(fp), name)
