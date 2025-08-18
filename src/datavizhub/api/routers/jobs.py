@@ -316,7 +316,14 @@ def download_job_output(
 
                         # Normalize and check containment
                         mf_path = mf.resolve()
-                        if base_dir.resolve() not in mf_path.parents and base_dir.resolve() != mf_path.parent:
+                        base_dir_resolved = base_dir.resolve()
+                        def _is_subpath(path, base):
+                            try:
+                                return path.is_relative_to(base)
+                            except AttributeError:
+                                # For Python <3.9
+                                return str(path).startswith(str(base) + os.sep)
+                        if not _is_subpath(mf_path, base_dir_resolved):
                             raise HTTPException(status_code=400, detail="Invalid job_id: path traversal detected")
                         with mf_path.open(encoding="utf-8") as _fh:
                             data = json.load(_fh)
@@ -328,7 +335,8 @@ def download_job_output(
 
                             _wm(jid)
                             mf_path = mf.resolve()
-                            if base_dir.resolve() not in mf_path.parents and base_dir.resolve() != mf_path.parent:
+                            base_dir_resolved = base_dir.resolve()
+                            if not _is_subpath(mf_path, base_dir_resolved):
                                 raise HTTPException(status_code=400, detail="Invalid job_id: path traversal detected")
                             with mf_path.open(encoding="utf-8") as _fh:
                                 data = json.load(_fh)
