@@ -281,7 +281,7 @@ def test_stage_name_overrides_apply_correctly(tmp_path: Path):
     assert not (tmp_path / "ORIG.nc").exists()
 
 
-@pytest.mark.pipeline()
+@pytest.mark.pipeline
 def test_run_start_end_subset(tmp_path: Path):
     # Stages: [1] process convert, [2] process convert, [3] decimate local
     # Run only stage 2 via --start/--end and assert stdout NetCDF header
