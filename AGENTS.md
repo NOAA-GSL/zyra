@@ -10,7 +10,7 @@
 
 ## Build, Test, and Development Commands
 - Install with Poetry (core): `poetry install --with dev` (creates the venv).
-- Opt-in extras locally as needed, e.g.: `poetry install --with dev -E datatransfer -E processing -E visualization` or `--all-extras`.
+- Opt-in extras locally as needed, e.g.: `poetry install --with dev -E connectors -E processing -E visualization` or `--all-extras`.
 - Spawn shell: `poetry shell`.
 - Run a script or module: `poetry run python path/to/your_script.py` or `poetry run python -m your.module`.
 - Lint/format (if added): `poetry run black . && poetry run isort . && poetry run flake8`.

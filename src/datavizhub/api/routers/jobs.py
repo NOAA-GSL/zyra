@@ -316,15 +316,20 @@ def download_job_output(
 
                         # Normalize and check containment BEFORE resolving
                         base_dir_resolved = base_dir.resolve()
+
                         def _is_subpath(path, base):
                             try:
                                 return path.is_relative_to(base)
                             except AttributeError:
                                 # For Python <3.9
                                 return str(path).startswith(str(base) + os.sep)
+
                         mf_norm = mf.resolve()
                         if not _is_subpath(mf_norm, base_dir_resolved):
-                            raise HTTPException(status_code=400, detail="Invalid job_id: path traversal detected")
+                            raise HTTPException(
+                                status_code=400,
+                                detail="Invalid job_id: path traversal detected",
+                            )
                         with mf_norm.open(encoding="utf-8") as _fh:
                             data = json.load(_fh)
                     except FileNotFoundError:
@@ -338,7 +343,10 @@ def download_job_output(
                             base_dir_resolved = base_dir.resolve()
                             mf_norm = mf.resolve()
                             if not _is_subpath(mf_norm, base_dir_resolved):
-                                raise HTTPException(status_code=400, detail="Invalid job_id: path traversal detected")
+                                raise HTTPException(
+                                    status_code=400,
+                                    detail="Invalid job_id: path traversal detected",
+                                )
                             with mf_norm.open(encoding="utf-8") as _fh:
                                 data = json.load(_fh)
                         except Exception:
@@ -366,9 +374,12 @@ def download_job_output(
         # Normalize and check containment
         normalized_fullp = fullp.resolve()
         if not str(normalized_fullp).startswith(str(base.resolve())):
-            raise HTTPException(status_code=400, detail="File path outside allowed directory")
+            raise HTTPException(
+                status_code=400, detail="File path outside allowed directory"
+            )
         import errno as _errno
         import os as _os
+
         try:
             st = _os.fstat(fd)
         finally:
@@ -417,7 +428,9 @@ def download_job_output(
     except Exception:
         media_type, _ = mimetypes.guess_type(p.name)
     return FileResponse(
-        normalized_fullp, media_type=media_type or "application/octet-stream", filename=fname
+        normalized_fullp,
+        media_type=media_type or "application/octet-stream",
+        filename=fname,
     )
 
 
@@ -448,6 +461,7 @@ def get_job_manifest(job_id: str):
     import json
     import os as _os
     import os.path as _ospath
+
     norm_base = _ospath.abspath(str(base))
     norm_mf = _ospath.abspath(str(mf))
     if not norm_mf.startswith(norm_base + os.sep):

@@ -35,11 +35,17 @@ DataVizHub is a utility library for building data-driven visual products. It pro
 
 
 ## Project Structure
-- `acquisition/`: I/O helpers (S3, FTP, HTTP, Vimeo). Deprecated; migrate to `connectors/backends/` and `utils/`.
+- `connectors/`: transfer helpers
+  - `ingest/` and `egress/` CLI groups, and functional backends under `backends/` (HTTP/S3/FTP/Vimeo).
 - `processing/`: data/video processing (GRIB/NetCDF, FFmpeg-based video).
 - `visualization/`: plotting utilities and colormaps.
-- `utils/`: shared helpers (dates, files, images, credentials).
+- `transform/`: lightweight helpers (e.g., frames metadata, dataset JSON updates).
+- `api/`: FastAPI service exposing CLI stages over HTTP/WebSocket.
+- `utils/`: shared helpers (dates, files, images, credentials, I/O).
 - `assets/images/`: packaged basemaps and overlays used by plots.
+
+Notes
+- Legacy `acquisition/` modules remain for back-compat but are deprecated. Prefer `datavizhub.connectors.backends.*` and the CLI groups `acquire`/`decimate`.
 
 ## Prerequisites
 - Python 3.10+
@@ -48,7 +54,7 @@ DataVizHub is a utility library for building data-driven visual products. It pro
 
 ## Install (Poetry)
 - Core dev env: `poetry install --with dev`
-- With optional extras: `poetry install --with dev -E datatransfer -E processing -E visualization` (or `--all-extras`)
+- With optional extras: `poetry install --with dev -E connectors -E processing -E visualization` (or `--all-extras`)
 - Spawn a shell: `poetry shell`
 - One-off run: `poetry run python -c "print('ok')"`
 
@@ -58,11 +64,15 @@ Notes for development:
 
 ## Install (pip extras)
 - Core only: `pip install datavizhub`
-- Datatransfer deps: `pip install "datavizhub[datatransfer]"`
+- Connectors deps: `pip install "datavizhub[connectors]"`
 - Processing deps: `pip install "datavizhub[processing]"`
 - Visualization deps: `pip install "datavizhub[visualization]"`
 - Interactive deps: `pip install "datavizhub[interactive]"`
+- API service deps: `pip install "datavizhub[api]"`
 - Everything: `pip install "datavizhub[all]"`
+
+Deprecation note:
+- `datatransfer` remains available as an alias of `connectors` for backward compatibility and may be removed in a future release.
 
 Focused installs for GRIB2/NetCDF/GeoTIFF:
 
@@ -86,9 +96,10 @@ Notes:
 ## Stage-Specific Installs
 Install only what you need for a given stage. Each stage can run independently with its own optional extras.
 
-- Acquisition stage:
-  - Pip: `pip install -e .[datatransfer]`
-  - Poetry: `poetry install --with dev -E datatransfer`
+- Connectors (transfer) stage:
+  - Pip: `pip install -e .[connectors]`
+  - Poetry: `poetry install --with dev -E connectors`
+  - Alias (deprecated): `datatransfer`
 - Processing stage:
   - Pip: `pip install -e .[processing]`
   - Poetry: `poetry install --with dev -E processing`
@@ -138,15 +149,17 @@ datavizhub
 │  ├─ local           # file path
 │  ├─ s3              # s3://bucket/key
 │  ├─ ftp             # ftp://host/path or host/path
-│  └─ post            # HTTP POST
+│  ├─ post            # HTTP POST
+│  └─ vimeo           # upload/replace video on Vimeo
 ├─ transform          # Lightweight transforms/metadata
-│  └─ metadata        # Compute frames metadata JSON (dir scan)
-└─ run                # Run a pipeline from YAML/JSON (coming soon)
+│  ├─ metadata            # Compute frames metadata JSON (dir scan)
+│  ├─ enrich-metadata    # Merge dataset id/Vimeo URI, stamp updated_at
+│  └─ update-dataset-json# Update dataset.json entry by id
+└─ run                # Run a pipeline from YAML/JSON config
 ```
 
 Notes
 - All subcommands accept `-` for stdin/stdout where applicable to support piping.
-- Legacy flat commands (e.g., `datavizhub decode-grib2`, `datavizhub contour`) remain available for backward compatibility.
 
 ### Quick Usage by Group
 
@@ -414,9 +427,9 @@ The CLI supports streaming binary data through stdout/stdin so you can compose o
 
 - `.idx` → extract → convert (one-liner):
   ```bash
-  datavizhub decode-grib2 file.grib2 --pattern "TMP" --raw | \
-  datavizhub extract-variable - "TMP" --stdout --format grib2 | \
-  datavizhub convert-format - geotiff --stdout > tmp.tif
+  datavizhub process decode-grib2 file.grib2 --pattern "TMP" --raw | \
+  datavizhub process extract-variable - "TMP" --stdout --format grib2 | \
+  datavizhub process convert-format - geotiff --stdout > tmp.tif
   ```
 
 - Notes on tools and fallbacks:
@@ -425,11 +438,11 @@ The CLI supports streaming binary data through stdout/stdin so you can compose o
   - Python-only fallback: If `wgrib2` is not present, NetCDF streaming still works via xarray (`to_netcdf()`), while GRIB2 streaming may not be available depending on your environment.
 
 - Auto-detection in `convert-format`:
-  - `convert-format` can read from stdin (`-`) and auto-detects GRIB2 vs NetCDF by magic bytes. NetCDF is opened with xarray; GRIB2 uses the configured backend to decode.
+  - `process convert-format` can read from stdin (`-`) and auto-detects GRIB2 vs NetCDF by magic bytes. NetCDF is opened with xarray; GRIB2 uses the configured backend to decode.
 
 Bytes-first demos:
-- Use `.idx`-aware subsetting directly with URLs: `datavizhub decode-grib2 https://.../file.grib2 --pattern ":(UGRD|VGRD):10 m above ground:"`
-- Pipe small outputs without temp files: `datavizhub convert-format local.grib2 netcdf --stdout | hexdump -C | head`
+- Use `.idx`-aware subsetting directly with URLs: `datavizhub process decode-grib2 https://.../file.grib2 --pattern ":(UGRD|VGRD):10 m above ground:"`
+- Pipe small outputs without temp files: `datavizhub process convert-format local.grib2 netcdf --stdout | hexdump -C | head`
 
 Offline demo assets:
 - Tiny NetCDF file: `tests/testdata/demo.nc`

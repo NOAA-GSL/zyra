@@ -69,6 +69,13 @@ datatransfer = [
     "requests",
 ]
 
+# New name aligning with code layout (alias of datatransfer)
+connectors = [
+    "boto3",
+    "PyVimeo",
+    "requests",
+]
+
 # Processing extra now includes GRIB2, NetCDF, and raster exports
 processing = [
     "scipy",

@@ -667,7 +667,8 @@ def write_manifest(job_id: str) -> Path | None:
                 except ValueError:
                     continue
                 fd = _os.open(
-                    str(resolved_p), getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0)
+                    str(resolved_p),
+                    getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0),
                 )
                 try:
                     st = _os.fstat(fd)
