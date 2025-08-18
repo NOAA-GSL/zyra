@@ -314,7 +314,11 @@ def download_job_output(
                     try:
                         import json
 
-                        with mf.open(encoding="utf-8") as _fh:
+                        # Normalize and check containment
+                        mf_path = mf.resolve()
+                        if base_dir.resolve() not in mf_path.parents and base_dir.resolve() != mf_path.parent:
+                            raise HTTPException(status_code=400, detail="Invalid job_id: path traversal detected")
+                        with mf_path.open(encoding="utf-8") as _fh:
                             data = json.load(_fh)
                     except FileNotFoundError:
                         try:
@@ -323,7 +327,10 @@ def download_job_output(
                             )
 
                             _wm(jid)
-                            with mf.open(encoding="utf-8") as _fh:
+                            mf_path = mf.resolve()
+                            if base_dir.resolve() not in mf_path.parents and base_dir.resolve() != mf_path.parent:
+                                raise HTTPException(status_code=400, detail="Invalid job_id: path traversal detected")
+                            with mf_path.open(encoding="utf-8") as _fh:
                                 data = json.load(_fh)
                         except Exception:
                             data = {"artifacts": []}
