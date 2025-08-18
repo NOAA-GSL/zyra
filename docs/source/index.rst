@@ -12,6 +12,16 @@ Contents
 
    api/modules
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Packages
+
+   api/datavizhub.visualization
+   api/datavizhub.processing
+   api/datavizhub.connectors
+   api/datavizhub.utils
+   api/datavizhub.api
+
 External Wiki
 -------------
 
