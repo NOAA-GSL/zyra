@@ -37,7 +37,7 @@ def test_run_process_convert_format_passthrough(tmp_path: Path):
     assert out.startswith(b"CDF") or out.startswith(b"\x89HDF")
 
 
-@pytest.mark.pipeline()
+@pytest.mark.pipeline
 def test_run_dry_run_builds_acquire_and_decimate_args(tmp_path: Path):
     # Use backend-style for acquire (per wiki), and local decimation
     cfg = {
