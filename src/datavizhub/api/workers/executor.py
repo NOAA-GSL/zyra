@@ -636,7 +636,9 @@ def write_manifest(job_id: str) -> Path | None:
         # Normalize and ensure full is contained within base
         base_resolved = base.resolve()
         full_resolved = full.resolve()
-        if full_resolved.parent != base_resolved:
+        try:
+            full_resolved.relative_to(base_resolved)
+        except ValueError:
             # Prevent path traversal or unexpected directory placement
             return None
         full.mkdir(parents=True, exist_ok=True)
