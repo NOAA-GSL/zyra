@@ -633,6 +633,12 @@ def write_manifest(job_id: str) -> Path | None:
             _os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
         )
         full = base / job_id
+        # Normalize and ensure full is contained within base
+        base_resolved = base.resolve()
+        full_resolved = full.resolve()
+        if full_resolved.parent != base_resolved:
+            # Prevent path traversal or unexpected directory placement
+            return None
         full.mkdir(parents=True, exist_ok=True)
 
         items = []
