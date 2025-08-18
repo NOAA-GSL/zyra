@@ -215,7 +215,7 @@ def test_dry_run_json_start_end_preserves_ids_and_reindexes(tmp_path: Path):
     assert isinstance(items[0]["argv"], list) and items[0]["argv"][0] == "datavizhub"
 
 
-@pytest.mark.pipeline()
+@pytest.mark.pipeline
 def test_run_process_then_decimate_local(tmp_path: Path):
     # Convert NetCDF stdin (pass-through) then write to a file via decimate local
     cfg = {
