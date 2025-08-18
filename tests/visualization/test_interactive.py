@@ -223,5 +223,5 @@ def test_interactive_folium_vector_streamlines_html():
         proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
         assert proc.returncode == 0, proc.stderr
         assert os.path.exists(out)
-        text = open(out, encoding="utf-8").read(200).lower()
+        text = Path(out).read_text(encoding="utf-8")[:200].lower()
         assert "<html" in text
