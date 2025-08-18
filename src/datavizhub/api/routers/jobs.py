@@ -464,17 +464,21 @@ def get_job_manifest(job_id: str):
     import errno as _errno
     import json
     import os as _os
-    import os.path as _ospath
 
-    norm_base = _ospath.abspath(str(base))
-    norm_mf = _ospath.abspath(str(mf))
-    if not norm_mf.startswith(norm_base + os.sep):
+    # Use pathlib resolution and an is_relative_to-style containment check
+    base_resolved = base.resolve()
+    mf_resolved = mf.resolve()
+    try:
+        contained = mf_resolved.is_relative_to(base_resolved)  # type: ignore[attr-defined]
+    except AttributeError:  # Python < 3.9 fallback
+        contained = str(mf_resolved).startswith(str(base_resolved) + os.sep)
+    if not contained:
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
 
     try:
         # lgtm [py/path-injection] — mf is contained via normpath+commonpath, O_NOFOLLOW used
         fd = _os.open(
-            norm_mf, getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0)
+            str(mf_resolved), getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0)
         )
         try:
             chunks: list[bytes] = []
