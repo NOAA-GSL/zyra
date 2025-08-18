@@ -166,7 +166,7 @@ def test_dry_run_json_with_only_preserves_ids_and_reindexes(tmp_path: Path):
     )
 
 
-@pytest.mark.pipeline()
+@pytest.mark.pipeline
 def test_dry_run_json_start_end_preserves_ids_and_reindexes(tmp_path: Path):
     cfg = {
         "name": "JSON start-end",
