@@ -12,7 +12,7 @@ def _run_cli(args, input_bytes: bytes | None = None):
     return subprocess.run(cmd, input=input_bytes, capture_output=True)
 
 
-@pytest.mark.pipeline()
+@pytest.mark.pipeline
 def test_run_process_convert_format_passthrough(tmp_path: Path):
     # Pipeline: processing convert-format - netcdf --stdout; stdin is demo.nc
     cfg = {
