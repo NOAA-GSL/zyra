@@ -478,7 +478,8 @@ def get_job_manifest(job_id: str):
     try:
         # lgtm [py/path-injection] — mf is contained via normpath+commonpath, O_NOFOLLOW used
         fd = _os.open(
-            str(mf_resolved), getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0)
+            str(mf_resolved),
+            getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0),
         )
         try:
             chunks: list[bytes] = []
