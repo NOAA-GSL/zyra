@@ -2,9 +2,15 @@ name: Run Tests
 
 on:
   push:
-    branches: ["**"]
+    branches: ["main", "staging"]
+    # optionally add tags if you want releases to run tests
+    # tags: ["v*"]
   pull_request:
     branches: ["**"]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint:

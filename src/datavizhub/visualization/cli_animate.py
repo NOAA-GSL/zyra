@@ -141,7 +141,9 @@ def handle_animate(ns) -> int:
                         Path(safe_root).expanduser().resolve()
                     )
                 except Exception as err:
-                    raise SystemExit("--to-video is outside of allowed output root") from err
+                    raise SystemExit(
+                        "--to-video is outside of allowed output root"
+                    ) from err
             vp = VideoProcessor(
                 input_directory=frames_dir, output_file=str(out_path), fps=ns.fps
             )
@@ -215,7 +217,9 @@ def handle_animate(ns) -> int:
                     Path(safe_root).expanduser().resolve()
                 )
             except Exception as err:
-                raise SystemExit("--to-video is outside of allowed output root") from err
+                raise SystemExit(
+                    "--to-video is outside of allowed output root"
+                ) from err
         vp = VideoProcessor(
             input_directory=frames_dir, output_file=str(out_path), fps=ns.fps
         )

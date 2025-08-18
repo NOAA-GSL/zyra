@@ -123,11 +123,15 @@ class VectorParticlesManager(Renderer):
         iy = np.clip(np.round(fy).astype(int), 0, ny - 1)
         return U[iy, ix], V[iy, ix]
 
-    def _step_euler(self, U: Any, V: Any, lon: Any, lat: Any, dt: float) -> tuple[Any, Any]:
+    def _step_euler(
+        self, U: Any, V: Any, lon: Any, lat: Any, dt: float
+    ) -> tuple[Any, Any]:
         u, v = self._sample_uv(U, V, lon, lat)
         return lon + u * dt, lat + v * dt
 
-    def _step_rk2(self, U: Any, V: Any, lon: Any, lat: Any, dt: float) -> tuple[Any, Any]:
+    def _step_rk2(
+        self, U: Any, V: Any, lon: Any, lat: Any, dt: float
+    ) -> tuple[Any, Any]:
         # Midpoint method
         u1, v1 = self._sample_uv(U, V, lon, lat)
         lon_mid = lon + 0.5 * dt * u1
