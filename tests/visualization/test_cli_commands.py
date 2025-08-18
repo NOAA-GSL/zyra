@@ -4,7 +4,7 @@ import sys
 import pytest
 
 
-@pytest.mark.cli()
+@pytest.mark.cli
 @pytest.mark.parametrize(
     "cmd",
     [
