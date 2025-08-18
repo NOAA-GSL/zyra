@@ -1,3 +1,4 @@
+import importlib.util as _ils
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -42,12 +43,9 @@ napoleon_use_rtype = True
 
 # -- Options for HTML output -------------------------------------------------
 
-# Prefer the Read the Docs theme when available for left navigation
-try:  # pragma: no cover - docs build environment
-    import sphinx_rtd_theme  # type: ignore
-
+if _ils.find_spec("sphinx_rtd_theme") is not None:  # pragma: no cover - docs build env
     html_theme = "sphinx_rtd_theme"
-except Exception:
+else:
     html_theme = "alabaster"
 html_static_path = ["_static"]
 
