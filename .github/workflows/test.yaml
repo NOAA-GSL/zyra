@@ -46,7 +46,6 @@ jobs:
   test:
     name: Test with Coverage
     runs-on: ubuntu-latest
-    needs: [lint]
     env:
       PYTHONPATH: src
       # Seed stdin for pipeline tests that read from '-' when CI does not pipe input
