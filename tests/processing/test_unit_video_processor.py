@@ -23,7 +23,7 @@ def video_processor_setup(monkeypatch):
     return video_processor, mock_input, mock_output
 
 
-@pytest.mark.skip
+@pytest.mark.skip(reason="Test is skipped: ffmpeg dependency not available in test environment")
 def test_process_video(video_processor_setup):
     video_processor, mock_input, mock_output = video_processor_setup
     video_processor.process_video()
