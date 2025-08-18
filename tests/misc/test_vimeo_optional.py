@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 
-@pytest.fixture()
+@pytest.fixture
 def vimeo_client():
     """Fixture to mock VimeoClient where used (connectors-based flows will patch when added)."""
     with patch("vimeo.VimeoClient") as mock_vimeo_client:
