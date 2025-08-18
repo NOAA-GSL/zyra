@@ -14,6 +14,16 @@ import re
 from typing import Iterable
 from urllib.parse import urljoin
 
+# Make a module-level "requests" attribute patchable in tests even when the
+# optional dependency is not installed in the environment.
+try:  # pragma: no cover - env dependent
+    import requests as requests  # type: ignore
+except Exception:  # pragma: no cover
+    class _RequestsProxy:
+        pass
+
+    requests = _RequestsProxy()  # type: ignore
+
 
 def fetch_bytes(url: str, *, timeout: int = 60) -> bytes:
     """Return the raw response body for a GET request.

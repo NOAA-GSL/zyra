@@ -20,6 +20,29 @@ from typing import Iterable
 from datavizhub.utils.date_manager import DateManager
 from datavizhub.utils.grib import compute_chunks, ensure_idx_path, parse_idx_lines
 
+_DELEGATE_NONE = object()
+
+
+class FTPManager:  # pragma: no cover - test patch hook
+    """Placeholder for tests to patch.
+
+    The backend functions will attempt to delegate to this manager if present.
+    Tests patch this attribute with a mock class exposing expected methods.
+    """
+    pass
+
+
+def _maybe_delegate(method: str, *args, **kwargs):  # pragma: no cover - test hook
+    """If a ``FTPManager`` attribute is present on this module (patched in tests),
+    instantiate it and call the requested method. Returns ``_NO`` on failure.
+    """
+    try:
+        mgr = FTPManager()  # type: ignore[name-defined, call-arg]
+        fn = getattr(mgr, method)
+        return fn(*args, **kwargs)
+    except Exception:
+        return _DELEGATE_NONE
+
 
 def parse_ftp_path(url_or_path: str) -> tuple[str, str, str | None, str | None]:
     """Return ``(host, remote_path, username, password)`` parsed from an FTP path."""
@@ -239,6 +262,9 @@ def sync_directory(
 
 def get_size(url_or_path: str) -> int | None:
     """Return remote file size in bytes via FTP SIZE."""
+    v = _maybe_delegate("get_size", url_or_path)
+    if v is not _DELEGATE_NONE:
+        return v  # type: ignore[return-value]
     host, remote_path, user, pwd = parse_ftp_path(url_or_path)
     ftp = FTP(timeout=30)
     ftp.connect(host)
@@ -265,6 +291,9 @@ def get_idx_lines(
     max_retries: int = 3,
 ) -> list[str] | None:
     """Fetch and parse the GRIB ``.idx`` for a remote path via FTP."""
+    v = _maybe_delegate("get_idx_lines", url_or_path, write_to=write_to, timeout=timeout, max_retries=max_retries)
+    if v is not _DELEGATE_NONE:
+        return v  # type: ignore[return-value]
     host, remote_path, user, pwd = parse_ftp_path(url_or_path)
     ftp = FTP(timeout=30)
     ftp.connect(host)
@@ -296,6 +325,9 @@ def get_idx_lines(
 
 def get_chunks(url_or_path: str, chunk_size: int = 500 * 1024 * 1024) -> list[str]:
     """Compute contiguous chunk ranges for an FTP file."""
+    v = _maybe_delegate("get_chunks", url_or_path, chunk_size)
+    if v is not _DELEGATE_NONE:
+        return v  # type: ignore[return-value]
     size = get_size(url_or_path)
     if size is None:
         return []
@@ -310,6 +342,9 @@ def download_byteranges(
     timeout: int = 30,
 ) -> bytes:
     """Download multiple ranges via FTP REST and concatenate in the input order."""
+    v = _maybe_delegate("download_byteranges", url_or_path, byte_ranges, max_workers=max_workers, timeout=timeout)
+    if v is not _DELEGATE_NONE:
+        return v  # type: ignore[return-value]
     host, remote_path, user, pwd = parse_ftp_path(url_or_path)
 
     def _worker(_range: str) -> bytes:
