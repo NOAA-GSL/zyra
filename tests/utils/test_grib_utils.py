@@ -1,4 +1,4 @@
-from datavizhub.acquisition.grib_utils import (
+from datavizhub.utils.grib import (
     compute_chunks,
     ensure_idx_path,
     idx_to_byteranges,

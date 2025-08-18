@@ -1,10 +1,10 @@
 from unittest.mock import Mock, patch
 
-from datavizhub.acquisition.s3_manager import S3Manager
+from datavizhub.connectors.backends import s3 as s3_backend
 
 
 def test_s3_unsigned_client_and_ranges():
-    with patch("datavizhub.acquisition.s3_manager.boto3.client") as m_client:
+    with patch("datavizhub.connectors.backends.s3.boto3.client") as m_client:
         client = Mock()
         m_client.return_value = client
         client.head_object.return_value = {"ContentLength": 20}
@@ -15,12 +15,14 @@ def test_s3_unsigned_client_and_ranges():
             {"Body": Mock(read=lambda: b"abcdefghij")},
         ]
 
-        mgr = S3Manager(None, None, "bucket", unsigned=True)
-        mgr.connect()
-        assert mgr.get_size("key") == 20
+        assert s3_backend.get_size("s3://bucket/key") == 20
 
-        lines = mgr.get_idx_lines("key")
+        lines = s3_backend.get_idx_lines("s3://bucket/key", unsigned=True)
         assert lines and len(lines) == 2
-        br = mgr.idx_to_byteranges(lines, r"b")
-        data = mgr.download_byteranges("key", br.keys(), max_workers=2)
+        from datavizhub.utils.grib import idx_to_byteranges
+
+        br = idx_to_byteranges(lines, r"b")
+        data = s3_backend.download_byteranges(
+            "s3://bucket/key", None, br.keys(), unsigned=True, max_workers=2
+        )
         assert data == b"0123456789abcdefghij"
