@@ -654,7 +654,9 @@ def write_manifest(job_id: str) -> Path | None:
             # Normalize and ensure p is contained within full
             try:
                 resolved_p = p.resolve()
-                if not str(resolved_p).startswith(str(full.resolve()) + os.sep):
+                try:
+                    resolved_p.relative_to(full.resolve())
+                except ValueError:
                     continue
                 fd = _os.open(
                     str(resolved_p), getattr(_os, "O_RDONLY", 0) | getattr(_os, "O_NOFOLLOW", 0)
