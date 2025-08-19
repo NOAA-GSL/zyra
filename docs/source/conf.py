@@ -44,10 +44,10 @@ napoleon_use_rtype = True
 
 # -- Options for HTML output -------------------------------------------------
 
+# Default to alabaster; override if RTD theme is available
+html_theme = "alabaster"
 if _ils.find_spec("sphinx_rtd_theme") is not None:  # pragma: no cover - docs build env
     html_theme = "sphinx_rtd_theme"
-else:
-    html_theme = "alabaster"
 html_static_path = ["_static"]
 
 # Autosummary/napoleon tweaks for cleaner API pages
