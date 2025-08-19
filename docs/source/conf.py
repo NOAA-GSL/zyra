@@ -31,8 +31,6 @@ exclude_patterns = [
     "_build",
     "Thumbs.db",
     ".DS_Store",
-    # Exclude the mirrored implementation plan page to avoid orphan warnings
-    "wiki/wiki_sync.md",
 ]
 
 # Napoleon settings for NumPy-style docstrings
