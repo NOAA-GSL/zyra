@@ -19,9 +19,11 @@ class OpenAIClient(LLMClient):
     name = "openai"
 
     def __init__(self, model: str | None = None) -> None:
-        super().__init__(
-            model=model or os.environ.get("DATAVIZHUB_LLM_MODEL") or "gpt-4o-mini"
+        resolved_model = (
+            model or os.environ.get("DATAVIZHUB_LLM_MODEL") or "gpt-4o-mini"
         )
+        # Initialize dataclass fields explicitly
+        super().__init__(name=self.name, model=resolved_model)
         self.api_key = os.environ.get("OPENAI_API_KEY")
         self.base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
 
@@ -68,9 +70,9 @@ class OllamaClient(LLMClient):
     name = "ollama"
 
     def __init__(self, model: str | None = None) -> None:
-        super().__init__(
-            model=model or os.environ.get("DATAVIZHUB_LLM_MODEL") or "mistral"
-        )
+        resolved_model = model or os.environ.get("DATAVIZHUB_LLM_MODEL") or "mistral"
+        # Initialize dataclass fields explicitly
+        super().__init__(name=self.name, model=resolved_model)
         self.base_url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 
     def generate(
@@ -104,7 +106,8 @@ class MockClient(LLMClient):
     name = "mock"
 
     def __init__(self) -> None:
-        super().__init__(model=None)
+        # Ensure dataclass field 'name' is initialized correctly
+        super().__init__(name=self.name, model=None)
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
         q = user_prompt.lower()

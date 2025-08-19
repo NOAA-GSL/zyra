@@ -13,6 +13,11 @@ from pathlib import Path
 
 from .llm_client import LLMClient, MockClient, OllamaClient, OpenAIClient
 
+try:
+    import yaml  # type: ignore
+except Exception:
+    yaml = None  # type: ignore[assignment]
+
 
 @dataclass
 class SessionState:
@@ -28,10 +33,10 @@ def _load_config() -> dict:
     - provider: "openai" | "ollama" | "mock"
     - model: model name string
     """
-    import yaml  # type: ignore
-
     path = Path("~/.datavizhub_wizard.yaml").expanduser()
     try:
+        if yaml is None:
+            return {}
         if not path.exists():
             return {}
         with path.open("r", encoding="utf-8") as f:

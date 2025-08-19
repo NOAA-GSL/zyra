@@ -27,7 +27,8 @@ datavizhub visualize heatmap --input out1.nc --var TMP --output plot.png
 """
         ).strip()
 
-    # First call uses mock client, second also. Swap implementation dynamically by inspecting calls count
+    # Both calls use MockClient; select generator via len(calls):
+    # use gen_first when len(calls) == 0, else gen_second.
     def generate(system_prompt: str, user_prompt: str) -> str:
         return (
             gen_first(system_prompt, user_prompt)
