@@ -1,0 +1,420 @@
+{
+  "acquire http": {
+    "description": "datavizhub acquire http",
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": "Output path or '-' for stdout",
+      "--list": "List links on a directory page",
+      "--pattern": "Regex to filter listed links",
+      "--since": "ISO date filter for list mode",
+      "--since-period": "ISO-8601 duration for lookback (e.g., P1Y, P6M, P7D, PT24H)",
+      "--until": "ISO date filter for list mode",
+      "--date-format": "Filename date format for list filtering (e.g., YYYYMMDD)",
+      "--inputs": "Multiple HTTP URLs to fetch",
+      "--manifest": "Path to a file listing URLs (one per line)",
+      "--output-dir": "Directory to write outputs for --inputs"
+    }
+  },
+  "acquire s3": {
+    "description": "datavizhub acquire s3",
+    "options": {
+      "--help": "show this help message and exit",
+      "--url": "Full URL s3://bucket/key",
+      "--bucket": "Bucket name",
+      "--key": "Object key (when using --bucket)",
+      "--unsigned": "Use unsigned access for public buckets",
+      "--list": "List keys under a prefix",
+      "--pattern": "Regex to filter listed keys",
+      "--since": "ISO date filter for list mode",
+      "--since-period": "ISO-8601 duration for lookback (e.g., P1Y, P6M, P7D, PT24H)",
+      "--until": "ISO date filter for list mode",
+      "--date-format": "Filename date format for list filtering (e.g., YYYYMMDD)",
+      "--inputs": "Multiple s3:// URLs to fetch",
+      "--manifest": "Path to a file listing s3:// URLs (one per line)",
+      "--output-dir": "Directory to write outputs for --inputs",
+      "--output": "Output path or '-' for stdout"
+    }
+  },
+  "acquire ftp": {
+    "description": "datavizhub acquire ftp",
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": "Output path or '-' for stdout",
+      "--list": "List files in an FTP directory",
+      "--sync-dir": "Sync FTP directory to a local directory",
+      "--pattern": "Regex to filter list/sync",
+      "--since": "ISO date filter for list/sync",
+      "--since-period": "ISO-8601 duration for lookback (e.g., P1Y, P6M, P7D, PT24H)",
+      "--until": "ISO date filter for list/sync",
+      "--date-format": "Filename date format for filtering (e.g., YYYYMMDD)",
+      "--inputs": "Multiple FTP paths to fetch",
+      "--manifest": "Path to a file listing FTP paths (one per line)",
+      "--output-dir": "Directory to write outputs for --inputs"
+    }
+  },
+  "acquire vimeo": {
+    "description": "datavizhub acquire vimeo",
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": "Output path or '-' for stdout"
+    }
+  },
+  "process decode-grib2": {
+    "description": "datavizhub process decode-grib2",
+    "options": {
+      "--help": "show this help message and exit",
+      "--backend": "",
+      "--pattern": "Regex for .idx-based subsetting when using HTTP/S3",
+      "--unsigned": "Use unsigned S3 access for public buckets",
+      "--raw": "Emit raw (optionally .idx-subset) GRIB2 bytes to stdout"
+    }
+  },
+  "process extract-variable": {
+    "description": "datavizhub process extract-variable",
+    "options": {
+      "--help": "show this help message and exit",
+      "--backend": "",
+      "--stdout": "Write selected variable as bytes to stdout",
+      "--format": "Output format for --stdout"
+    }
+  },
+  "process convert-format": {
+    "description": "datavizhub process convert-format",
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": "",
+      "--stdout": "Write binary output to stdout instead of a file",
+      "--inputs": "Multiple input paths or URLs",
+      "--output-dir": "Directory to write outputs for --inputs",
+      "--backend": "",
+      "--var": "Variable name or regex for multi-var datasets",
+      "--pattern": "Regex for .idx-based subsetting when using HTTP/S3",
+      "--unsigned": "Use unsigned S3 access for public buckets"
+    }
+  },
+  "visualize heatmap": {
+    "description": "datavizhub visualize heatmap",
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": "Path to .nc or .npy input",
+      "--var": "Variable name for NetCDF inputs",
+      "--basemap": "Path to background image",
+      "--extent": "west east south north",
+      "--output": "Output PNG path (required when using --input; for --inputs use --output-dir)",
+      "--inputs": "Multiple input paths for batch rendering",
+      "--output-dir": "Directory to write outputs for --inputs",
+      "--width": "",
+      "--height": "",
+      "--dpi": "",
+      "--cmap": "",
+      "--colorbar": "",
+      "--label": "",
+      "--units": "",
+      "--features": "Comma-separated features: coastline,borders,gridlines",
+      "--xarray-engine": "xarray engine for NetCDF inputs (e.g., netcdf4, h5netcdf, scipy)",
+      "--map-type": "Basemap type: image (default) or tile",
+      "--tile-source": "Contextily tile source name or URL (when --map-type=tile)",
+      "--tile-zoom": "Tile source zoom level",
+      "--timestamp": "Overlay timestamp string",
+      "--crs": "Force input CRS (e.g., EPSG:3857)",
+      "--reproject": "Attempt reprojection to EPSG:4326 (limited support)",
+      "--timestamp-loc": "Timestamp placement (axes-relative)",
+      "--no-coastline": "",
+      "--no-borders": "",
+      "--no-gridlines": ""
+    }
+  },
+  "visualize contour": {
+    "description": "datavizhub visualize contour",
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": "Path to .nc or .npy input",
+      "--inputs": "Multiple inputs for batch rendering",
+      "--output-dir": "Directory to write outputs for --inputs",
+      "--var": "Variable name for NetCDF inputs",
+      "--basemap": "Path to background image",
+      "--extent": "west east south north",
+      "--output": "Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
+      "--width": "",
+      "--height": "",
+      "--dpi": "",
+      "--cmap": "",
+      "--filled": "Use filled contours",
+      "--levels": "Count or comma-separated levels",
+      "--colorbar": "",
+      "--label": "",
+      "--units": "",
+      "--features": "Comma-separated features: coastline,borders,gridlines",
+      "--xarray-engine": "xarray engine for NetCDF inputs (e.g., netcdf4, h5netcdf, scipy)",
+      "--map-type": "",
+      "--tile-source": "Contextily tile source (when --map-type=tile)",
+      "--tile-zoom": "",
+      "--timestamp": "Overlay timestamp string",
+      "--crs": "Force input CRS (e.g., EPSG:3857)",
+      "--reproject": "",
+      "--timestamp-loc": "Timestamp placement (axes-relative)",
+      "--no-coastline": "",
+      "--no-borders": "",
+      "--no-gridlines": ""
+    }
+  },
+  "visualize timeseries": {
+    "description": "datavizhub visualize timeseries",
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": "Path to .csv or .nc input",
+      "--x": "CSV: X column name (e.g., time)",
+      "--y": "CSV: Y column name (value)",
+      "--var": "NetCDF: variable name to plot",
+      "--output": "Output PNG path",
+      "--width": "",
+      "--height": "",
+      "--dpi": "",
+      "--title": "",
+      "--xlabel": "",
+      "--ylabel": "",
+      "--style": ""
+    }
+  },
+  "visualize vector": {
+    "description": "datavizhub visualize vector",
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": "Path to .nc input (alternative to --u/--v .npy)",
+      "--inputs": "Multiple inputs for batch rendering",
+      "--output-dir": "Directory to write outputs for --inputs",
+      "--uvar": "NetCDF: U variable name",
+      "--vvar": "NetCDF: V variable name",
+      "--u": "Path to U .npy file (alternative input)",
+      "--v": "Path to V .npy file (alternative input)",
+      "--basemap": "Path to background image",
+      "--extent": "west east south north",
+      "--output": "Output PNG path (required for single --input/--u/--v; when using --inputs, prefer --output-dir)",
+      "--width": "",
+      "--height": "",
+      "--dpi": "",
+      "--density": "Arrow sampling density (0<d<=1)",
+      "--scale": "Quiver scale controlling arrow length",
+      "--color": "Arrow color",
+      "--features": "Comma-separated features: coastline,borders,gridlines",
+      "--xarray-engine": "xarray engine for NetCDF inputs (e.g., netcdf4, h5netcdf, scipy)",
+      "--map-type": "",
+      "--tile-source": "Contextily tile source (when --map-type=tile)",
+      "--tile-zoom": "",
+      "--streamlines": "Render streamlines instead of quiver",
+      "--crs": "Force input CRS (e.g., EPSG:3857)",
+      "--reproject": "",
+      "--no-coastline": "",
+      "--no-borders": "",
+      "--no-gridlines": ""
+    }
+  },
+  "visualize animate": {
+    "description": "datavizhub visualize animate",
+    "options": {
+      "--help": "show this help message and exit",
+      "--mode": "",
+      "--input": "Path to .nc 3D var or 3D .npy stack (for heatmap/contour/vector)",
+      "--inputs": "Multiple inputs for batch animations",
+      "--var": "NetCDF variable name (heatmap/contour)",
+      "--uvar": "NetCDF: U variable name (vector/particles mode)",
+      "--vvar": "NetCDF: V variable name (vector/particles mode)",
+      "--u": "Path to U .npy stack (vector/particles mode)",
+      "--v": "Path to V .npy stack (vector/particles mode)",
+      "--output-dir": "Directory to write frames",
+      "--manifest": "Optional manifest output path (JSON)",
+      "--cmap": "",
+      "--levels": "Contour levels: count or comma-separated",
+      "--vmin": "",
+      "--vmax": "",
+      "--basemap": "Path to background image",
+      "--extent": "west east south north",
+      "--width": "",
+      "--height": "",
+      "--dpi": "",
+      "--density": "Vector mode: arrow sampling density (0<d<=1)",
+      "--scale": "Vector mode: quiver scale controlling arrow length",
+      "--color": "Vector/particles color",
+      "--colorbar": "Heatmap/contour: draw colorbar",
+      "--label": "Heatmap/contour colorbar label",
+      "--units": "Heatmap/contour units for colorbar",
+      "--show-timestamp": "Overlay timestamps per frame if available",
+      "--timestamps-csv": "CSV with one timestamp per line (overrides auto)",
+      "--timestamp-loc": "Timestamp placement (axes-relative)",
+      "--features": "Heatmap/contour: comma-separated features",
+      "--map-type": "",
+      "--tile-source": "Contextily tile source (when --map-type=tile)",
+      "--tile-zoom": "",
+      "--xarray-engine": "xarray engine for NetCDF inputs (e.g., netcdf4, h5netcdf, scipy)",
+      "--no-coastline": "",
+      "--no-borders": "",
+      "--no-gridlines": "",
+      "--seed": "Particles: seeding strategy",
+      "--particles": "Particles: count for grid/random seeding",
+      "--custom-seed": "Particles: CSV with lon,lat columns",
+      "--dt": "Particles: integration step",
+      "--steps-per-frame": "Particles: substeps per frame",
+      "--size": "Particles: marker size",
+      "--method": "Particles: integrator",
+      "--crs": "Force input CRS for heatmap/contour/vector",
+      "--reproject": "",
+      "--to-video": "Optional: compose frames to MP4 using ffmpeg (single or per-input when using --inputs)",
+      "--combine-to": "Optional: compose per-input videos into a single MP4 grid",
+      "--grid-cols": "Grid columns for --combine-to (default 2)",
+      "--grid-mode": "Composition mode for --combine-to. 'grid' uses ffmpeg xstack (inputs must share the same width/height); if sizes differ, pre-scale inputs or use '--grid-mode hstack' to compose horizontally.",
+      "--fps": "Frames per second for video composition"
+    }
+  },
+  "visualize compose-video": {
+    "description": "datavizhub visualize compose-video",
+    "options": {
+      "--help": "show this help message and exit",
+      "--frames": "Directory containing frame_*.png files",
+      "--output": "Output MP4 path",
+      "--basemap": "Optional background image to overlay under frames",
+      "--fps": ""
+    }
+  },
+  "visualize interactive": {
+    "description": "datavizhub visualize interactive",
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": "Path to .npy/.nc/.csv input",
+      "--var": "NetCDF variable name (for .nc inputs)",
+      "--mode": "",
+      "--engine": "",
+      "--output": "Output HTML path",
+      "--extent": "",
+      "--cmap": "",
+      "--features": "Heatmap/contour only: features (may be ignored depending on engine)",
+      "--no-coastline": "",
+      "--no-borders": "",
+      "--no-gridlines": "",
+      "--colorbar": "",
+      "--label": "",
+      "--units": "",
+      "--timestamp": "",
+      "--timestamp-loc": "",
+      "--tiles": "Folium: tile layer name/URL",
+      "--zoom": "Folium: initial zoom",
+      "--attribution": "Folium: attribution for custom tiles/WMS",
+      "--wms-url": "Folium: WMS base URL",
+      "--wms-layers": "Folium: WMS layer names",
+      "--wms-format": "",
+      "--wms-transparent": "",
+      "--layer-control": "Add a layer control switcher",
+      "--width": "Plotly: width",
+      "--height": "Plotly: height",
+      "--crs": "Force input CRS",
+      "--reproject": "",
+      "--time-column": "CSV points: column containing ISO8601 time strings",
+      "--period": "TimeDimension period (e.g., P1D)",
+      "--transition-ms": "TimeDimension transition time (ms)",
+      "--uvar": "NetCDF: U variable name (vector mode)",
+      "--vvar": "NetCDF: V variable name (vector mode)",
+      "--u": "Path to U .npy array (vector mode)",
+      "--v": "Path to V .npy array (vector mode)",
+      "--density": "Vector: arrow sampling density (0<d<=1)",
+      "--scale": "Vector: arrow length scale in degrees",
+      "--color": "Vector: arrow/line color",
+      "--streamlines": "Vector: render streamlines image overlay"
+    }
+  },
+  "decimate local": {
+    "description": "datavizhub decimate local",
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": "Input path or '-' for stdin"
+    }
+  },
+  "decimate s3": {
+    "description": "datavizhub decimate s3",
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": "Input path or '-' for stdin",
+      "--url": "Full URL s3://bucket/key",
+      "--bucket": "Bucket name",
+      "--key": "Object key (when using --bucket)"
+    }
+  },
+  "decimate ftp": {
+    "description": "datavizhub decimate ftp",
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": "Input path or '-' for stdin"
+    }
+  },
+  "decimate post": {
+    "description": "datavizhub decimate post",
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": "Input path or '-' for stdin",
+      "--content-type": "Content-Type header"
+    }
+  },
+  "decimate vimeo": {
+    "description": "datavizhub decimate vimeo",
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": "Input path or '-' for stdin",
+      "--name": "Video title",
+      "--description": "Video description",
+      "--replace-uri": "Replace existing video at this Vimeo URI"
+    }
+  },
+  "transform metadata": {
+    "description": "datavizhub transform metadata",
+    "options": {
+      "--help": "show this help message and exit",
+      "--frames-dir": "Directory containing frames",
+      "--pattern": "Regex filter for frame filenames",
+      "--datetime-format": "Datetime format used in filenames (e.g., %Y%m%d%H%M%S)",
+      "--period-seconds": "Expected cadence to compute missing frames",
+      "--output": "Output path or '-' for stdout"
+    }
+  },
+  "transform enrich-metadata": {
+    "description": "datavizhub transform enrich-metadata",
+    "options": {
+      "--help": "show this help message and exit",
+      "--frames-meta": "Path to frames metadata JSON",
+      "--dataset-id": "Dataset identifier to embed",
+      "--vimeo-uri": "Vimeo video URI to embed in metadata",
+      "--read-vimeo-uri": "Read Vimeo URI from stdin (first line)",
+      "--output": "Output path or '-' for stdout"
+    }
+  },
+  "transform update-dataset-json": {
+    "description": "datavizhub transform update-dataset-json",
+    "options": {
+      "--help": "show this help message and exit",
+      "--input-url": "HTTP(S) or s3:// URL of dataset.json",
+      "--input-file": "Local dataset.json path",
+      "--dataset-id": "Dataset id to update",
+      "--meta": "Path to metadata JSON containing start_datetime/end_datetime/vimeo_uri",
+      "--read-meta-stdin": "Read metadata JSON from stdin",
+      "--start": "Explicit startTime override (ISO)",
+      "--end": "Explicit endTime override (ISO)",
+      "--vimeo-uri": "Explicit Vimeo URI (e.g., /videos/12345)",
+      "--no-set-data-link": "Do not update dataLink from Vimeo URI",
+      "--output": "Output path or '-' for stdout"
+    }
+  },
+  "run": {
+    "description": "datavizhub run",
+    "options": {
+      "--help": "show this help message and exit",
+      "--set": "Override key=value in args across stages",
+      "--print-argv": "Print argv per stage before running",
+      "--print-argv-format": "",
+      "--dry-run": "Only print argv; do not execute stages",
+      "--continue-on-error": "Continue executing remaining stages even if one fails",
+      "--start": "1-based index of first stage to run",
+      "--end": "1-based index of last stage to run",
+      "--only": "Run only stages matching this alias (acquire/process/visualize/decimate)",
+      "--verbose": "Verbose runner output (prints stage headings)",
+      "--quiet": "Suppress runner messages when possible",
+      "--strict-env": "Fail if ${VAR} placeholders are not set in environment"
+    }
+  }
+}

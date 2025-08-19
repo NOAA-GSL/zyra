@@ -5,6 +5,7 @@ description = "A tool to ingest data from various sources and formats, create im
 authors = ["Eric Hackathorn <eric.j.hackathorn@noaa.gov>"]
 include = [
     "src/datavizhub/assets/**",
+    "src/datavizhub/wizard/*.json",
 ]
 license = "MIT"
 readme = "README.md"
