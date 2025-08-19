@@ -82,9 +82,6 @@ cover/
 docs/_build/
 docs/build/
 
-# Wiki documentation in dev container (used as context)
-wiki/
-app/wiki/
 
 # Samples: generated artifacts (keep repo small and clean)
 samples/samples/quickstart_outputs/
