@@ -142,7 +142,13 @@ def _collect_options(p: argparse.ArgumentParser) -> dict[str, object]:
                 if isinstance(default_val, str) and default_val == argparse.SUPPRESS:  # type: ignore[attr-defined]
                     default_val = None
                 # Emit object only if we have metadata beyond plain help (for backward compat)
-                if is_path or choices or required or type_str not in (None, "str") or default_val is not None:
+                if (
+                    is_path
+                    or choices
+                    or required
+                    or type_str not in (None, "str")
+                    or default_val is not None
+                ):
                     obj: dict[str, object] = {"help": help_text}
                     if is_path:
                         obj["path_arg"] = True

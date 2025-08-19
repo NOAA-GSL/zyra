@@ -13,7 +13,9 @@ def test_tokenizer_extracts_choices_for_options():
     toks = wiz._tokenize_manifest(cap)
     # Expect choices mapped for the specific command
     oc = toks["opt_choices"]
-    assert ("visualize" in toks["first_tokens"]) and ("heatmap" in toks["commands"]) is False
+    assert ("visualize" in toks["first_tokens"]) and (
+        "heatmap" in toks["commands"]
+    ) is False
     # opt_choices uses keys (first, second)
     choices = set()
     for key, mapping in oc.items():
@@ -21,4 +23,3 @@ def test_tokenizer_extracts_choices_for_options():
             choices = mapping.get("--cmap", set())
             break
     assert choices == {"viridis", "plasma", "magma"}
-

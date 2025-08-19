@@ -315,19 +315,19 @@ class _WizardCompleter(Completer):  # type: ignore[misc]
         self.options: set[str] = toks["options"]
         self.opt_map: dict[tuple[str, str | None], set[str]] = toks["opt_map"]
         self.path_like: set[str] = toks.get("path_like", set())
-        self.opt_choices: dict[
-            tuple[str, str | None], dict[str, set[str]]
-        ] = toks.get("opt_choices", {})
+        self.opt_choices: dict[tuple[str, str | None], dict[str, set[str]]] = toks.get(
+            "opt_choices", {}
+        )
         self.choices_global: dict[str, set[str]] = toks.get("choices_global", {})
-        self.opt_meta: dict[
-            tuple[str, str | None], dict[str, dict]
-        ] = toks.get("opt_meta", {})
-        self.group_map: dict[
-            tuple[str, str | None], dict[str, str]
-        ] = toks.get("group_map", {})
-        self.group_order: dict[
-            tuple[str, str | None], dict[str, int]
-        ] = toks.get("group_order", {})
+        self.opt_meta: dict[tuple[str, str | None], dict[str, dict]] = toks.get(
+            "opt_meta", {}
+        )
+        self.group_map: dict[tuple[str, str | None], dict[str, str]] = toks.get(
+            "group_map", {}
+        )
+        self.group_order: dict[tuple[str, str | None], dict[str, int]] = toks.get(
+            "group_order", {}
+        )
         self.path_completer = PathCompleter(expanduser=True)  # type: ignore
 
     def _iter_basic(self, last: str, word: str):
@@ -353,6 +353,7 @@ class _WizardCompleter(Completer):  # type: ignore[misc]
             for w in self._iter_basic(self.first_tokens, current):
                 yield Completion(w, start_position=-len(current))  # type: ignore
             return
+
         # After first token, try subcommands and options
         # If typing an option, complete from options
         def _meta_for_option(opt_name: str) -> dict:
@@ -461,6 +462,7 @@ class _WizardCompleter(Completer):  # type: ignore[misc]
             # Delegate to PathCompleter
             yield from self.path_completer.get_completions(document, complete_event)  # type: ignore
             return
+
         # If previous token is an option with choices, suggest its choices
         def _choices_for_option(opt_name: str) -> set[str]:
             second = parts[1] if len(parts) >= 2 else None

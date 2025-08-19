@@ -9,7 +9,11 @@ def test_group_title_in_option_completion_meta(monkeypatch):
             ],
             "options": {
                 "--input": {"help": "Path to input", "path_arg": True},
-                "--output": {"help": "Path to output", "path_arg": True, "default": "out.png"},
+                "--output": {
+                    "help": "Path to output",
+                    "path_arg": True,
+                    "default": "out.png",
+                },
             },
         }
     }

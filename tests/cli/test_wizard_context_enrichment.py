@@ -8,7 +8,11 @@ def test_context_includes_enriched_option_details(monkeypatch, capsys):
             "doc": "Docstring here",
             "epilog": "Epilog text",
             "options": {
-                "--cmap": {"help": "Colormap", "choices": ["viridis", "plasma"], "default": "viridis"},
+                "--cmap": {
+                    "help": "Colormap",
+                    "choices": ["viridis", "plasma"],
+                    "default": "viridis",
+                },
                 "--input": {"help": "Path", "path_arg": True},
             },
         }
@@ -40,4 +44,3 @@ def test_context_includes_enriched_option_details(monkeypatch, capsys):
     # Should contain choices and default info in the context block
     assert "choices: viridis, plasma" in up
     assert "default: viridis" in up
-
