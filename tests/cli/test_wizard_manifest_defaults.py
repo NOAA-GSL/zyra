@@ -5,7 +5,11 @@ def test_tokenizer_captures_default_and_help():
         "process convert-format": {
             "description": "",
             "options": {
-                "--format": {"help": "Output format", "choices": ["netcdf", "geotiff"], "default": "netcdf"},
+                "--format": {
+                    "help": "Output format",
+                    "choices": ["netcdf", "geotiff"],
+                    "default": "netcdf",
+                },
                 "--output": {"help": "Output file", "path_arg": True},
             },
         }
@@ -14,4 +18,3 @@ def test_tokenizer_captures_default_and_help():
     meta = toks["opt_meta"].get(("process", "convert-format"), {})
     assert meta.get("--format", {}).get("default") == "netcdf"
     assert "help" in meta.get("--format", {})
-
