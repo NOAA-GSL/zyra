@@ -21,12 +21,27 @@ Contents
    api/datavizhub.connectors
    api/datavizhub.utils
    api/datavizhub.api
+   api/datavizhub.assets
+   api/datavizhub.cli
+   api/datavizhub.transform
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Wiki
+
+   wiki/index
+   wiki/wiki_sync
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Contributing
+
+   contributing/wiki-sync
 
 External Wiki
 -------------
 
-For human-authored guidance, design notes, and usage guides, see the project
-wiki (cloned into the dev container):
+For human-authored guidance, design notes, and usage guides, see the project wiki:
 
-- Local mirror: ``/wiki/``
 - Online: https://github.com/NOAA-GSL/datavizhub/wiki
+- Synced copy is included in this documentation under the "Wiki" section.

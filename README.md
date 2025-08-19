@@ -689,9 +689,7 @@ with open("/data/out/movie.mp4", "rb") as f:
   - API Routers and Endpoints: https://github.com/NOAA-GSL/datavizhub/wiki/DataVizHub-API-Routers-and-Endpoints
   - Security Quickstart: https://github.com/NOAA-GSL/datavizhub/wiki/DataVizHub-API-Security-Quickstart
 - API docs (GitHub Pages): https://noaa-gsl.github.io/datavizhub/
-- Dev container: A read-only mirror of the wiki is auto-cloned into `/wiki` when the dev container starts. It auto-refreshes at most once per hour. This folder is ignored by Git and is not part of the repository on GitHub.
-- Force refresh: `bash .devcontainer/postStart.sh --force` (or set `DOCS_REFRESH_SECONDS` to adjust the hourly cadence).
-- Note: There is no `docs/` directory in the main repo. If you are not using the dev container, read the wiki directly.
+- CI-synced wiki: A GitHub Action mirrors the wiki into `docs/source/wiki/` so Sphinx can build it with the docs. Sync commits occur only on `main`; PRs/branches use the synced copy for builds without committing changes.
 
 ## Notes
 - Paths: examples use absolute paths (e.g., `/data/...`) for clarity, but the library does not assume a specific root; configure paths via your own settings or env vars if preferred.
