@@ -32,7 +32,7 @@ jobs:
       - name: Commit wiki changes (main only)
         run: |
           cd main
-          if [ "$GITHUB_REF_NAME" = "main" ]; then
+          if [ "${{ github.ref_name }}" = "main" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add docs/source/wiki/
@@ -43,5 +43,5 @@ jobs:
               echo "No changes to commit"
             fi
           else
-            echo "Skipping commit: branch is $GITHUB_REF_NAME"
+            echo "Skipping commit: branch is ${{ github.ref_name }}"
           fi

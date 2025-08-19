@@ -69,6 +69,17 @@ source_suffix = {
 }
 
 # Mock optional heavy dependencies to allow building API docs without extras
+# Note for maintainers:
+# - Importing some API modules executes module-level side effects that are
+#   incompatible with a docs-build environment (CI or local), for example:
+#   - Creating or touching filesystem paths (e.g., '/data/uploads') during import
+#   - Initializing FastAPI app and router wiring (which pulls in optional deps)
+#   - Triggering background worker wiring (RQ/Redis) or reading env config
+#   - Potential network or service assumptions when modules import clients
+# - To keep the docs build hermetic and fast, we mock these modules so that
+#   autodoc can still render signatures without executing their import-time code.
+# - If you reduce import-time side effects in these modules, feel free to
+#   remove them from this list.
 autodoc_mock_imports = [
     "boto3",
     "botocore",
