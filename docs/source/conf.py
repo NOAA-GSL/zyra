@@ -19,6 +19,7 @@ copyright = f"{datetime.now():%Y}, {author}"
 # -- General configuration ---------------------------------------------------
 
 extensions = [
+    "myst_parser",  # Enable Markdown support
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
@@ -26,7 +27,11 @@ extensions = [
 ]
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+]
 
 # Napoleon settings for NumPy-style docstrings
 napoleon_google_docstring = False
@@ -43,22 +48,42 @@ napoleon_use_rtype = True
 
 # -- Options for HTML output -------------------------------------------------
 
+# Default to alabaster; override if RTD theme is available
+html_theme = "alabaster"
 if _ils.find_spec("sphinx_rtd_theme") is not None:  # pragma: no cover - docs build env
     html_theme = "sphinx_rtd_theme"
-else:
-    html_theme = "alabaster"
 html_static_path = ["_static"]
 
 # Autosummary/napoleon tweaks for cleaner API pages
 autosummary_generate = True
 autosummary_imported_members = False
-html_theme_options = {
-    "navigation_depth": 3,
-    "collapse_navigation": False,
-    "sticky_navigation": True,
+if html_theme == "sphinx_rtd_theme":
+    html_theme_options = {
+        "navigation_depth": 3,
+        "collapse_navigation": False,
+        "sticky_navigation": True,
+    }
+else:
+    html_theme_options = {}
+
+# Support both .rst and .md sources
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
 }
 
 # Mock optional heavy dependencies to allow building API docs without extras
+# Note for maintainers:
+# - Importing some API modules executes module-level side effects that are
+#   incompatible with a docs-build environment (CI or local), for example:
+#   - Creating or touching filesystem paths (e.g., '/data/uploads') during import
+#   - Initializing FastAPI app and router wiring (which pulls in optional deps)
+#   - Triggering background worker wiring (RQ/Redis) or reading env config
+#   - Potential network or service assumptions when modules import clients
+# - To keep the docs build hermetic and fast, we mock these modules so that
+#   autodoc can still render signatures without executing their import-time code.
+# - If you reduce import-time side effects in these modules, feel free to
+#   remove them from this list.
 autodoc_mock_imports = [
     "boto3",
     "botocore",
@@ -77,4 +102,13 @@ autodoc_mock_imports = [
     "ffmpeg",
     "ffmpeg_python",
     "ffmpeg-python",
+    # Mock API submodules that cause side effects on import during docs build
+    "datavizhub.api",
+    "datavizhub.api.server",
+    "datavizhub.api.routers",
+    "datavizhub.api.routers.cli",
+    "datavizhub.api.routers.files",
+    "datavizhub.api.workers",
+    "datavizhub.api.workers.executor",
+    "datavizhub.api.workers.jobs",
 ]
