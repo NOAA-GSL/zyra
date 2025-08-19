@@ -77,8 +77,13 @@ def _safe_register_all(sub: argparse._SubParsersAction) -> None:
         pass
 
 
-def _collect_options(p: argparse.ArgumentParser) -> dict[str, str]:
-    opts: dict[str, str] = {}
+def _collect_options(p: argparse.ArgumentParser) -> dict[str, object]:
+    """Collect option help and tag path-like args.
+
+    Backward-compat: values are strings unless a path-like is detected, in which case
+    the value is an object: {"help": str, "path_arg": true}.
+    """
+    opts: dict[str, object] = {}
     for act in getattr(p, "_actions", []):  # type: ignore[attr-defined]
         if act.option_strings:
             # choose the long option if available, else the first one
@@ -90,7 +95,68 @@ def _collect_options(p: argparse.ArgumentParser) -> dict[str, str]:
             if opt is None and act.option_strings:
                 opt = act.option_strings[0]
             if opt:
-                opts[opt] = (act.help or "").strip()
+                help_text = (act.help or "").strip()
+                # Heuristic to detect path-like options
+                names = set(act.option_strings)
+                name_hint = any(
+                    n.startswith(
+                        (
+                            "--input",
+                            "--output",
+                            "--output-dir",
+                            "--frames",
+                            "--frames-dir",
+                            "--input-file",
+                            "--manifest",
+                        )
+                    )
+                    or n in {"-i", "-o"}
+                    for n in names
+                )
+                meta = getattr(act, "metavar", None)
+                meta_hint = False
+                if isinstance(meta, str):
+                    ml = meta.lower()
+                    meta_hint = any(k in ml for k in ("path", "file", "dir"))
+                is_path = bool(name_hint or meta_hint)
+                # Additional metadata
+                choices = list(getattr(act, "choices", []) or [])
+                required = bool(getattr(act, "required", False))
+                # Map argparse type to a simple string
+                t = getattr(act, "type", None)
+                type_str: str | None = None
+                if is_path:
+                    type_str = "path"
+                elif t is int:
+                    type_str = "int"
+                elif t is float:
+                    type_str = "float"
+                elif t is str or t is None:
+                    type_str = "str"
+                else:
+                    # Fallback to the name of the callable/type if available
+                    type_str = getattr(t, "__name__", None) or str(t)
+
+                # Default value (avoid argparse.SUPPRESS sentinel)
+                default_val = getattr(act, "default", None)
+                if isinstance(default_val, str) and default_val == argparse.SUPPRESS:  # type: ignore[attr-defined]
+                    default_val = None
+                # Emit object only if we have metadata beyond plain help (for backward compat)
+                if is_path or choices or required or type_str not in (None, "str") or default_val is not None:
+                    obj: dict[str, object] = {"help": help_text}
+                    if is_path:
+                        obj["path_arg"] = True
+                    if choices:
+                        obj["choices"] = choices
+                    if type_str:
+                        obj["type"] = type_str
+                    if required:
+                        obj["required"] = True
+                    if default_val is not None:
+                        obj["default"] = default_val
+                    opts[opt] = obj
+                else:
+                    opts[opt] = help_text
     return opts
 
 
@@ -104,11 +170,29 @@ def _traverse(parser: argparse.ArgumentParser, *, prefix: str = "") -> dict[str,
         if a.__class__.__name__ == "_SubParsersAction"
     ]  # type: ignore[attr-defined]
     if not sub_actions:
-        # Leaf command: collect options and description
+        # Leaf command: collect options, description, doc, epilog, and groups
         name = prefix.strip()
         if name:  # skip root
+            # Option groups: preserve group titles and option flags
+            groups: list[dict[str, Any]] = []
+            for grp in getattr(parser, "_action_groups", []):  # type: ignore[attr-defined]
+                opts: list[str] = []
+                for act in getattr(grp, "_group_actions", []):  # type: ignore[attr-defined]
+                    if getattr(act, "option_strings", None):
+                        # choose the long option if available, else the first one
+                        long = None
+                        for s in act.option_strings:
+                            if s.startswith("--"):
+                                long = s
+                                break
+                        opts.append(long or act.option_strings[0])
+                if opts:
+                    groups.append({"title": getattr(grp, "title", ""), "options": opts})
             manifest[name] = {
                 "description": (parser.description or parser.prog or "").strip(),
+                "doc": (parser.description or "") or "",
+                "epilog": (getattr(parser, "epilog", None) or ""),
+                "groups": groups,
                 "options": _collect_options(parser),
             }
         return manifest

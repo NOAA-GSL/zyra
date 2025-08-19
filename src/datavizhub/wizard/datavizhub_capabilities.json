@@ -1,108 +1,424 @@
 {
   "acquire http": {
     "description": "datavizhub acquire http",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--list",
+          "--pattern",
+          "--since",
+          "--since-period",
+          "--until",
+          "--date-format",
+          "--inputs",
+          "--manifest",
+          "--output-dir"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--output": "Output path or '-' for stdout",
-      "--list": "List links on a directory page",
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--list": {
+        "help": "List links on a directory page",
+        "type": "str",
+        "default": false
+      },
       "--pattern": "Regex to filter listed links",
       "--since": "ISO date filter for list mode",
       "--since-period": "ISO-8601 duration for lookback (e.g., P1Y, P6M, P7D, PT24H)",
       "--until": "ISO date filter for list mode",
       "--date-format": "Filename date format for list filtering (e.g., YYYYMMDD)",
-      "--inputs": "Multiple HTTP URLs to fetch",
-      "--manifest": "Path to a file listing URLs (one per line)",
-      "--output-dir": "Directory to write outputs for --inputs"
+      "--inputs": {
+        "help": "Multiple HTTP URLs to fetch",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--manifest": {
+        "help": "Path to a file listing URLs (one per line)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      }
     }
   },
   "acquire s3": {
     "description": "datavizhub acquire s3",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--url",
+          "--bucket",
+          "--key",
+          "--unsigned",
+          "--list",
+          "--pattern",
+          "--since",
+          "--since-period",
+          "--until",
+          "--date-format",
+          "--inputs",
+          "--manifest",
+          "--output-dir",
+          "--output"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
       "--url": "Full URL s3://bucket/key",
       "--bucket": "Bucket name",
       "--key": "Object key (when using --bucket)",
-      "--unsigned": "Use unsigned access for public buckets",
-      "--list": "List keys under a prefix",
+      "--unsigned": {
+        "help": "Use unsigned access for public buckets",
+        "type": "str",
+        "default": false
+      },
+      "--list": {
+        "help": "List keys under a prefix",
+        "type": "str",
+        "default": false
+      },
       "--pattern": "Regex to filter listed keys",
       "--since": "ISO date filter for list mode",
       "--since-period": "ISO-8601 duration for lookback (e.g., P1Y, P6M, P7D, PT24H)",
       "--until": "ISO date filter for list mode",
       "--date-format": "Filename date format for list filtering (e.g., YYYYMMDD)",
-      "--inputs": "Multiple s3:// URLs to fetch",
-      "--manifest": "Path to a file listing s3:// URLs (one per line)",
-      "--output-dir": "Directory to write outputs for --inputs",
-      "--output": "Output path or '-' for stdout"
+      "--inputs": {
+        "help": "Multiple s3:// URLs to fetch",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--manifest": {
+        "help": "Path to a file listing s3:// URLs (one per line)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      }
     }
   },
   "acquire ftp": {
     "description": "datavizhub acquire ftp",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--list",
+          "--sync-dir",
+          "--pattern",
+          "--since",
+          "--since-period",
+          "--until",
+          "--date-format",
+          "--inputs",
+          "--manifest",
+          "--output-dir"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--output": "Output path or '-' for stdout",
-      "--list": "List files in an FTP directory",
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--list": {
+        "help": "List files in an FTP directory",
+        "type": "str",
+        "default": false
+      },
       "--sync-dir": "Sync FTP directory to a local directory",
       "--pattern": "Regex to filter list/sync",
       "--since": "ISO date filter for list/sync",
       "--since-period": "ISO-8601 duration for lookback (e.g., P1Y, P6M, P7D, PT24H)",
       "--until": "ISO date filter for list/sync",
       "--date-format": "Filename date format for filtering (e.g., YYYYMMDD)",
-      "--inputs": "Multiple FTP paths to fetch",
-      "--manifest": "Path to a file listing FTP paths (one per line)",
-      "--output-dir": "Directory to write outputs for --inputs"
+      "--inputs": {
+        "help": "Multiple FTP paths to fetch",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--manifest": {
+        "help": "Path to a file listing FTP paths (one per line)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      }
     }
   },
   "acquire vimeo": {
     "description": "datavizhub acquire vimeo",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--output": "Output path or '-' for stdout"
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      }
     }
   },
   "process decode-grib2": {
     "description": "datavizhub process decode-grib2",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--backend",
+          "--pattern",
+          "--unsigned",
+          "--raw"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--backend": "",
+      "--backend": {
+        "help": "",
+        "choices": [
+          "cfgrib",
+          "pygrib",
+          "wgrib2"
+        ],
+        "type": "str",
+        "default": "cfgrib"
+      },
       "--pattern": "Regex for .idx-based subsetting when using HTTP/S3",
-      "--unsigned": "Use unsigned S3 access for public buckets",
-      "--raw": "Emit raw (optionally .idx-subset) GRIB2 bytes to stdout"
+      "--unsigned": {
+        "help": "Use unsigned S3 access for public buckets",
+        "type": "str",
+        "default": false
+      },
+      "--raw": {
+        "help": "Emit raw (optionally .idx-subset) GRIB2 bytes to stdout",
+        "type": "str",
+        "default": false
+      }
     }
   },
   "process extract-variable": {
     "description": "datavizhub process extract-variable",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--backend",
+          "--stdout",
+          "--format"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--backend": "",
-      "--stdout": "Write selected variable as bytes to stdout",
-      "--format": "Output format for --stdout"
+      "--backend": {
+        "help": "",
+        "choices": [
+          "xarray",
+          "pygrib"
+        ],
+        "type": "str",
+        "default": "xarray"
+      },
+      "--stdout": {
+        "help": "Write selected variable as bytes to stdout",
+        "type": "str",
+        "default": false
+      },
+      "--format": {
+        "help": "Output format for --stdout",
+        "choices": [
+          "npy",
+          "nc",
+          "grib2"
+        ],
+        "type": "str",
+        "default": "npy"
+      }
     }
   },
   "process convert-format": {
     "description": "datavizhub process convert-format",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--stdout",
+          "--inputs",
+          "--output-dir",
+          "--backend",
+          "--var",
+          "--pattern",
+          "--unsigned"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--output": "",
-      "--stdout": "Write binary output to stdout instead of a file",
-      "--inputs": "Multiple input paths or URLs",
-      "--output-dir": "Directory to write outputs for --inputs",
-      "--backend": "",
+      "--output": {
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--stdout": {
+        "help": "Write binary output to stdout instead of a file",
+        "type": "str",
+        "default": false
+      },
+      "--inputs": {
+        "help": "Multiple input paths or URLs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--backend": {
+        "help": "",
+        "choices": [
+          "xarray",
+          "pygrib",
+          "pydap"
+        ],
+        "type": "str",
+        "default": "xarray"
+      },
       "--var": "Variable name or regex for multi-var datasets",
       "--pattern": "Regex for .idx-based subsetting when using HTTP/S3",
-      "--unsigned": "Use unsigned S3 access for public buckets"
+      "--unsigned": {
+        "help": "Use unsigned S3 access for public buckets",
+        "type": "str",
+        "default": false
+      }
     }
   },
   "visualize heatmap": {
     "description": "datavizhub visualize heatmap",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--var",
+          "--basemap",
+          "--extent",
+          "--output",
+          "--inputs",
+          "--output-dir",
+          "--width",
+          "--height",
+          "--dpi",
+          "--cmap",
+          "--colorbar",
+          "--label",
+          "--units",
+          "--features",
+          "--xarray-engine",
+          "--map-type",
+          "--tile-source",
+          "--tile-zoom",
+          "--timestamp",
+          "--crs",
+          "--reproject",
+          "--timestamp-loc",
+          "--no-coastline",
+          "--no-borders",
+          "--no-gridlines"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--input": "Path to .nc or .npy input",
+      "--input": {
+        "help": "Path to .nc or .npy input",
+        "path_arg": true,
+        "type": "path"
+      },
       "--var": "Variable name for NetCDF inputs",
-      "--basemap": "Path to background image",
+      "--basemap": {
+        "help": "Path to background image",
+        "path_arg": true,
+        "type": "path"
+      },
       "--extent": "west east south north",
-      "--output": "Output PNG path (required when using --input; for --inputs use --output-dir)",
-      "--inputs": "Multiple input paths for batch rendering",
-      "--output-dir": "Directory to write outputs for --inputs",
+      "--output": {
+        "help": "Output PNG path (required when using --input; for --inputs use --output-dir)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "Multiple input paths for batch rendering",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
       "--width": "",
       "--height": "",
       "--dpi": "",
@@ -126,15 +442,73 @@
   },
   "visualize contour": {
     "description": "datavizhub visualize contour",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--inputs",
+          "--output-dir",
+          "--var",
+          "--basemap",
+          "--extent",
+          "--output",
+          "--width",
+          "--height",
+          "--dpi",
+          "--cmap",
+          "--filled",
+          "--levels",
+          "--colorbar",
+          "--label",
+          "--units",
+          "--features",
+          "--xarray-engine",
+          "--map-type",
+          "--tile-source",
+          "--tile-zoom",
+          "--timestamp",
+          "--crs",
+          "--reproject",
+          "--timestamp-loc",
+          "--no-coastline",
+          "--no-borders",
+          "--no-gridlines"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--input": "Path to .nc or .npy input",
-      "--inputs": "Multiple inputs for batch rendering",
-      "--output-dir": "Directory to write outputs for --inputs",
+      "--input": {
+        "help": "Path to .nc or .npy input",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "Multiple inputs for batch rendering",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
       "--var": "Variable name for NetCDF inputs",
-      "--basemap": "Path to background image",
+      "--basemap": {
+        "help": "Path to background image",
+        "path_arg": true,
+        "type": "path"
+      },
       "--extent": "west east south north",
-      "--output": "Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
+      "--output": {
+        "help": "Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
+        "path_arg": true,
+        "type": "path"
+      },
       "--width": "",
       "--height": "",
       "--dpi": "",
@@ -160,13 +534,43 @@
   },
   "visualize timeseries": {
     "description": "datavizhub visualize timeseries",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--x",
+          "--y",
+          "--var",
+          "--output",
+          "--width",
+          "--height",
+          "--dpi",
+          "--title",
+          "--xlabel",
+          "--ylabel",
+          "--style"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--input": "Path to .csv or .nc input",
+      "--input": {
+        "help": "Path to .csv or .nc input",
+        "path_arg": true,
+        "type": "path"
+      },
       "--x": "CSV: X column name (e.g., time)",
       "--y": "CSV: Y column name (value)",
       "--var": "NetCDF: variable name to plot",
-      "--output": "Output PNG path",
+      "--output": {
+        "help": "Output PNG path",
+        "path_arg": true,
+        "type": "path"
+      },
       "--width": "",
       "--height": "",
       "--dpi": "",
@@ -178,18 +582,83 @@
   },
   "visualize vector": {
     "description": "datavizhub visualize vector",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--inputs",
+          "--output-dir",
+          "--uvar",
+          "--vvar",
+          "--u",
+          "--v",
+          "--basemap",
+          "--extent",
+          "--output",
+          "--width",
+          "--height",
+          "--dpi",
+          "--density",
+          "--scale",
+          "--color",
+          "--features",
+          "--xarray-engine",
+          "--map-type",
+          "--tile-source",
+          "--tile-zoom",
+          "--streamlines",
+          "--crs",
+          "--reproject",
+          "--no-coastline",
+          "--no-borders",
+          "--no-gridlines"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--input": "Path to .nc input (alternative to --u/--v .npy)",
-      "--inputs": "Multiple inputs for batch rendering",
-      "--output-dir": "Directory to write outputs for --inputs",
+      "--input": {
+        "help": "Path to .nc input (alternative to --u/--v .npy)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "Multiple inputs for batch rendering",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
       "--uvar": "NetCDF: U variable name",
       "--vvar": "NetCDF: V variable name",
-      "--u": "Path to U .npy file (alternative input)",
-      "--v": "Path to V .npy file (alternative input)",
-      "--basemap": "Path to background image",
+      "--u": {
+        "help": "Path to U .npy file (alternative input)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--v": {
+        "help": "Path to V .npy file (alternative input)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--basemap": {
+        "help": "Path to background image",
+        "path_arg": true,
+        "type": "path"
+      },
       "--extent": "west east south north",
-      "--output": "Output PNG path (required for single --input/--u/--v; when using --inputs, prefer --output-dir)",
+      "--output": {
+        "help": "Output PNG path (required for single --input/--u/--v; when using --inputs, prefer --output-dir)",
+        "path_arg": true,
+        "type": "path"
+      },
       "--width": "",
       "--height": "",
       "--dpi": "",
@@ -211,23 +680,111 @@
   },
   "visualize animate": {
     "description": "datavizhub visualize animate",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--mode",
+          "--input",
+          "--inputs",
+          "--var",
+          "--uvar",
+          "--vvar",
+          "--u",
+          "--v",
+          "--output-dir",
+          "--manifest",
+          "--cmap",
+          "--levels",
+          "--vmin",
+          "--vmax",
+          "--basemap",
+          "--extent",
+          "--width",
+          "--height",
+          "--dpi",
+          "--density",
+          "--scale",
+          "--color",
+          "--colorbar",
+          "--label",
+          "--units",
+          "--show-timestamp",
+          "--timestamps-csv",
+          "--timestamp-loc",
+          "--features",
+          "--map-type",
+          "--tile-source",
+          "--tile-zoom",
+          "--xarray-engine",
+          "--no-coastline",
+          "--no-borders",
+          "--no-gridlines",
+          "--seed",
+          "--particles",
+          "--custom-seed",
+          "--dt",
+          "--steps-per-frame",
+          "--size",
+          "--method",
+          "--crs",
+          "--reproject",
+          "--to-video",
+          "--combine-to",
+          "--grid-cols",
+          "--grid-mode",
+          "--fps"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
       "--mode": "",
-      "--input": "Path to .nc 3D var or 3D .npy stack (for heatmap/contour/vector)",
-      "--inputs": "Multiple inputs for batch animations",
+      "--input": {
+        "help": "Path to .nc 3D var or 3D .npy stack (for heatmap/contour/vector)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "Multiple inputs for batch animations",
+        "path_arg": true,
+        "type": "path"
+      },
       "--var": "NetCDF variable name (heatmap/contour)",
       "--uvar": "NetCDF: U variable name (vector/particles mode)",
       "--vvar": "NetCDF: V variable name (vector/particles mode)",
-      "--u": "Path to U .npy stack (vector/particles mode)",
-      "--v": "Path to V .npy stack (vector/particles mode)",
-      "--output-dir": "Directory to write frames",
-      "--manifest": "Optional manifest output path (JSON)",
+      "--u": {
+        "help": "Path to U .npy stack (vector/particles mode)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--v": {
+        "help": "Path to V .npy stack (vector/particles mode)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write frames",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--manifest": {
+        "help": "Optional manifest output path (JSON)",
+        "path_arg": true,
+        "type": "path"
+      },
       "--cmap": "",
       "--levels": "Contour levels: count or comma-separated",
       "--vmin": "",
       "--vmax": "",
-      "--basemap": "Path to background image",
+      "--basemap": {
+        "help": "Path to background image",
+        "path_arg": true,
+        "type": "path"
+      },
       "--extent": "west east south north",
       "--width": "",
       "--height": "",
@@ -267,23 +824,106 @@
   },
   "visualize compose-video": {
     "description": "datavizhub visualize compose-video",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--frames",
+          "--output",
+          "--basemap",
+          "--fps"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--frames": "Directory containing frame_*.png files",
-      "--output": "Output MP4 path",
-      "--basemap": "Optional background image to overlay under frames",
+      "--frames": {
+        "help": "Directory containing frame_*.png files",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output": {
+        "help": "Output MP4 path",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--basemap": {
+        "help": "Optional background image to overlay under frames",
+        "path_arg": true,
+        "type": "path"
+      },
       "--fps": ""
     }
   },
   "visualize interactive": {
     "description": "datavizhub visualize interactive",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--var",
+          "--mode",
+          "--engine",
+          "--output",
+          "--extent",
+          "--cmap",
+          "--features",
+          "--no-coastline",
+          "--no-borders",
+          "--no-gridlines",
+          "--colorbar",
+          "--label",
+          "--units",
+          "--timestamp",
+          "--timestamp-loc",
+          "--tiles",
+          "--zoom",
+          "--attribution",
+          "--wms-url",
+          "--wms-layers",
+          "--wms-format",
+          "--wms-transparent",
+          "--layer-control",
+          "--width",
+          "--height",
+          "--crs",
+          "--reproject",
+          "--time-column",
+          "--period",
+          "--transition-ms",
+          "--uvar",
+          "--vvar",
+          "--u",
+          "--v",
+          "--density",
+          "--scale",
+          "--color",
+          "--streamlines"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--input": "Path to .npy/.nc/.csv input",
+      "--input": {
+        "help": "Path to .npy/.nc/.csv input",
+        "path_arg": true,
+        "type": "path"
+      },
       "--var": "NetCDF variable name (for .nc inputs)",
       "--mode": "",
       "--engine": "",
-      "--output": "Output HTML path",
+      "--output": {
+        "help": "Output HTML path",
+        "path_arg": true,
+        "type": "path"
+      },
       "--extent": "",
       "--cmap": "",
       "--features": "Heatmap/contour only: features (may be ignored depending on engine)",
@@ -312,8 +952,16 @@
       "--transition-ms": "TimeDimension transition time (ms)",
       "--uvar": "NetCDF: U variable name (vector mode)",
       "--vvar": "NetCDF: V variable name (vector mode)",
-      "--u": "Path to U .npy array (vector mode)",
-      "--v": "Path to V .npy array (vector mode)",
+      "--u": {
+        "help": "Path to U .npy array (vector mode)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--v": {
+        "help": "Path to V .npy array (vector mode)",
+        "path_arg": true,
+        "type": "path"
+      },
       "--density": "Vector: arrow sampling density (0<d<=1)",
       "--scale": "Vector: arrow length scale in degrees",
       "--color": "Vector: arrow/line color",
@@ -322,16 +970,49 @@
   },
   "decimate local": {
     "description": "datavizhub decimate local",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--input": "Input path or '-' for stdin"
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path"
+      }
     }
   },
   "decimate s3": {
     "description": "datavizhub decimate s3",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--url",
+          "--bucket",
+          "--key"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--input": "Input path or '-' for stdin",
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path"
+      },
       "--url": "Full URL s3://bucket/key",
       "--bucket": "Bucket name",
       "--key": "Object key (when using --bucket)"
@@ -339,24 +1020,73 @@
   },
   "decimate ftp": {
     "description": "datavizhub decimate ftp",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--input": "Input path or '-' for stdin"
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path"
+      }
     }
   },
   "decimate post": {
     "description": "datavizhub decimate post",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--content-type"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--input": "Input path or '-' for stdin",
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path"
+      },
       "--content-type": "Content-Type header"
     }
   },
   "decimate vimeo": {
     "description": "datavizhub decimate vimeo",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--name",
+          "--description",
+          "--replace-uri"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--input": "Input path or '-' for stdin",
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path"
+      },
       "--name": "Video title",
       "--description": "Video description",
       "--replace-uri": "Replace existing video at this Vimeo URI"
@@ -364,57 +1094,188 @@
   },
   "transform metadata": {
     "description": "datavizhub transform metadata",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--frames-dir",
+          "--pattern",
+          "--datetime-format",
+          "--period-seconds",
+          "--output"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--frames-dir": "Directory containing frames",
+      "--frames-dir": {
+        "help": "Directory containing frames",
+        "path_arg": true,
+        "type": "path"
+      },
       "--pattern": "Regex filter for frame filenames",
       "--datetime-format": "Datetime format used in filenames (e.g., %Y%m%d%H%M%S)",
       "--period-seconds": "Expected cadence to compute missing frames",
-      "--output": "Output path or '-' for stdout"
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path"
+      }
     }
   },
   "transform enrich-metadata": {
     "description": "datavizhub transform enrich-metadata",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--frames-meta",
+          "--dataset-id",
+          "--vimeo-uri",
+          "--read-vimeo-uri",
+          "--output"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
-      "--frames-meta": "Path to frames metadata JSON",
+      "--frames-meta": {
+        "help": "Path to frames metadata JSON",
+        "path_arg": true,
+        "type": "path"
+      },
       "--dataset-id": "Dataset identifier to embed",
       "--vimeo-uri": "Vimeo video URI to embed in metadata",
       "--read-vimeo-uri": "Read Vimeo URI from stdin (first line)",
-      "--output": "Output path or '-' for stdout"
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path"
+      }
     }
   },
   "transform update-dataset-json": {
     "description": "datavizhub transform update-dataset-json",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input-url",
+          "--input-file",
+          "--dataset-id",
+          "--meta",
+          "--read-meta-stdin",
+          "--start",
+          "--end",
+          "--vimeo-uri",
+          "--no-set-data-link",
+          "--output"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
       "--input-url": "HTTP(S) or s3:// URL of dataset.json",
-      "--input-file": "Local dataset.json path",
+      "--input-file": {
+        "help": "Local dataset.json path",
+        "path_arg": true,
+        "type": "path"
+      },
       "--dataset-id": "Dataset id to update",
-      "--meta": "Path to metadata JSON containing start_datetime/end_datetime/vimeo_uri",
-      "--read-meta-stdin": "Read metadata JSON from stdin",
+      "--meta": {
+        "help": "Path to metadata JSON containing start_datetime/end_datetime/vimeo_uri",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--read-meta-stdin": {
+        "help": "Read metadata JSON from stdin",
+        "type": "str",
+        "default": false
+      },
       "--start": "Explicit startTime override (ISO)",
       "--end": "Explicit endTime override (ISO)",
       "--vimeo-uri": "Explicit Vimeo URI (e.g., /videos/12345)",
-      "--no-set-data-link": "Do not update dataLink from Vimeo URI",
-      "--output": "Output path or '-' for stdout"
+      "--no-set-data-link": {
+        "help": "Do not update dataLink from Vimeo URI",
+        "type": "str",
+        "default": false
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path"
+      }
     }
   },
   "run": {
     "description": "datavizhub run",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--set",
+          "--print-argv",
+          "--print-argv-format",
+          "--dry-run",
+          "--continue-on-error",
+          "--start",
+          "--end",
+          "--only",
+          "--verbose",
+          "--quiet",
+          "--strict-env"
+        ]
+      }
+    ],
     "options": {
       "--help": "show this help message and exit",
       "--set": "Override key=value in args across stages",
-      "--print-argv": "Print argv per stage before running",
+      "--print-argv": {
+        "help": "Print argv per stage before running",
+        "type": "str",
+        "default": false
+      },
       "--print-argv-format": "",
-      "--dry-run": "Only print argv; do not execute stages",
-      "--continue-on-error": "Continue executing remaining stages even if one fails",
+      "--dry-run": {
+        "help": "Only print argv; do not execute stages",
+        "type": "str",
+        "default": false
+      },
+      "--continue-on-error": {
+        "help": "Continue executing remaining stages even if one fails",
+        "type": "str",
+        "default": false
+      },
       "--start": "1-based index of first stage to run",
       "--end": "1-based index of last stage to run",
       "--only": "Run only stages matching this alias (acquire/process/visualize/decimate)",
-      "--verbose": "Verbose runner output (prints stage headings)",
-      "--quiet": "Suppress runner messages when possible",
-      "--strict-env": "Fail if ${VAR} placeholders are not set in environment"
+      "--verbose": {
+        "help": "Verbose runner output (prints stage headings)",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Suppress runner messages when possible",
+        "type": "str",
+        "default": false
+      },
+      "--strict-env": {
+        "help": "Fail if ${VAR} placeholders are not set in environment",
+        "type": "str",
+        "default": false
+      }
     }
   }
 }
