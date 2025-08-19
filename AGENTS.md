@@ -52,4 +52,4 @@ Dev container:
 
 ## Documentation Sources
 - Wiki: https://github.com/NOAA-GSL/datavizhub/wiki (authoritative documentation for humans and AIs).
-- Dev container mirror: `/wiki` contains an auto-cloned snapshot of the wiki for offline/context use. It auto-refreshes at most once per hour on container start. Force refresh with `bash .devcontainer/postStart.sh --force`. This folder lives outside the repo and is not part of the main repository—do not commit its contents.
+- CI-synced wiki: A GitHub Action mirrors the GitHub Wiki into `docs/source/wiki/` so it is built with Sphinx. Do not edit `docs/source/wiki/` directly; changes are committed only on `main`.

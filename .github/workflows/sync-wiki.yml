@@ -1,0 +1,47 @@
+name: Sync Wiki to Docs
+
+on:
+  push:
+    branches:
+      - "**"          # Run on all branches
+  pull_request:        # Ensure PR builds include wiki
+  schedule:
+    - cron: "0 6 * * *"  # Daily sync at 6 AM UTC
+  workflow_dispatch:    # Manual trigger
+
+jobs:
+  sync-wiki:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main repo
+        uses: actions/checkout@v4
+        with:
+          path: main
+
+      - name: Checkout wiki repo
+        uses: actions/checkout@v4
+        with:
+          repository: NOAA-GSL/datavizhub.wiki
+          path: wiki
+
+      - name: Sync wiki into docs/source/wiki
+        run: |
+          rsync -av --delete wiki/ main/docs/source/wiki/
+
+      - name: Commit wiki changes (main only)
+        run: |
+          cd main
+          if [ "$GITHUB_REF_NAME" = "main" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add docs/wiki/
+            if ! git diff --cached --quiet; then
+              git commit -m "chore(docs): sync wiki into docs/wiki"
+              git push
+            else
+              echo "No changes to commit"
+            fi
+          else
+            echo "Skipping commit: branch is $GITHUB_REF_NAME"
+          fi

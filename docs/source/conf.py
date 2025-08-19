@@ -19,6 +19,7 @@ copyright = f"{datetime.now():%Y}, {author}"
 # -- General configuration ---------------------------------------------------
 
 extensions = [
+    "myst_parser",  # Enable Markdown support
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
@@ -52,10 +53,19 @@ html_static_path = ["_static"]
 # Autosummary/napoleon tweaks for cleaner API pages
 autosummary_generate = True
 autosummary_imported_members = False
-html_theme_options = {
-    "navigation_depth": 3,
-    "collapse_navigation": False,
-    "sticky_navigation": True,
+if html_theme == "sphinx_rtd_theme":
+    html_theme_options = {
+        "navigation_depth": 3,
+        "collapse_navigation": False,
+        "sticky_navigation": True,
+    }
+else:
+    html_theme_options = {}
+
+# Support both .rst and .md sources
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
 }
 
 # Mock optional heavy dependencies to allow building API docs without extras
@@ -77,4 +87,13 @@ autodoc_mock_imports = [
     "ffmpeg",
     "ffmpeg_python",
     "ffmpeg-python",
+    # Mock API submodules that cause side effects on import during docs build
+    "datavizhub.api",
+    "datavizhub.api.server",
+    "datavizhub.api.routers",
+    "datavizhub.api.routers.cli",
+    "datavizhub.api.routers.files",
+    "datavizhub.api.workers",
+    "datavizhub.api.workers.executor",
+    "datavizhub.api.workers.jobs",
 ]
