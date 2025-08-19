@@ -30,7 +30,6 @@ Contents
    :caption: Wiki
 
    wiki/index
-   wiki/wiki_sync
 
 .. toctree::
    :maxdepth: 1

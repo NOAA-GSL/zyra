@@ -9,6 +9,9 @@ on:
     - cron: "0 6 * * *"  # Daily sync at 6 AM UTC
   workflow_dispatch:    # Manual trigger
 
+permissions:
+  contents: write  # Allow pushing synced wiki changes
+
 jobs:
   sync-wiki:
     runs-on: ubuntu-latest
