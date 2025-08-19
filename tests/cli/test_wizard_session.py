@@ -1,4 +1,4 @@
-from datavizhub.wizard import _handle_prompt, SessionState
+from datavizhub.wizard import SessionState, _handle_prompt
 
 
 def test_session_memory_in_context(monkeypatch, capsys):
@@ -29,7 +29,11 @@ datavizhub visualize heatmap --input out1.nc --var TMP --output plot.png
 
     # First call uses mock client, second also. Swap implementation dynamically by inspecting calls count
     def generate(system_prompt: str, user_prompt: str) -> str:
-        return gen_first(system_prompt, user_prompt) if len(calls) == 0 else gen_second(system_prompt, user_prompt)
+        return (
+            gen_first(system_prompt, user_prompt)
+            if len(calls) == 0
+            else gen_second(system_prompt, user_prompt)
+        )
 
     monkeypatch.setattr(llm_client.MockClient, "generate", staticmethod(generate))
 

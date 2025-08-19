@@ -13,7 +13,7 @@
 - Opt-in extras locally as needed, e.g.: `poetry install --with dev -E connectors -E processing -E visualization` or `--all-extras`.
 - Spawn shell: `poetry shell`.
 - Run a script or module: `poetry run python path/to/your_script.py` or `poetry run python -m your.module`.
-- Lint/format (if added): `poetry run black . && poetry run isort . && poetry run flake8`.
+- Lint/format: `poetry run ruff format . && poetry run ruff check .` (Ruff replaces Black/Isort/Flake8 when configured).
 - FFmpeg-required flows: ensure `ffmpeg` and `ffprobe` are installed on the system.
 
 ## Coding Style & Naming Conventions

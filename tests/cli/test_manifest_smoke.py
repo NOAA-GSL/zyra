@@ -17,4 +17,3 @@ def test_manifest_contains_core_groups():
         "manifest missing expected core commands: "
         f"acquire={has_acquire}, visualize={has_visualize}"
     )
-

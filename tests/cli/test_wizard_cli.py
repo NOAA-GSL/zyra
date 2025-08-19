@@ -1,6 +1,3 @@
-import os
-from pathlib import Path
-
 import pytest
 
 
@@ -19,14 +16,16 @@ def test_wizard_mock_prompt_dry_run_outputs_commands(capsys):
     """Mock provider with --dry-run should print suggested commands and return 0."""
     from datavizhub.cli import main
 
-    rc = main([
-        "wizard",
-        "--provider",
-        "mock",
-        "--prompt",
-        "something",
-        "--dry-run",
-    ])
+    rc = main(
+        [
+            "wizard",
+            "--provider",
+            "mock",
+            "--prompt",
+            "something",
+            "--dry-run",
+        ]
+    )
     assert rc == 0
     out = capsys.readouterr().out
     # The mock client always prints a 'datavizhub ...' suggestion
@@ -42,15 +41,17 @@ def test_wizard_logs_created(tmp_path, monkeypatch):
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
 
-    rc = main([
-        "wizard",
-        "--provider",
-        "mock",
-        "--prompt",
-        "example",
-        "--dry-run",
-        "--log",
-    ])
+    rc = main(
+        [
+            "wizard",
+            "--provider",
+            "mock",
+            "--prompt",
+            "example",
+            "--dry-run",
+            "--log",
+        ]
+    )
     assert rc == 0
 
     logs_dir = fake_home / ".datavizhub" / "wizard_logs"
@@ -78,14 +79,16 @@ $ datavizhub process convert-format input.nc --format geotiff --output out.tif
 
     monkeypatch.setattr(llm_client.MockClient, "generate", staticmethod(fake_generate))
 
-    rc = main([
-        "wizard",
-        "--provider",
-        "mock",
-        "--prompt",
-        "anything",
-        "--dry-run",
-    ])
+    rc = main(
+        [
+            "wizard",
+            "--provider",
+            "mock",
+            "--prompt",
+            "anything",
+            "--dry-run",
+        ]
+    )
     assert rc == 0
     out = capsys.readouterr().out
     # Ensure the printed command has no leading "$ " and starts with datavizhub
@@ -115,14 +118,16 @@ datavizhub two
 
     monkeypatch.setattr(llm_client.MockClient, "generate", staticmethod(fake_generate))
 
-    rc = main([
-        "wizard",
-        "--provider",
-        "mock",
-        "--prompt",
-        "multi",
-        "--dry-run",
-    ])
+    rc = main(
+        [
+            "wizard",
+            "--provider",
+            "mock",
+            "--prompt",
+            "multi",
+            "--dry-run",
+        ]
+    )
     assert rc == 0
     out = capsys.readouterr().out
     assert "datavizhub one" in out
@@ -145,14 +150,16 @@ datavizhub process convert-format input.nc --format geotiff --output out.tif # e
 
     monkeypatch.setattr(llm_client.MockClient, "generate", staticmethod(fake_generate))
 
-    rc = main([
-        "wizard",
-        "--provider",
-        "mock",
-        "--prompt",
-        "comments",
-        "--dry-run",
-    ])
+    rc = main(
+        [
+            "wizard",
+            "--provider",
+            "mock",
+            "--prompt",
+            "comments",
+            "--dry-run",
+        ]
+    )
     assert rc == 0
     out = capsys.readouterr().out
     assert "# explain why" not in out
@@ -176,14 +183,16 @@ datavizhub ok
 
     monkeypatch.setattr(llm_client.MockClient, "generate", staticmethod(fake_generate))
 
-    rc = main([
-        "wizard",
-        "--provider",
-        "mock",
-        "--prompt",
-        "safe",
-        "--dry-run",
-    ])
+    rc = main(
+        [
+            "wizard",
+            "--provider",
+            "mock",
+            "--prompt",
+            "safe",
+            "--dry-run",
+        ]
+    )
     assert rc == 0
     out = capsys.readouterr().out
     assert "datavizhub ok" in out
@@ -194,24 +203,24 @@ def test_wizard_show_raw_prints_reply(capsys, monkeypatch):
     from datavizhub.wizard import llm_client
 
     def fake_generate(system_prompt: str, user_prompt: str) -> str:
-        return (
-            """RAWXYZ
+        return """RAWXYZ
 ```
 datavizhub process convert-format input.nc geotiff --output out.tif
 ```"""
-        )
 
     monkeypatch.setattr(llm_client.MockClient, "generate", staticmethod(fake_generate))
 
-    rc = main([
-        "wizard",
-        "--provider",
-        "mock",
-        "--prompt",
-        "convert",
-        "--show-raw",
-        "--dry-run",
-    ])
+    rc = main(
+        [
+            "wizard",
+            "--provider",
+            "mock",
+            "--prompt",
+            "convert",
+            "--show-raw",
+            "--dry-run",
+        ]
+    )
     assert rc == 0
     out = capsys.readouterr().out
     assert "Raw model output:" in out
@@ -230,31 +239,37 @@ datavizhub acquire input.grib2 -o output.nc  # convert GRIB2 to NetCDF
 """
     ).strip()
 
-    monkeypatch.setattr(llm_client.MockClient, "generate", staticmethod(lambda s, u: reply))
+    monkeypatch.setattr(
+        llm_client.MockClient, "generate", staticmethod(lambda s, u: reply)
+    )
 
     # With --explain, the comment should appear in output
-    rc = main([
-        "wizard",
-        "--provider",
-        "mock",
-        "--prompt",
-        "anything",
-        "--explain",
-        "--dry-run",
-    ])
+    rc = main(
+        [
+            "wizard",
+            "--provider",
+            "mock",
+            "--prompt",
+            "anything",
+            "--explain",
+            "--dry-run",
+        ]
+    )
     assert rc == 0
     out_explain = capsys.readouterr().out
     assert "# convert GRIB2 to NetCDF" in out_explain
 
     # Without --explain, the printed suggestion should be stripped of comments
-    rc = main([
-        "wizard",
-        "--provider",
-        "mock",
-        "--prompt",
-        "anything",
-        "--dry-run",
-    ])
+    rc = main(
+        [
+            "wizard",
+            "--provider",
+            "mock",
+            "--prompt",
+            "anything",
+            "--dry-run",
+        ]
+    )
     assert rc == 0
     out = capsys.readouterr().out
     assert "# convert GRIB2 to NetCDF" not in out

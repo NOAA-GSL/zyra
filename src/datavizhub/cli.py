@@ -560,9 +560,9 @@ def main(argv: list[str] | None = None) -> int:
         import datavizhub.transform as _transform_mod
         from datavizhub import processing as _process_mod
         from datavizhub import visualization as _visual_mod
+        from datavizhub import wizard as _wizard_mod
         from datavizhub.connectors import egress as _egress_mod
         from datavizhub.connectors import ingest as _ingest_mod
-        from datavizhub import wizard as _wizard_mod
         from datavizhub.wizard.manifest import save_manifest as _save_manifest
 
         p_acq = sub.add_parser("acquire", help="Acquire/ingest data from sources")

@@ -5,16 +5,13 @@ import json
 import os
 import re
 import shlex
-import sys
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-import uuid
-import json
 from importlib import resources
 from pathlib import Path
-from typing import Iterable, List
 
-from .llm_client import LLMClient, OllamaClient, OpenAIClient, MockClient
+from .llm_client import LLMClient, MockClient, OllamaClient, OpenAIClient
 
 
 @dataclass
@@ -33,11 +30,11 @@ def _load_config() -> dict:
     """
     import yaml  # type: ignore
 
-    path = os.path.expanduser("~/.datavizhub_wizard.yaml")
+    path = Path("~/.datavizhub_wizard.yaml").expanduser()
     try:
-        if not os.path.exists(path):
+        if not path.exists():
             return {}
-        with open(path, "r", encoding="utf-8") as f:
+        with path.open("r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
         if not isinstance(data, dict):
             return {}
@@ -56,10 +53,7 @@ def _select_provider(provider: str | None, model: str | None) -> LLMClient:
     )
     prov = str(prov).lower()
     model_name = (
-        model
-        or os.environ.get("DATAVIZHUB_LLM_MODEL")
-        or cfg.get("model")
-        or None
+        model or os.environ.get("DATAVIZHUB_LLM_MODEL") or cfg.get("model") or None
     )
     if prov == "openai":
         return OpenAIClient(model=model_name)
@@ -101,9 +95,9 @@ def _load_capabilities_manifest() -> dict | None:
     if _CAP_MANIFEST_CACHE is not None:
         return _CAP_MANIFEST_CACHE
     try:
-        with resources.files(__package__).joinpath(
-            "datavizhub_capabilities.json"
-        ).open("r", encoding="utf-8") as f:
+        with resources.files(__package__).joinpath("datavizhub_capabilities.json").open(
+            "r", encoding="utf-8"
+        ) as f:
             _CAP_MANIFEST_CACHE = json.load(f)
             return _CAP_MANIFEST_CACHE
     except Exception:
@@ -131,7 +125,6 @@ def _select_relevant_capabilities(prompt: str, cap: dict, limit: int = 6) -> lis
         desc = meta.get("description", "")
         out.append(f"- {cmd}: {desc} Options: {opts}".strip())
     return out
-
 
 
 def _strip_inline_comment(s: str) -> str:
@@ -175,6 +168,7 @@ def _extract_annotated_commands(text: str) -> list[str]:
     - If none found in fences, scan whole text for the same patterns.
     - Return each command line as a separate string without shell prompts.
     """
+
     def _normalize_cmd(line: str) -> str | None:
         s = line.strip()
         if not s or s.startswith("#"):
@@ -228,12 +222,14 @@ def _run_one(cmd: str) -> int:
 
 
 def _ensure_log_dir() -> Path:
-    root = Path(os.path.expanduser("~/.datavizhub/wizard_logs"))
+    root = Path("~/.datavizhub/wizard_logs").expanduser()
     root.mkdir(parents=True, exist_ok=True)
     return root
 
 
-def _log_event(logfile: Path | None, event: dict, *, session_id: str | None = None) -> None:
+def _log_event(
+    logfile: Path | None, event: dict, *, session_id: str | None = None
+) -> None:
     if logfile is None:
         return
     try:
@@ -341,7 +337,10 @@ def _handle_prompt(
     # Suggested commands: optionally include inline comments via annotated lines
     if explain:
         shown = [a for a in annotated_cmds if a.startswith("datavizhub ")]
-        print("Suggested commands (with explanations):\n" + "\n".join(f"  {c}" for c in shown))
+        print(
+            "Suggested commands (with explanations):\n"
+            + "\n".join(f"  {c}" for c in shown)
+        )
     else:
         print("Suggested commands:\n" + "\n".join(f"  {c}" for c in cmds))
     # Update session context immediately so dry-runs can influence follow-up prompts

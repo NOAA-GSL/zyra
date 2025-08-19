@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
-from typing import Any, Dict, List
+from pathlib import Path
+from typing import Any
 
 
 def _safe_register_all(sub: argparse._SubParsersAction) -> None:
@@ -76,8 +77,8 @@ def _safe_register_all(sub: argparse._SubParsersAction) -> None:
         pass
 
 
-def _collect_options(p: argparse.ArgumentParser) -> Dict[str, str]:
-    opts: Dict[str, str] = {}
+def _collect_options(p: argparse.ArgumentParser) -> dict[str, str]:
+    opts: dict[str, str] = {}
     for act in getattr(p, "_actions", []):  # type: ignore[attr-defined]
         if act.option_strings:
             # choose the long option if available, else the first one
@@ -93,11 +94,15 @@ def _collect_options(p: argparse.ArgumentParser) -> Dict[str, str]:
     return opts
 
 
-def _traverse(parser: argparse.ArgumentParser, *, prefix: str = "") -> Dict[str, Any]:
+def _traverse(parser: argparse.ArgumentParser, *, prefix: str = "") -> dict[str, Any]:
     """Recursively traverse subparsers to build a manifest mapping."""
-    manifest: Dict[str, Any] = {}
+    manifest: dict[str, Any] = {}
     # find subparsers actions
-    sub_actions = [a for a in getattr(parser, "_actions", []) if a.__class__.__name__ == "_SubParsersAction"]  # type: ignore[attr-defined]
+    sub_actions = [
+        a
+        for a in getattr(parser, "_actions", [])
+        if a.__class__.__name__ == "_SubParsersAction"
+    ]  # type: ignore[attr-defined]
     if not sub_actions:
         # Leaf command: collect options and description
         name = prefix.strip()
@@ -117,7 +122,7 @@ def _traverse(parser: argparse.ArgumentParser, *, prefix: str = "") -> Dict[str,
     return manifest
 
 
-def build_manifest() -> Dict[str, Any]:
+def build_manifest() -> dict[str, Any]:
     parser = argparse.ArgumentParser(prog="datavizhub")
     sub = parser.add_subparsers(dest="cmd", required=True)
     _safe_register_all(sub)
@@ -126,6 +131,7 @@ def build_manifest() -> Dict[str, Any]:
 
 def save_manifest(path: str) -> None:
     data = build_manifest()
-    with open(path, "w", encoding="utf-8") as f:
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
-

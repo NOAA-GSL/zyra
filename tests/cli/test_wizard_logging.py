@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 
 
 def test_log_schema_and_correlation_fields(tmp_path, monkeypatch):
@@ -31,7 +30,7 @@ def test_log_schema_and_correlation_fields(tmp_path, monkeypatch):
     lines = log_path.read_text(encoding="utf-8").strip().splitlines()
     assert len(lines) >= 1
 
-    events = [json.loads(l) for l in lines]
+    events = [json.loads(line) for line in lines]
 
     # schema_version always present and equals 1
     assert all(ev.get("schema_version") == 1 for ev in events)
@@ -72,8 +71,10 @@ def test_log_includes_assistant_reply_when_enabled(tmp_path, monkeypatch):
     files = sorted(logs_dir.glob("*.jsonl"))
     assert files, "Expected a JSONL log file"
     lines = files[-1].read_text(encoding="utf-8").strip().splitlines()
-    events = [json.loads(l) for l in lines]
+    events = [json.loads(line) for line in lines]
 
     replies = [ev for ev in events if ev.get("type") == "assistant_reply"]
-    assert replies, "Expected at least one assistant_reply event when --log-raw-llm is set"
+    assert (
+        replies
+    ), "Expected at least one assistant_reply event when --log-raw-llm is set"
     assert any("raw" in ev and ev["raw"] for ev in replies)

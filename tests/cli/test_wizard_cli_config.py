@@ -1,4 +1,4 @@
-import textwrap
+
 
 
 def _monkeypatch_generators(monkeypatch):
@@ -48,7 +48,9 @@ def test_env_overrides_config(tmp_path, monkeypatch, capsys):
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
-    (home / ".datavizhub_wizard.yaml").write_text("provider: openai\n", encoding="utf-8")
+    (home / ".datavizhub_wizard.yaml").write_text(
+        "provider: openai\n", encoding="utf-8"
+    )
     monkeypatch.setenv("DATAVIZHUB_LLM_PROVIDER", "mock")
 
     _monkeypatch_generators(monkeypatch)
@@ -71,4 +73,3 @@ def test_cli_overrides_env(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "from-mock" in out
     assert "from-openai" not in out
-
