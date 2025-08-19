@@ -1,6 +1,3 @@
-
-
-
 def _monkeypatch_generators(monkeypatch):
     from datavizhub.wizard import llm_client
 
