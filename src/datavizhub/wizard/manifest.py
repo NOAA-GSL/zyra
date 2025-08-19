@@ -139,7 +139,7 @@ def _collect_options(p: argparse.ArgumentParser) -> dict[str, object]:
 
                 # Default value (avoid argparse.SUPPRESS sentinel)
                 default_val = getattr(act, "default", None)
-                if isinstance(default_val, str) and default_val == argparse.SUPPRESS:  # type: ignore[attr-defined]
+                if default_val == argparse.SUPPRESS:  # type: ignore[attr-defined]
                     default_val = None
                 # Emit object only if we have metadata beyond plain help (for backward compat)
                 if (

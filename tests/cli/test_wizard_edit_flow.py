@@ -15,7 +15,7 @@ def test_wizard_edit_flow_sanitizes_and_runs(monkeypatch, capsys):
     monkeypatch.setattr(
         llm_client.MockClient,
         "generate",
-        staticmethod(lambda s, u: "```bash\ndatavizhub --help\n````"),
+        staticmethod(lambda s, u: "```bash\ndatavizhub --help\n```"),
     )
 
     # Simulate user editing: provide an unsafe line and a commented command
@@ -56,6 +56,6 @@ def test_tokenize_manifest_basic():
     assert "acquire" in toks["first_tokens"]
     assert isinstance(toks["options"], set)
     # Common option presence
-    assert any(o.startswith("--output") for o in toks["options"]) or any(
-        o == "-o" for o in toks["options"]
+    assert any(
+        (o in ("--output", "-o")) or o.startswith("--output") for o in toks["options"]
     )
