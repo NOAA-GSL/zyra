@@ -144,7 +144,9 @@ class MissingArgumentResolver:
         if not missing_flags and not pos_to_ask:
             return command
         if not interactive:
-            raise MissingArgsError([f for f, _ in missing_flags] + [str(p.get("name")) for p in pos_to_ask])
+            raise MissingArgsError(
+                [f for f, _ in missing_flags] + [str(p.get("name")) for p in pos_to_ask]
+            )
 
         # Default ask function uses input()
         def _default_ask(

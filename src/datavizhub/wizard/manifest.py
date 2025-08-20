@@ -163,8 +163,7 @@ def _collect_options(p: argparse.ArgumentParser) -> dict[str, object]:
                         "client_secret",
                     )
                 ) or any(
-                    kw in help_l
-                    for kw in ("password", "secret", "token", "api key")
+                    kw in help_l for kw in ("password", "secret", "token", "api key")
                 )
 
                 # Emit object only if we have metadata beyond plain help (for backward compat)

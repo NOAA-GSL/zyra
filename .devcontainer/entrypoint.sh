@@ -26,6 +26,14 @@ if [[ -f .devcontainer/.env ]]; then
   fi
 fi
 
+# Export all variables from .env into the container environment (dev only)
+if [[ "${DATAVIZHUB_ENV:-dev}" == "dev" && -f .env ]]; then
+  echo "[entrypoint] Loading environment variables from .env (dev only)"
+  set -a
+  source .env
+  set +a
+fi
+
 # ====== SERVICE START SECTION ======
 AUTOSTART_API=${DATAVIZHUB_AUTOSTART_API:-1}
 AUTOSTART_RQ=${DATAVIZHUB_AUTOSTART_RQ:-${DATAVIZHUB_USE_REDIS:-0}}
