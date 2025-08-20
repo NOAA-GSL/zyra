@@ -17,6 +17,7 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from contextlib import asynccontextmanager, suppress
 
 from datavizhub.api import __version__ as dvh_version
 from datavizhub.api.routers import cli as cli_router
@@ -46,7 +47,19 @@ def create_app() -> FastAPI:
     - Defines `/`, `/health`, and `/ready` routes
     - On startup, launches a background cleanup loop for result TTL pruning
     """
-    app = FastAPI(title="DataVizHub API", version=dvh_version)
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        # Launch background cleanup loop for results on startup
+        task = asyncio.create_task(_results_cleanup_loop())
+        try:
+            yield
+        finally:
+            # Cancel and await the cleanup task on shutdown
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
+
+    app = FastAPI(title="DataVizHub API", version=dvh_version, lifespan=lifespan)
 
     # CORS (env-configurable)
     allow_all = os.environ.get("DATAVIZHUB_CORS_ALLOW_ALL", "0").lower() in {
@@ -368,11 +381,5 @@ async def _results_cleanup_loop() -> None:
         await asyncio.sleep(interval)
 
 
-# Uvicorn entrypoint: `uvicorn datavizhub.api.server:app --reload`
 app = create_app()
-
-
-@app.on_event("startup")
-async def _startup_tasks() -> None:
-    # Launch background cleanup loop for results
-    asyncio.create_task(_results_cleanup_loop())
+# Uvicorn entrypoint: `uvicorn datavizhub.api.server:app --reload`
