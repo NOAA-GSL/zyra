@@ -272,7 +272,7 @@ def register_cli(subparsers: Any) -> None:
         "compose-video", help="Compose videos from frame directories"
     )
     p_cv.add_argument("--frames", required=True, help="Frames directory")
-    p_cv.add_argument("--output", required=True, help="Output MP4 path")
+    p_cv.add_argument("-o", "--output", required=True, help="Output MP4 path")
     p_cv.add_argument("--fps", type=int, default=30)
     p_cv.add_argument("--basemap")
     p_cv.set_defaults(func=handle_compose_video)

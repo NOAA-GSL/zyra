@@ -807,6 +807,77 @@ def _ensure_log_dir() -> Path:
     return root
 
 
+def _history_file_path() -> Path:
+    root = Path("~/.datavizhub").expanduser()
+    root.mkdir(parents=True, exist_ok=True)
+    return root / "wizard_history"
+
+
+def _append_history(cmd: str) -> None:
+    """Append a JSONL record for a successfully executed command.
+
+    Writes: {"ts": ISO8601Z, "cmd": "datavizhub ..."}
+    Silently ignores non-datavizhub lines.
+    """
+    try:
+        s = _strip_inline_comment(cmd.strip())
+        if not s.startswith("datavizhub "):
+            return
+        rec = {"ts": datetime.utcnow().isoformat() + "Z", "cmd": s}
+        p = _history_file_path()
+        with p.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    except Exception:
+        # Best-effort; do not fail the REPL if persistence breaks
+        pass
+
+
+def _load_persisted_history() -> list[str]:
+    """Load persisted history JSONL; return sanitized datavizhub commands.
+
+    - Skips corrupted lines with a brief warning.
+    - Deduplicates consecutive duplicates.
+    """
+    p = _history_file_path()
+    if not p.exists():
+        return []
+    out: list[str] = []
+    last: str | None = None
+    try:
+        with p.open("r", encoding="utf-8") as f:
+            for ln, line in enumerate(f, start=1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except Exception:
+                    print(f"[history] Skipped corrupted JSON at line {ln}")
+                    continue
+                cmd = str(obj.get("cmd") or "").strip()
+                s = _strip_inline_comment(cmd)
+                if not s.startswith("datavizhub "):
+                    continue
+                if last is not None and s == last:
+                    continue
+                out.append(s)
+                last = s
+    except Exception:
+        # If loading fails, return what we have
+        pass
+    return out
+
+
+def _clear_history_file() -> None:
+    """Delete history file if present."""
+    try:
+        p = _history_file_path()
+        if p.exists():
+            p.unlink()
+    except Exception:
+        pass
+
+
 def _log_event(
     logfile: Path | None, event: dict, *, session_id: str | None = None
 ) -> None:
@@ -1008,6 +1079,8 @@ def _handle_prompt(
             },
             session_id=(session.session_id if session else None),
         )
+        if rc == 0:
+            _append_history(c)
         if rc != 0:
             print(f"Command failed with exit code {rc}")
             status = rc
@@ -1047,6 +1120,23 @@ def _interactive_loop(args: argparse.Namespace) -> int:
     else:
         editor_mode = "prompt"
 
+    # Preload persisted history into session (deduped)
+    try:
+        persisted = _load_persisted_history()
+        if persisted:
+            session.history.extend(persisted)
+    except Exception:
+        pass
+
+    # Helper: get sanitized history commands (only datavizhub lines, comments stripped)
+    def _history_commands() -> list[str]:
+        out: list[str] = []
+        for line in session.history:
+            s = _strip_inline_comment(str(line).strip())
+            if s.startswith("datavizhub "):
+                out.append(s)
+        return out
+
     while True:
         try:
             q = _prompt_line("> ").strip()
@@ -1057,6 +1147,179 @@ def _interactive_loop(args: argparse.Namespace) -> int:
             continue
         if q.lower() in {"exit", "quit"}:
             return 0
+
+        # Built-in REPL helpers: :history, !N / :retry N, :edit N
+        # Show history: optional limit e.g., :history 20
+        m_hist = re.match(r"^:?history(?:\s+(\d+))?$", q.strip(), flags=re.I)
+        if m_hist:
+            limit = int(m_hist.group(1)) if m_hist.group(1) else None
+            cmds = _history_commands()
+            if limit is not None:
+                cmds = cmds[-limit:]
+            if not cmds:
+                print("No history yet.")
+            else:
+                print("History:")
+                # Number from 1..N in chronological order
+                for i, cmd in enumerate(cmds, start=1):
+                    print(f"[{i}] {cmd}")
+            continue
+
+        # Clear history: both in-memory and file
+        if re.match(r"^:clear-history$", q.strip(), flags=re.I):
+            _clear_history_file()
+            session.history.clear()
+            print("History cleared.")
+            _log_event(
+                logfile,
+                {
+                    "ts": datetime.utcnow().isoformat() + "Z",
+                    "type": "history_clear",
+                },
+                session_id=session.session_id,
+            )
+            continue
+
+        # Save history to a file path: :save-history <file>
+        m_save = re.match(r"^:save-history\s+(.+)$", q.strip(), flags=re.I)
+        if m_save:
+            dest_raw = m_save.group(1).strip()
+            try:
+                dest = Path(dest_raw).expanduser()
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                cmds = _history_commands()
+                with dest.open("w", encoding="utf-8") as f:
+                    for c in cmds:
+                        f.write(c + "\n")
+                print(f"Saved {len(cmds)} command(s) to {str(dest)}")
+                _log_event(
+                    logfile,
+                    {
+                        "ts": datetime.utcnow().isoformat() + "Z",
+                        "type": "history_save",
+                        "path": str(dest),
+                        "count": len(cmds),
+                    },
+                    session_id=session.session_id,
+                )
+            except Exception as exc:
+                print(f"Failed to save history: {exc}")
+            continue
+
+        # Recall as-is: !N or :retry N
+        m_retry = re.match(r"^(?:!(\d+)|:?retry\s+(\d+))$", q.strip(), flags=re.I)
+        if m_retry:
+            idx_s = m_retry.group(1) or m_retry.group(2)
+            try:
+                idx = int(idx_s)
+            except Exception:
+                print("Invalid index.")
+                continue
+            cmds = _history_commands()
+            if not cmds:
+                print("No history yet.")
+                continue
+            if idx < 1 or idx > len(cmds):
+                print("Index out of range. Use :history to list.")
+                continue
+            cmd = cmds[idx - 1]
+            print(f"\n$ {cmd}")
+            _log_event(
+                logfile,
+                {
+                    "ts": datetime.utcnow().isoformat() + "Z",
+                    "type": "history_exec",
+                    "action": "retry",
+                    "index": idx,
+                    "cmd": cmd,
+                },
+                session_id=session.session_id,
+            )
+            rc = _run_one(cmd)
+            _log_event(
+                logfile,
+                {
+                    "ts": datetime.utcnow().isoformat() + "Z",
+                    "type": "exec",
+                    "cmd": cmd,
+                    "returncode": rc,
+                    "ok": (rc == 0),
+                },
+                session_id=session.session_id,
+            )
+            if rc == 0:
+                _append_history(cmd)
+            # Update session context
+            session.history.append(cmd)
+            m_out = re.findall(r"(?:--output|-o)\s+(\S+)\b", cmd)
+            if m_out:
+                session.last_file = m_out[-1]
+            if rc != 0:
+                print(f"Command failed with exit code {rc}")
+                print(f"Last command set exited with {rc}")
+            continue
+
+        # Edit selected history entry then run: :edit N
+        m_edit = re.match(r"^:edit\s+(\d+)$", q.strip(), flags=re.I)
+        if m_edit:
+            idx = int(m_edit.group(1))
+            cmds = _history_commands()
+            if not cmds:
+                print("No history yet.")
+                continue
+            if idx < 1 or idx > len(cmds):
+                print("Index out of range. Use :history to list.")
+                continue
+            original = cmds[idx - 1]
+            edited = _edit_commands([original], logfile=logfile, session=session)
+            # Re-apply strict safety filter after edit
+            to_run: list[str] = []
+            for line in edited or []:
+                s = _strip_inline_comment(line)
+                if s.startswith("datavizhub "):
+                    to_run.append(s)
+            if not to_run:
+                print("No commands to run after edit. Cancelled.")
+                continue
+            status = 0
+            for c in to_run:
+                print(f"\n$ {c}")
+                _log_event(
+                    logfile,
+                    {
+                        "ts": datetime.utcnow().isoformat() + "Z",
+                        "type": "history_exec",
+                        "action": "edit",
+                        "index": idx,
+                        "cmd": c,
+                    },
+                    session_id=session.session_id,
+                )
+                rc = _run_one(c)
+                _log_event(
+                    logfile,
+                    {
+                        "ts": datetime.utcnow().isoformat() + "Z",
+                        "type": "exec",
+                        "cmd": c,
+                        "returncode": rc,
+                        "ok": (rc == 0),
+                    },
+                    session_id=session.session_id,
+                )
+                if rc == 0:
+                    _append_history(c)
+                session.history.append(c)
+                m_out = re.findall(r"(?:--output|-o)\s+(\S+)", c)
+                if m_out:
+                    session.last_file = m_out[-1]
+                if rc != 0:
+                    print(f"Command failed with exit code {rc}")
+                    status = rc
+                    break
+            if status != 0:
+                print(f"Last command set exited with {status}")
+            continue
         rc = _handle_prompt(
             q,
             provider=args.provider,
