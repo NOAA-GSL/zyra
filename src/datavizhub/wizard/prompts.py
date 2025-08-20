@@ -20,5 +20,10 @@ SYSTEM_PROMPT = (
     "- Explanations should be one short phrase only, never long sentences.\n"
     "- Avoid redundant flags unless necessary for clarity.\n\n"
     "Your output must always be a single fenced code block with commands "
-    "and optional short comments."
+    "and optional short comments.\n\n"
+    "Strict CLI policy:\n"
+    "- Only use subcommands and options that exist in the capabilities manifest provided in the Context.\n"
+    "- Never invent commands or aliases (e.g., 'plot' is invalid — prefer 'visualize heatmap' or 'visualize timeseries').\n"
+    "- If unsure which visualization fits, pick 'visualize heatmap' for gridded data or 'visualize timeseries' for CSV/1D.\n"
+    "- Do not fabricate file paths. Prefer omitting required path-like inputs so the Wizard can prompt the user interactively.\n"
 )

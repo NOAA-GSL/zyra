@@ -1017,6 +1017,69 @@ def _handle_prompt(
     if dropped > 0:
         print(f"[safe] Ignored {dropped} non-datavizhub line(s).")
     cmds = safe_cmds
+    # Validate against capabilities; remap common aliases like 'plot' -> 'visualize heatmap'
+    cap = _load_capabilities_manifest() or {}
+    valid_keys = set(cap.keys())
+
+    def _cmd_key_from_tokens(tokens: list[str]) -> str | None:
+        start = 1 if tokens and tokens[0] == "datavizhub" else 0
+        if len(tokens) - start >= 2:
+            key = f"{tokens[start]} {tokens[start+1]}"
+            if key in valid_keys:
+                return key
+        if len(tokens) - start >= 1:
+            key = tokens[start]
+            if key in valid_keys:
+                return key
+        return None
+
+    def _remap_common_aliases(tokens: list[str]) -> list[str]:
+        start = 1 if tokens and tokens[0] == "datavizhub" else 0
+        # datavizhub plot ... -> datavizhub visualize heatmap ...
+        if len(tokens) - start >= 1 and tokens[start] == "plot":
+            tokens[start : start + 1] = ["visualize", "heatmap"]
+            return tokens
+        # datavizhub visualize plot ... -> datavizhub visualize heatmap ...
+        if (
+            len(tokens) - start >= 2
+            and tokens[start] == "visualize"
+            and tokens[start + 1] == "plot"
+        ):
+            tokens[start + 1] = "heatmap"
+            return tokens
+        # If just 'visualize' provided, default to heatmap subcommand
+        if len(tokens) - start == 1 and tokens[start] == "visualize":
+            tokens.insert(start + 1, "heatmap")
+            return tokens
+        return tokens
+
+    sanitized: list[str] = []
+    for c in cmds:
+        try:
+            toks = shlex.split(c)
+        except Exception:
+            continue
+        if _cmd_key_from_tokens(toks) is None:
+            # Try remap once
+            toks = _remap_common_aliases(toks)
+        if _cmd_key_from_tokens(toks) is None:
+            # Drop unknown commands
+            continue
+        sanitized.append(" ".join(toks))
+
+    cmds = sanitized
+    # If all suggestions were dropped, provide a safe default that triggers interactive prompts
+    if not cmds:
+        # Heuristic: prefer timeseries if the original prompt mentions CSV/columns, else heatmap.
+        ql = prompt.lower()
+        if any(w in ql for w in ["csv", "column", "time series", "timeseries"]):
+            cmds = [
+                "datavizhub visualize timeseries --x time --y value --output timeseries.png"
+            ]
+        else:
+            cmds = [
+                "datavizhub visualize heatmap --var temperature --output heatmap.png"
+            ]
     if max_commands is not None:
         cmds = cmds[: max(0, int(max_commands))]
 
