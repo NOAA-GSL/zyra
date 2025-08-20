@@ -13,4 +13,3 @@ def test_select_provider_mock(monkeypatch):
 
     client = wiz._select_provider(provider="mock", model=None)
     assert isinstance(client, wiz.llm_client.MockClient)
-
