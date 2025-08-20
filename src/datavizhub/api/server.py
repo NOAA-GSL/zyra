@@ -25,6 +25,18 @@ from datavizhub.api.routers import jobs as jobs_router
 from datavizhub.api.routers import ws as ws_router
 from datavizhub.api.security import require_api_key
 
+# Best-effort: load environment variables from a local .env if present.
+# Mirrors the Wizard behavior so API picks up devcontainer-provided settings.
+try:  # pragma: no cover - environment dependent
+    from dotenv import find_dotenv, load_dotenv
+
+    _ENV_PATH = find_dotenv(usecwd=True)
+    if _ENV_PATH:
+        load_dotenv(_ENV_PATH, override=False)
+except Exception:
+    # Ignore if python-dotenv is unavailable; environment vars still work
+    pass
+
 
 def create_app() -> FastAPI:
     """Build and configure the FastAPI application.
@@ -147,6 +159,22 @@ def create_app() -> FastAPI:
             "required": require_ffmpeg,
         }
 
+        # LLM configuration (provider and model only; no hostnames)
+        # Resolve from environment with sensible defaults that match the Wizard.
+        prov = (os.environ.get("DATAVIZHUB_LLM_PROVIDER") or "openai").strip().lower()
+        model_env = os.environ.get("DATAVIZHUB_LLM_MODEL")
+        if model_env and model_env.strip():
+            model_resolved = model_env.strip()
+        else:
+            # Provider-specific defaults mirror datavizhub.wizard.llm_client
+            if prov == "openai":
+                model_resolved = "gpt-4o-mini"
+            elif prov == "ollama":
+                model_resolved = "mistral"
+            else:
+                model_resolved = None  # mock/unknown
+        llm = {"provider": prov, "model": model_resolved}
+
         overall_ok = (
             exists
             and writable
@@ -169,7 +197,43 @@ def create_app() -> FastAPI:
                 "disk": disk,
                 "queue": queue,
                 "binaries": binaries,
+                "llm": llm,
             },
+        }
+
+    @app.get("/llm/test", tags=["system"])
+    def llm_test(
+        request: Request, provider: str | None = None, model: str | None = None
+    ) -> dict:
+        """Probe LLM connectivity similarly to `datavizhub wizard --test-llm`.
+
+        Optional query params `provider` and `model` override environment/config.
+        """
+        try:
+            from datavizhub.wizard import _test_llm_connectivity
+        except Exception as exc:  # pragma: no cover - import edge case
+            return {"status": "error", "message": f"LLM test unavailable: {exc}"}
+
+        ok, msg = _test_llm_connectivity(provider, model)
+
+        # Also surface the resolved provider/model shown in /ready for consistency
+        prov = (os.environ.get("DATAVIZHUB_LLM_PROVIDER") or "openai").strip().lower()
+        model_env = os.environ.get("DATAVIZHUB_LLM_MODEL")
+        if model_env and model_env.strip():
+            model_resolved = model_env.strip()
+        else:
+            model_resolved = (
+                "gpt-4o-mini"
+                if prov == "openai"
+                else "mistral"
+                if prov == "ollama"
+                else None
+            )
+
+        return {
+            "status": "ok" if ok else "error",
+            "message": msg,
+            "llm": {"provider": prov, "model": model_resolved},
         }
 
     @app.get("/")
@@ -195,6 +259,7 @@ def create_app() -> FastAPI:
             "endpoints": [
                 "/health",
                 "/ready",
+                "/llm/test",
                 "/cli/commands",
                 "/cli/examples",
                 "/cli/run",
