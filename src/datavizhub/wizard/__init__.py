@@ -48,9 +48,7 @@ try:  # pragma: no cover - environment dependent
             "Loaded environment from .env at %s", _ENV_PATH
         )
     else:
-        logging.getLogger(__name__).debug(
-            "No .env file found; skipping dotenv load."
-        )
+        logging.getLogger(__name__).debug("No .env file found; skipping dotenv load.")
 except Exception as exc:
     # Ignore if python-dotenv is unavailable; environment vars still work
     logging.getLogger(__name__).debug(

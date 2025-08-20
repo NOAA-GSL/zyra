@@ -1,55 +1,99 @@
-# Repository Guidelines
+Agent Workflow and Guardrails
 
-## Project Structure & Module Organization
-- `acquisition/`: I/O helpers unified under `base.DataAcquirer` (e.g., `ftp_manager.py`, `http_manager.py`, `s3_manager.py`, `vimeo_manager.py`).
-- `processing/`: processors unified under `base.DataProcessor` (e.g., `grib_data_processor.py`, `video_processor.py`).
-- `visualization/`: renderers unified under `base.Renderer` (e.g., `plot_manager.py`, `colormap_manager.py`).
-- `utils/`: shared helpers (e.g., `credential_manager.py`, `date_manager.py`, `file_utils.py`, `image_manager.py`, `json_file_manager.py`).
-- `assets/`: static resources packaged with the library (e.g., `assets/images/` for basemaps/overlays); prefer `importlib.resources` to resolve paths at runtime.
-- `samples/`: runnable examples and small utilities (optional, not always present).
+Purpose: This repository is agent-friendly. Follow these rules to keep changes safe, consistent, and easy to review.
 
-## Build, Test, and Development Commands
-- Install with Poetry (core): `poetry install --with dev` (creates the venv).
-- Opt-in extras locally as needed, e.g.: `poetry install --with dev -E connectors -E processing -E visualization` or `--all-extras`.
-- Spawn shell: `poetry shell`.
-- Run a script or module: `poetry run python path/to/your_script.py` or `poetry run python -m your.module`.
-- Lint/format: `poetry run ruff format . && poetry run ruff check .` (Ruff replaces Black/Isort/Flake8 when configured).
-- FFmpeg-required flows: ensure `ffmpeg` and `ffprobe` are installed on the system.
+Core Rules
 
-## Coding Style & Naming Conventions
-- Indentation: 4 spaces; UTF-8; Unix newlines.
-- Filenames: `snake_case` (e.g., `ftp_manager.py`, `plot_manager.py`), classes in `PascalCase` (e.g., `FTPManager`, `PlotManager`).
-- Functions/variables: `snake_case`; constants: `UPPER_CASE`.
-- Imports: standard lib, third-party, local (separated groups).
-- Formatting: run `black .` and `isort .`; lint with `flake8` before opening PRs.
+- Lint first: Before making any code changes, run:
+  - `poetry run ruff format . && poetry run ruff check .`
+  - Fix all issues so `ruff check` returns clean. Only then proceed.
+- Small, surgical edits: Change only what’s needed. Keep file/identifier names stable unless the task explicitly requires refactors.
+- Tests: Prefer running focused tests for the area you changed:
+  - `poetry run pytest -q -k <pattern>` (or the full suite if requested).
+- No secrets: Never commit credentials or tokens. Prefer environment variables and documented configuration paths.
+- Paths: Avoid absolute paths. Use configurable env vars (e.g., `DATA_DIR`) and `importlib.resources` for packaged assets.
+- Style: Follow the project’s coding style and naming conventions (see README and repository guidelines).
 
-## Testing Guidelines
-- Framework: `pytest`.
-- Location: `tests/` at the repo root; name files `test_*.py` and functions `test_*`.
-- Run tests: `poetry run pytest -q` (optionally `-k pattern` to filter).
-- Data-heavy flows: prefer tiny fixtures or sample assets in `samples/`.
+Pre-commit Hooks
 
-## Commit & Pull Request Guidelines
-- Commits: imperative mood, concise subject (e.g., "Add GRIB parser"); group related changes.
-- Conventional prefixes optional (seen: `ci:`). Avoid WIP commits in PRs.
-- PRs: clear description, scope, and rationale; link issues; include run instructions and screenshots for visual changes.
-- Checks: pass lint/format; run sample scripts touched by the change.
+- This repo ships with a pre-commit configuration to enforce Ruff formatting and linting.
+- One-time setup:
+  - `poetry install --with dev` (ensures `pre-commit` and `ruff` are available)
+  - `poetry run pre-commit install`
+- Run hooks manually on all files: `poetry run pre-commit run -a`
+- Hooks included:
+  - Ruff format (code formatting)
+  - Ruff (lint, with autofix; commit fails if fixes were applied)
 
-## Security & Configuration Tips
-- Credentials: never commit secrets. For AWS, prefer IAM roles or env vars consumed by `S3Manager` (`datavizhub.acquisition.s3_manager`).
-- Paths: avoid hard-coded absolute paths; make paths configurable via env (e.g., `DATA_DIR`).
-- Assets: packaged resources live under `datavizhub.assets`; use `importlib.resources` to resolve paths (works in wheels/sdists).
-- Dependencies: pin if adding new requirements; document any system deps (e.g., FFmpeg, PROJ/GEOS for Cartopy).
+Agent Checklist (before returning code)
 
-## Dependency Management (Poetry)
-- Primary files: `pyproject.toml` and `poetry.lock` control dependencies and reproducibility.
-- No `requirements.txt` is needed. If a pip-only workflow requires it, export via:
+- [ ] Ran `poetry run ruff format . && poetry run ruff check .` and confirmed clean
+- [ ] Ran targeted tests (or full suite if requested) and confirmed passing
+- [ ] Limited scope to requested changes; updated or added documentation if needed
+- [ ] Called out any assumptions, follow-ups, or external system requirements (e.g., FFmpeg)
+
+Notes for CI and PRs
+
+- CI should run `poetry run ruff format --check . && poetry run ruff check .` to ensure compliance.
+- Group related changes into single PRs with a clear description and run instructions.
+
+Repository Guidelines
+
+Project Structure & Module Organization
+
+- Code lives under `src/datavizhub/`:
+  - `connectors/`: source/destination integrations and CLI registrars (`connectors.ingest`, `connectors.egress`). Prefer these over legacy `acquisition/` for new work.
+  - `processing/`: data processing (e.g., GRIB/NetCDF/GeoTIFF) exposed via the CLI.
+  - `visualization/`: visualization commands; CLI registration lives in `visualization/cli_register.py`.
+  - `wizard/`: interactive assistant and related utilities.
+  - `api/` + `api_cli.py`: HTTP API and CLI entry points.
+  - `transform/`: transform helpers (metadata, etc.).
+  - `utils/`: shared helpers/utilities.
+  - `assets/`: packaged static resources; access with `importlib.resources` (`datavizhub.assets`).
+  - `cli.py`, `pipeline_runner.py`: root CLI and pipeline runner.
+
+Build, Test, and Development
+
+- Install: `poetry install --with dev` (use extras as needed: `-E connectors -E processing -E visualization` or `--all-extras`).
+- Shell: `poetry shell`.
+- Run: `poetry run python path/to/script.py` or `poetry run python -m module`.
+- Lint/format: `poetry run ruff format . && poetry run ruff check .`.
+- Tests: `poetry run pytest -q` (filter with `-k pattern`).
+- System deps: certain flows require FFmpeg (`ffmpeg`, `ffprobe`).
+
+Coding Style & Naming
+
+- Python 3.10+; UTF-8; Unix newlines; 4-space indent.
+- Names: files/functions in `snake_case`; classes in `PascalCase`; constants in `UPPER_CASE`.
+- Imports grouped: stdlib, third-party, local.
+- Formatting and linting via Ruff (replaces Black/Isort/Flake8 in this repo).
+
+Testing Guidelines
+
+- Tests live under `tests/`; files named `test_*.py`, functions `test_*`.
+- Prefer small fixtures and sample assets for data-heavy flows.
+
+Commit & PR Guidelines
+
+- Commits: imperative, concise (e.g., "Add GRIB parser"); group related changes.
+- PRs: clear scope and rationale; link issues; include run instructions and screenshots for visual changes.
+- Checks: pass Ruff format/lint; run relevant sample scripts if modified.
+
+Security & Configuration
+
+- Do not commit secrets. Prefer IAM roles or env vars (e.g., used by S3 connectors).
+- Avoid hard-coded absolute paths; prefer env-configurable paths (e.g., `DATA_DIR`).
+- Use `importlib.resources` for packaged assets under `datavizhub.assets`.
+- Pin dependencies when adding new ones; document any system deps (e.g., FFmpeg, PROJ/GEOS).
+
+Dependency Management (Poetry)
+
+- Sources of truth: `pyproject.toml` and `poetry.lock`.
+- Export for pip workflows if needed:
   - `poetry export -f requirements.txt --output requirements.txt --without-hashes`
-  - Include dev groups when needed: `poetry export -f requirements.txt --with dev -o requirements-dev.txt`
+  - Include dev: `poetry export -f requirements.txt --with dev -o requirements-dev.txt`
 
-Dev container:
-- The dev container installs dev dependencies plus all extras by default (`poetry install --with dev --all-extras`). This ensures optional integrations (S3 via boto3, Vimeo via PyVimeo, HTTP via requests, processing/visualization stacks) are available out of the box.
+Documentation Sources
 
-## Documentation Sources
-- Wiki: https://github.com/NOAA-GSL/datavizhub/wiki (authoritative documentation for humans and AIs).
-- CI-synced wiki: A GitHub Action mirrors the GitHub Wiki into `docs/source/wiki/` so it is built with Sphinx. Do not edit `docs/source/wiki/` directly; changes are committed only on `main`.
+- Authoritative docs live under `docs/source/wiki/` in this repo (built with Sphinx).
+- If CI syncs from a GitHub Wiki, treat `docs/source/wiki/` as the source consumed by the docs build (do not hand-edit generated/synced content unless the process specifies).

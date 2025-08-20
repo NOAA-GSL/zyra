@@ -1,3 +1,10 @@
+import yaml
+
+
+def _write_yaml(path, data):
+    path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+
+
 def _monkeypatch_generators(monkeypatch):
     from datavizhub.wizard import llm_client
 
@@ -27,7 +34,7 @@ def test_config_file_sets_default_provider(tmp_path, monkeypatch, capsys):
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
     cfg = home / ".datavizhub_wizard.yaml"
-    cfg.write_text("provider: mock\n", encoding="utf-8")
+    _write_yaml(cfg, {"provider": "mock"})
 
     _monkeypatch_generators(monkeypatch)
 
@@ -45,9 +52,7 @@ def test_env_overrides_config(tmp_path, monkeypatch, capsys):
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
-    (home / ".datavizhub_wizard.yaml").write_text(
-        "provider: openai\n", encoding="utf-8"
-    )
+    _write_yaml(home / ".datavizhub_wizard.yaml", {"provider": "openai"})
     monkeypatch.setenv("DATAVIZHUB_LLM_PROVIDER", "mock")
 
     _monkeypatch_generators(monkeypatch)

@@ -65,6 +65,7 @@ class OpenAIClient(LLMClient):
     ) -> str:  # pragma: no cover - network optional
         import json
         from json import JSONDecodeError
+
         try:
             try:
                 from requests.exceptions import (  # type: ignore
@@ -72,6 +73,7 @@ class OpenAIClient(LLMClient):
                     RequestException,
                 )
             except Exception:  # requests not installed; define fallbacks
+
                 class RequestException(Exception):
                     pass
 
@@ -105,7 +107,15 @@ class OpenAIClient(LLMClient):
             resp.raise_for_status()
             data = resp.json()
             return data["choices"][0]["message"]["content"].strip()
-        except (ImportError, JSONDecodeError, KeyError, IndexError, TypeError, RequestException, HTTPError) as exc:  # type: ignore[name-defined]
+        except (
+            ImportError,
+            JSONDecodeError,
+            KeyError,
+            IndexError,
+            TypeError,
+            RequestException,
+            HTTPError,
+        ) as exc:  # type: ignore[name-defined]
             return f"# OpenAI error: {exc}\n" + _get_mock_singleton().generate(
                 system_prompt, user_prompt
             )
@@ -154,6 +164,7 @@ class OllamaClient(LLMClient):
                     RequestException,
                 )
             except Exception:
+
                 class RequestException(Exception):
                     pass
 
@@ -179,7 +190,14 @@ class OllamaClient(LLMClient):
             resp.raise_for_status()
             data = resp.json()
             return data.get("message", {}).get("content", "").strip()
-        except (ImportError, JSONDecodeError, KeyError, TypeError, RequestException, HTTPError) as exc:  # type: ignore[name-defined]
+        except (
+            ImportError,
+            JSONDecodeError,
+            KeyError,
+            TypeError,
+            RequestException,
+            HTTPError,
+        ) as exc:  # type: ignore[name-defined]
             # Provide targeted hints for common connectivity issues
             err = str(exc)
             hints = []
