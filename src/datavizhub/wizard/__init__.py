@@ -1017,60 +1017,8 @@ def _handle_prompt(
     if dropped > 0:
         print(f"[safe] Ignored {dropped} non-datavizhub line(s).")
     cmds = safe_cmds
-    # Validate against capabilities; remap common aliases like 'plot' -> 'visualize heatmap'
-    cap = _load_capabilities_manifest() or {}
-    valid_keys = set(cap.keys())
-
-    def _cmd_key_from_tokens(tokens: list[str]) -> str | None:
-        start = 1 if tokens and tokens[0] == "datavizhub" else 0
-        if len(tokens) - start >= 2:
-            key = f"{tokens[start]} {tokens[start+1]}"
-            if key in valid_keys:
-                return key
-        if len(tokens) - start >= 1:
-            key = tokens[start]
-            if key in valid_keys:
-                return key
-        return None
-
-    def _remap_common_aliases(tokens: list[str]) -> list[str]:
-        start = 1 if tokens and tokens[0] == "datavizhub" else 0
-        # datavizhub plot ... -> datavizhub visualize heatmap ...
-        if len(tokens) - start >= 1 and tokens[start] == "plot":
-            tokens[start : start + 1] = ["visualize", "heatmap"]
-            return tokens
-        # datavizhub visualize plot ... -> datavizhub visualize heatmap ...
-        if (
-            len(tokens) - start >= 2
-            and tokens[start] == "visualize"
-            and tokens[start + 1] == "plot"
-        ):
-            tokens[start + 1] = "heatmap"
-            return tokens
-        # If just 'visualize' provided, default to heatmap subcommand
-        if len(tokens) - start == 1 and tokens[start] == "visualize":
-            tokens.insert(start + 1, "heatmap")
-            return tokens
-        return tokens
-
-    sanitized: list[str] = []
-    for c in cmds:
-        try:
-            toks = shlex.split(c)
-        except Exception:
-            continue
-        if _cmd_key_from_tokens(toks) is None:
-            # Try remap once
-            toks = _remap_common_aliases(toks)
-        if _cmd_key_from_tokens(toks) is None:
-            # Drop unknown commands
-            continue
-        sanitized.append(" ".join(toks))
-
-    cmds = sanitized
-    # If all suggestions were dropped, provide a safe default that triggers interactive prompts
+    # If model suggested nothing usable, provide a safe default that triggers interactive prompts
     if not cmds:
-        # Heuristic: prefer timeseries if the original prompt mentions CSV/columns, else heatmap.
         ql = prompt.lower()
         if any(w in ql for w in ["csv", "column", "time series", "timeseries"]):
             cmds = [
@@ -1080,6 +1028,48 @@ def _handle_prompt(
             cmds = [
                 "datavizhub visualize heatmap --var temperature --output heatmap.png"
             ]
+    # In dry-run, print suggestions as-is without manifest filtering/remapping
+    if dry_run:
+        if max_commands is not None:
+            cmds = cmds[: max(0, int(max_commands))]
+        if not cmds:
+            print("No datavizhub commands were suggested.")
+            return 1
+        if show_raw:
+            print("Raw model output:\n" + reply)
+        if explain:
+            shown = [a for a in annotated_cmds if a.startswith("datavizhub ")]
+            print(
+                "Suggested commands (with explanations):\n"
+                + "\n".join(f"  {c}" for c in shown)
+            )
+        else:
+            print("Suggested commands:\n" + "\n".join(f"  {c}" for c in cmds))
+        # Update session context for follow-ups
+        if session is not None:
+            session.history.extend(cmds if not explain else shown)
+            last_out = None
+            for c in cmds:
+                m = re.findall(r"(?:--output|-o)\s+(\S+)", c)
+                if m:
+                    last_out = m[-1]
+            if last_out:
+                session.last_file = last_out
+        _log_event(
+            logfile,
+            {
+                "ts": datetime.utcnow().isoformat() + "Z",
+                "type": "dry_run",
+                "commands": cmds,
+                "provider": provider_name,
+                "model": model_name,
+            },
+            session_id=(session.session_id if session else None),
+        )
+        return 0
+    # For interactive runs, keep suggested datavizhub lines as-is here so
+    # users can edit unknown commands into valid ones. We will sanitize/resolve
+    # just before execution.
     if max_commands is not None:
         cmds = cmds[: max(0, int(max_commands))]
 
@@ -1109,19 +1099,6 @@ def _handle_prompt(
                 last_out = m[-1]
         if last_out:
             session.last_file = last_out
-    if dry_run:
-        _log_event(
-            logfile,
-            {
-                "ts": datetime.utcnow().isoformat() + "Z",
-                "type": "dry_run",
-                "commands": cmds,
-                "provider": provider_name,
-                "model": model_name,
-            },
-            session_id=(session.session_id if session else None),
-        )
-        return 0
     # Decide whether to run, edit, or cancel
     choice = "r"
     mode = (
