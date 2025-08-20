@@ -156,29 +156,35 @@ class MissingArgumentResolver:
 
         ask: AskFn = ask_fn or _default_ask
 
-        # Prompt for each missing flag and append to tokens
-        for flag, meta in missing_flags:
-            q = meta.get("help") or f"Please provide {flag}"
-            t = (meta.get("type") or "str").lower()
+        def _build_prompt_text(meta: dict[str, Any], fallback: str) -> str:
+            prompt = meta.get("help") or fallback
             choices = meta.get("choices") or []
             if choices:
-                q += f" (choices: {', '.join(map(str, choices))})"
-            value: str
+                prompt = f"{prompt} (choices: {', '.join(map(str, choices))})"
+            return str(prompt)
+
+        def _ask_and_validate(meta: dict[str, Any], fallback_label: str) -> str:
+            # Returns a validated string value according to meta[type]/choices
+            t = str(meta.get("type") or "str").lower()
+            choices = [str(c) for c in (meta.get("choices") or [])]
             while True:
-                raw = ask(q, meta)
+                raw = ask(_build_prompt_text(meta, fallback_label), meta)
                 try:
                     if t == "int":
                         int(raw)  # validate
                     elif t == "float":
                         float(raw)
-                    # for str/path or others, accept as-is
-                    if choices and str(raw) not in [str(c) for c in choices]:
+                    # Validate choices if provided
+                    if choices and str(raw) not in choices:
                         raise ValueError("invalid choice")
-                    value = str(raw)
-                    break
+                    return str(raw)
                 except Exception:
                     # invalid; re-ask
                     continue
+
+        # Prompt for each missing flag and append to tokens
+        for flag, meta in missing_flags:
+            value = _ask_and_validate(meta, f"Please provide {flag}")
             # Append to command (use long flag as given in manifest)
             tokens.extend([flag, value])
             if log_fn is not None:
@@ -200,25 +206,7 @@ class MissingArgumentResolver:
         if pos_to_ask:
             for item in pos_to_ask:
                 nm = item.get("name") or "arg"
-                q = item.get("help") or f"Please provide {nm}"
-                t = (item.get("type") or "str").lower()
-                choices = item.get("choices") or []
-                if choices:
-                    q += f" (choices: {', '.join(map(str, choices))})"
-                value: str
-                while True:
-                    raw = ask(q, item)
-                    try:
-                        if t == "int":
-                            int(raw)
-                        elif t == "float":
-                            float(raw)
-                        if choices and str(raw) not in [str(c) for c in choices]:
-                            raise ValueError("invalid choice")
-                        value = str(raw)
-                        break
-                    except Exception:
-                        continue
+                value = _ask_and_validate(item, f"Please provide {nm}")
                 tokens.append(value)
                 if log_fn is not None:
                     evt = {

@@ -39,12 +39,14 @@ datavizhub visualize heatmap --input out1.nc --var TMP --output plot.png
     monkeypatch.setattr(llm_client.MockClient, "generate", staticmethod(generate))
 
     sess = SessionState()
+    # Stub execution to avoid running real commands
+    monkeypatch.setattr("datavizhub.wizard._run_one", lambda c: 0)
     # First prompt: execute (not dry-run) and auto-confirm to update session state
     rc1 = _handle_prompt(
         "subset HRRR",
         provider="mock",
         model=None,
-        dry_run=True,
+        dry_run=False,
         assume_yes=True,
         max_commands=None,
         logfile=None,

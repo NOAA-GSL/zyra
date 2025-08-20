@@ -3,6 +3,16 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+# Cache a single MockClient instance for fallback use to avoid re-instantiation
+_mock_singleton: MockClient | None = None
+
+
+def _get_mock_singleton() -> MockClient:
+    global _mock_singleton
+    if _mock_singleton is None:
+        _mock_singleton = MockClient()
+    return _mock_singleton
+
 
 @dataclass
 class LLMClient:
@@ -54,8 +64,20 @@ class OpenAIClient(LLMClient):
         self, system_prompt: str, user_prompt: str
     ) -> str:  # pragma: no cover - network optional
         import json
-
+        from json import JSONDecodeError
         try:
+            try:
+                from requests.exceptions import (  # type: ignore
+                    HTTPError,
+                    RequestException,
+                )
+            except Exception:  # requests not installed; define fallbacks
+                class RequestException(Exception):
+                    pass
+
+                class HTTPError(Exception):
+                    pass
+
             url = f"{self.base_url}/chat/completions"
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
@@ -83,8 +105,8 @@ class OpenAIClient(LLMClient):
             resp.raise_for_status()
             data = resp.json()
             return data["choices"][0]["message"]["content"].strip()
-        except Exception as exc:
-            return f"# OpenAI error: {exc}\n" + MockClient().generate(
+        except (ImportError, JSONDecodeError, KeyError, IndexError, TypeError, RequestException, HTTPError) as exc:  # type: ignore[name-defined]
+            return f"# OpenAI error: {exc}\n" + _get_mock_singleton().generate(
                 system_prompt, user_prompt
             )
 
@@ -123,8 +145,21 @@ class OllamaClient(LLMClient):
         self, system_prompt: str, user_prompt: str
     ) -> str:  # pragma: no cover - network optional
         import json
+        from json import JSONDecodeError
 
         try:
+            try:
+                from requests.exceptions import (  # type: ignore
+                    HTTPError,
+                    RequestException,
+                )
+            except Exception:
+                class RequestException(Exception):
+                    pass
+
+                class HTTPError(Exception):
+                    pass
+
             url = f"{self.base_url}/api/chat"
             payload = {
                 "model": self.model,
@@ -144,7 +179,7 @@ class OllamaClient(LLMClient):
             resp.raise_for_status()
             data = resp.json()
             return data.get("message", {}).get("content", "").strip()
-        except Exception as exc:
+        except (ImportError, JSONDecodeError, KeyError, TypeError, RequestException, HTTPError) as exc:  # type: ignore[name-defined]
             # Provide targeted hints for common connectivity issues
             err = str(exc)
             hints = []
@@ -173,8 +208,9 @@ class OllamaClient(LLMClient):
                     "Ensure the server is started with: OLLAMA_HOST=0.0.0.0 ollama serve"
                 )
             hint_text = ("\n# " + "\n# ".join(hints)) if hints else ""
-            return f"# Ollama error: {exc}{hint_text}\n" + MockClient().generate(
-                system_prompt, user_prompt
+            return (
+                f"# Ollama error: {exc}{hint_text}\n"
+                + _get_mock_singleton().generate(system_prompt, user_prompt)
             )
 
 

@@ -2,27 +2,20 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import re
 import shlex
 import uuid
+import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
 from importlib import resources
 from pathlib import Path
 
-# Best-effort: load environment variables from a local .env if present.
-# This enables settings like OLLAMA_BASE_URL and DATAVIZHUB_LLM_* to be
-# picked up when running the wizard in containers or dev shells.
-try:  # pragma: no cover - environment dependent
-    from dotenv import find_dotenv, load_dotenv
-
-    _ENV_PATH = find_dotenv(usecwd=True)
-    if _ENV_PATH:
-        load_dotenv(_ENV_PATH, override=False)
-except Exception:
-    # Ignore if python-dotenv is unavailable; environment vars still work
-    pass
+from .llm_client import LLMClient
+from .prompts import SYSTEM_PROMPT
+from .resolver import MissingArgsError, MissingArgumentResolver
 
 try:
     import yaml  # type: ignore
@@ -35,18 +28,36 @@ try:
     from prompt_toolkit.completion import Completer, Completion, PathCompleter
 
     PTK_AVAILABLE = True
-except Exception:  # pragma: no cover - may not be installed
+except ImportError:  # pragma: no cover - may not be installed
     PromptSession = None  # type: ignore
     Completer = object  # type: ignore
     Completion = object  # type: ignore
     PathCompleter = object  # type: ignore
     PTK_AVAILABLE = False
 
-import warnings
+# Best-effort: load environment variables from a local .env if present.
+# This enables settings like OLLAMA_BASE_URL and DATAVIZHUB_LLM_* to be
+# picked up when running the wizard in containers or dev shells.
+try:  # pragma: no cover - environment dependent
+    from dotenv import find_dotenv, load_dotenv
 
-from .llm_client import LLMClient
-from .prompts import SYSTEM_PROMPT
-from .resolver import MissingArgsError, MissingArgumentResolver
+    _ENV_PATH = find_dotenv(usecwd=True)
+    if _ENV_PATH:
+        load_dotenv(_ENV_PATH, override=False)
+        logging.getLogger(__name__).debug(
+            "Loaded environment from .env at %s", _ENV_PATH
+        )
+    else:
+        logging.getLogger(__name__).debug(
+            "No .env file found; skipping dotenv load."
+        )
+except Exception as exc:
+    # Ignore if python-dotenv is unavailable; environment vars still work
+    logging.getLogger(__name__).debug(
+        "Skipping dotenv load (python-dotenv missing or failed): %s", exc
+    )
+
+MANIFEST_FILENAME = "datavizhub_capabilities.json"
 
 
 @dataclass
@@ -104,7 +115,7 @@ def _select_provider(provider: str | None, model: str | None) -> LLMClient:
 
         try:
             return OpenAIClient(model=model_name, base_url=base_url)
-        except Exception as exc:
+        except (RuntimeError, ImportError, AttributeError) as exc:
             warnings.warn(
                 f"OpenAI unavailable: {exc}. Falling back to mock.",
                 category=UserWarning,
@@ -116,7 +127,7 @@ def _select_provider(provider: str | None, model: str | None) -> LLMClient:
 
         try:
             return OllamaClient(model=model_name, base_url=base_url)
-        except Exception as exc:
+        except (ImportError, AttributeError) as exc:
             warnings.warn(
                 f"Ollama unavailable: {exc}. Falling back to mock.",
                 category=UserWarning,
@@ -214,7 +225,7 @@ def _load_capabilities_manifest() -> dict | None:
     if _CAP_MANIFEST_CACHE is not None:
         return _CAP_MANIFEST_CACHE
     try:
-        with resources.files(__package__).joinpath("datavizhub_capabilities.json").open(
+        with resources.files(__package__).joinpath(MANIFEST_FILENAME).open(
             "r", encoding="utf-8"
         ) as f:
             _CAP_MANIFEST_CACHE = json.load(f)
@@ -1012,7 +1023,7 @@ def _handle_prompt(
         if s.startswith("datavizhub "):
             cmds.append(s)
     # Strict safety: drop any lines that don't start with datavizhub
-    safe_cmds = [c for c in cmds if c.startswith("datavizhub ")]
+    safe_cmds = [cmd for cmd in cmds if cmd.startswith("datavizhub ")]
     dropped = len(cmds) - len(safe_cmds)
     if dropped > 0:
         print(f"[safe] Ignored {dropped} non-datavizhub line(s).")
@@ -1041,20 +1052,10 @@ def _handle_prompt(
             shown = [a for a in annotated_cmds if a.startswith("datavizhub ")]
             print(
                 "Suggested commands (with explanations):\n"
-                + "\n".join(f"  {c}" for c in shown)
+                + "\n".join(f"  {cmd}" for cmd in shown)
             )
         else:
-            print("Suggested commands:\n" + "\n".join(f"  {c}" for c in cmds))
-        # Update session context for follow-ups
-        if session is not None:
-            session.history.extend(cmds if not explain else shown)
-            last_out = None
-            for c in cmds:
-                m = re.findall(r"(?:--output|-o)\s+(\S+)", c)
-                if m:
-                    last_out = m[-1]
-            if last_out:
-                session.last_file = last_out
+            print("Suggested commands:\n" + "\n".join(f"  {cmd}" for cmd in cmds))
         _log_event(
             logfile,
             {
@@ -1085,16 +1086,16 @@ def _handle_prompt(
         shown = [a for a in annotated_cmds if a.startswith("datavizhub ")]
         print(
             "Suggested commands (with explanations):\n"
-            + "\n".join(f"  {c}" for c in shown)
+            + "\n".join(f"  {cmd}" for cmd in shown)
         )
     else:
-        print("Suggested commands:\n" + "\n".join(f"  {c}" for c in cmds))
+        print("Suggested commands:\n" + "\n".join(f"  {cmd}" for cmd in cmds))
     # Update session context immediately so dry-runs can influence follow-up prompts
     if session is not None:
         session.history.extend(cmds if not explain else shown)
         last_out = None
-        for c in cmds:
-            m = re.findall(r"(?:--output|-o)\s+(\S+)", c)
+        for cmd in cmds:
+            m = re.findall(r"(?:--output|-o)\s+(\S+)", cmd)
             if m:
                 last_out = m[-1]
         if last_out:
@@ -1139,12 +1140,12 @@ def _handle_prompt(
             return 0
 
     status = 0
-    for c in cmds:
-        print(f"\n$ {c}")
+    for cmd in cmds:
+        print(f"\n$ {cmd}")
         # Resolve missing required args
         try:
-            c = _resolve_missing_args(
-                c,
+            cmd = _resolve_missing_args(
+                cmd,
                 interactive=interactive_args,
                 logfile=logfile,
                 session=session,
@@ -1152,13 +1153,13 @@ def _handle_prompt(
         except MissingArgsError:
             status = 2
             break
-        rc = _run_one(c)
+        rc = _run_one(cmd)
         _log_event(
             logfile,
             {
                 "ts": datetime.utcnow().isoformat() + "Z",
                 "type": "exec",
-                "cmd": c,
+                "cmd": cmd,
                 "returncode": rc,
                 "ok": (rc == 0),
                 "provider": provider_name,
@@ -1167,7 +1168,7 @@ def _handle_prompt(
             session_id=(session.session_id if session else None),
         )
         if rc == 0:
-            _append_history(c)
+            _append_history(cmd)
         if rc != 0:
             print(f"Command failed with exit code {rc}")
             status = rc
