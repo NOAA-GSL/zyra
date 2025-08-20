@@ -47,6 +47,7 @@ def create_app() -> FastAPI:
     - Defines `/`, `/health`, and `/ready` routes
     - On startup, launches a background cleanup loop for result TTL pruning
     """
+
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         # Launch background cleanup loop for results on startup
