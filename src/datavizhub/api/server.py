@@ -12,6 +12,7 @@ import asyncio
 import os
 import shutil
 import time
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request
@@ -25,6 +26,18 @@ from datavizhub.api.routers import jobs as jobs_router
 from datavizhub.api.routers import ws as ws_router
 from datavizhub.api.security import require_api_key
 
+# Best-effort: load environment variables from a local .env if present.
+# Mirrors the Wizard behavior so API picks up devcontainer-provided settings.
+try:  # pragma: no cover - environment dependent
+    from dotenv import find_dotenv, load_dotenv
+
+    _ENV_PATH = find_dotenv(usecwd=True)
+    if _ENV_PATH:
+        load_dotenv(_ENV_PATH, override=False)
+except Exception:
+    # Ignore if python-dotenv is unavailable; environment vars still work
+    pass
+
 
 def create_app() -> FastAPI:
     """Build and configure the FastAPI application.
@@ -34,7 +47,20 @@ def create_app() -> FastAPI:
     - Defines `/`, `/health`, and `/ready` routes
     - On startup, launches a background cleanup loop for result TTL pruning
     """
-    app = FastAPI(title="DataVizHub API", version=dvh_version)
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        # Launch background cleanup loop for results on startup
+        task = asyncio.create_task(_results_cleanup_loop())
+        try:
+            yield
+        finally:
+            # Cancel and await the cleanup task on shutdown
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
+
+    app = FastAPI(title="DataVizHub API", version=dvh_version, lifespan=lifespan)
 
     # CORS (env-configurable)
     allow_all = os.environ.get("DATAVIZHUB_CORS_ALLOW_ALL", "0").lower() in {
@@ -147,6 +173,22 @@ def create_app() -> FastAPI:
             "required": require_ffmpeg,
         }
 
+        # LLM configuration (provider and model only; no hostnames)
+        # Resolve from environment with sensible defaults that match the Wizard.
+        prov = (os.environ.get("DATAVIZHUB_LLM_PROVIDER") or "openai").strip().lower()
+        model_env = os.environ.get("DATAVIZHUB_LLM_MODEL")
+        if model_env and model_env.strip():
+            model_resolved = model_env.strip()
+        else:
+            # Provider-specific defaults mirror datavizhub.wizard.llm_client
+            if prov == "openai":
+                model_resolved = "gpt-4o-mini"
+            elif prov == "ollama":
+                model_resolved = "mistral"
+            else:
+                model_resolved = None  # mock/unknown
+        llm = {"provider": prov, "model": model_resolved}
+
         overall_ok = (
             exists
             and writable
@@ -169,7 +211,47 @@ def create_app() -> FastAPI:
                 "disk": disk,
                 "queue": queue,
                 "binaries": binaries,
+                "llm": llm,
             },
+        }
+
+    @app.get("/llm/test", tags=["system"])
+    def llm_test(
+        request: Request, provider: str | None = None, model: str | None = None
+    ) -> dict:
+        """Probe LLM connectivity similarly to `datavizhub wizard --test-llm`.
+
+        Optional query params `provider` and `model` override environment/config.
+        """
+        try:
+            from datavizhub.wizard import _test_llm_connectivity
+        except (
+            ImportError,
+            ModuleNotFoundError,
+        ):  # pragma: no cover - optional dependency
+            # Avoid leaking internal import errors to the client
+            return {"status": "error", "message": "LLM test unavailable in this build."}
+
+        ok, msg = _test_llm_connectivity(provider, model)
+
+        # Also surface the resolved provider/model shown in /ready for consistency
+        prov = (os.environ.get("DATAVIZHUB_LLM_PROVIDER") or "openai").strip().lower()
+        model_env = os.environ.get("DATAVIZHUB_LLM_MODEL")
+        if model_env and model_env.strip():
+            model_resolved = model_env.strip()
+        else:
+            model_resolved = (
+                "gpt-4o-mini"
+                if prov == "openai"
+                else "mistral"
+                if prov == "ollama"
+                else None
+            )
+
+        return {
+            "status": "ok" if ok else "error",
+            "message": msg,
+            "llm": {"provider": prov, "model": model_resolved},
         }
 
     @app.get("/")
@@ -195,6 +277,7 @@ def create_app() -> FastAPI:
             "endpoints": [
                 "/health",
                 "/ready",
+                "/llm/test",
                 "/cli/commands",
                 "/cli/examples",
                 "/cli/run",
@@ -303,11 +386,5 @@ async def _results_cleanup_loop() -> None:
         await asyncio.sleep(interval)
 
 
-# Uvicorn entrypoint: `uvicorn datavizhub.api.server:app --reload`
 app = create_app()
-
-
-@app.on_event("startup")
-async def _startup_tasks() -> None:
-    # Launch background cleanup loop for results
-    asyncio.create_task(_results_cleanup_loop())
+# Uvicorn entrypoint: `uvicorn datavizhub.api.server:app --reload`

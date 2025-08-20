@@ -3,12 +3,14 @@ from __future__ import annotations
 import logging
 
 from datavizhub.utils.cli_helpers import configure_logging_from_env
-from datavizhub.visualization.timeseries_manager import TimeSeriesManager
 
 
 def handle_timeseries(ns) -> int:
     """Handle ``visualize timeseries`` CLI subcommand."""
     configure_logging_from_env()
+    # Lazy import to reduce startup cost when visualization isn't used
+    from datavizhub.visualization.timeseries_manager import TimeSeriesManager
+
     mgr = TimeSeriesManager(
         title=getattr(ns, "title", None),
         xlabel=getattr(ns, "xlabel", None),

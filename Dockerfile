@@ -78,5 +78,8 @@ RUN poetry install --with dev --all-extras
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=5 \
   CMD sh -c "curl -fsS http://localhost:${DATAVIZHUB_API_PORT:-8000}/ready || exit 1"
 
+# Automatically load .env variables in interactive shells (dev only)
+RUN echo 'set -a; [ -f /app/.env ] && source /app/.env; set +a' >> /root/.bashrc
+
 # Set the default command to open a bash shell
 CMD ["sleep", "infinity"]

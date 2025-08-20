@@ -6,11 +6,13 @@ from pathlib import Path
 
 from datavizhub.utils.cli_helpers import configure_logging_from_env
 from datavizhub.visualization.cli_utils import features_from_ns
-from datavizhub.visualization.heatmap_manager import HeatmapManager
 
 
 def handle_heatmap(ns) -> int:
     """Handle ``visualize heatmap`` CLI subcommand."""
+    # Lazy import to reduce startup cost when visualization isn't used
+    from datavizhub.visualization.heatmap_manager import HeatmapManager
+
     configure_logging_from_env()
     # Batch mode: --inputs with --output-dir
     if getattr(ns, "inputs", None):

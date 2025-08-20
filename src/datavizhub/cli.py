@@ -501,7 +501,7 @@ def main(argv: list[str] | None = None) -> int:
         proc_sub = p_proc.add_subparsers(dest="process_cmd", required=True)
         _process_mod.register_cli(proc_sub)
     elif first_non_flag == "visualize":
-        from datavizhub import visualization as _visual_mod
+        from datavizhub.visualization import cli_register as _visual_mod
 
         p_viz = sub.add_parser(
             "visualize", help="Visualization commands (static/interactive/animation)"
@@ -525,13 +525,45 @@ def main(argv: list[str] | None = None) -> int:
     elif first_non_flag == "run":
         # Already registered above
         pass
+    elif first_non_flag == "wizard":
+        # Lightweight: registers a single command with optional LLM backends
+        from datavizhub import wizard as _wizard_mod
+
+        p_wiz = sub.add_parser(
+            "wizard", help="Interactive assistant that suggests/runs CLI commands"
+        )
+        _wizard_mod.register_cli(p_wiz)
+    elif first_non_flag == "generate-manifest":
+        # Developer utility to generate capabilities manifest
+        from datavizhub.wizard.manifest import save_manifest as _save_manifest
+
+        p_gen = sub.add_parser(
+            "generate-manifest", help="Generate capabilities JSON manifest"
+        )
+        p_gen.add_argument(
+            "-o",
+            "--output",
+            default=str(
+                Path(__file__).parent / "wizard" / "datavizhub_capabilities.json"
+            ),
+            help="Output path for capabilities manifest JSON",
+        )
+
+        def _cmd_gen(ns: argparse.Namespace) -> int:
+            _save_manifest(ns.output)
+            print(ns.output)
+            return 0
+
+        p_gen.set_defaults(func=_cmd_gen)
     else:
         # Fallback: register the full CLI tree when we cannot infer the target
         import datavizhub.transform as _transform_mod
         from datavizhub import processing as _process_mod
-        from datavizhub import visualization as _visual_mod
+        from datavizhub import wizard as _wizard_mod
         from datavizhub.connectors import egress as _egress_mod
         from datavizhub.connectors import ingest as _ingest_mod
+        from datavizhub.visualization import cli_register as _visual_mod
+        from datavizhub.wizard.manifest import save_manifest as _save_manifest
 
         p_acq = sub.add_parser("acquire", help="Acquire/ingest data from sources")
         acq_sub = p_acq.add_subparsers(dest="acquire_cmd", required=True)
@@ -558,6 +590,32 @@ def main(argv: list[str] | None = None) -> int:
         p_tr = sub.add_parser("transform", help="Transform helpers (metadata, etc.)")
         tr_sub = p_tr.add_subparsers(dest="transform_cmd", required=True)
         _transform_mod.register_cli(tr_sub)
+
+        # Wizard (single command, no subcommands)
+        p_wiz = sub.add_parser(
+            "wizard", help="Interactive assistant that suggests/runs CLI commands"
+        )
+        _wizard_mod.register_cli(p_wiz)
+
+        # Generate-manifest
+        p_gen = sub.add_parser(
+            "generate-manifest", help="Generate capabilities JSON manifest"
+        )
+        p_gen.add_argument(
+            "-o",
+            "--output",
+            default=str(
+                Path(__file__).parent / "wizard" / "datavizhub_capabilities.json"
+            ),
+            help="Output path for capabilities manifest JSON",
+        )
+
+        def _cmd_gen(ns: argparse.Namespace) -> int:
+            _save_manifest(ns.output)
+            print(ns.output)
+            return 0
+
+        p_gen.set_defaults(func=_cmd_gen)
 
     args = parser.parse_args(args_list)
     return args.func(args)

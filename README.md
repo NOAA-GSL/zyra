@@ -690,6 +690,7 @@ with open("/data/out/movie.mp4", "rb") as f:
   - Security Quickstart: https://github.com/NOAA-GSL/datavizhub/wiki/DataVizHub-API-Security-Quickstart
 - API docs (GitHub Pages): https://noaa-gsl.github.io/datavizhub/
 - CI-synced wiki: A GitHub Action mirrors the wiki into `docs/source/wiki/` so Sphinx can build it with the docs. Sync commits occur only on `main`; PRs/branches use the synced copy for builds without committing changes.
+ - Wizard REPL (experimental): see docs/wizard-cli.md for autocomplete and edit-before-run usage.
 
 ## Notes
 - Paths: examples use absolute paths (e.g., `/data/...`) for clarity, but the library does not assume a specific root; configure paths via your own settings or env vars if preferred.
