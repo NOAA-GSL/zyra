@@ -49,10 +49,10 @@ try:  # pragma: no cover - environment dependent
         )
     else:
         logging.getLogger(__name__).debug("No .env file found; skipping dotenv load.")
-except Exception as exc:
+except (ImportError, ModuleNotFoundError) as exc:
     # Ignore if python-dotenv is unavailable; environment vars still work
     logging.getLogger(__name__).debug(
-        "Skipping dotenv load (python-dotenv missing or failed): %s", exc
+        "Skipping dotenv load (python-dotenv not installed): %s", exc
     )
 
 MANIFEST_FILENAME = "datavizhub_capabilities.json"
@@ -787,6 +787,29 @@ def _extract_annotated_commands(text: str) -> list[str]:
     return cmds
 
 
+def _extract_safe_commands_from_reply(reply: str) -> tuple[list[str], list[str], int]:
+    """Parse LLM reply and return sanitized, safe commands.
+
+    Returns a tuple of:
+    - cmds: sanitized commands safe to execute (inline comments stripped)
+    - shown: commands for display with explanations preserved
+    - dropped: count of non-datavizhub lines ignored
+    """
+    annotated_cmds = _extract_annotated_commands(reply)
+    # Keep shown commands as-is to preserve any inline explanations
+    shown = [a for a in annotated_cmds if a.startswith("datavizhub ")]
+    # Sanitize for execution by stripping inline comments
+    cmds: list[str] = []
+    dropped = 0
+    for a in annotated_cmds:
+        s = _strip_inline_comment(a)
+        if s.startswith("datavizhub "):
+            cmds.append(s)
+        else:
+            dropped += 1
+    return cmds, shown, dropped
+
+
 def _confirm(prompt: str, assume_yes: bool = False) -> bool:
     if assume_yes:
         return True
@@ -798,10 +821,21 @@ def _confirm(prompt: str, assume_yes: bool = False) -> bool:
 
 
 def _run_one(cmd: str) -> int:
-    """Execute a single datavizhub command by calling the internal CLI."""
+    """Execute a single datavizhub command by calling the internal CLI.
+
+    Safety notes:
+    - No shell is invoked; arguments are parsed with shlex and passed directly
+      to the CLI entrypoint function, which prevents shell command injection.
+    - Upstream validation ensures only `datavizhub` commands are constructed.
+      This function strips the leading program name if present and forwards the
+      remaining arguments to the CLI.
+    """
     from datavizhub.cli import main as cli_main
 
     # Strip leading program name if present
+    if "\x00" in cmd or "\n" in cmd:
+        # Reject NUL/newline to avoid multi-line inputs
+        raise ValueError("Invalid command: contains disallowed control characters")
     parts = shlex.split(cmd)
     if parts and parts[0] == "datavizhub":
         parts = parts[1:]
@@ -1031,19 +1065,9 @@ def _handle_prompt(
             session_id=(session.session_id if session else None),
         )
 
-    annotated_cmds = _extract_annotated_commands(reply)
-    # Normalize by stripping comments while keeping only datavizhub lines
-    cmds = []
-    for a in annotated_cmds:
-        s = _strip_inline_comment(a)
-        if s.startswith("datavizhub "):
-            cmds.append(s)
-    # Strict safety: drop any lines that don't start with datavizhub
-    safe_cmds = [cmd for cmd in cmds if cmd.startswith("datavizhub ")]
-    dropped = len(cmds) - len(safe_cmds)
+    cmds, shown, dropped = _extract_safe_commands_from_reply(reply)
     if dropped > 0:
         print(f"[safe] Ignored {dropped} non-datavizhub line(s).")
-    cmds = safe_cmds
     # If model suggested nothing usable, provide a safe default that triggers interactive prompts
     if not cmds:
         cmds = _fallback_commands_for_prompt(prompt)
@@ -1057,7 +1081,6 @@ def _handle_prompt(
         if show_raw:
             print("Raw model output:\n" + reply)
         if explain:
-            shown = [a for a in annotated_cmds if a.startswith("datavizhub ")]
             print(
                 "Suggested commands (with explanations):\n"
                 + "\n".join(f"  {cmd}" for cmd in shown)
@@ -1091,7 +1114,6 @@ def _handle_prompt(
         print("Raw model output:\n" + reply)
     # Suggested commands: optionally include inline comments via annotated lines
     if explain:
-        shown = [a for a in annotated_cmds if a.startswith("datavizhub ")]
         print(
             "Suggested commands (with explanations):\n"
             + "\n".join(f"  {cmd}" for cmd in shown)

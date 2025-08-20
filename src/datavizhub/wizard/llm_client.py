@@ -21,7 +21,7 @@ from dataclasses import dataclass
 # exception handling remains explicit without type: ignore noise.
 try:  # pragma: no cover - environment dependent
     from requests.exceptions import HTTPError, RequestException  # type: ignore
-except Exception:  # pragma: no cover - requests missing
+except ImportError:  # pragma: no cover - requests missing
 
     class RequestException(Exception):  # type: ignore[no-redef]
         pass
@@ -78,7 +78,7 @@ class OpenAIClient(LLMClient):
             try:
                 import requests  # type: ignore
                 from requests.adapters import HTTPAdapter  # type: ignore
-            except Exception:  # requests may be unavailable in minimal envs
+            except ImportError:  # requests may be unavailable in minimal envs
                 return None
             s = requests.Session()
             adapter = HTTPAdapter(pool_connections=10, pool_maxsize=10)
@@ -156,7 +156,7 @@ class OllamaClient(LLMClient):
             try:
                 import requests  # type: ignore
                 from requests.adapters import HTTPAdapter  # type: ignore
-            except Exception:  # requests may be unavailable in minimal envs
+            except ImportError:  # requests may be unavailable in minimal envs
                 return None
             s = requests.Session()
             adapter = HTTPAdapter(pool_connections=10, pool_maxsize=10)

@@ -21,11 +21,10 @@ print(json.dumps({'present': present}))
 """
     res = subprocess.run(
         [sys.executable, "-c", code],
-        check=False,
+        check=True,
         capture_output=True,
         text=True,
     )
-    assert res.returncode == 0, res.stderr
     out = json.loads(res.stdout.strip() or "{}")
     present = set(out.get("present", []))
     # Wizard should not import heavy viz modules during import
