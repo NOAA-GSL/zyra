@@ -4,12 +4,14 @@ import logging
 
 from datavizhub.utils.cli_helpers import configure_logging_from_env
 from datavizhub.visualization.cli_utils import features_from_ns
-from datavizhub.visualization.interactive_manager import InteractiveManager
 
 
 def handle_interactive(ns) -> int:
     """Handle ``visualize interactive`` CLI subcommand."""
     configure_logging_from_env()
+    # Lazy import to reduce startup cost when visualization isn't used
+    from datavizhub.visualization.interactive_manager import InteractiveManager
+
     mgr = InteractiveManager(engine=ns.engine, extent=ns.extent, cmap=ns.cmap)
     features = features_from_ns(ns)
 

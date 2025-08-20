@@ -6,11 +6,13 @@ from pathlib import Path
 
 from datavizhub.utils.cli_helpers import configure_logging_from_env
 from datavizhub.visualization.cli_utils import features_from_ns
-from datavizhub.visualization.vector_field_manager import VectorFieldManager
 
 
 def handle_vector(ns) -> int:
     """Handle ``visualize vector`` CLI subcommand."""
+    # Lazy import to reduce startup cost when visualization isn't used
+    from datavizhub.visualization.vector_field_manager import VectorFieldManager
+
     configure_logging_from_env()
     # Batch mode
     if getattr(ns, "inputs", None):

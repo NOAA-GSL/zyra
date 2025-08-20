@@ -2522,11 +2522,12 @@ version = "3.0.51"
 description = "Library for building powerful interactive command lines in Python"
 optional = false
 python-versions = ">=3.8"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "prompt_toolkit-3.0.51-py3-none-any.whl", hash = "sha256:52742911fde84e2d423e2f9a4cf1de7d7ac4e51958f648d9540e0fb8db077b07"},
     {file = "prompt_toolkit-3.0.51.tar.gz", hash = "sha256:931a162e3b27fc90c86f1b48bb1fb2c528c2761475e57c9c06de13311c7b54ed"},
 ]
+markers = {main = "extra == \"wizard\" or extra == \"all\""}
 
 [package.dependencies]
 wcwidth = "*"
@@ -4007,11 +4008,12 @@ version = "0.2.13"
 description = "Measures the displayed width of unicode strings in a terminal"
 optional = false
 python-versions = "*"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "wcwidth-0.2.13-py2.py3-none-any.whl", hash = "sha256:3da69048e4540d84af32131829ff948f1e022c1c6bdb8d6102117aac784f6859"},
     {file = "wcwidth-0.2.13.tar.gz", hash = "sha256:72ea0c06399eb286d978fdedb6923a9eb47e1c486ce63e9b4e64fc18303972b5"},
 ]
+markers = {main = "extra == \"wizard\" or extra == \"all\""}
 
 [[package]]
 name = "websockets"
@@ -4228,7 +4230,7 @@ idna = ">=2.0"
 multidict = ">=4.0"
 
 [extras]
-all = ["PyVimeo", "boto3", "cartopy", "cfgrib", "fastapi", "ffmpeg-python", "matplotlib", "netcdf4", "pygrib", "python-magic", "python-multipart", "rasterio", "redis", "requests", "rioxarray", "rq", "scipy", "siphon", "uvicorn", "xarray"]
+all = ["PyVimeo", "boto3", "cartopy", "cfgrib", "fastapi", "ffmpeg-python", "matplotlib", "netcdf4", "prompt_toolkit", "pygrib", "python-magic", "python-multipart", "rasterio", "redis", "requests", "rioxarray", "rq", "scipy", "siphon", "uvicorn", "xarray"]
 api = ["fastapi", "python-multipart", "redis", "rq", "uvicorn"]
 connectors = ["PyVimeo", "boto3", "requests"]
 datatransfer = ["PyVimeo", "boto3", "requests"]
@@ -4239,9 +4241,10 @@ mime = ["python-magic"]
 netcdf = ["netcdf4", "xarray"]
 processing = ["cfgrib", "ffmpeg-python", "netcdf4", "pygrib", "rasterio", "rioxarray", "scipy", "siphon", "xarray"]
 visualization = ["cartopy", "matplotlib", "scipy", "xarray"]
+wizard = ["prompt_toolkit"]
 ws = ["websockets"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "307609c89b850cd330090bef8b99573c4c544089e0ecced91a1250c36f79592c"
+content-hash = "fdaa8e6fba925f3c23dbdbf494775995c6f763cfa957ddfb5c90de3cfefc6ffc"

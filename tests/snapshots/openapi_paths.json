@@ -7,6 +7,7 @@
   "/jobs/{job_id}",
   "/jobs/{job_id}/download",
   "/jobs/{job_id}/manifest",
+  "/llm/test",
   "/ready",
   "/upload"
 ]

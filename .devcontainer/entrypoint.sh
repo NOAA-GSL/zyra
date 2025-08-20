@@ -1,10 +1,37 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Copy default .env if missing
-if [[ ! -f .env && -f .devcontainer/.env ]]; then
-  echo "[entrypoint] Seeding .env from .devcontainer/.env"
-  cp .devcontainer/.env .env
+# Seed or merge LLM-related env into .env so the Wizard picks it up
+if [[ -f .devcontainer/.env ]]; then
+  # If no .env exists, copy entirely
+  if [[ ! -f .env ]]; then
+    echo "[entrypoint] Seeding .env from .devcontainer/.env"
+    cp .devcontainer/.env .env
+  else
+    # Merge only the LLM-related keys if missing in .env
+    ensure_kv() {
+      local key="$1"
+      local src=".devcontainer/.env"
+      if ! grep -E "^${key}=" -q .env && grep -E "^${key}=" -q "$src"; then
+        local val
+        val=$(grep -E "^${key}=" "$src" | tail -n1)
+        echo "$val" >> .env
+        echo "[entrypoint] Added ${key} to .env from .devcontainer/.env"
+      fi
+    }
+    ensure_kv DATAVIZHUB_LLM_PROVIDER
+    ensure_kv DATAVIZHUB_LLM_MODEL
+    ensure_kv OLLAMA_BASE_URL
+    ensure_kv OPENAI_BASE_URL
+  fi
+fi
+
+# Export all variables from .env into the container environment (dev only)
+if [[ "${DATAVIZHUB_ENV:-dev}" == "dev" && -f .env ]]; then
+  echo "[entrypoint] Loading environment variables from .env (dev only)"
+  set -a
+  source .env
+  set +a
 fi
 
 # ====== SERVICE START SECTION ======

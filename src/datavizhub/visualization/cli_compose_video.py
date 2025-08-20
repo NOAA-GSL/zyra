@@ -4,13 +4,15 @@ import logging
 import os
 from pathlib import Path
 
-from datavizhub.processing.video_processor import VideoProcessor
 from datavizhub.utils.cli_helpers import configure_logging_from_env
 
 
 def handle_compose_video(ns) -> int:
     """Handle ``visualize compose-video`` CLI subcommand."""
     configure_logging_from_env()
+    # Lazy import to avoid pulling ffmpeg dependencies unless needed
+    from datavizhub.processing.video_processor import VideoProcessor
+
     out = str(ns.output).strip()
     if out.startswith("-"):
         raise SystemExit(

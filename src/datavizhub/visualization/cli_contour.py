@@ -5,11 +5,13 @@ from pathlib import Path
 
 from datavizhub.utils.cli_helpers import configure_logging_from_env, parse_levels_arg
 from datavizhub.visualization.cli_utils import features_from_ns
-from datavizhub.visualization.contour_manager import ContourManager
 
 
 def handle_contour(ns) -> int:
     """Handle ``visualize contour`` CLI subcommand."""
+    # Lazy import to reduce startup cost when visualization isn't used
+    from datavizhub.visualization.contour_manager import ContourManager
+
     configure_logging_from_env()
     # Batch mode
     if getattr(ns, "inputs", None):
