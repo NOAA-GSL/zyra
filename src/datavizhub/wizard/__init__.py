@@ -677,7 +677,9 @@ def _edit_commands(
     # Derive a safe session_id if available
     sess_id = None
     try:
-        sess_id = session.session_id if session and hasattr(session, "session_id") else None
+        sess_id = (
+            session.session_id if session and hasattr(session, "session_id") else None
+        )
     except Exception:
         sess_id = None
     _log_event(

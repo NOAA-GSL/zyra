@@ -56,4 +56,3 @@ def test_edit_commands_handles_missing_session_id(monkeypatch, tmp_path):
     data = [json.loads(p) for p in logfile.read_text().splitlines() if p.strip()]
     assert any(e.get("type") == "edit" for e in data)
     assert all("session_id" not in e for e in data if e.get("type") == "edit")
-
