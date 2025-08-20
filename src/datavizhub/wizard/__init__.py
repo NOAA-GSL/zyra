@@ -198,8 +198,8 @@ def _test_llm_connectivity(provider: str | None, model: str | None) -> tuple[boo
 
         try:
             oc = OpenAIClient(model=model_name or None, base_url=base_url or None)
-        except RuntimeError as exc:
-            return False, f"❌ {exc}"
+        except RuntimeError:
+            return False, "❌ OpenAI client not available; check API key configuration."
         try:
             # Hitting the models list is a lightweight way to check auth
             url = f"{oc.base_url}/models"
