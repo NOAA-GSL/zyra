@@ -165,7 +165,7 @@ def _test_llm_connectivity(provider: str | None, model: str | None) -> tuple[boo
     base_url = cfg.get("base_url")
     try:
         import requests  # type: ignore
-    except Exception:
+    except ImportError:
         return False, "requests library not available for connectivity test"
 
     if prov == "ollama":
@@ -179,7 +179,7 @@ def _test_llm_connectivity(provider: str | None, model: str | None) -> tuple[boo
             r.raise_for_status()
             who = f"Ollama ({oc.model})"
             return True, f"✅ Connected to {who} at {oc.base_url}"
-        except Exception as exc:
+        except Exception:
             host_hint = ""
             if any(h in (oc.base_url or "") for h in ["localhost", "127.0.0.1"]):
                 host_hint = (
@@ -190,7 +190,7 @@ def _test_llm_connectivity(provider: str | None, model: str | None) -> tuple[boo
             serve_hint = "\n🔧 Ensure: OLLAMA_HOST=0.0.0.0 ollama serve"
             return (
                 False,
-                f"❌ Failed to reach Ollama at {oc.base_url}: {exc}{host_hint}{serve_hint}",
+                "❌ Failed to reach Ollama endpoint." + host_hint + serve_hint,
             )
 
     if prov == "openai":
@@ -208,8 +208,8 @@ def _test_llm_connectivity(provider: str | None, model: str | None) -> tuple[boo
             r.raise_for_status()
             who = f"OpenAI ({oc.model})"
             return True, f"✅ Connected to {who} at {oc.base_url}"
-        except Exception as exc:
-            return False, f"❌ Failed to query OpenAI at {oc.base_url}: {exc}"
+        except Exception:
+            return False, "❌ Failed to query OpenAI; check API key and network access."
 
     # mock is always 'connected'
     return True, "✅ Using mock LLM provider"

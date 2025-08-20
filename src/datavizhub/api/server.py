@@ -225,8 +225,12 @@ def create_app() -> FastAPI:
         """
         try:
             from datavizhub.wizard import _test_llm_connectivity
-        except Exception as exc:  # pragma: no cover - import edge case
-            return {"status": "error", "message": f"LLM test unavailable: {exc}"}
+        except (
+            ImportError,
+            ModuleNotFoundError,
+        ):  # pragma: no cover - optional dependency
+            # Avoid leaking internal import errors to the client
+            return {"status": "error", "message": "LLM test unavailable in this build."}
 
         ok, msg = _test_llm_connectivity(provider, model)
 
