@@ -39,13 +39,14 @@ def _safe_register_all(sub: argparse._SubParsersAction) -> None:
 
     # visualize
     try:
-        from datavizhub import visualization as _visual_mod
+        # Use lightweight registrar to avoid importing heavy visualization root
+        from datavizhub.visualization import cli_register as _viz_cli
 
         p_viz = sub.add_parser(
             "visualize", help="Visualization commands (static/interactive/animation)"
         )
         viz_sub = p_viz.add_subparsers(dest="visualize_cmd", required=True)
-        _visual_mod.register_cli(viz_sub)
+        _viz_cli.register_cli(viz_sub)
     except (
         ImportError,
         AttributeError,

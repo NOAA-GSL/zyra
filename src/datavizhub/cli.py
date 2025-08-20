@@ -501,7 +501,7 @@ def main(argv: list[str] | None = None) -> int:
         proc_sub = p_proc.add_subparsers(dest="process_cmd", required=True)
         _process_mod.register_cli(proc_sub)
     elif first_non_flag == "visualize":
-        from datavizhub import visualization as _visual_mod
+        from datavizhub.visualization import cli_register as _visual_mod
 
         p_viz = sub.add_parser(
             "visualize", help="Visualization commands (static/interactive/animation)"
@@ -559,10 +559,10 @@ def main(argv: list[str] | None = None) -> int:
         # Fallback: register the full CLI tree when we cannot infer the target
         import datavizhub.transform as _transform_mod
         from datavizhub import processing as _process_mod
-        from datavizhub import visualization as _visual_mod
         from datavizhub import wizard as _wizard_mod
         from datavizhub.connectors import egress as _egress_mod
         from datavizhub.connectors import ingest as _ingest_mod
+        from datavizhub.visualization import cli_register as _visual_mod
         from datavizhub.wizard.manifest import save_manifest as _save_manifest
 
         p_acq = sub.add_parser("acquire", help="Acquire/ingest data from sources")
