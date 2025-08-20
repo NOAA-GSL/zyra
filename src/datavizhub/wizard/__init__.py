@@ -46,6 +46,7 @@ import warnings
 
 from .llm_client import LLMClient
 from .prompts import SYSTEM_PROMPT
+from .resolver import MissingArgsError, MissingArgumentResolver
 
 
 @dataclass
@@ -801,6 +802,40 @@ def _run_one(cmd: str) -> int:
         return int(getattr(exc, "code", 1) or 0)
 
 
+def _resolve_missing_args(
+    cmd: str,
+    *,
+    interactive: bool,
+    logfile: Path | None,
+    session: SessionState | None,
+) -> str:
+    """Use capabilities manifest to prompt for missing required args.
+
+    When non-interactive and required args are missing, raises MissingArgsError.
+    """
+    cap = _load_capabilities_manifest()
+    if not cap:
+        return cmd
+
+    def _log_evt(evt: dict) -> None:
+        _log_event(
+            logfile,
+            {"ts": datetime.utcnow().isoformat() + "Z", **evt},
+            session_id=(session.session_id if session else None),
+        )
+
+    resolver = MissingArgumentResolver(cap)
+    updated = resolver.resolve(
+        cmd,
+        interactive=interactive,
+        ask_fn=lambda q, meta: _prompt_line(q, session=session),
+        log_fn=lambda e: _log_evt({"type": "arg_resolve", **e}),
+    )
+    if updated != cmd:
+        print(f"✅ Command ready: {updated}")
+    return updated
+
+
 def _ensure_log_dir() -> Path:
     root = Path("~/.datavizhub/wizard_logs").expanduser()
     root.mkdir(parents=True, exist_ok=True)
@@ -910,6 +945,7 @@ def _handle_prompt(
     explain: bool = False,
     session: SessionState | None = None,
     edit_mode: str | None = None,  # 'always' | 'never' | 'prompt'
+    interactive_args: bool = False,
 ) -> int:
     client = _select_provider(provider, model)
     # Build contextual user prompt for LLM if session is provided
@@ -1065,6 +1101,17 @@ def _handle_prompt(
     status = 0
     for c in cmds:
         print(f"\n$ {c}")
+        # Resolve missing required args
+        try:
+            c = _resolve_missing_args(
+                c,
+                interactive=interactive_args,
+                logfile=logfile,
+                session=session,
+            )
+        except MissingArgsError:
+            status = 2
+            break
         rc = _run_one(c)
         _log_event(
             logfile,
@@ -1333,6 +1380,7 @@ def _interactive_loop(args: argparse.Namespace) -> int:
             explain=getattr(args, "explain", False),
             session=session,
             edit_mode=editor_mode,
+            interactive_args=True,
         )
         if rc != 0:
             print(f"Last command set exited with {rc}")
@@ -1400,6 +1448,11 @@ def register_cli(p: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Do not offer edit prompt; run/cancel only",
     )
+    p.add_argument(
+        "--interactive",
+        action="store_true",
+        help="Ask for missing required arguments in one-shot mode",
+    )
 
     def _cmd(ns: argparse.Namespace) -> int:
         if ns.test_llm:
@@ -1438,6 +1491,7 @@ def register_cli(p: argparse.ArgumentParser) -> None:
                 explain=ns.explain,
                 session=the_session,
                 edit_mode=editor_mode,
+                interactive_args=bool(getattr(ns, "interactive", False)),
             )
         return _interactive_loop(ns)
 
