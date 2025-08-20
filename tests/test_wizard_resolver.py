@@ -53,6 +53,63 @@ def test_resolver_interactive_prompts_user(monkeypatch):
     assert "samples/demo.grib2" in ans
 
 
+def test_resolver_prompts_for_positionals_only(monkeypatch):
+    from datavizhub.wizard.resolver import MissingArgumentResolver
+
+    manifest = {
+        "acquire ftp": {
+            "options": {},
+            "positionals": [
+                {"name": "path", "help": "ftp path", "required": True, "type": "str"}
+            ],
+        }
+    }
+    r = MissingArgumentResolver(manifest)
+    cmd = "datavizhub acquire ftp"
+    ans = r.resolve(
+        cmd, interactive=True, ask_fn=lambda q, meta: "ftp://example.com/path"
+    )
+    assert ans.strip().endswith("ftp://example.com/path")
+
+
+def test_resolver_masks_sensitive_in_logs(monkeypatch):
+    from datavizhub.wizard.resolver import MissingArgumentResolver
+
+    captured = []
+
+    manifest = {
+        "acquire http": {
+            "options": {
+                "--api_key": {
+                    "help": "secret key",
+                    "required": True,
+                    "type": "str",
+                    "sensitive": True,
+                }
+            },
+            "positionals": [
+                {"name": "url", "help": "http url", "required": True, "type": "str"}
+            ],
+        }
+    }
+    r = MissingArgumentResolver(manifest)
+    cmd = "datavizhub acquire http"
+
+    answers = iter(["s3cr3t", "http://example.com/file"])
+    out = r.resolve(
+        cmd,
+        interactive=True,
+        ask_fn=lambda q, meta: next(answers),
+        log_fn=lambda e: captured.append(e),
+    )
+    # Ensure sensitive value is masked in logs
+    assert any(ev.get("masked") for ev in captured), captured
+    assert all(
+        ev.get("user_value") != "s3cr3t" for ev in captured if ev.get("masked")
+    ), captured
+    assert any(ev.get("positional") for ev in captured)
+
+
 def test_one_shot_missing_args_fails_without_interactive(monkeypatch, capsys):
     # Force a simple manifest with a required flag
     import datavizhub.wizard as wiz
@@ -88,7 +145,17 @@ def test_one_shot_missing_args_prompts_with_interactive(monkeypatch, capsys):
     def fake_manifest():
         return {
             "foo bar": {
-                "options": {"--x": {"help": "x value", "required": True, "type": "int"}}
+                "options": {
+                    "--x": {"help": "x value", "required": True, "type": "int"}
+                },
+                "positionals": [
+                    {
+                        "name": "path",
+                        "help": "input path",
+                        "required": True,
+                        "type": "path",
+                    }
+                ],
             }
         }
 
@@ -106,8 +173,9 @@ def test_one_shot_missing_args_prompts_with_interactive(monkeypatch, capsys):
     import datavizhub.wizard as wizmod
 
     monkeypatch.setattr(wizmod, "PTK_AVAILABLE", False)
-    # Provide input for interactive prompt
-    monkeypatch.setattr("builtins.input", lambda prompt="": "123")
+    # Provide input for interactive prompts: first --x, then positional path
+    answers = iter(["123", "/tmp/in.dat"])
+    monkeypatch.setattr("builtins.input", lambda prompt="": next(answers))
 
     from datavizhub.cli import main
 

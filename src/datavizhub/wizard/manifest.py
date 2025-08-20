@@ -148,6 +148,25 @@ def _collect_options(p: argparse.ArgumentParser) -> dict[str, object]:
                 default_val = getattr(act, "default", None)
                 if default_val == argparse.SUPPRESS:  # type: ignore[attr-defined]
                     default_val = None
+                # Flag likely-sensitive fields (heuristic by name/help)
+                name_l = " ".join(names).lower()
+                help_l = help_text.lower()
+                sensitive = any(
+                    kw in name_l
+                    for kw in (
+                        "password",
+                        "secret",
+                        "token",
+                        "api_key",
+                        "apikey",
+                        "access_key",
+                        "client_secret",
+                    )
+                ) or any(
+                    kw in help_l
+                    for kw in ("password", "secret", "token", "api key")
+                )
+
                 # Emit object only if we have metadata beyond plain help (for backward compat)
                 if (
                     is_path
@@ -167,10 +186,71 @@ def _collect_options(p: argparse.ArgumentParser) -> dict[str, object]:
                         obj["required"] = True
                     if default_val is not None:
                         obj["default"] = default_val
+                    if sensitive:
+                        obj["sensitive"] = True
                     opts[opt] = obj
                 else:
                     opts[opt] = help_text
     return opts
+
+
+def _collect_positionals(p: argparse.ArgumentParser) -> list[dict[str, object]]:
+    """Collect positional arguments in declaration order with basic metadata.
+
+    Metadata includes: name, help, type (heuristic), required, choices, nargs.
+    """
+    items: list[dict[str, object]] = []
+    for act in getattr(p, "_actions", []):  # type: ignore[attr-defined]
+        if getattr(act, "option_strings", None):
+            continue
+        # Skip help or suppressed
+        if getattr(act, "help", None) == argparse.SUPPRESS:
+            continue
+        # Name and help
+        name = getattr(act, "dest", None) or getattr(act, "metavar", None) or "arg"
+        help_text = (getattr(act, "help", None) or "").strip()
+        # Infer type
+        meta = getattr(act, "metavar", None)
+        meta_s = str(meta).lower() if isinstance(meta, str) else ""
+        t = getattr(act, "type", None)
+        if any(k in meta_s for k in ("path", "file", "dir")):
+            type_str = "path"
+        elif t is int:
+            type_str = "int"
+        elif t is float:
+            type_str = "float"
+        elif t is str or t is None:
+            type_str = "str"
+        else:
+            type_str = getattr(t, "__name__", None) or str(t)
+        # Required heuristic: nargs of None or 1 implies required by default
+        nargs = getattr(act, "nargs", None)
+        required = True
+        if nargs in ("?", "*"):
+            required = False
+        # Choices
+        choices = list(getattr(act, "choices", []) or [])
+        # Sensitive heuristic by name/help
+        help_l = help_text.lower()
+        name_l = str(name).lower()
+        sensitive = any(
+            kw in name_l for kw in ("password", "secret", "token", "api_key", "apikey")
+        ) or any(kw in help_l for kw in ("password", "secret", "token", "api key"))
+
+        entry: dict[str, object] = {
+            "name": str(name),
+            "help": help_text,
+            "type": type_str,
+            "required": required,
+        }
+        if choices:
+            entry["choices"] = choices
+        if nargs is not None:
+            entry["nargs"] = nargs
+        if sensitive:
+            entry["sensitive"] = True
+        items.append(entry)
+    return items
 
 
 def _traverse(parser: argparse.ArgumentParser, *, prefix: str = "") -> dict[str, Any]:
@@ -207,6 +287,7 @@ def _traverse(parser: argparse.ArgumentParser, *, prefix: str = "") -> dict[str,
                 "epilog": (getattr(parser, "epilog", None) or ""),
                 "groups": groups,
                 "options": _collect_options(parser),
+                "positionals": _collect_positionals(parser),
             }
         return manifest
 

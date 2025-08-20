@@ -79,6 +79,41 @@ class MissingArgumentResolver:
                 missing.append((flag, meta))
         return missing
 
+    def _present_positionals(self, tokens: list[str]) -> list[str]:
+        # Return list of positional tokens found after removing flags and their values
+        start = 1 if tokens and tokens[0] == "datavizhub" else 0
+        # Skip group/sub (1 or 2 tokens depending on manifest key)
+        # Strategy: after 'datavizhub', next two tokens are group/sub for our commands
+        i = start
+        # Attempt to skip two tokens; if manifest keys include only one token, extra skip is harmless
+        i += 2
+        pos: list[str] = []
+        # Build set of flags to detect values
+        idx = i
+        while idx < len(tokens):
+            t = tokens[idx]
+            if t.startswith("-"):
+                # skip flag and its value if present
+                if idx + 1 < len(tokens) and not tokens[idx + 1].startswith("-"):
+                    idx += 2
+                else:
+                    idx += 1
+                continue
+            # positional
+            pos.append(t)
+            idx += 1
+        return pos
+
+    def _required_positionals(self, cmd_key: str) -> list[dict[str, Any]]:
+        pos = self.manifest.get(cmd_key, {}).get("positionals", [])
+        if not isinstance(pos, list):
+            return []
+        req: list[dict[str, Any]] = []
+        for item in pos:
+            if isinstance(item, dict) and item.get("required"):
+                req.append(item)
+        return req
+
     def resolve(
         self,
         command: str,
@@ -97,11 +132,19 @@ class MissingArgumentResolver:
         if not key:
             return command  # unknown command; do not modify
 
-        missing = self._missing_required(tokens, key)
-        if not missing:
+        missing_flags = self._missing_required(tokens, key)
+        # Determine missing positionals (those not yet present)
+        req_pos = self._required_positionals(key)
+        present_pos = self._present_positionals(tokens)
+        pos_to_ask: list[dict[str, Any]] = []
+        if len(present_pos) < len(req_pos):
+            pos_to_ask = req_pos[len(present_pos) :]
+
+        # Nothing to do: all required flags and positionals present
+        if not missing_flags and not pos_to_ask:
             return command
         if not interactive:
-            raise MissingArgsError([f for f, _ in missing])
+            raise MissingArgsError([f for f, _ in missing_flags] + [str(p.get("name")) for p in pos_to_ask])
 
         # Default ask function uses input()
         def _default_ask(
@@ -112,7 +155,7 @@ class MissingArgumentResolver:
         ask: AskFn = ask_fn or _default_ask
 
         # Prompt for each missing flag and append to tokens
-        for flag, meta in missing:
+        for flag, meta in missing_flags:
             q = meta.get("help") or f"Please provide {flag}"
             t = (meta.get("type") or "str").lower()
             choices = meta.get("choices") or []
@@ -140,14 +183,55 @@ class MissingArgumentResolver:
                 evt = {
                     "type": "arg_resolve",
                     "arg_name": flag,
-                    "user_value": value,
+                    "user_value": ("******" if meta.get("sensitive") else value),
                     "validated": True,
                 }
                 # Pass through meta fields that could be useful for analytics
                 for k in ("type", "choices", "required"):
                     if k in meta:
                         evt[k] = meta[k]
+                if meta.get("sensitive"):
+                    evt["masked"] = True
                 log_fn(evt)
+
+        # Handle required positionals
+        if pos_to_ask:
+            for item in pos_to_ask:
+                nm = item.get("name") or "arg"
+                q = item.get("help") or f"Please provide {nm}"
+                t = (item.get("type") or "str").lower()
+                choices = item.get("choices") or []
+                if choices:
+                    q += f" (choices: {', '.join(map(str, choices))})"
+                value: str
+                while True:
+                    raw = ask(q, item)
+                    try:
+                        if t == "int":
+                            int(raw)
+                        elif t == "float":
+                            float(raw)
+                        if choices and str(raw) not in [str(c) for c in choices]:
+                            raise ValueError("invalid choice")
+                        value = str(raw)
+                        break
+                    except Exception:
+                        continue
+                tokens.append(value)
+                if log_fn is not None:
+                    evt = {
+                        "type": "arg_resolve",
+                        "arg_name": nm,
+                        "user_value": ("******" if item.get("sensitive") else value),
+                        "validated": True,
+                        "positional": True,
+                    }
+                    for k in ("type", "choices", "required"):
+                        if k in item:
+                            evt[k] = item[k]
+                    if item.get("sensitive"):
+                        evt["masked"] = True
+                    log_fn(evt)
 
         # Recombine
         return " ".join(tokens)

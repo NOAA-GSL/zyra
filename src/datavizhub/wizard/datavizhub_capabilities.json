@@ -54,7 +54,15 @@
         "path_arg": true,
         "type": "path"
       }
-    }
+    },
+    "positionals": [
+      {
+        "name": "url",
+        "help": "",
+        "type": "str",
+        "required": true
+      }
+    ]
   },
   "acquire s3": {
     "description": "datavizhub acquire s3",
@@ -123,7 +131,8 @@
         "type": "path",
         "default": "-"
       }
-    }
+    },
+    "positionals": []
   },
   "acquire ftp": {
     "description": "datavizhub acquire ftp",
@@ -182,7 +191,15 @@
         "path_arg": true,
         "type": "path"
       }
-    }
+    },
+    "positionals": [
+      {
+        "name": "path",
+        "help": "ftp://host/path or host/path",
+        "type": "str",
+        "required": true
+      }
+    ]
   },
   "acquire vimeo": {
     "description": "datavizhub acquire vimeo",
@@ -205,7 +222,15 @@
         "type": "path",
         "default": "-"
       }
-    }
+    },
+    "positionals": [
+      {
+        "name": "video_id",
+        "help": "",
+        "type": "str",
+        "required": true
+      }
+    ]
   },
   "process decode-grib2": {
     "description": "datavizhub process decode-grib2",
@@ -246,7 +271,15 @@
         "type": "str",
         "default": false
       }
-    }
+    },
+    "positionals": [
+      {
+        "name": "file_or_url",
+        "help": "",
+        "type": "str",
+        "required": true
+      }
+    ]
   },
   "process extract-variable": {
     "description": "datavizhub process extract-variable",
@@ -268,11 +301,12 @@
       "--backend": {
         "help": "",
         "choices": [
-          "xarray",
-          "pygrib"
+          "cfgrib",
+          "pygrib",
+          "wgrib2"
         ],
         "type": "str",
-        "default": "xarray"
+        "default": "cfgrib"
       },
       "--stdout": {
         "help": "Write selected variable as bytes to stdout",
@@ -282,14 +316,27 @@
       "--format": {
         "help": "Output format for --stdout",
         "choices": [
-          "npy",
-          "nc",
+          "netcdf",
           "grib2"
         ],
         "type": "str",
-        "default": "npy"
+        "default": "netcdf"
       }
-    }
+    },
+    "positionals": [
+      {
+        "name": "file_or_url",
+        "help": "",
+        "type": "str",
+        "required": true
+      },
+      {
+        "name": "pattern",
+        "help": "",
+        "type": "str",
+        "required": true
+      }
+    ]
   },
   "process convert-format": {
     "description": "datavizhub process convert-format",
@@ -336,12 +383,12 @@
       "--backend": {
         "help": "",
         "choices": [
-          "xarray",
+          "cfgrib",
           "pygrib",
-          "pydap"
+          "wgrib2"
         ],
         "type": "str",
-        "default": "xarray"
+        "default": "cfgrib"
       },
       "--var": "Variable name or regex for multi-var datasets",
       "--pattern": "Regex for .idx-based subsetting when using HTTP/S3",
@@ -350,7 +397,26 @@
         "type": "str",
         "default": false
       }
-    }
+    },
+    "positionals": [
+      {
+        "name": "file_or_url",
+        "help": "Single input when not using --inputs",
+        "type": "str",
+        "required": false,
+        "nargs": "?"
+      },
+      {
+        "name": "format",
+        "help": "",
+        "type": "str",
+        "required": true,
+        "choices": [
+          "netcdf",
+          "geotiff"
+        ]
+      }
+    ]
   },
   "visualize heatmap": {
     "description": "datavizhub visualize heatmap",
@@ -395,15 +461,21 @@
       "--input": {
         "help": "Path to .nc or .npy input",
         "path_arg": true,
-        "type": "path"
+        "type": "path",
+        "required": true
       },
       "--var": "Variable name for NetCDF inputs",
-      "--basemap": {
-        "help": "Path to background image",
-        "path_arg": true,
-        "type": "path"
+      "--basemap": "Path to background image",
+      "--extent": {
+        "help": "west east south north",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
       },
-      "--extent": "west east south north",
       "--output": {
         "help": "Output PNG path (required when using --input; for --inputs use --output-dir)",
         "path_arg": true,
@@ -419,26 +491,85 @@
         "path_arg": true,
         "type": "path"
       },
-      "--width": "",
-      "--height": "",
-      "--dpi": "",
-      "--cmap": "",
-      "--colorbar": "",
+      "--width": {
+        "help": "",
+        "type": "int",
+        "default": 1024
+      },
+      "--height": {
+        "help": "",
+        "type": "int",
+        "default": 512
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--cmap": {
+        "help": "",
+        "type": "str",
+        "default": "YlOrBr"
+      },
+      "--colorbar": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
       "--label": "",
       "--units": "",
       "--features": "Comma-separated features: coastline,borders,gridlines",
       "--xarray-engine": "xarray engine for NetCDF inputs (e.g., netcdf4, h5netcdf, scipy)",
-      "--map-type": "Basemap type: image (default) or tile",
+      "--map-type": {
+        "help": "Basemap type: image (default) or tile",
+        "choices": [
+          "image",
+          "tile"
+        ],
+        "type": "str",
+        "default": "image"
+      },
       "--tile-source": "Contextily tile source name or URL (when --map-type=tile)",
-      "--tile-zoom": "Tile source zoom level",
+      "--tile-zoom": {
+        "help": "Tile source zoom level",
+        "type": "int",
+        "default": 3
+      },
       "--timestamp": "Overlay timestamp string",
       "--crs": "Force input CRS (e.g., EPSG:3857)",
-      "--reproject": "Attempt reprojection to EPSG:4326 (limited support)",
-      "--timestamp-loc": "Timestamp placement (axes-relative)",
-      "--no-coastline": "",
-      "--no-borders": "",
-      "--no-gridlines": ""
-    }
+      "--reproject": {
+        "help": "Attempt reprojection to EPSG:4326 (limited support)",
+        "type": "str",
+        "default": false
+      },
+      "--timestamp-loc": {
+        "help": "Timestamp placement (axes-relative)",
+        "choices": [
+          "upper_left",
+          "upper_right",
+          "lower_left",
+          "lower_right"
+        ],
+        "type": "str",
+        "default": "lower_right"
+      },
+      "--no-coastline": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--no-borders": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--no-gridlines": {
+        "help": "",
+        "type": "str",
+        "default": false
+      }
+    },
+    "positionals": []
   },
   "visualize contour": {
     "description": "datavizhub visualize contour",
@@ -498,39 +629,112 @@
         "type": "path"
       },
       "--var": "Variable name for NetCDF inputs",
-      "--basemap": {
-        "help": "Path to background image",
-        "path_arg": true,
-        "type": "path"
+      "--basemap": "Path to background image",
+      "--extent": {
+        "help": "west east south north",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
       },
-      "--extent": "west east south north",
       "--output": {
         "help": "Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
         "path_arg": true,
-        "type": "path"
+        "type": "path",
+        "required": true
       },
-      "--width": "",
-      "--height": "",
-      "--dpi": "",
-      "--cmap": "",
-      "--filled": "Use filled contours",
-      "--levels": "Count or comma-separated levels",
-      "--colorbar": "",
+      "--width": {
+        "help": "",
+        "type": "int",
+        "default": 1024
+      },
+      "--height": {
+        "help": "",
+        "type": "int",
+        "default": 512
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--cmap": {
+        "help": "",
+        "type": "str",
+        "default": "YlOrBr"
+      },
+      "--filled": {
+        "help": "Use filled contours",
+        "type": "str",
+        "default": false
+      },
+      "--levels": {
+        "help": "Count or comma-separated levels",
+        "type": "str",
+        "default": 10
+      },
+      "--colorbar": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
       "--label": "",
       "--units": "",
       "--features": "Comma-separated features: coastline,borders,gridlines",
       "--xarray-engine": "xarray engine for NetCDF inputs (e.g., netcdf4, h5netcdf, scipy)",
-      "--map-type": "",
+      "--map-type": {
+        "help": "",
+        "choices": [
+          "image",
+          "tile"
+        ],
+        "type": "str",
+        "default": "image"
+      },
       "--tile-source": "Contextily tile source (when --map-type=tile)",
-      "--tile-zoom": "",
+      "--tile-zoom": {
+        "help": "",
+        "type": "int",
+        "default": 3
+      },
       "--timestamp": "Overlay timestamp string",
       "--crs": "Force input CRS (e.g., EPSG:3857)",
-      "--reproject": "",
-      "--timestamp-loc": "Timestamp placement (axes-relative)",
-      "--no-coastline": "",
-      "--no-borders": "",
-      "--no-gridlines": ""
-    }
+      "--reproject": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--timestamp-loc": {
+        "help": "Timestamp placement (axes-relative)",
+        "choices": [
+          "upper_left",
+          "upper_right",
+          "lower_left",
+          "lower_right"
+        ],
+        "type": "str",
+        "default": "lower_right"
+      },
+      "--no-coastline": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--no-borders": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--no-gridlines": {
+        "help": "",
+        "type": "str",
+        "default": false
+      }
+    },
+    "positionals": []
   },
   "visualize timeseries": {
     "description": "datavizhub visualize timeseries",
@@ -546,39 +750,62 @@
           "--y",
           "--var",
           "--output",
-          "--width",
-          "--height",
-          "--dpi",
           "--title",
           "--xlabel",
           "--ylabel",
-          "--style"
+          "--style",
+          "--width",
+          "--height",
+          "--dpi"
         ]
       }
     ],
     "options": {
       "--help": "show this help message and exit",
       "--input": {
-        "help": "Path to .csv or .nc input",
+        "help": "",
         "path_arg": true,
-        "type": "path"
+        "type": "path",
+        "required": true
       },
-      "--x": "CSV: X column name (e.g., time)",
-      "--y": "CSV: Y column name (value)",
-      "--var": "NetCDF: variable name to plot",
+      "--x": "",
+      "--y": "",
+      "--var": "",
       "--output": {
-        "help": "Output PNG path",
+        "help": "",
         "path_arg": true,
-        "type": "path"
+        "type": "path",
+        "required": true
       },
-      "--width": "",
-      "--height": "",
-      "--dpi": "",
       "--title": "",
       "--xlabel": "",
       "--ylabel": "",
-      "--style": ""
-    }
+      "--style": {
+        "help": "",
+        "choices": [
+          "line",
+          "scatter"
+        ],
+        "type": "str",
+        "default": "line"
+      },
+      "--width": {
+        "help": "",
+        "type": "int",
+        "default": 1024
+      },
+      "--height": {
+        "help": "",
+        "type": "int",
+        "default": 512
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      }
+    },
+    "positionals": []
   },
   "visualize vector": {
     "description": "datavizhub visualize vector",
@@ -591,6 +818,7 @@
           "--help",
           "--input",
           "--inputs",
+          "--output",
           "--output-dir",
           "--uvar",
           "--vvar",
@@ -598,21 +826,19 @@
           "--v",
           "--basemap",
           "--extent",
-          "--output",
           "--width",
           "--height",
           "--dpi",
-          "--density",
-          "--scale",
-          "--color",
-          "--features",
-          "--xarray-engine",
+          "--crs",
+          "--reproject",
           "--map-type",
           "--tile-source",
           "--tile-zoom",
+          "--density",
+          "--scale",
+          "--color",
           "--streamlines",
-          "--crs",
-          "--reproject",
+          "--features",
           "--no-coastline",
           "--no-borders",
           "--no-gridlines"
@@ -622,61 +848,113 @@
     "options": {
       "--help": "show this help message and exit",
       "--input": {
-        "help": "Path to .nc input (alternative to --u/--v .npy)",
+        "help": "",
         "path_arg": true,
         "type": "path"
       },
       "--inputs": {
-        "help": "Multiple inputs for batch rendering",
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output": {
+        "help": "",
         "path_arg": true,
         "type": "path"
       },
       "--output-dir": {
-        "help": "Directory to write outputs for --inputs",
+        "help": "",
         "path_arg": true,
         "type": "path"
       },
-      "--uvar": "NetCDF: U variable name",
-      "--vvar": "NetCDF: V variable name",
-      "--u": {
-        "help": "Path to U .npy file (alternative input)",
-        "path_arg": true,
-        "type": "path"
+      "--uvar": "",
+      "--vvar": "",
+      "--u": "",
+      "--v": "",
+      "--basemap": "",
+      "--extent": {
+        "help": "",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
       },
-      "--v": {
-        "help": "Path to V .npy file (alternative input)",
-        "path_arg": true,
-        "type": "path"
+      "--width": {
+        "help": "",
+        "type": "int",
+        "default": 1024
       },
-      "--basemap": {
-        "help": "Path to background image",
-        "path_arg": true,
-        "type": "path"
+      "--height": {
+        "help": "",
+        "type": "int",
+        "default": 512
       },
-      "--extent": "west east south north",
-      "--output": {
-        "help": "Output PNG path (required for single --input/--u/--v; when using --inputs, prefer --output-dir)",
-        "path_arg": true,
-        "type": "path"
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
       },
-      "--width": "",
-      "--height": "",
-      "--dpi": "",
-      "--density": "Arrow sampling density (0<d<=1)",
-      "--scale": "Quiver scale controlling arrow length",
-      "--color": "Arrow color",
-      "--features": "Comma-separated features: coastline,borders,gridlines",
-      "--xarray-engine": "xarray engine for NetCDF inputs (e.g., netcdf4, h5netcdf, scipy)",
-      "--map-type": "",
-      "--tile-source": "Contextily tile source (when --map-type=tile)",
-      "--tile-zoom": "",
-      "--streamlines": "Render streamlines instead of quiver",
-      "--crs": "Force input CRS (e.g., EPSG:3857)",
-      "--reproject": "",
-      "--no-coastline": "",
-      "--no-borders": "",
-      "--no-gridlines": ""
-    }
+      "--crs": "",
+      "--reproject": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--map-type": {
+        "help": "",
+        "choices": [
+          "image",
+          "tile"
+        ],
+        "type": "str",
+        "default": "image"
+      },
+      "--tile-source": "",
+      "--tile-zoom": {
+        "help": "",
+        "type": "int",
+        "default": 3
+      },
+      "--density": {
+        "help": "",
+        "type": "float",
+        "default": 0.2
+      },
+      "--scale": {
+        "help": "",
+        "type": "float"
+      },
+      "--color": {
+        "help": "",
+        "type": "str",
+        "default": "#333333"
+      },
+      "--streamlines": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--features": "",
+      "--no-coastline": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--no-borders": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--no-gridlines": {
+        "help": "",
+        "type": "str",
+        "default": false
+      }
+    },
+    "positionals": []
   },
   "visualize animate": {
     "description": "datavizhub visualize animate",
@@ -687,140 +965,241 @@
         "title": "options",
         "options": [
           "--help",
-          "--mode",
           "--input",
           "--inputs",
+          "--output",
+          "--output-dir",
+          "--mode",
           "--var",
           "--uvar",
           "--vvar",
           "--u",
           "--v",
-          "--output-dir",
-          "--manifest",
-          "--cmap",
-          "--levels",
-          "--vmin",
-          "--vmax",
+          "--density",
+          "--scale",
+          "--color",
           "--basemap",
           "--extent",
           "--width",
           "--height",
           "--dpi",
-          "--density",
-          "--scale",
-          "--color",
+          "--cmap",
+          "--levels",
+          "--vmin",
+          "--vmax",
           "--colorbar",
           "--label",
           "--units",
           "--show-timestamp",
           "--timestamps-csv",
           "--timestamp-loc",
-          "--features",
           "--map-type",
           "--tile-source",
           "--tile-zoom",
           "--xarray-engine",
-          "--no-coastline",
-          "--no-borders",
-          "--no-gridlines",
+          "--crs",
+          "--reproject",
+          "--to-video",
+          "--fps",
+          "--grid-mode",
+          "--grid-cols",
+          "--combine-to",
           "--seed",
           "--particles",
           "--custom-seed",
           "--dt",
           "--steps-per-frame",
-          "--size",
-          "--method",
-          "--crs",
-          "--reproject",
-          "--to-video",
-          "--combine-to",
-          "--grid-cols",
-          "--grid-mode",
-          "--fps"
+          "--method"
         ]
       }
     ],
     "options": {
       "--help": "show this help message and exit",
-      "--mode": "",
       "--input": {
-        "help": "Path to .nc 3D var or 3D .npy stack (for heatmap/contour/vector)",
+        "help": "",
         "path_arg": true,
         "type": "path"
       },
       "--inputs": {
-        "help": "Multiple inputs for batch animations",
+        "help": "",
         "path_arg": true,
         "type": "path"
       },
-      "--var": "NetCDF variable name (heatmap/contour)",
-      "--uvar": "NetCDF: U variable name (vector/particles mode)",
-      "--vvar": "NetCDF: V variable name (vector/particles mode)",
-      "--u": {
-        "help": "Path to U .npy stack (vector/particles mode)",
-        "path_arg": true,
-        "type": "path"
-      },
-      "--v": {
-        "help": "Path to V .npy stack (vector/particles mode)",
+      "--output": {
+        "help": "",
         "path_arg": true,
         "type": "path"
       },
       "--output-dir": {
-        "help": "Directory to write frames",
+        "help": "",
         "path_arg": true,
         "type": "path"
       },
-      "--manifest": {
-        "help": "Optional manifest output path (JSON)",
-        "path_arg": true,
-        "type": "path"
+      "--mode": {
+        "help": "",
+        "choices": [
+          "heatmap",
+          "contour",
+          "vector",
+          "particles"
+        ],
+        "type": "str",
+        "default": "heatmap"
       },
-      "--cmap": "",
-      "--levels": "Contour levels: count or comma-separated",
+      "--var": "",
+      "--uvar": "",
+      "--vvar": "",
+      "--u": "",
+      "--v": "",
+      "--density": {
+        "help": "",
+        "type": "float",
+        "default": 0.2
+      },
+      "--scale": "",
+      "--color": {
+        "help": "",
+        "type": "str",
+        "default": "#333333"
+      },
+      "--basemap": "",
+      "--extent": {
+        "help": "",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
+      },
+      "--width": {
+        "help": "",
+        "type": "int",
+        "default": 1024
+      },
+      "--height": {
+        "help": "",
+        "type": "int",
+        "default": 512
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--cmap": {
+        "help": "",
+        "type": "str",
+        "default": "YlOrBr"
+      },
+      "--levels": "",
       "--vmin": "",
       "--vmax": "",
-      "--basemap": {
-        "help": "Path to background image",
-        "path_arg": true,
-        "type": "path"
+      "--colorbar": {
+        "help": "",
+        "type": "str",
+        "default": false
       },
-      "--extent": "west east south north",
-      "--width": "",
-      "--height": "",
-      "--dpi": "",
-      "--density": "Vector mode: arrow sampling density (0<d<=1)",
-      "--scale": "Vector mode: quiver scale controlling arrow length",
-      "--color": "Vector/particles color",
-      "--colorbar": "Heatmap/contour: draw colorbar",
-      "--label": "Heatmap/contour colorbar label",
-      "--units": "Heatmap/contour units for colorbar",
-      "--show-timestamp": "Overlay timestamps per frame if available",
-      "--timestamps-csv": "CSV with one timestamp per line (overrides auto)",
-      "--timestamp-loc": "Timestamp placement (axes-relative)",
-      "--features": "Heatmap/contour: comma-separated features",
-      "--map-type": "",
-      "--tile-source": "Contextily tile source (when --map-type=tile)",
-      "--tile-zoom": "",
-      "--xarray-engine": "xarray engine for NetCDF inputs (e.g., netcdf4, h5netcdf, scipy)",
-      "--no-coastline": "",
-      "--no-borders": "",
-      "--no-gridlines": "",
-      "--seed": "Particles: seeding strategy",
-      "--particles": "Particles: count for grid/random seeding",
-      "--custom-seed": "Particles: CSV with lon,lat columns",
-      "--dt": "Particles: integration step",
-      "--steps-per-frame": "Particles: substeps per frame",
-      "--size": "Particles: marker size",
-      "--method": "Particles: integrator",
-      "--crs": "Force input CRS for heatmap/contour/vector",
-      "--reproject": "",
-      "--to-video": "Optional: compose frames to MP4 using ffmpeg (single or per-input when using --inputs)",
-      "--combine-to": "Optional: compose per-input videos into a single MP4 grid",
-      "--grid-cols": "Grid columns for --combine-to (default 2)",
-      "--grid-mode": "Composition mode for --combine-to. 'grid' uses ffmpeg xstack (inputs must share the same width/height); if sizes differ, pre-scale inputs or use '--grid-mode hstack' to compose horizontally.",
-      "--fps": "Frames per second for video composition"
-    }
+      "--label": "",
+      "--units": "",
+      "--show-timestamp": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--timestamps-csv": "",
+      "--timestamp-loc": {
+        "help": "",
+        "choices": [
+          "upper_left",
+          "upper_right",
+          "lower_left",
+          "lower_right"
+        ],
+        "type": "str",
+        "default": "lower_right"
+      },
+      "--map-type": {
+        "help": "",
+        "choices": [
+          "image",
+          "tile"
+        ],
+        "type": "str",
+        "default": "image"
+      },
+      "--tile-source": "",
+      "--tile-zoom": {
+        "help": "",
+        "type": "int",
+        "default": 3
+      },
+      "--xarray-engine": "",
+      "--crs": "",
+      "--reproject": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--to-video": "",
+      "--fps": {
+        "help": "",
+        "type": "int",
+        "default": 30
+      },
+      "--grid-mode": {
+        "help": "",
+        "choices": [
+          "grid",
+          "hstack",
+          "vstack"
+        ],
+        "type": "str",
+        "default": "grid"
+      },
+      "--grid-cols": {
+        "help": "",
+        "type": "int",
+        "default": 2
+      },
+      "--combine-to": "",
+      "--seed": {
+        "help": "",
+        "type": "int",
+        "default": 0
+      },
+      "--particles": {
+        "help": "",
+        "type": "int",
+        "default": 2000
+      },
+      "--custom-seed": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--dt": {
+        "help": "",
+        "type": "float",
+        "default": 0.5
+      },
+      "--steps-per-frame": {
+        "help": "",
+        "type": "int",
+        "default": 1
+      },
+      "--method": {
+        "help": "",
+        "choices": [
+          "RK4-SPH",
+          "RK4-Grid"
+        ],
+        "type": "str",
+        "default": "RK4-SPH"
+      }
+    },
+    "positionals": []
   },
   "visualize compose-video": {
     "description": "datavizhub visualize compose-video",
@@ -833,30 +1212,33 @@
           "--help",
           "--frames",
           "--output",
-          "--basemap",
-          "--fps"
+          "--fps",
+          "--basemap"
         ]
       }
     ],
     "options": {
       "--help": "show this help message and exit",
       "--frames": {
-        "help": "Directory containing frame_*.png files",
+        "help": "Frames directory",
         "path_arg": true,
-        "type": "path"
+        "type": "path",
+        "required": true
       },
       "--output": {
         "help": "Output MP4 path",
         "path_arg": true,
-        "type": "path"
+        "type": "path",
+        "required": true
       },
-      "--basemap": {
-        "help": "Optional background image to overlay under frames",
-        "path_arg": true,
-        "type": "path"
+      "--fps": {
+        "help": "",
+        "type": "int",
+        "default": 30
       },
-      "--fps": ""
-    }
+      "--basemap": ""
+    },
+    "positionals": []
   },
   "visualize interactive": {
     "description": "datavizhub visualize interactive",
@@ -871,13 +1253,7 @@
           "--var",
           "--mode",
           "--engine",
-          "--output",
-          "--extent",
           "--cmap",
-          "--features",
-          "--no-coastline",
-          "--no-borders",
-          "--no-gridlines",
           "--colorbar",
           "--label",
           "--units",
@@ -885,19 +1261,10 @@
           "--timestamp-loc",
           "--tiles",
           "--zoom",
-          "--attribution",
-          "--wms-url",
-          "--wms-layers",
-          "--wms-format",
-          "--wms-transparent",
-          "--layer-control",
+          "--extent",
           "--width",
           "--height",
-          "--crs",
-          "--reproject",
-          "--time-column",
-          "--period",
-          "--transition-ms",
+          "--output",
           "--uvar",
           "--vvar",
           "--u",
@@ -905,68 +1272,120 @@
           "--density",
           "--scale",
           "--color",
-          "--streamlines"
+          "--streamlines",
+          "--features"
         ]
       }
     ],
     "options": {
       "--help": "show this help message and exit",
       "--input": {
-        "help": "Path to .npy/.nc/.csv input",
+        "help": "",
         "path_arg": true,
-        "type": "path"
+        "type": "path",
+        "required": true
       },
-      "--var": "NetCDF variable name (for .nc inputs)",
-      "--mode": "",
-      "--engine": "",
-      "--output": {
-        "help": "Output HTML path",
-        "path_arg": true,
-        "type": "path"
+      "--var": "",
+      "--mode": {
+        "help": "",
+        "choices": [
+          "heatmap",
+          "vector",
+          "points"
+        ],
+        "type": "str",
+        "default": "heatmap"
       },
-      "--extent": "",
-      "--cmap": "",
-      "--features": "Heatmap/contour only: features (may be ignored depending on engine)",
-      "--no-coastline": "",
-      "--no-borders": "",
-      "--no-gridlines": "",
-      "--colorbar": "",
+      "--engine": {
+        "help": "",
+        "choices": [
+          "plotly",
+          "folium"
+        ],
+        "type": "str",
+        "default": "plotly"
+      },
+      "--cmap": {
+        "help": "",
+        "type": "str",
+        "default": "YlOrBr"
+      },
+      "--colorbar": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
       "--label": "",
       "--units": "",
       "--timestamp": "",
-      "--timestamp-loc": "",
-      "--tiles": "Folium: tile layer name/URL",
-      "--zoom": "Folium: initial zoom",
-      "--attribution": "Folium: attribution for custom tiles/WMS",
-      "--wms-url": "Folium: WMS base URL",
-      "--wms-layers": "Folium: WMS layer names",
-      "--wms-format": "",
-      "--wms-transparent": "",
-      "--layer-control": "Add a layer control switcher",
-      "--width": "Plotly: width",
-      "--height": "Plotly: height",
-      "--crs": "Force input CRS",
-      "--reproject": "",
-      "--time-column": "CSV points: column containing ISO8601 time strings",
-      "--period": "TimeDimension period (e.g., P1D)",
-      "--transition-ms": "TimeDimension transition time (ms)",
-      "--uvar": "NetCDF: U variable name (vector mode)",
-      "--vvar": "NetCDF: V variable name (vector mode)",
-      "--u": {
-        "help": "Path to U .npy array (vector mode)",
-        "path_arg": true,
-        "type": "path"
+      "--timestamp-loc": {
+        "help": "",
+        "type": "str",
+        "default": "lower_right"
       },
-      "--v": {
-        "help": "Path to V .npy array (vector mode)",
-        "path_arg": true,
-        "type": "path"
+      "--tiles": {
+        "help": "",
+        "type": "str",
+        "default": "OpenStreetMap"
       },
-      "--density": "Vector: arrow sampling density (0<d<=1)",
-      "--scale": "Vector: arrow length scale in degrees",
-      "--color": "Vector: arrow/line color",
-      "--streamlines": "Vector: render streamlines image overlay"
-    }
+      "--zoom": {
+        "help": "",
+        "type": "int",
+        "default": 3
+      },
+      "--extent": {
+        "help": "",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
+      },
+      "--width": {
+        "help": "",
+        "type": "int",
+        "default": 1024
+      },
+      "--height": {
+        "help": "",
+        "type": "int",
+        "default": 512
+      },
+      "--output": {
+        "help": "",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--uvar": "",
+      "--vvar": "",
+      "--u": "",
+      "--v": "",
+      "--density": {
+        "help": "",
+        "type": "float",
+        "default": 0.2
+      },
+      "--scale": {
+        "help": "",
+        "type": "float",
+        "default": 1.0
+      },
+      "--color": {
+        "help": "",
+        "type": "str",
+        "default": "#333333"
+      },
+      "--streamlines": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--features": ""
+    },
+    "positionals": []
   },
   "decimate local": {
     "description": "datavizhub decimate local",
@@ -986,9 +1405,18 @@
       "--input": {
         "help": "Input path or '-' for stdin",
         "path_arg": true,
-        "type": "path"
+        "type": "path",
+        "required": true
       }
-    }
+    },
+    "positionals": [
+      {
+        "name": "path",
+        "help": "Destination file path",
+        "type": "str",
+        "required": true
+      }
+    ]
   },
   "decimate s3": {
     "description": "datavizhub decimate s3",
@@ -1011,12 +1439,14 @@
       "--input": {
         "help": "Input path or '-' for stdin",
         "path_arg": true,
-        "type": "path"
+        "type": "path",
+        "required": true
       },
       "--url": "Full URL s3://bucket/key",
       "--bucket": "Bucket name",
       "--key": "Object key (when using --bucket)"
-    }
+    },
+    "positionals": []
   },
   "decimate ftp": {
     "description": "datavizhub decimate ftp",
@@ -1036,9 +1466,18 @@
       "--input": {
         "help": "Input path or '-' for stdin",
         "path_arg": true,
-        "type": "path"
+        "type": "path",
+        "required": true
       }
-    }
+    },
+    "positionals": [
+      {
+        "name": "path",
+        "help": "ftp://host/path or host/path",
+        "type": "str",
+        "required": true
+      }
+    ]
   },
   "decimate post": {
     "description": "datavizhub decimate post",
@@ -1059,10 +1498,19 @@
       "--input": {
         "help": "Input path or '-' for stdin",
         "path_arg": true,
-        "type": "path"
+        "type": "path",
+        "required": true
       },
       "--content-type": "Content-Type header"
-    }
+    },
+    "positionals": [
+      {
+        "name": "url",
+        "help": "",
+        "type": "str",
+        "required": true
+      }
+    ]
   },
   "decimate vimeo": {
     "description": "datavizhub decimate vimeo",
@@ -1085,12 +1533,14 @@
       "--input": {
         "help": "Input path or '-' for stdin",
         "path_arg": true,
-        "type": "path"
+        "type": "path",
+        "required": true
       },
       "--name": "Video title",
       "--description": "Video description",
       "--replace-uri": "Replace existing video at this Vimeo URI"
-    }
+    },
+    "positionals": []
   },
   "transform metadata": {
     "description": "datavizhub transform metadata",
@@ -1114,17 +1564,23 @@
       "--frames-dir": {
         "help": "Directory containing frames",
         "path_arg": true,
-        "type": "path"
+        "type": "path",
+        "required": true
       },
       "--pattern": "Regex filter for frame filenames",
       "--datetime-format": "Datetime format used in filenames (e.g., %Y%m%d%H%M%S)",
-      "--period-seconds": "Expected cadence to compute missing frames",
+      "--period-seconds": {
+        "help": "Expected cadence to compute missing frames",
+        "type": "int"
+      },
       "--output": {
         "help": "Output path or '-' for stdout",
         "path_arg": true,
-        "type": "path"
+        "type": "path",
+        "default": "-"
       }
-    }
+    },
+    "positionals": []
   },
   "transform enrich-metadata": {
     "description": "datavizhub transform enrich-metadata",
@@ -1148,17 +1604,24 @@
       "--frames-meta": {
         "help": "Path to frames metadata JSON",
         "path_arg": true,
-        "type": "path"
+        "type": "path",
+        "required": true
       },
       "--dataset-id": "Dataset identifier to embed",
       "--vimeo-uri": "Vimeo video URI to embed in metadata",
-      "--read-vimeo-uri": "Read Vimeo URI from stdin (first line)",
+      "--read-vimeo-uri": {
+        "help": "Read Vimeo URI from stdin (first line)",
+        "type": "str",
+        "default": false
+      },
       "--output": {
         "help": "Output path or '-' for stdout",
         "path_arg": true,
-        "type": "path"
+        "type": "path",
+        "default": "-"
       }
-    }
+    },
+    "positionals": []
   },
   "transform update-dataset-json": {
     "description": "datavizhub transform update-dataset-json",
@@ -1184,18 +1647,22 @@
     ],
     "options": {
       "--help": "show this help message and exit",
-      "--input-url": "HTTP(S) or s3:// URL of dataset.json",
+      "--input-url": {
+        "help": "HTTP(S) or s3:// URL of dataset.json",
+        "path_arg": true,
+        "type": "path"
+      },
       "--input-file": {
         "help": "Local dataset.json path",
         "path_arg": true,
         "type": "path"
       },
-      "--dataset-id": "Dataset id to update",
-      "--meta": {
-        "help": "Path to metadata JSON containing start_datetime/end_datetime/vimeo_uri",
-        "path_arg": true,
-        "type": "path"
+      "--dataset-id": {
+        "help": "Dataset id to update",
+        "type": "str",
+        "required": true
       },
+      "--meta": "Path to metadata JSON containing start_datetime/end_datetime/vimeo_uri",
       "--read-meta-stdin": {
         "help": "Read metadata JSON from stdin",
         "type": "str",
@@ -1207,14 +1674,16 @@
       "--no-set-data-link": {
         "help": "Do not update dataLink from Vimeo URI",
         "type": "str",
-        "default": false
+        "default": true
       },
       "--output": {
         "help": "Output path or '-' for stdout",
         "path_arg": true,
-        "type": "path"
+        "type": "path",
+        "default": "-"
       }
-    }
+    },
+    "positionals": []
   },
   "run": {
     "description": "datavizhub run",
@@ -1241,13 +1710,25 @@
     ],
     "options": {
       "--help": "show this help message and exit",
-      "--set": "Override key=value in args across stages",
+      "--set": {
+        "help": "Override key=value in args across stages",
+        "type": "str",
+        "default": []
+      },
       "--print-argv": {
         "help": "Print argv per stage before running",
         "type": "str",
         "default": false
       },
-      "--print-argv-format": "",
+      "--print-argv-format": {
+        "help": "",
+        "choices": [
+          "text",
+          "json"
+        ],
+        "type": "str",
+        "default": "text"
+      },
       "--dry-run": {
         "help": "Only print argv; do not execute stages",
         "type": "str",
@@ -1258,8 +1739,14 @@
         "type": "str",
         "default": false
       },
-      "--start": "1-based index of first stage to run",
-      "--end": "1-based index of last stage to run",
+      "--start": {
+        "help": "1-based index of first stage to run",
+        "type": "int"
+      },
+      "--end": {
+        "help": "1-based index of last stage to run",
+        "type": "int"
+      },
       "--only": "Run only stages matching this alias (acquire/process/visualize/decimate)",
       "--verbose": {
         "help": "Verbose runner output (prints stage headings)",
@@ -1276,6 +1763,14 @@
         "type": "str",
         "default": false
       }
-    }
+    },
+    "positionals": [
+      {
+        "name": "config",
+        "help": "",
+        "type": "str",
+        "required": true
+      }
+    ]
   }
 }
