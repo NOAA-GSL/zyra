@@ -18,14 +18,16 @@ class LLMClient:
 class OpenAIClient(LLMClient):
     name = "openai"
 
-    def __init__(self, model: str | None = None) -> None:
+    def __init__(self, model: str | None = None, base_url: str | None = None) -> None:
         resolved_model = (
             model or os.environ.get("DATAVIZHUB_LLM_MODEL") or "gpt-4o-mini"
         )
         # Initialize dataclass fields explicitly
         super().__init__(name=self.name, model=resolved_model)
         self.api_key = os.environ.get("OPENAI_API_KEY")
-        self.base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
+        self.base_url = (
+            base_url or os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
+        )
 
     def generate(
         self, system_prompt: str, user_prompt: str
@@ -69,11 +71,17 @@ class OpenAIClient(LLMClient):
 class OllamaClient(LLMClient):
     name = "ollama"
 
-    def __init__(self, model: str | None = None) -> None:
+    def __init__(self, model: str | None = None, base_url: str | None = None) -> None:
         resolved_model = model or os.environ.get("DATAVIZHUB_LLM_MODEL") or "mistral"
         # Initialize dataclass fields explicitly
         super().__init__(name=self.name, model=resolved_model)
-        self.base_url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+        # Support both OLLAMA_BASE_URL (project conv.) and OLLAMA_HOST (common conv.)
+        self.base_url = (
+            base_url
+            or os.environ.get("OLLAMA_BASE_URL")
+            or os.environ.get("OLLAMA_HOST")
+            or "http://localhost:11434"
+        )
 
     def generate(
         self, system_prompt: str, user_prompt: str
@@ -97,7 +105,35 @@ class OllamaClient(LLMClient):
             data = resp.json()
             return data.get("message", {}).get("content", "").strip()
         except Exception as exc:
-            return f"# Ollama error: {exc}\n" + MockClient().generate(
+            # Provide targeted hints for common connectivity issues
+            err = str(exc)
+            hints = []
+            try:
+                from urllib.parse import urlparse
+
+                parsed = urlparse(self.base_url)
+                host = parsed.hostname or ""
+            except Exception:
+                host = ""
+
+            if (
+                "Connection refused" in err
+                or "Failed to establish a new connection" in err
+            ):
+                if host in {"localhost", "127.0.0.1"}:
+                    hints.append(
+                        "Ollama may not be listening on localhost inside your container."
+                    )
+                    hints.append(
+                        "If using Docker on Linux, add --add-host=host.docker.internal:host-gateway and set OLLAMA_BASE_URL=http://host.docker.internal:11434."
+                    )
+                else:
+                    hints.append(f"Verify OLLAMA_BASE_URL is correct: {self.base_url}")
+                hints.append(
+                    "Ensure the server is started with: OLLAMA_HOST=0.0.0.0 ollama serve"
+                )
+            hint_text = ("\n# " + "\n# ".join(hints)) if hints else ""
+            return f"# Ollama error: {exc}{hint_text}\n" + MockClient().generate(
                 system_prompt, user_prompt
             )
 

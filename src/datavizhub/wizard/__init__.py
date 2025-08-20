@@ -11,7 +11,18 @@ from datetime import datetime
 from importlib import resources
 from pathlib import Path
 
-from .llm_client import LLMClient, MockClient, OllamaClient, OpenAIClient
+# Best-effort: load environment variables from a local .env if present.
+# This enables settings like OLLAMA_BASE_URL and DATAVIZHUB_LLM_* to be
+# picked up when running the wizard in containers or dev shells.
+try:  # pragma: no cover - environment dependent
+    from dotenv import find_dotenv, load_dotenv
+
+    _ENV_PATH = find_dotenv(usecwd=True)
+    if _ENV_PATH:
+        load_dotenv(_ENV_PATH, override=False)
+except Exception:
+    # Ignore if python-dotenv is unavailable; environment vars still work
+    pass
 
 try:
     import yaml  # type: ignore
@@ -31,6 +42,8 @@ except Exception:  # pragma: no cover - may not be installed
     PathCompleter = object  # type: ignore
     PTK_AVAILABLE = False
 
+from .llm_client import LLMClient, MockClient, OllamaClient, OpenAIClient
+
 
 @dataclass
 class SessionState:
@@ -42,9 +55,10 @@ class SessionState:
 def _load_config() -> dict:
     """Load wizard config from ~/.datavizhub_wizard.yaml if present.
 
-    Keys supported:
+    Keys supported (both legacy root-level and nested under 'llm'):
     - provider: "openai" | "ollama" | "mock"
     - model: model name string
+    - base_url: provider endpoint (e.g., Ollama base URL)
     """
     path = Path("~/.datavizhub_wizard.yaml").expanduser()
     try:
@@ -56,7 +70,14 @@ def _load_config() -> dict:
             data = yaml.safe_load(f) or {}
         if not isinstance(data, dict):
             return {}
-        return {str(k): v for k, v in data.items()}
+        cfg = {str(k): v for k, v in data.items()}
+        # Normalize nested llm section if present
+        llm = cfg.get("llm")
+        if isinstance(llm, dict):
+            for k in ("provider", "model", "base_url"):
+                if k in llm and k not in cfg:
+                    cfg[k] = llm[k]
+        return cfg
     except Exception:
         return {}
 
@@ -73,14 +94,82 @@ def _select_provider(provider: str | None, model: str | None) -> LLMClient:
     model_name = (
         model or os.environ.get("DATAVIZHUB_LLM_MODEL") or cfg.get("model") or None
     )
+    base_url = cfg.get("base_url")
     if prov == "openai":
-        return OpenAIClient(model=model_name)
+        return OpenAIClient(model=model_name, base_url=base_url)
     if prov == "ollama":
-        return OllamaClient(model=model_name)
+        return OllamaClient(model=model_name, base_url=base_url)
     if prov == "mock":
         return MockClient()
     # Fallback to mock for unknown providers
     return MockClient()
+
+
+def _test_llm_connectivity(provider: str | None, model: str | None) -> tuple[bool, str]:
+    """Probe connectivity to the configured LLM provider.
+
+    Returns (ok, message) where message is a human-friendly status line.
+    """
+    cfg = _load_config()
+    prov = (
+        provider
+        or os.environ.get("DATAVIZHUB_LLM_PROVIDER")
+        or cfg.get("provider")
+        or "openai"
+    ).lower()
+    model_name = (
+        model or os.environ.get("DATAVIZHUB_LLM_MODEL") or cfg.get("model") or ""
+    )
+    base_url = cfg.get("base_url")
+    try:
+        import requests  # type: ignore
+    except Exception:
+        return False, "requests library not available for connectivity test"
+
+    if prov == "ollama":
+        # Default resolution mirrors OllamaClient
+        from .llm_client import OllamaClient
+
+        oc = OllamaClient(model=model_name or None, base_url=base_url or None)
+        url = f"{oc.base_url}/api/tags"
+        try:
+            r = requests.get(url, timeout=5)
+            r.raise_for_status()
+            who = f"Ollama ({oc.model})"
+            return True, f"✅ Connected to {who} at {oc.base_url}"
+        except Exception as exc:
+            host_hint = ""
+            if any(h in (oc.base_url or "") for h in ["localhost", "127.0.0.1"]):
+                host_hint = (
+                    "\n❓ Hint: If running in Docker, localhost refers to the container. "
+                    "Use OLLAMA_BASE_URL=http://host.docker.internal:11434 (macOS/Windows) or add "
+                    "--add-host=host.docker.internal:host-gateway (Linux)."
+                )
+            serve_hint = "\n🔧 Ensure: OLLAMA_HOST=0.0.0.0 ollama serve"
+            return (
+                False,
+                f"❌ Failed to reach Ollama at {oc.base_url}: {exc}{host_hint}{serve_hint}",
+            )
+
+    if prov == "openai":
+        from .llm_client import OpenAIClient
+
+        oc = OpenAIClient(model=model_name or None, base_url=base_url or None)
+        if not oc.api_key:
+            return False, "❌ OPENAI_API_KEY is not set"
+        try:
+            # Hitting the models list is a lightweight way to check auth
+            url = f"{oc.base_url}/models"
+            headers = {"Authorization": f"Bearer {oc.api_key}"}
+            r = requests.get(url, headers=headers, timeout=5)
+            r.raise_for_status()
+            who = f"OpenAI ({oc.model})"
+            return True, f"✅ Connected to {who} at {oc.base_url}"
+        except Exception as exc:
+            return False, f"❌ Failed to query OpenAI at {oc.base_url}: {exc}"
+
+    # mock is always 'connected'
+    return True, "✅ Using mock LLM provider"
 
 
 SYSTEM_PROMPT = (
@@ -534,8 +623,8 @@ def _edit_commands(
     # Prefer prompt_toolkit multiline buffer when available
     if PTK_AVAILABLE:
         try:
-            session = PromptSession()  # type: ignore[no-redef]
-            edited = session.prompt(
+            ptk_session = PromptSession()
+            edited = ptk_session.prompt(
                 "Edit commands (finish with Esc+Enter):\n",
                 multiline=True,
                 default=text,
@@ -585,6 +674,12 @@ def _edit_commands(
         s = _strip_inline_comment(line.strip())
         if s.startswith("datavizhub "):
             post.append(s)
+    # Derive a safe session_id if available
+    sess_id = None
+    try:
+        sess_id = session.session_id if session and hasattr(session, "session_id") else None
+    except Exception:
+        sess_id = None
     _log_event(
         logfile,
         {
@@ -594,7 +689,7 @@ def _edit_commands(
             "post_edit": post,
             "editor": used,
         },
-        session_id=(session.session_id if session else None),
+        session_id=sess_id,
     )
     return post
 
@@ -1015,6 +1110,11 @@ def register_cli(p: argparse.ArgumentParser) -> None:
         help="Show inline # comments in suggested commands (preview only)",
     )
     p.add_argument(
+        "--test-llm",
+        action="store_true",
+        help="Probe connectivity to configured LLM provider and exit",
+    )
+    p.add_argument(
         "--edit",
         action="store_true",
         help="Open an editor to modify commands before run",
@@ -1026,6 +1126,10 @@ def register_cli(p: argparse.ArgumentParser) -> None:
     )
 
     def _cmd(ns: argparse.Namespace) -> int:
+        if ns.test_llm:
+            ok, msg = _test_llm_connectivity(ns.provider, ns.model)
+            print(msg)
+            return 0 if ok else 2
         if ns.prompt:
             logfile = None
             if ns.log:
