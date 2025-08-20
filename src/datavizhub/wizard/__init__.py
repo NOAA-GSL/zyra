@@ -876,6 +876,24 @@ def _append_history(cmd: str) -> None:
         pass
 
 
+def _fallback_commands_for_prompt(prompt: str) -> list[str]:
+    """Generate safe default commands when the model suggests none.
+
+    Heuristic: if the prompt mentions CSV/columns/time series, suggest a
+    timeseries visualization with placeholder axes; otherwise suggest a
+    heatmap with a placeholder variable.
+
+    The aim is to trigger interactive argument resolution without inventing
+    file paths.
+    """
+    ql = prompt.lower()
+    if any(w in ql for w in ["csv", "column", "time series", "timeseries"]):
+        return [
+            "datavizhub visualize timeseries --x time --y value --output timeseries.png"
+        ]
+    return ["datavizhub visualize heatmap --var temperature --output heatmap.png"]
+
+
 def _load_persisted_history() -> list[str]:
     """Load persisted history JSONL; return sanitized datavizhub commands.
 
@@ -1028,15 +1046,7 @@ def _handle_prompt(
     cmds = safe_cmds
     # If model suggested nothing usable, provide a safe default that triggers interactive prompts
     if not cmds:
-        ql = prompt.lower()
-        if any(w in ql for w in ["csv", "column", "time series", "timeseries"]):
-            cmds = [
-                "datavizhub visualize timeseries --x time --y value --output timeseries.png"
-            ]
-        else:
-            cmds = [
-                "datavizhub visualize heatmap --var temperature --output heatmap.png"
-            ]
+        cmds = _fallback_commands_for_prompt(prompt)
     # In dry-run, print suggestions as-is without manifest filtering/remapping
     if dry_run:
         if max_commands is not None:

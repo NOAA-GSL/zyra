@@ -1,7 +1,34 @@
+"""LLM client adapters used by the Wizard.
+
+Network dependencies are optional. This module is designed to run in minimal
+environments where `requests` may be unavailable. To keep exception handling
+explicit without sprinkling type: ignores, we attempt to import
+`requests.exceptions` and, if not present, define lightweight fallback classes
+(`RequestException`, `HTTPError`) with the same names.
+
+On network or parsing errors, each concrete client returns a helpful comment and
+falls back to the in-memory `MockClient` so behavior remains deterministic in
+tests and offline/dev environments.
+"""
+
 from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+
+# Exception hierarchy for HTTP/network errors.
+# requests may be unavailable in minimal environments; provide fallbacks so
+# exception handling remains explicit without type: ignore noise.
+try:  # pragma: no cover - environment dependent
+    from requests.exceptions import HTTPError, RequestException  # type: ignore
+except Exception:  # pragma: no cover - requests missing
+
+    class RequestException(Exception):  # type: ignore[no-redef]
+        pass
+
+    class HTTPError(RequestException):  # type: ignore[no-redef]
+        pass
+
 
 # Cache a single MockClient instance for fallback use to avoid re-instantiation
 _mock_singleton: MockClient | None = None
@@ -67,19 +94,6 @@ class OpenAIClient(LLMClient):
         from json import JSONDecodeError
 
         try:
-            try:
-                from requests.exceptions import (  # type: ignore
-                    HTTPError,
-                    RequestException,
-                )
-            except Exception:  # requests not installed; define fallbacks
-
-                class RequestException(Exception):
-                    pass
-
-                class HTTPError(Exception):
-                    pass
-
             url = f"{self.base_url}/chat/completions"
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
@@ -115,7 +129,7 @@ class OpenAIClient(LLMClient):
             TypeError,
             RequestException,
             HTTPError,
-        ) as exc:  # type: ignore[name-defined]
+        ) as exc:
             return f"# OpenAI error: {exc}\n" + _get_mock_singleton().generate(
                 system_prompt, user_prompt
             )
@@ -158,19 +172,6 @@ class OllamaClient(LLMClient):
         from json import JSONDecodeError
 
         try:
-            try:
-                from requests.exceptions import (  # type: ignore
-                    HTTPError,
-                    RequestException,
-                )
-            except Exception:
-
-                class RequestException(Exception):
-                    pass
-
-                class HTTPError(Exception):
-                    pass
-
             url = f"{self.base_url}/api/chat"
             payload = {
                 "model": self.model,
@@ -197,7 +198,7 @@ class OllamaClient(LLMClient):
             TypeError,
             RequestException,
             HTTPError,
-        ) as exc:  # type: ignore[name-defined]
+        ) as exc:
             # Provide targeted hints for common connectivity issues
             err = str(exc)
             hints = []

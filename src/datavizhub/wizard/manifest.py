@@ -6,6 +6,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+# Top-level commands to exclude when building the capabilities manifest.
+# These are internal helpers or would cause recursion/noise in the manifest.
+EXCLUDED_ROOT_COMMANDS: set[str] = {"wizard", "generate-manifest"}
+
 
 def _safe_add_group(
     sub: argparse._SubParsersAction,
@@ -312,8 +316,8 @@ def _traverse(parser: argparse.ArgumentParser, *, prefix: str = "") -> dict[str,
 
     for spa in sub_actions:  # type: ignore[misc]
         for name, subp in spa.choices.items():  # type: ignore[attr-defined]
-            # Skip wizard and manifest generator to avoid recursion/noise
-            if prefix == "" and name in {"wizard", "generate-manifest"}:
+            # Skip internal helpers and excluded commands at the root level
+            if prefix == "" and name in EXCLUDED_ROOT_COMMANDS:
                 continue
             manifest.update(_traverse(subp, prefix=f"{prefix} {name}"))
     return manifest
