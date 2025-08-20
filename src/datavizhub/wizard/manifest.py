@@ -19,7 +19,10 @@ def _safe_register_all(sub: argparse._SubParsersAction) -> None:
         p_acq = sub.add_parser("acquire", help="Acquire/ingest data from sources")
         acq_sub = p_acq.add_subparsers(dest="acquire_cmd", required=True)
         _ingest_mod.register_cli(acq_sub)
-    except Exception:  # pragma: no cover - optional extras might be missing
+    except (
+        ImportError,
+        AttributeError,
+    ):  # pragma: no cover - optional extras might be missing
         pass
 
     # process
@@ -31,7 +34,7 @@ def _safe_register_all(sub: argparse._SubParsersAction) -> None:
         )
         proc_sub = p_proc.add_subparsers(dest="process_cmd", required=True)
         _process_mod.register_cli(proc_sub)
-    except Exception:  # pragma: no cover
+    except (ImportError, AttributeError):  # pragma: no cover
         pass
 
     # visualize
@@ -43,7 +46,10 @@ def _safe_register_all(sub: argparse._SubParsersAction) -> None:
         )
         viz_sub = p_viz.add_subparsers(dest="visualize_cmd", required=True)
         _visual_mod.register_cli(viz_sub)
-    except Exception:  # pragma: no cover - heavy deps may be missing
+    except (
+        ImportError,
+        AttributeError,
+    ):  # pragma: no cover - heavy deps may be missing
         pass
 
     # decimate
@@ -55,7 +61,7 @@ def _safe_register_all(sub: argparse._SubParsersAction) -> None:
         )
         dec_sub = p_decimate.add_subparsers(dest="decimate_cmd", required=True)
         _egress_mod.register_cli(dec_sub)
-    except Exception:  # pragma: no cover
+    except (ImportError, AttributeError):  # pragma: no cover
         pass
 
     # transform
@@ -65,7 +71,7 @@ def _safe_register_all(sub: argparse._SubParsersAction) -> None:
         p_tr = sub.add_parser("transform", help="Transform helpers (metadata, etc.)")
         tr_sub = p_tr.add_subparsers(dest="transform_cmd", required=True)
         _transform_mod.register_cli(tr_sub)
-    except Exception:  # pragma: no cover
+    except (ImportError, AttributeError):  # pragma: no cover
         pass
 
     # run
@@ -73,7 +79,7 @@ def _safe_register_all(sub: argparse._SubParsersAction) -> None:
         from datavizhub.pipeline_runner import register_cli_run as _register_run
 
         _register_run(sub)
-    except Exception:  # pragma: no cover
+    except (ImportError, AttributeError):  # pragma: no cover
         pass
 
 

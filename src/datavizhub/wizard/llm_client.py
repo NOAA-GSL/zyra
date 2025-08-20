@@ -28,21 +28,34 @@ class OpenAIClient(LLMClient):
         self.base_url = (
             base_url or os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
         )
+        self._session = None  # lazy-initialized requests.Session for connection pooling
+
+        # Fail fast if credentials are missing for OpenAI provider
+        if not self.api_key:
+            raise RuntimeError(
+                "OPENAI_API_KEY is required for OpenAI provider. Set the env var or use provider='mock'."
+            )
+
+    def _get_session(self):  # pragma: no cover - trivial getter
+        if self._session is None:
+            try:
+                import requests  # type: ignore
+                from requests.adapters import HTTPAdapter  # type: ignore
+            except Exception:  # requests may be unavailable in minimal envs
+                return None
+            s = requests.Session()
+            adapter = HTTPAdapter(pool_connections=10, pool_maxsize=10)
+            s.mount("https://", adapter)
+            s.mount("http://", adapter)
+            self._session = s
+        return self._session
 
     def generate(
         self, system_prompt: str, user_prompt: str
     ) -> str:  # pragma: no cover - network optional
-        if not self.api_key:
-            # Soft-fail with guidance
-            return (
-                "# Missing OPENAI_API_KEY. Falling back to mock suggestion.\n"
-                + MockClient().generate(system_prompt, user_prompt)
-            )
         import json
 
         try:
-            import requests
-
             url = f"{self.base_url}/chat/completions"
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
@@ -56,9 +69,17 @@ class OpenAIClient(LLMClient):
                 ],
                 "temperature": 0.2,
             }
-            resp = requests.post(
-                url, headers=headers, data=json.dumps(payload), timeout=60
-            )
+            sess = self._get_session()
+            if sess is None:
+                import requests  # type: ignore
+
+                resp = requests.post(
+                    url, headers=headers, data=json.dumps(payload), timeout=60
+                )
+            else:
+                resp = sess.post(
+                    url, headers=headers, data=json.dumps(payload), timeout=60
+                )
             resp.raise_for_status()
             data = resp.json()
             return data["choices"][0]["message"]["content"].strip()
@@ -82,6 +103,21 @@ class OllamaClient(LLMClient):
             or os.environ.get("OLLAMA_HOST")
             or "http://localhost:11434"
         )
+        self._session = None  # lazy-initialized requests.Session for connection pooling
+
+    def _get_session(self):  # pragma: no cover - trivial getter
+        if self._session is None:
+            try:
+                import requests  # type: ignore
+                from requests.adapters import HTTPAdapter  # type: ignore
+            except Exception:  # requests may be unavailable in minimal envs
+                return None
+            s = requests.Session()
+            adapter = HTTPAdapter(pool_connections=10, pool_maxsize=10)
+            s.mount("https://", adapter)
+            s.mount("http://", adapter)
+            self._session = s
+        return self._session
 
     def generate(
         self, system_prompt: str, user_prompt: str
@@ -89,8 +125,6 @@ class OllamaClient(LLMClient):
         import json
 
         try:
-            import requests
-
             url = f"{self.base_url}/api/chat"
             payload = {
                 "model": self.model,
@@ -100,7 +134,13 @@ class OllamaClient(LLMClient):
                 ],
                 "stream": False,
             }
-            resp = requests.post(url, data=json.dumps(payload), timeout=60)
+            sess = self._get_session()
+            if sess is None:
+                import requests  # type: ignore
+
+                resp = requests.post(url, data=json.dumps(payload), timeout=60)
+            else:
+                resp = sess.post(url, data=json.dumps(payload), timeout=60)
             resp.raise_for_status()
             data = resp.json()
             return data.get("message", {}).get("content", "").strip()

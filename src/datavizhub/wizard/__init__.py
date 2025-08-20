@@ -42,7 +42,10 @@ except Exception:  # pragma: no cover - may not be installed
     PathCompleter = object  # type: ignore
     PTK_AVAILABLE = False
 
-from .llm_client import LLMClient, MockClient, OllamaClient, OpenAIClient
+import warnings
+
+from .llm_client import LLMClient
+from .prompts import SYSTEM_PROMPT
 
 
 @dataclass
@@ -96,12 +99,41 @@ def _select_provider(provider: str | None, model: str | None) -> LLMClient:
     )
     base_url = cfg.get("base_url")
     if prov == "openai":
-        return OpenAIClient(model=model_name, base_url=base_url)
+        from .llm_client import MockClient, OpenAIClient
+
+        try:
+            return OpenAIClient(model=model_name, base_url=base_url)
+        except Exception as exc:
+            warnings.warn(
+                f"OpenAI unavailable: {exc}. Falling back to mock.",
+                category=UserWarning,
+                stacklevel=2,
+            )
+            return MockClient()
     if prov == "ollama":
-        return OllamaClient(model=model_name, base_url=base_url)
+        from .llm_client import MockClient, OllamaClient
+
+        try:
+            return OllamaClient(model=model_name, base_url=base_url)
+        except Exception as exc:
+            warnings.warn(
+                f"Ollama unavailable: {exc}. Falling back to mock.",
+                category=UserWarning,
+                stacklevel=2,
+            )
+            return MockClient()
     if prov == "mock":
+        from .llm_client import MockClient
+
         return MockClient()
     # Fallback to mock for unknown providers
+    warnings.warn(
+        f"Unknown LLM provider '{prov}'. Falling back to mock.",
+        category=UserWarning,
+        stacklevel=2,
+    )
+    from .llm_client import MockClient
+
     return MockClient()
 
 
@@ -154,9 +186,10 @@ def _test_llm_connectivity(provider: str | None, model: str | None) -> tuple[boo
     if prov == "openai":
         from .llm_client import OpenAIClient
 
-        oc = OpenAIClient(model=model_name or None, base_url=base_url or None)
-        if not oc.api_key:
-            return False, "❌ OPENAI_API_KEY is not set"
+        try:
+            oc = OpenAIClient(model=model_name or None, base_url=base_url or None)
+        except RuntimeError as exc:
+            return False, f"❌ {exc}"
         try:
             # Hitting the models list is a lightweight way to check auth
             url = f"{oc.base_url}/models"
@@ -171,28 +204,6 @@ def _test_llm_connectivity(provider: str | None, model: str | None) -> tuple[boo
     # mock is always 'connected'
     return True, "✅ Using mock LLM provider"
 
-
-SYSTEM_PROMPT = (
-    "You are DataVizHub Wizard, an assistant that helps users run the "
-    "'datavizhub' CLI. Your job is to output one or more CLI commands "
-    "that directly accomplish the user's request.\n\n"
-    "Formatting rules:\n"
-    "- Always wrap commands in a fenced code block with 'bash'.\n"
-    "- Each command must start with 'datavizhub'.\n"
-    "- If multiple steps are needed, put each on its own line.\n"
-    "- You may include short inline comments (using #) to briefly explain "
-    "what each command does.\n"
-    "- Do not include any text outside the fenced code block.\n\n"
-    "Guidelines:\n"
-    "- Prefer succinct, directly runnable commands.\n"
-    "- Use placeholders (like <input-file>) only when unavoidable.\n"
-    "- Never generate non-datavizhub shell commands (e.g., rm, curl, sudo).\n"
-    "- If essential details are missing, make a reasonable assumption and use a placeholder.\n"
-    "- Explanations should be one short phrase only, never long sentences.\n"
-    "- Avoid redundant flags unless necessary for clarity.\n\n"
-    "Your output must always be a single fenced code block with commands "
-    "and optional short comments."
-)
 
 _CAP_MANIFEST_CACHE: dict | None = None
 
