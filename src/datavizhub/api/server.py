@@ -12,12 +12,12 @@ import asyncio
 import os
 import shutil
 import time
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from contextlib import asynccontextmanager, suppress
 
 from datavizhub.api import __version__ as dvh_version
 from datavizhub.api.routers import cli as cli_router
