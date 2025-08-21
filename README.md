@@ -5,7 +5,7 @@ Zyra is a utility library for building data-driven visual products. It provides 
 
  This README documents the library itself and shows how to compose the components. For complete runnable examples, see the examples repos when available, or adapt the snippets below.
 
-[![PyPI version](https://img.shields.io/pypi/v/zyra.svg)](https://pypi.org/project/zyra/) [![Docs](https://img.shields.io/badge/docs-GitHub_Pages-0A7BBB)](https://noaa-gsl.github.io/zyra/) [![Chat with DataVizHub Helper Bot](https://img.shields.io/badge/ChatGPT-DataVizHub_Helper_Bot-00A67E?logo=openai&logoColor=white)](https://chatgpt.com/g/g-6897a3dd5a7481918a55ebe3795f7a26-zyra-helper-bot)
+[![PyPI version](https://img.shields.io/pypi/v/zyra.svg)](https://pypi.org/project/zyra/) [![Docs](https://img.shields.io/badge/docs-GitHub_Pages-0A7BBB)](https://noaa-gsl.github.io/zyra/) [![Chat with Zyra Helper Bot](https://img.shields.io/badge/ChatGPT-Zyra_Helper_Bot-00A67E?logo=openai&logoColor=white)](https://chatgpt.com/g/g-6897a3dd5a7481918a55ebe3795f7a26-zyra-helper-bot) [![DOI](https://zenodo.org/badge/854215643.svg)](https://doi.org/10.5281/zenodo.16923322)
 
 > Migration notice: the project has been renamed from DataVizHub to Zyra. The new import namespace is `zyra` and new console scripts are `zyra` and `zyra-cli`. For a transition period, the legacy `datavizhub` namespace and CLI remain available and redirect to Zyra under the hood. Please begin migrating your imports and usage examples to `zyra`.
 
