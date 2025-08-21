@@ -15,9 +15,14 @@ from .json_file_manager import JSONFileManager
 
 _HAS_IMAGE = _ilu.find_spec(__name__ + ".image_manager") is not None
 if _HAS_IMAGE:  # pragma: no cover - optional path
-    from .image_manager import (
-        ImageManager as ImageManager,  # type: ignore  # noqa: F401
-    )
+    try:
+        from .image_manager import (  # type: ignore  # noqa: F401
+            ImageManager as ImageManager,
+        )
+    except Exception:  # ImportError or missing optional deps
+        # Defer import errors for optional heavy dependencies until
+        # submodule is explicitly imported by consumers.
+        _HAS_IMAGE = False
 
 __all__ = [
     "CredentialManager",
