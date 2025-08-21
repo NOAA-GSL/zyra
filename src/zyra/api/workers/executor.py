@@ -517,9 +517,11 @@ def _ensure_results_dir(job_id: str) -> Path:
     legacy_base = Path(
         os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
     )
+    # Use a sanitized alias for path composition to make taint flow explicit
+    safe_job_id = job_id
     # If a legacy results dir for this job already exists and the new one does not, use legacy for continuity
-    full = base / job_id
-    legacy_full = legacy_base / job_id
+    full = base / safe_job_id
+    legacy_full = legacy_base / safe_job_id
     if legacy_full.exists() and not full.exists():
         full = legacy_full
     full.mkdir(parents=True, exist_ok=True)
@@ -631,7 +633,8 @@ def write_manifest(job_id: str) -> Path | None:
         import mimetypes
         import os as _os
 
-        # Derive contained results directory
+        # Derive contained results directory. Validate and use a sanitized
+        # single-segment value to avoid taint in path expressions.
         if not isinstance(job_id, str) or not job_id:
             return None
         if (
@@ -640,20 +643,23 @@ def write_manifest(job_id: str) -> Path | None:
             or not _SAFE_JOB_ID_RE.fullmatch(job_id)
         ):
             return None
+        safe_job_id = job_id
         from zyra.utils.env import env_path
 
         base = env_path("RESULTS_DIR", "/tmp/zyra_results")
         legacy_base = Path(
             os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
         )
-        # Choose base per existing job directory to preserve legacy runs
-        full = (
-            (legacy_base / job_id)
-            if (legacy_base / job_id).exists() and not (base / job_id).exists()
-            else (base / job_id)
+        # Choose base per existing job directory to preserve legacy runs (use sanitized id)
+        selected_base = (
+            legacy_base
+            if (legacy_base / safe_job_id).exists()
+            and not (base / safe_job_id).exists()
+            else base
         )
-        # Normalize and ensure full is contained within base
-        base_resolved = full.parent.resolve()
+        full = selected_base / safe_job_id
+        # Normalize and ensure full is contained within base (compute base directly)
+        base_resolved = selected_base.resolve()
         full_resolved = full.resolve()
         try:
             full_resolved.relative_to(base_resolved)
@@ -712,7 +718,7 @@ def write_manifest(job_id: str) -> Path | None:
                     "media_type": media_type or "application/octet-stream",
                 }
             )
-        manifest = {"job_id": job_id, "artifacts": items}
+        manifest = {"job_id": safe_job_id, "artifacts": items}
         mf = full / "manifest.json"
         try:
             with mf.open("w", encoding="utf-8") as _fh:

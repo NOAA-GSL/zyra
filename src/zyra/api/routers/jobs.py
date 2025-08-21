@@ -24,6 +24,11 @@ def _results_base_for(job_id: str) -> Path:
     If a directory for this job already exists under the legacy base
     `/tmp/datavizhub_results` (or env `DATAVIZHUB_RESULTS_DIR`) and not under the
     new base, return the legacy base to preserve continuity.
+
+    Security: Validate ``job_id`` as a single safe path segment before using it
+    in any filesystem path expression to avoid path traversal and taint issues.
+    If validation fails, skip the legacy existence heuristic and default to the
+    new base directory.
     """
     from pathlib import Path
 
@@ -33,8 +38,23 @@ def _results_base_for(job_id: str) -> Path:
     base_legacy = Path(
         os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
     )
-    if (base_legacy / job_id).exists() and not (base_new / job_id).exists():
-        return base_legacy
+
+    # Validate and derive a sanitized, single-segment job id for filesystem usage.
+    # Use a distinct variable so static analyzers can track taint elimination.
+    try:
+        safe_job_id = _require_safe_job_id(job_id)
+    except HTTPException:
+        safe_job_id = None
+
+    if safe_job_id:
+        try:
+            if (base_legacy / safe_job_id).exists() and not (
+                base_new / safe_job_id
+            ).exists():
+                return base_legacy
+        except Exception:
+            # Fall through to new base on any unexpected FS error
+            pass
     return base_new
 
 
