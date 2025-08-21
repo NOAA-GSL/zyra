@@ -26,7 +26,7 @@ def test_heatmap_tiles_smoke(tmp_path):
     cmd = [
         sys.executable,
         "-m",
-        "datavizhub.cli",
+        "zyra.cli",
         "visualize",
         "heatmap",
         "--input",
@@ -50,7 +50,7 @@ def test_animate_tiles_smoke(tmp_path):
     cmd = [
         sys.executable,
         "-m",
-        "datavizhub.cli",
+        "zyra.cli",
         "visualize",
         "animate",
         "--mode",
@@ -84,7 +84,7 @@ def test_contour_tiles_smoke(tmp_path):
     cmd = [
         sys.executable,
         "-m",
-        "datavizhub.cli",
+        "zyra.cli",
         "visualize",
         "contour",
         "--input",

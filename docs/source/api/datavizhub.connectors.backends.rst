@@ -1,23 +1,22 @@
-datavizhub.connectors.backends package
+zyra.connectors.backends package
 =====================================
 
-.. automodule:: datavizhub.connectors.backends.http
+.. automodule:: zyra.connectors.backends.http
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: datavizhub.connectors.backends.ftp
+.. automodule:: zyra.connectors.backends.ftp
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: datavizhub.connectors.backends.s3
+.. automodule:: zyra.connectors.backends.s3
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: datavizhub.connectors.backends.vimeo
+.. automodule:: zyra.connectors.backends.vimeo
    :members:
    :undoc-members:
    :show-inheritance:
-

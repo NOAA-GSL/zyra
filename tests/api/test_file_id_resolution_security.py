@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from datavizhub.api.routers import files as files_router
-from datavizhub.api.workers.executor import resolve_upload_placeholders
+from zyra.api.routers import files as files_router
+from zyra.api.workers.executor import resolve_upload_placeholders
 
 
 def test_file_id_resolution_prevents_symlink_escape(

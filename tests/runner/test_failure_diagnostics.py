@@ -1,6 +1,6 @@
 import json
 
-from datavizhub.pipeline_runner import run_pipeline
+from zyra.pipeline_runner import run_pipeline
 
 
 def test_failure_diagnostics_shows_stage_and_command(tmp_path, monkeypatch, capsys):
@@ -19,9 +19,10 @@ def test_failure_diagnostics_shows_stage_and_command(tmp_path, monkeypatch, caps
     def fake_main(argv=None):
         raise SystemExit(2)
 
-    monkeypatch.setattr("datavizhub.cli.main", fake_main)
+    monkeypatch.setattr("zyra.cli.main", fake_main)
     rc = run_pipeline(str(p), [], print_argv=False, dry_run=False)
     assert rc == 2
     err = capsys.readouterr().err
     assert "Stage 1 [acquire] failed" in err
-    assert "datavizhub acquire http" in err
+    # Error output should show the CLI argv; prefer new 'zyra' name
+    assert "zyra acquire http" in err

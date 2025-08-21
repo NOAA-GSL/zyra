@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from datavizhub.api.server import app
 from fastapi.testclient import TestClient
+from zyra.api.server import app
 
 
 def test_cli_commands_requires_api_key(monkeypatch) -> None:

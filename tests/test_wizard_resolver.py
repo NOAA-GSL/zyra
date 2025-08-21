@@ -1,5 +1,5 @@
 def test_resolver_detects_missing_args():
-    from datavizhub.wizard.resolver import MissingArgsError, MissingArgumentResolver
+    from zyra.wizard.resolver import MissingArgsError, MissingArgumentResolver
 
     manifest = {
         "process convert-format": {
@@ -28,7 +28,7 @@ def test_resolver_detects_missing_args():
 
 
 def test_resolver_interactive_prompts_user(monkeypatch):
-    from datavizhub.wizard.resolver import MissingArgumentResolver
+    from zyra.wizard.resolver import MissingArgumentResolver
 
     manifest = {
         "process convert-format": {
@@ -54,7 +54,7 @@ def test_resolver_interactive_prompts_user(monkeypatch):
 
 
 def test_resolver_prompts_for_positionals_only(monkeypatch):
-    from datavizhub.wizard.resolver import MissingArgumentResolver
+    from zyra.wizard.resolver import MissingArgumentResolver
 
     manifest = {
         "acquire ftp": {
@@ -73,7 +73,7 @@ def test_resolver_prompts_for_positionals_only(monkeypatch):
 
 
 def test_resolver_masks_sensitive_in_logs(monkeypatch):
-    from datavizhub.wizard.resolver import MissingArgumentResolver
+    from zyra.wizard.resolver import MissingArgumentResolver
 
     captured = []
 
@@ -112,7 +112,7 @@ def test_resolver_masks_sensitive_in_logs(monkeypatch):
 
 def test_one_shot_missing_args_fails_without_interactive(monkeypatch, capsys):
     # Force a simple manifest with a required flag
-    import datavizhub.wizard as wiz
+    import zyra.wizard as wiz
 
     def fake_manifest():
         return {
@@ -124,7 +124,7 @@ def test_one_shot_missing_args_fails_without_interactive(monkeypatch, capsys):
     monkeypatch.setattr(wiz, "_load_capabilities_manifest", lambda: fake_manifest())
 
     # Make MockClient return a command missing --x
-    from datavizhub.wizard import llm_client
+    from zyra.wizard import llm_client
 
     monkeypatch.setattr(
         llm_client.MockClient,
@@ -132,7 +132,7 @@ def test_one_shot_missing_args_fails_without_interactive(monkeypatch, capsys):
         lambda self, sys, user: """```bash\ndatavizhub foo bar\n```""",
     )
 
-    from datavizhub.cli import main
+    from zyra.cli import main
 
     rc = main(["wizard", "--provider", "mock", "--prompt", "anything", "--yes"])
     out = capsys.readouterr().out
@@ -140,7 +140,7 @@ def test_one_shot_missing_args_fails_without_interactive(monkeypatch, capsys):
 
 
 def test_one_shot_missing_args_prompts_with_interactive(monkeypatch, capsys):
-    import datavizhub.wizard as wiz
+    import zyra.wizard as wiz
 
     def fake_manifest():
         return {
@@ -161,7 +161,7 @@ def test_one_shot_missing_args_prompts_with_interactive(monkeypatch, capsys):
 
     monkeypatch.setattr(wiz, "_load_capabilities_manifest", lambda: fake_manifest())
 
-    from datavizhub.wizard import llm_client
+    from zyra.wizard import llm_client
 
     monkeypatch.setattr(
         llm_client.MockClient,
@@ -170,14 +170,14 @@ def test_one_shot_missing_args_prompts_with_interactive(monkeypatch, capsys):
     )
 
     # Ensure prompt_toolkit path is disabled so input() is used
-    import datavizhub.wizard as wizmod
+    import zyra.wizard as wizmod
 
     monkeypatch.setattr(wizmod, "PTK_AVAILABLE", False)
     # Provide input for interactive prompts: first --x, then positional path
     answers = iter(["123", "/tmp/in.dat"])
     monkeypatch.setattr("builtins.input", lambda prompt="": next(answers))
 
-    from datavizhub.cli import main
+    from zyra.cli import main
 
     # Command will still likely fail at execution (unknown command),
     # but argument resolution should occur and not fail fast.

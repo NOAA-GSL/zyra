@@ -5,7 +5,7 @@ import json
 def test_history_append_and_load(tmp_path, monkeypatch):
     # Isolate HOME so wizard stores under tmp_path
     monkeypatch.setenv("HOME", str(tmp_path))
-    wiz = importlib.import_module("datavizhub.wizard")
+    wiz = importlib.import_module("zyra.wizard")
 
     # Ensure clean state
     wiz._clear_history_file()
@@ -33,7 +33,7 @@ def test_history_append_and_load(tmp_path, monkeypatch):
 
 def test_history_dedup_and_corruption(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
-    wiz = importlib.import_module("datavizhub.wizard")
+    wiz = importlib.import_module("zyra.wizard")
 
     # Prepare a file with duplicates and a corrupted line
     p = wiz._history_file_path()
@@ -55,7 +55,7 @@ def test_history_dedup_and_corruption(tmp_path, monkeypatch):
 
 def test_clear_history(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
-    wiz = importlib.import_module("datavizhub.wizard")
+    wiz = importlib.import_module("zyra.wizard")
 
     wiz._append_history("datavizhub foo")
     assert wiz._history_file_path().exists()

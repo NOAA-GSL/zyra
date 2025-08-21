@@ -1,4 +1,4 @@
-from datavizhub.api.workers.executor import _args_dict_to_argv
+from zyra.api.workers.executor import _args_dict_to_argv
 
 
 def test_convert_format_arg_mapping():

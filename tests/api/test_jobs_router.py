@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from datavizhub.api.routers import jobs as jobs_router
-from datavizhub.api.server import app
-from datavizhub.api.workers import jobs as jb
+from zyra.api.routers import jobs as jobs_router
+from zyra.api.server import app
+from zyra.api.workers import jobs as jb
 
 
 def test_get_job_status_returns_expected_keys(tmp_path: Path) -> None:

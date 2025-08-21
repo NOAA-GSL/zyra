@@ -17,7 +17,7 @@ def test_group_title_in_option_completion_meta(monkeypatch):
             },
         }
     }
-    import datavizhub.wizard as wiz
+    import zyra.wizard as wiz
 
     comp = wiz._WizardCompleter(cap)
 

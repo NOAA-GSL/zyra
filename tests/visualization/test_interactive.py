@@ -24,7 +24,7 @@ def test_interactive_folium_heatmap_html():
         cmd = [
             sys.executable,
             "-m",
-            "datavizhub.cli",
+            "zyra.cli",
             "interactive",
             "--input",
             npy,
@@ -62,7 +62,7 @@ def test_interactive_plotly_heatmap_html():
         cmd = [
             sys.executable,
             "-m",
-            "datavizhub.cli",
+            "zyra.cli",
             "interactive",
             "--input",
             npy,
@@ -110,7 +110,7 @@ def test_interactive_folium_points_html():
         cmd = [
             sys.executable,
             "-m",
-            "datavizhub.cli",
+            "zyra.cli",
             "interactive",
             "--input",
             str(points_csv),
@@ -155,7 +155,7 @@ def test_interactive_folium_vector_quiver_html():
         cmd = [
             sys.executable,
             "-m",
-            "datavizhub.cli",
+            "zyra.cli",
             "interactive",
             "--mode",
             "vector",
@@ -206,7 +206,7 @@ def test_interactive_folium_vector_streamlines_html():
         cmd = [
             sys.executable,
             "-m",
-            "datavizhub.cli",
+            "zyra.cli",
             "interactive",
             "--mode",
             "vector",

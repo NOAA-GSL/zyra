@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 
-from datavizhub.api.server import app
+from zyra.api.server import app
 
 
 def main() -> int:

@@ -7,7 +7,7 @@ import pytest
 
 
 def _run_cli(args, input_bytes: bytes | None = None):
-    cmd = [sys.executable, "-m", "datavizhub.cli", *args]
+    cmd = [sys.executable, "-m", "zyra.cli", *args]
     return subprocess.run(cmd, input=input_bytes, capture_output=True)
 
 

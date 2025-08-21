@@ -1,8 +1,7 @@
-datavizhub.connectors.egress module
+zyra.connectors.egress module
 ===================================
 
-.. automodule:: datavizhub.connectors.egress
+.. automodule:: zyra.connectors.egress
    :members:
    :undoc-members:
    :show-inheritance:
-

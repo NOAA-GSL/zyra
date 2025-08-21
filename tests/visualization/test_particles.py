@@ -40,7 +40,7 @@ def test_cli_particles_npy_smoke(ensure_uv_stacks):
         cmd = [
             sys.executable,
             "-m",
-            "datavizhub.cli",
+            "zyra.cli",
             "animate",
             "--mode",
             "particles",

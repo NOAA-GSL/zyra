@@ -6,7 +6,7 @@ def _write_yaml(path, data):
 
 
 def _monkeypatch_generators(monkeypatch):
-    from datavizhub.wizard import llm_client
+    from zyra.wizard import llm_client
 
     def gen_openai(system_prompt: str, user_prompt: str) -> str:
         return """
@@ -27,7 +27,7 @@ $ datavizhub from-mock
 
 
 def test_config_file_sets_default_provider(tmp_path, monkeypatch, capsys):
-    from datavizhub.cli import main
+    from zyra.cli import main
 
     # Point HOME to temp and write config with provider: mock
     home = tmp_path / "home"
@@ -46,7 +46,7 @@ def test_config_file_sets_default_provider(tmp_path, monkeypatch, capsys):
 
 
 def test_env_overrides_config(tmp_path, monkeypatch, capsys):
-    from datavizhub.cli import main
+    from zyra.cli import main
 
     # Config says openai, env overrides to mock
     home = tmp_path / "home"
@@ -65,7 +65,7 @@ def test_env_overrides_config(tmp_path, monkeypatch, capsys):
 
 
 def test_cli_overrides_env(monkeypatch, capsys):
-    from datavizhub.cli import main
+    from zyra.cli import main
 
     monkeypatch.setenv("DATAVIZHUB_LLM_PROVIDER", "openai")
     _monkeypatch_generators(monkeypatch)

@@ -1,6 +1,6 @@
 import json
 
-from datavizhub.pipeline_runner import run_pipeline
+from zyra.pipeline_runner import run_pipeline
 
 
 def test_period_and_since_period_mapping(tmp_path, monkeypatch, capsys):
@@ -26,7 +26,7 @@ def test_period_and_since_period_mapping(tmp_path, monkeypatch, capsys):
     def fake_main(argv=None):
         return 0
 
-    monkeypatch.setattr("datavizhub.cli.main", fake_main)
+    monkeypatch.setattr("zyra.cli.main", fake_main)
 
     # Dry-run prints argv; ensure both stages got a computed --since
     rc = run_pipeline(str(p), [], print_argv=True, dry_run=True)

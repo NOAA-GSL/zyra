@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from datavizhub.connectors.backends import ftp as ftp_backend
+from zyra.connectors.backends import ftp as ftp_backend
 
 
 class FakeFTP:
@@ -52,13 +52,13 @@ class FakeFTP:
 
 
 def test_ftp_get_size_and_ranges_and_idx():
-    with patch("datavizhub.connectors.backends.ftp.FTP", FakeFTP):
+    with patch("zyra.connectors.backends.ftp.FTP", FakeFTP):
         url = "ftp://host/dir/file.grib2"
         assert ftp_backend.get_size(url) == 20
         lines = ftp_backend.get_idx_lines(url)
         assert lines
         assert len(lines) == 2
-        from datavizhub.utils.grib import idx_to_byteranges
+        from zyra.utils.grib import idx_to_byteranges
 
         br = idx_to_byteranges(lines, r"b")
         data = ftp_backend.download_byteranges(url, br.keys(), max_workers=2)

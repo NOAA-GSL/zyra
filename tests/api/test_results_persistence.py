@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from datavizhub.api.workers import jobs as jb
-from datavizhub.api.workers.executor import (
+from zyra.api.workers import jobs as jb
+from zyra.api.workers.executor import (
     RunResult,
     _ensure_results_dir,
     _maybe_copy_output,

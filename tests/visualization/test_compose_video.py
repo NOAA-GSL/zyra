@@ -27,7 +27,7 @@ def test_cli_compose_video_smoke():
         cmd = [
             sys.executable,
             "-m",
-            "datavizhub.cli",
+            "zyra.cli",
             "visualize",
             "compose-video",
             "--frames",

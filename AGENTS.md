@@ -41,7 +41,7 @@ Repository Guidelines
 
 Project Structure & Module Organization
 
-- Code lives under `src/datavizhub/`:
+- Code lives under `src/zyra/`:
   - `connectors/`: source/destination integrations and CLI registrars (`connectors.ingest`, `connectors.egress`). Prefer these over legacy `acquisition/` for new work.
   - `processing/`: data processing (e.g., GRIB/NetCDF/GeoTIFF) exposed via the CLI.
   - `visualization/`: visualization commands; CLI registration lives in `visualization/cli_register.py`.
@@ -49,7 +49,7 @@ Project Structure & Module Organization
   - `api/` + `api_cli.py`: HTTP API and CLI entry points.
   - `transform/`: transform helpers (metadata, etc.).
   - `utils/`: shared helpers/utilities.
-  - `assets/`: packaged static resources; access with `importlib.resources` (`datavizhub.assets`).
+  - `assets/`: packaged static resources; access with `importlib.resources` (`zyra.assets`).
   - `cli.py`, `pipeline_runner.py`: root CLI and pipeline runner.
 
 Build, Test, and Development
@@ -83,7 +83,7 @@ Security & Configuration
 
 - Do not commit secrets. Prefer IAM roles or env vars (e.g., used by S3 connectors).
 - Avoid hard-coded absolute paths; prefer env-configurable paths (e.g., `DATA_DIR`).
-- Use `importlib.resources` for packaged assets under `datavizhub.assets`.
+- Use `importlib.resources` for packaged assets under `zyra.assets`.
 - Pin dependencies when adding new ones; document any system deps (e.g., FFmpeg, PROJ/GEOS).
 
 Dependency Management (Poetry)

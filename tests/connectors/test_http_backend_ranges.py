@@ -1,6 +1,6 @@
 from unittest.mock import Mock, patch
 
-from datavizhub.connectors.backends import http as http_backend
+from zyra.connectors.backends import http as http_backend
 
 
 def test_http_get_size_and_idx_and_ranges():
@@ -40,7 +40,7 @@ def test_http_get_size_and_idx_and_ranges():
         assert lines
         assert len(lines) == 2
         # Two ranges: 0-10 and 10-EOF
-        from datavizhub.utils.grib import idx_to_byteranges
+        from zyra.utils.grib import idx_to_byteranges
 
         br = idx_to_byteranges(lines, r"VAR")
         with patch.dict(sys.modules, {"requests": fake_requests}):

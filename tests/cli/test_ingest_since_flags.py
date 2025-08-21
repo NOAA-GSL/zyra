@@ -1,10 +1,10 @@
 from unittest.mock import patch
 
-from datavizhub.cli import main as cli_main
+from zyra.cli import main as cli_main
 
 
 def test_acquire_http_since_period_list(monkeypatch):
-    with patch("datavizhub.connectors.backends.http.list_files") as m_list:
+    with patch("zyra.connectors.backends.http.list_files") as m_list:
         m_list.return_value = []
         try:
             cli_main(
@@ -22,7 +22,7 @@ def test_acquire_http_since_period_list(monkeypatch):
 
 
 def test_acquire_ftp_since_period_list(monkeypatch):
-    with patch("datavizhub.connectors.backends.ftp.list_files") as m_list:
+    with patch("zyra.connectors.backends.ftp.list_files") as m_list:
         m_list.return_value = []
         try:
             cli_main(
@@ -42,7 +42,7 @@ def test_acquire_ftp_since_period_list(monkeypatch):
 
 
 def test_acquire_s3_since_period_list(monkeypatch):
-    with patch("datavizhub.connectors.backends.s3.list_files") as m_list:
+    with patch("zyra.connectors.backends.s3.list_files") as m_list:
         m_list.return_value = []
         try:
             cli_main(

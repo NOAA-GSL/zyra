@@ -38,7 +38,7 @@ def test_cli_vector_quiver_npy_smoke(ensure_uv_stacks):
         cmd = [
             sys.executable,
             "-m",
-            "datavizhub.cli",
+            "zyra.cli",
             "vector",
             "--u",
             up,

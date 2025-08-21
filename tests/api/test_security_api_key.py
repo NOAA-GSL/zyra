@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import pytest
-from datavizhub.api.security import require_api_key
 from fastapi import HTTPException
+from zyra.api.security import require_api_key
 
 
 @pytest.mark.anyio

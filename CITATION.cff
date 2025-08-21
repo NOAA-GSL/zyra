@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+title: Zyra
+message: ' Modular workflows for reproducible science'
+type: software
+authors:
+  - given-names: Eric
+    family-names: Hackathorn
+    email: eric.j.hackathorn@noaa.gov
+    orcid: 'https://orcid.org/0000-0002-9693-2093'
+    affiliation: NOAA Global Systems Laboratory
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.xxxxxxx
+    description: replace with Zenodo DOI once registered
+repository-code: 'https://github.com/NOAA-GSL/zyra'
+url: 'https://github.com/NOAA-GSL/zyra/wiki'
+repository: 'https://pypi.org/project/zyra/'
+abstract: >-
+  Zyra is an open-source Python framework for creating
+  reproducible, modular, and visually compelling data
+  visualizations. It provides a flexible pipeline for data
+  acquisition, processing, rendering, and dissemination,
+  making it useful for scientists, educators, and developers
+  who need to explore, analyze, and communicate complex
+  scientific data.
+keywords:
+  - Python
+  - data visualization
+  - scientific visualization
+  - open science
+  - reproducible research
+  - workflow automation
+  - data pipeline
+  - NOAA
+license: MIT

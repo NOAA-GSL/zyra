@@ -24,8 +24,8 @@ def imp(name: str):
     return {"module": name, "seconds": dt, "error": err}
 
 mods = [
-    'datavizhub.wizard',
-    'datavizhub.visualization.cli_register',
+    'zyra.wizard',
+    'zyra.visualization.cli_register',
 ]
 print(json.dumps([imp(m) for m in mods]))
 """
@@ -49,4 +49,4 @@ print(json.dumps([imp(m) for m in mods]))
     # Do not assert thresholds; this is informational only.
     captured = capsys.readouterr()
     # Keep at least one line to be visible in CI logs
-    assert "import datavizhub.wizard:" in captured.out
+    assert "import zyra.wizard:" in captured.out

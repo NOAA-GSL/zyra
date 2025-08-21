@@ -1,23 +1,27 @@
 [tool.poetry]
-name = "datavizhub"
+name = "zyra"
 version = "0.1.21"
 description = "A tool to ingest data from various sources and formats, create imagery or video based on that data, and send the results to various locations for dissemination."
 authors = ["Eric Hackathorn <eric.j.hackathorn@noaa.gov>"]
 include = [
-    "src/datavizhub/assets/**",
-    "src/datavizhub/wizard/*.json",
+    # Packaged assets in the Zyra namespace
+    "src/zyra/assets/**",
+    "src/zyra/wizard/*.json",
 ]
 license = "MIT"
 readme = "README.md"
 packages = [
-    { include = "datavizhub", from = "src" }
+    # New public package name
+    { include = "zyra", from = "src" },
+    # Legacy namespace retained for compatibility during migration
+    { include = "zyra", from = "src" },
 ]
 
 [tool.poetry.urls]
-Homepage = "https://github.com/NOAA-GSL/datavizhub"
-Documentation = "https://github.com/NOAA-GSL/datavizhub/blob/main/README.md"
-Source = "https://github.com/NOAA-GSL/datavizhub"
-Tracker = "https://github.com/NOAA-GSL/datavizhub/issues"
+Homepage = "https://github.com/NOAA-GSL/zyra"
+Documentation = "https://github.com/NOAA-GSL/zyra/blob/main/README.md"
+Source = "https://github.com/NOAA-GSL/zyra"
+Tracker = "https://github.com/NOAA-GSL/zyra/issues"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
@@ -51,17 +55,17 @@ rasterio = { version = "^1.3.9", optional = true }
 # -------------------------------------------------------------------
 # Optional dependency groups
 # Install examples:
-#   pip install "datavizhub[datatransfer]"   # S3, HTTP, Vimeo transfers
-#   pip install "datavizhub[processing]"     # GRIB2, NetCDF, GeoTIFF + processing
-#   pip install "datavizhub[visualization]"  # Cartopy/Matplotlib plotting
-#   pip install "datavizhub[grib2]"          # Minimal GRIB2 decoding
-#   pip install "datavizhub[netcdf]"         # Minimal NetCDF handling
-#   pip install "datavizhub[geotiff]"        # Minimal GeoTIFF export
-#   pip install "datavizhub[all]"            # Everything (full dev/test)
+#   pip install "zyra[datatransfer]"   # S3, HTTP, Vimeo transfers
+#   pip install "zyra[processing]"     # GRIB2, NetCDF, GeoTIFF + processing
+#   pip install "zyra[visualization]"  # Cartopy/Matplotlib plotting
+#   pip install "zyra[grib2]"          # Minimal GRIB2 decoding
+#   pip install "zyra[netcdf]"         # Minimal NetCDF handling
+#   pip install "zyra[geotiff]"        # Minimal GeoTIFF export
+#   pip install "zyra[all]"            # Everything (full dev/test)
 #
 # Documentation:
-#   Wiki (design, architecture, vision): https://github.com/NOAA-GSL/datavizhub/wiki
-#   API Reference & Examples: https://noaa-gsl.github.io/datavizhub/
+#   Wiki (design, architecture, vision): https://github.com/NOAA-GSL/zyra/wiki
+#   API Reference & Examples: https://noaa-gsl.github.io/zyra/
 # -------------------------------------------------------------------
 [tool.poetry.extras]
 # Transfer-only dependencies
@@ -176,8 +180,10 @@ api = [
 ]
 
 [tool.poetry.scripts]
-datavizhub = "datavizhub.cli:main"
-datavizhub-cli = "datavizhub.api_cli:main"
+# New CLI entry points
+zyra = "zyra.cli:main"
+zyra-cli = "zyra.api_cli:main"
+# Legacy entry points retained for compatibility
 
 [tool.poetry.group.dev.dependencies]
 coverage = "^7.4.0"

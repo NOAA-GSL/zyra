@@ -52,7 +52,7 @@ def test_cli_heatmap_crs_warning():
         cmd = [
             sys.executable,
             "-m",
-            "datavizhub.cli",
+            "zyra.cli",
             "heatmap",
             "--input",
             nc,
@@ -87,7 +87,7 @@ def test_cli_heatmap_crs_override_suppresses_warning():
         cmd = [
             sys.executable,
             "-m",
-            "datavizhub.cli",
+            "zyra.cli",
             "heatmap",
             "--input",
             nc,

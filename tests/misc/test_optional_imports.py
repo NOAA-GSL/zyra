@@ -1,4 +1,4 @@
-from datavizhub import connectors, processing, utils, visualization
+from zyra import connectors, processing, utils, visualization
 
 
 def test_import_processing_package_without_viz():

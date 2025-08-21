@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from datavizhub.api.routers import jobs as jobs_router
 from fastapi import HTTPException
+from zyra.api.routers import jobs as jobs_router
 
 
 def test_select_download_path_rejects_symlink_escape(

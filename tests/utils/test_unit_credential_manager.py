@@ -1,5 +1,5 @@
 import pytest
-from datavizhub.utils.credential_manager import CredentialManager
+from zyra.utils.credential_manager import CredentialManager
 
 
 # Test Initialization

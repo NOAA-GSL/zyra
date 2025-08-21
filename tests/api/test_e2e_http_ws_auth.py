@@ -5,8 +5,8 @@ import json
 import time
 
 import pytest
-from datavizhub.api.server import app
 from fastapi.testclient import TestClient
+from zyra.api.server import app
 
 
 @pytest.mark.anyio

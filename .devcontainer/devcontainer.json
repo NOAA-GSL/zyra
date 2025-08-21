@@ -1,14 +1,14 @@
 {
-  "name": "datavizhub-dev",
+  "name": "zyra-dev",
   "dockerComposeFile": [
     "../docker-compose.yml"
   ],
-  "service": "datavizhub",
+  "service": "zyra",
   "workspaceFolder": "/app",
   "overrideCommand": false,
 
   // ✅ Ensures VS Code starts the right services
-  "runServices": ["datavizhub", "redis"],
+  "runServices": ["zyra", "redis"],
   "composeProfiles": ["dev"],
 
   "customizations": {

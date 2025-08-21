@@ -18,7 +18,5 @@ import pytest
     ],
 )
 def test_visualize_subcommand_help_exits_zero(cmd):
-    proc = subprocess.run(
-        [sys.executable, "-m", "datavizhub.cli", *cmd], capture_output=True
-    )
+    proc = subprocess.run([sys.executable, "-m", "zyra.cli", *cmd], capture_output=True)
     assert proc.returncode == 0, proc.stderr.decode(errors="ignore")
