@@ -1,11 +1,11 @@
 from unittest.mock import patch
 
-from datavizhub.cli import main as cli_main
+from zyra.cli import main as cli_main
 
 
 def test_decimate_vimeo_replace_and_description(capsys):
-    with patch("datavizhub.connectors.backends.vimeo.update_video") as rep, patch(
-        "datavizhub.connectors.backends.vimeo.update_description"
+    with patch("zyra.connectors.backends.vimeo.update_video") as rep, patch(
+        "zyra.connectors.backends.vimeo.update_description"
     ) as upd:
         rep.return_value = "/videos/999"
         upd.return_value = "/videos/999"

@@ -1,4 +1,4 @@
-# Contributing to DataVizHub
+# Contributing to Zyra
 
 Thanks for your interest in contributing!  
 This project thrives on community contributions, and we welcome improvements of all kinds.
@@ -7,7 +7,7 @@ This project thrives on community contributions, and we welcome improvements of 
 
 ## License and Contributor Terms
 
-- DataVizHub is licensed under the MIT License. See `LICENSE` at the repository root.
+- Zyra is licensed under the MIT License. See `LICENSE` at the repository root.
 - By submitting a pull request, issue suggestion, or any code/documentation/artwork (“Contribution”),
   you agree to license your Contribution under the MIT License, and you represent that you have the
   right to do so.

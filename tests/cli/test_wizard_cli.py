@@ -2,19 +2,19 @@ import pytest
 
 
 def test_wizard_help_works(capsys):
-    """Ensure `datavizhub wizard --help` shows usage and exits cleanly."""
-    from datavizhub.cli import main
+    """Ensure `zyra wizard --help` shows usage and exits cleanly."""
+    from zyra.cli import main
 
     with pytest.raises(SystemExit) as exc:
         main(["wizard", "--help"])  # argparse prints help then exits
     assert exc.value.code == 0
     out = capsys.readouterr().out
-    assert "usage: datavizhub wizard" in out
+    assert "usage: zyra wizard" in out
 
 
 def test_wizard_mock_prompt_dry_run_outputs_commands(capsys):
     """Mock provider with --dry-run should print suggested commands and return 0."""
-    from datavizhub.cli import main
+    from zyra.cli import main
 
     rc = main(
         [
@@ -28,13 +28,13 @@ def test_wizard_mock_prompt_dry_run_outputs_commands(capsys):
     )
     assert rc == 0
     out = capsys.readouterr().out
-    # The mock client always prints a 'datavizhub ...' suggestion
-    assert "datavizhub" in out
+    # The mock client prints a 'zyra ...' suggestion
+    assert "zyra" in out
 
 
 def test_wizard_logs_created(tmp_path, monkeypatch):
     """When --log is passed, a JSONL log file should be created under HOME."""
-    from datavizhub.cli import main
+    from zyra.cli import main
 
     # Point HOME to a temp dir so we don't write to the real home directory
     fake_home = tmp_path / "home"
@@ -64,8 +64,8 @@ def test_wizard_logs_created(tmp_path, monkeypatch):
 
 def test_wizard_extracts_bash_prompt_lines(capsys, monkeypatch):
     """Commands with "$ datavizhub ..." in fenced code blocks are extracted and printed."""
-    from datavizhub.cli import main
-    from datavizhub.wizard import llm_client
+    from zyra.cli import main
+    from zyra.wizard import llm_client
 
     def fake_generate(system_prompt: str, user_prompt: str) -> str:
         return (
@@ -98,8 +98,8 @@ $ datavizhub process convert-format input.nc --format geotiff --output out.tif
 
 def test_wizard_extracts_multiple_fenced_blocks(capsys, monkeypatch):
     """All fenced blocks are scanned; commands from each are listed."""
-    from datavizhub.cli import main
-    from datavizhub.wizard import llm_client
+    from zyra.cli import main
+    from zyra.wizard import llm_client
 
     def fake_generate(system_prompt: str, user_prompt: str) -> str:
         return (
@@ -136,8 +136,8 @@ datavizhub two
 
 def test_wizard_strips_inline_comments(capsys, monkeypatch):
     """Inline comments after commands are removed from suggestions/output."""
-    from datavizhub.cli import main
-    from datavizhub.wizard import llm_client
+    from zyra.cli import main
+    from zyra.wizard import llm_client
 
     def fake_generate(system_prompt: str, user_prompt: str) -> str:
         return (
@@ -168,8 +168,8 @@ datavizhub process convert-format input.nc --format geotiff --output out.tif # e
 
 def test_wizard_safety_drops_unsafe_lines(capsys, monkeypatch):
     """Non-datavizhub lines (e.g., rm -rf) are ignored with a notice."""
-    from datavizhub.cli import main
-    from datavizhub.wizard import llm_client
+    from zyra.cli import main
+    from zyra.wizard import llm_client
 
     def fake_generate(system_prompt: str, user_prompt: str) -> str:
         return (
@@ -199,8 +199,8 @@ datavizhub ok
 
 
 def test_wizard_show_raw_prints_reply(capsys, monkeypatch):
-    from datavizhub.cli import main
-    from datavizhub.wizard import llm_client
+    from zyra.cli import main
+    from zyra.wizard import llm_client
 
     def fake_generate(system_prompt: str, user_prompt: str) -> str:
         return """RAWXYZ
@@ -228,8 +228,8 @@ datavizhub process convert-format input.nc geotiff --output out.tif
 
 
 def test_wizard_explain_preserves_comments_but_default_strips(capsys, monkeypatch):
-    from datavizhub.cli import main
-    from datavizhub.wizard import llm_client
+    from zyra.cli import main
+    from zyra.wizard import llm_client
 
     reply = (
         """

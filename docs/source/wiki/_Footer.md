@@ -1,1 +1,0 @@
-[Home](https://github.com/NOAA-GSL/datavizhub/wiki)

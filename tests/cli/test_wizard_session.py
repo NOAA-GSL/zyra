@@ -1,8 +1,8 @@
-from datavizhub.wizard import SessionState, _handle_prompt
+from zyra.wizard import SessionState, _handle_prompt
 
 
 def test_session_memory_in_context(monkeypatch, capsys):
-    from datavizhub.wizard import llm_client
+    from zyra.wizard import llm_client
 
     calls = []
 
@@ -40,7 +40,7 @@ datavizhub visualize heatmap --input out1.nc --var TMP --output plot.png
 
     sess = SessionState()
     # Stub execution to avoid running real commands
-    monkeypatch.setattr("datavizhub.wizard._run_one", lambda c: 0)
+    monkeypatch.setattr("zyra.wizard._run_one", lambda c: 0)
     # First prompt: execute (not dry-run) and auto-confirm to update session state
     rc1 = _handle_prompt(
         "subset HRRR",

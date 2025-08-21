@@ -6,7 +6,7 @@ import pytest
 
 def test_variable_not_found_error():
     xr = pytest.importorskip("xarray")
-    from datavizhub.processing.grib_utils import (
+    from zyra.processing.grib_utils import (
         DecodedGRIB,
         VariableNotFoundError,
         extract_variable,
@@ -20,7 +20,7 @@ def test_variable_not_found_error():
 
 def test_geotiff_multivar_requires_var():
     xr = pytest.importorskip("xarray")
-    from datavizhub.processing.grib_utils import DecodedGRIB, convert_to_format
+    from zyra.processing.grib_utils import DecodedGRIB, convert_to_format
 
     ds = xr.Dataset(
         {
@@ -34,7 +34,7 @@ def test_geotiff_multivar_requires_var():
 
 
 def test_wgrib2_json_fallback(monkeypatch):
-    from datavizhub.processing.grib_utils import extract_variable, grib_decode
+    from zyra.processing.grib_utils import extract_variable, grib_decode
 
     # Pretend wgrib2 exists
     monkeypatch.setattr(
@@ -59,7 +59,7 @@ def test_wgrib2_json_fallback(monkeypatch):
 
 def test_cdo_netcdf_to_grib2(monkeypatch):
     xr = pytest.importorskip("xarray")
-    from datavizhub.processing.netcdf_data_processor import convert_to_grib2
+    from zyra.processing.netcdf_data_processor import convert_to_grib2
 
     ds = xr.Dataset({"a": xr.DataArray([[1, 2], [3, 4]], dims=["y", "x"])})
 

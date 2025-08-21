@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from datavizhub.api.workers import jobs as jb
+from zyra.api.workers import jobs as jb
 
 
 def test_inmemory_ws_streams_progress_and_final_payload(monkeypatch) -> None:

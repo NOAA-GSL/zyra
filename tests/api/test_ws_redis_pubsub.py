@@ -15,7 +15,7 @@ def test_redis_pubsub_roundtrip(monkeypatch):
     except Exception:
         pytest.skip("redis package not installed")
 
-    from datavizhub.api.workers import jobs as jb
+    from zyra.api.workers import jobs as jb
 
     # Force Redis mode; ensure cleanup via monkeypatch
     monkeypatch.setenv("DATAVIZHUB_USE_REDIS", "1")

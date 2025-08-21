@@ -1,15 +1,15 @@
 from unittest.mock import Mock, patch
 
 from botocore.exceptions import ClientError
-from datavizhub.connectors.backends import ftp as ftp_backend
-from datavizhub.connectors.backends import http as http_backend
-from datavizhub.connectors.backends import s3 as s3_backend
+from zyra.connectors.backends import ftp as ftp_backend
+from zyra.connectors.backends import http as http_backend
+from zyra.connectors.backends import s3 as s3_backend
 
 # ---- S3/HTTP/FTP: pattern filters and retries -----------------------------------------
 
 
 def test_s3_list_files_pattern_filters():
-    with patch("datavizhub.connectors.backends.s3.boto3.client") as m_client:
+    with patch("zyra.connectors.backends.s3.boto3.client") as m_client:
         client = Mock()
         m_client.return_value = client
         paginator = Mock()
@@ -80,7 +80,7 @@ class _RetryFTP:
 
 
 def test_ftp_list_files_pattern_and_get_idx():
-    with patch("datavizhub.connectors.backends.ftp.FTP", _RetryFTP):
+    with patch("zyra.connectors.backends.ftp.FTP", _RetryFTP):
         files = ftp_backend.list_files("ftp://host/dir", pattern=r"\.grib2$")
         assert files == ["file.grib2"]
         lines = ftp_backend.get_idx_lines("ftp://host/dir/file")
@@ -106,7 +106,7 @@ def test_http_get_idx_lines_retries_then_success():
 
 
 def test_s3_get_idx_lines_retry_and_write_and_get_size_error(tmp_path):
-    with patch("datavizhub.connectors.backends.s3.boto3.client") as m_client:
+    with patch("zyra.connectors.backends.s3.boto3.client") as m_client:
         client = Mock()
         m_client.return_value = client
         client.head_object.side_effect = ClientError(
@@ -154,7 +154,7 @@ def test_http_head_without_content_length_and_no_anchors():
 
 
 def test_s3_upload_success_and_failure(tmp_path):
-    with patch("datavizhub.connectors.backends.s3.boto3.client") as m_client:
+    with patch("zyra.connectors.backends.s3.boto3.client") as m_client:
         client = Mock()
         m_client.return_value = client
         client.upload_file.return_value = None
@@ -163,7 +163,7 @@ def test_s3_upload_success_and_failure(tmp_path):
 
 
 def test_s3_list_files_pattern_filters_again():
-    with patch("datavizhub.connectors.backends.s3.boto3.client") as m_client:
+    with patch("zyra.connectors.backends.s3.boto3.client") as m_client:
         client = Mock()
         m_client.return_value = client
         paginator = Mock()
@@ -217,7 +217,7 @@ def test_ftp_exists_delete_stat_paths():
         def size(self, name):
             return self.sizes.get(name)
 
-    with patch("datavizhub.connectors.backends.ftp.FTP", _FTPBasic):
+    with patch("zyra.connectors.backends.ftp.FTP", _FTPBasic):
         assert ftp_backend.exists("ftp://host/dir/b.bin") is True
         assert ftp_backend.exists("ftp://host/dir/missing.bin") is False
         assert ftp_backend.delete("ftp://host/dir/b.bin") is True

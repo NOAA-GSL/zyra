@@ -17,10 +17,10 @@ query-filters:
   - exclude:
       id: py/path-injection
       paths:
-        - src/datavizhub/api/routers/jobs.py
-        - src/datavizhub/api/workers/executor.py
+        - src/zyra/api/routers/jobs.py
+        - src/zyra/api/workers/executor.py
   - exclude:
       id: py/uncontrolled-data-in-path-expression
       paths:
-        - src/datavizhub/api/routers/jobs.py
-        - src/datavizhub/api/workers/executor.py
+        - src/zyra/api/routers/jobs.py
+        - src/zyra/api/workers/executor.py

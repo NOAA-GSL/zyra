@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from datavizhub.api.server import app
+from zyra.api.server import app
 
 
 def test_openapi_paths_snapshot() -> None:

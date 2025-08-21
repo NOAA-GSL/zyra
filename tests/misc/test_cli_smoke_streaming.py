@@ -10,7 +10,7 @@ import pytest
 
 def _run_cli(args, input_bytes: Optional[bytes] = None) -> subprocess.CompletedProcess:
     # Use module invocation to avoid reliance on installed console scripts
-    cmd = [sys.executable, "-m", "datavizhub.cli", *args]
+    cmd = [sys.executable, "-m", "zyra.cli", *args]
     return subprocess.run(cmd, input=input_bytes, capture_output=True)
 
 
@@ -30,7 +30,7 @@ def _read_demo_nc_bytes() -> bytes:
 
 def test_decode_grib2_raw_passthrough_netcdf(monkeypatch, capsysbinary):
     # Simulate piping a NetCDF file into decode-grib2 --raw
-    from datavizhub.cli import main
+    from zyra.cli import main
 
     demo = _read_demo_nc_bytes()
     fake_stdin = type("S", (), {"buffer": io.BytesIO(demo)})()
@@ -48,7 +48,7 @@ def test_extract_variable_stdout_netcdf_simulated(monkeypatch, capsysbinary):
     # Simulate wgrib2 producing NetCDF bytes for the selected variable
     from types import SimpleNamespace
 
-    from datavizhub.cli import main
+    from zyra.cli import main
 
     demo = _read_demo_nc_bytes()
     fake_stdin = type("S", (), {"buffer": io.BytesIO(b"GRIBDUMMY")})()
@@ -79,7 +79,7 @@ def test_extract_variable_stdout_netcdf_simulated(monkeypatch, capsysbinary):
 
 def test_convert_format_autodetect_netcdf_from_stdin(monkeypatch, capsysbinary):
     # Feed NetCDF bytes on stdin and request NetCDF (round-trip)
-    from datavizhub.cli import main
+    from zyra.cli import main
 
     demo = _read_demo_nc_bytes()
     fake_stdin = type("S", (), {"buffer": io.BytesIO(demo)})()

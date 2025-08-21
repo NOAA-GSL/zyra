@@ -1,11 +1,13 @@
-# DataVizHub
+# Zyra (formerly DataVizHub)
 
 ## Overview
-DataVizHub is a utility library for building data-driven visual products. It provides composable helpers for data transfer (FTP/HTTP/S3/Vimeo), data processing (GRIB/imagery/video), and visualization (matplotlib + basemap overlays). Use these pieces to script your own pipelines; this repo focuses on the reusable building blocks rather than end-user scripts.
+Zyra is a utility library for building data-driven visual products. It provides composable helpers for data transfer (FTP/HTTP/S3/Vimeo), data processing (GRIB/imagery/video), and visualization (matplotlib + basemap overlays). Use these pieces to script your own pipelines; this repo focuses on the reusable building blocks rather than end-user scripts.
 
  This README documents the library itself and shows how to compose the components. For complete runnable examples, see the examples repos when available, or adapt the snippets below.
 
-[![PyPI version](https://img.shields.io/pypi/v/datavizhub.svg)](https://pypi.org/project/datavizhub/) [![Docs](https://img.shields.io/badge/docs-GitHub_Pages-0A7BBB)](https://noaa-gsl.github.io/datavizhub/) [![Chat with DataVizHub Helper Bot](https://img.shields.io/badge/ChatGPT-DataVizHub_Helper_Bot-00A67E?logo=openai&logoColor=white)](https://chatgpt.com/g/g-6897a3dd5a7481918a55ebe3795f7a26-datavizhub-helper-bot)
+[![PyPI version](https://img.shields.io/pypi/v/zyra.svg)](https://pypi.org/project/zyra/) [![Docs](https://img.shields.io/badge/docs-GitHub_Pages-0A7BBB)](https://noaa-gsl.github.io/zyra/) [![Chat with DataVizHub Helper Bot](https://img.shields.io/badge/ChatGPT-DataVizHub_Helper_Bot-00A67E?logo=openai&logoColor=white)](https://chatgpt.com/g/g-6897a3dd5a7481918a55ebe3795f7a26-zyra-helper-bot)
+
+> Migration notice: the project has been renamed from DataVizHub to Zyra. The new import namespace is `zyra` and new console scripts are `zyra` and `zyra-cli`. For a transition period, the legacy `datavizhub` namespace and CLI remain available and redirect to Zyra under the hood. Please begin migrating your imports and usage examples to `zyra`.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -28,10 +30,10 @@ DataVizHub is a utility library for building data-driven visual products. It pro
 - [Links](#links)
 
 ## Features
-- [Connectors](#connectors-layer): HTTP/FTP/S3/Vimeo backends (functional API) in `datavizhub.connectors.backends` (legacy `datavizhub.acquisition` still present with deprecations).
-- [Processing](#processing-layer): `DataProcessor`, `VideoProcessor`, `GRIBDataProcessor` (in `datavizhub.processing`).
-- [Visualization](#visualization-layer): `PlotManager`, `ColormapManager` (with included basemap/overlay assets in `datavizhub.assets`).
-- [Utilities](#utilities): `CredentialManager`, `DateManager`, `FileUtils`, `ImageManager`, `JSONFileManager` (in `datavizhub.utils`).
+- [Connectors](#connectors-layer): HTTP/FTP/S3/Vimeo backends (functional API) in `zyra.connectors.backends` (legacy `datavizhub.acquisition` still present with deprecations).
+- [Processing](#processing-layer): `DataProcessor`, `VideoProcessor`, `GRIBDataProcessor` (in `zyra.processing`).
+- [Visualization](#visualization-layer): `PlotManager`, `ColormapManager` (with included basemap/overlay assets in `zyra.assets`).
+- [Utilities](#utilities): `CredentialManager`, `DateManager`, `FileUtils`, `ImageManager`, `JSONFileManager` (in `zyra.utils`).
 
 
 ## Project Structure
@@ -45,7 +47,7 @@ DataVizHub is a utility library for building data-driven visual products. It pro
 - `assets/images/`: packaged basemaps and overlays used by plots.
 
 Notes
-- Legacy `acquisition/` modules remain for back-compat but are deprecated. Prefer `datavizhub.connectors.backends.*` and the CLI groups `acquire`/`decimate`.
+- Legacy `acquisition/` modules remain for back-compat but are deprecated. Prefer `zyra.connectors.backends.*` and the CLI groups `acquire`/`decimate`.
 
 ## Prerequisites
 - Python 3.10+
@@ -63,13 +65,13 @@ Notes for development:
 - Opt into only what you need using `-E <extra>` flags, or use `--all-extras` for a full-featured env.
 
 ## Install (pip extras)
-- Core only: `pip install datavizhub`
-- Connectors deps: `pip install "datavizhub[connectors]"`
-- Processing deps: `pip install "datavizhub[processing]"`
-- Visualization deps: `pip install "datavizhub[visualization]"`
-- Interactive deps: `pip install "datavizhub[interactive]"`
-- API service deps: `pip install "datavizhub[api]"`
-- Everything: `pip install "datavizhub[all]"`
+- Core only: `pip install zyra`
+- Connectors deps: `pip install "zyra[connectors]"`
+- Processing deps: `pip install "zyra[processing]"`
+- Visualization deps: `pip install "zyra[visualization]"`
+- Interactive deps: `pip install "zyra[interactive]"`
+- API service deps: `pip install "zyra[api]"`
+- Everything: `pip install "zyra[all]"`
 
 Deprecation note:
 - `datatransfer` remains available as an alias of `connectors` for backward compatibility and may be removed in a future release.
@@ -77,7 +79,7 @@ Deprecation note:
 Focused installs for GRIB2/NetCDF/GeoTIFF:
 
 ```
-pip install "datavizhub[grib2,netcdf,geotiff]"
+pip install "zyra[grib2,netcdf,geotiff]"
 ```
 
 Extras overview:
@@ -112,8 +114,8 @@ Install only what you need for a given stage. Each stage can run independently w
 
 Examples:
 - Run the visualization CLI with only the visualization extra installed:
-  - Heatmap: `python -m datavizhub.cli heatmap --input samples/demo.npy --output heatmap.png`
-  - Contour: `python -m datavizhub.cli contour --input samples/demo.nc --var T2M --output contour.png --levels 5,10,15 --filled`
+  - Heatmap: `python -m zyra.cli heatmap --input samples/demo.npy --output heatmap.png`
+  - Contour: `python -m zyra.cli contour --input samples/demo.nc --var T2M --output contour.png --levels 5,10,15 --filled`
 
 Focused extras remain available for targeted installs:
 - GRIB2 only: `pip install -e .[grib2]`
@@ -125,12 +127,12 @@ Note on interactive installs:
 
 ## CLI Overview
 
-DataVizHub ships a single `datavizhub` CLI organized into groups that mirror pipeline stages (plus a `transform` helper) and a `run` helper for config-driven pipelines.
+DataVizHub ships a single `zyra` CLI organized into groups that mirror pipeline stages (plus a `transform` helper) and a `run` helper for config-driven pipelines.
 
 ### CLI Tree
 
 ```
-datavizhub
+zyra
 ├─ acquire            # Ingest/fetch bytes from sources
 │  ├─ http            # acquire http <url> [--list --pattern REGEX --since ISO --until ISO --date-format FMT] [-o out|-]
 │  ├─ s3              # acquire s3 --url s3://bucket/key [--unsigned] [--list --pattern REGEX --since ISO --until ISO --date-format FMT] [-o out|-]
@@ -164,23 +166,23 @@ Notes
 ### Quick Usage by Group
 
 - Acquire
-  - HTTP to file: `datavizhub acquire http https://example.com/data.bin -o data.bin`
-  - HTTP list+filter: `datavizhub acquire http https://example.com/dir/ --list --pattern '\\.png$' --since 2024-01-01 --date-format %Y%m%d`
-  - S3 to stdout: `datavizhub acquire s3 --url s3://bucket/key -o -`
-  - S3 list+filter: `datavizhub acquire s3 --url s3://bucket/prefix/ --list --pattern '\\.grib2$' --since 2024-08-01 --date-format %Y%m%d`
-  - FTP sync directory: `datavizhub acquire ftp ftp://host/path --sync-dir /data/frames --pattern 'image_(\\d{8})\\.png' --since 2024-08-01 --date-format %Y%m%d`
+  - HTTP to file: `zyra acquire http https://example.com/data.bin -o data.bin`
+  - HTTP list+filter: `zyra acquire http https://example.com/dir/ --list --pattern '\\.png$' --since 2024-01-01 --date-format %Y%m%d`
+  - S3 to stdout: `zyra acquire s3 --url s3://bucket/key -o -`
+  - S3 list+filter: `zyra acquire s3 --url s3://bucket/prefix/ --list --pattern '\\.grib2$' --since 2024-08-01 --date-format %Y%m%d`
+  - FTP sync directory: `zyra acquire ftp ftp://host/path --sync-dir /data/frames --pattern 'image_(\\d{8})\\.png' --since 2024-08-01 --date-format %Y%m%d`
 
 - Process (streaming-friendly)
-  - Decode GRIB2 to raw bytes via `.idx` subset: `datavizhub process decode-grib2 s3://bucket/file.grib2 --pattern ":TMP:surface:" --raw > subset.grib2`
-  - Convert stdin to NetCDF: `cat subset.grib2 | datavizhub process convert-format - netcdf --stdout > out.nc`
+  - Decode GRIB2 to raw bytes via `.idx` subset: `zyra process decode-grib2 s3://bucket/file.grib2 --pattern ":TMP:surface:" --raw > subset.grib2`
+  - Convert stdin to NetCDF: `cat subset.grib2 | zyra process convert-format - netcdf --stdout > out.nc`
 
 - Visualize
-  - Contour PNG from NetCDF: `datavizhub visualize contour --input out.nc --var TMP --output contour.png --levels 10 --filled`
-  - Animate frames and compose to MP4: `datavizhub visualize animate --mode heatmap --input cube.npy --output-dir frames && datavizhub visualize compose-video --frames frames -o out.mp4`
+  - Contour PNG from NetCDF: `zyra visualize contour --input out.nc --var TMP --output contour.png --levels 10 --filled`
+  - Animate frames and compose to MP4: `zyra visualize animate --mode heatmap --input cube.npy --output-dir frames && zyra visualize compose-video --frames frames -o out.mp4`
 
 - Decimate
-  - Upload to S3 from stdin: `cat out.png | datavizhub decimate s3 -i - --url s3://bucket/products/out.png`
-- HTTP POST JSON: `echo '{"ok":true}' | datavizhub decimate post -i - https://example.com/ingest --content-type application/json`
+  - Upload to S3 from stdin: `cat out.png | zyra decimate s3 -i - --url s3://bucket/products/out.png`
+- HTTP POST JSON: `echo '{"ok":true}' | zyra decimate post -i - https://example.com/ingest --content-type application/json`
 
 ## Batch Mode
 
@@ -206,7 +208,7 @@ Notes
 
 ## Connectors Layer
 
-The `datavizhub.connectors.backends` package provides functional helpers for ingress/egress:
+The `zyra.connectors.backends` package provides functional helpers for ingress/egress:
 
 - HTTP: `fetch_bytes`, `fetch_text`, `fetch_json`, `post_data`, `list_files`, `get_idx_lines`, `download_byteranges`.
 - S3: `fetch_bytes`, `upload_bytes`, `list_files`, `exists`, `delete`, `stat`, `get_idx_lines`, `download_byteranges`.
@@ -216,7 +218,7 @@ The `datavizhub.connectors.backends` package provides functional helpers for ing
 Examples:
 
 ```
-from datavizhub.connectors.backends import ftp as ftp_backend, s3 as s3_backend
+from zyra.connectors.backends import ftp as ftp_backend, s3 as s3_backend
 
 # FTP: read a remote file to bytes and write locally
 data = ftp_backend.fetch_bytes("ftp://ftp.example.com/pub/file.txt")
@@ -234,8 +236,8 @@ Optional helpers speed up GRIB workflows and large file transfers.
 
 - .idx subsetting (S3 public bucket, unsigned):
   ```python
-  from datavizhub.connectors.backends import s3 as s3_backend
-  from datavizhub.utils.grib import idx_to_byteranges
+  from zyra.connectors.backends import s3 as s3_backend
+  from zyra.utils.grib import idx_to_byteranges
 
   url = "s3://noaa-hrrr-bdp-pds/hrrr.20230801/conus/hrrr.t00z.wrfsfcf00.grib2"
   lines = s3_backend.get_idx_lines(url, unsigned=True)
@@ -246,12 +248,12 @@ Optional helpers speed up GRIB workflows and large file transfers.
 - Pattern-based listing (regex)
   - S3 prefix listing with regex filter:
     ```python
-    from datavizhub.connectors.backends import s3 as s3_backend
+    from zyra.connectors.backends import s3 as s3_backend
     keys = s3_backend.list_files("s3://bucket/hrrr.20230801/conus/", pattern=r"wrfsfcf\d+\.grib2$")
     ```
   - HTTP directory-style index scraping with regex filter:
     ```python
-    from datavizhub.connectors.backends import http as http_backend
+    from zyra.connectors.backends import http as http_backend
     urls = http_backend.list_files(
         "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/",
         pattern=r"\.grib2$",
@@ -260,8 +262,8 @@ Optional helpers speed up GRIB workflows and large file transfers.
 
 - Parallel HTTP range downloads via `.idx`:
   ```python
-  from datavizhub.connectors.backends import http as http_backend
-  from datavizhub.utils.grib import idx_to_byteranges
+  from zyra.connectors.backends import http as http_backend
+  from zyra.utils.grib import idx_to_byteranges
 
   lines = http_backend.get_idx_lines("https://example.com/path/file.grib2")
   ranges = idx_to_byteranges(lines, r"GUST")
@@ -269,7 +271,7 @@ Optional helpers speed up GRIB workflows and large file transfers.
   ```
 
 Notes
-- Migration: `datavizhub.acquisition.*` is deprecated. Prefer `datavizhub.connectors.backends.*` and `datavizhub.utils.grib`.
+- Migration: `datavizhub.acquisition.*` is deprecated. Prefer `zyra.connectors.backends.*` and `zyra.utils.grib`.
 - Pattern filters use Python regular expressions (`re.search`) applied to full keys/paths/URLs.
 - `.idx` resolution appends `.idx` to the GRIB path unless a fully qualified `.idx` path is given.
 - For unsigned public S3 buckets, pass `unsigned=True` as shown above.
@@ -292,16 +294,16 @@ YAML templating with environment variables
       since_period: "P1Y"
       date_format: "%Y%m%d"
   ```
-  - Run with strict env: `datavizhub run pipeline.yaml --strict-env`
+  - Run with strict env: `zyra run pipeline.yaml --strict-env`
   - Provide env: `export FTP_USER=anonymous; export FTP_PASS='test@example.com'` (when embedding directly, URL-encode `@` as `%40`).
 
 Transform: Frames Metadata
 - Compute metadata for a frames directory between acquire and visualize:
-  - CLI: `datavizhub transform metadata --frames-dir ./frames --datetime-format %Y%m%d --period-seconds 3600 -o frames_meta.json`
+  - CLI: `zyra transform metadata --frames-dir ./frames --datetime-format %Y%m%d --period-seconds 3600 -o frames_meta.json`
 
 ## Processing Layer
 
-The `datavizhub.processing` package standardizes processors under a common `DataProcessor` interface.
+The `zyra.processing` package standardizes processors under a common `DataProcessor` interface.
 
 - DataProcessor: abstract base with `load(input_source)`, `process(**kwargs)`, `save(output_path=None)`, and optional `validate()`.
 - Processors: `VideoProcessor` (image sequences → video via FFmpeg), `GRIBDataProcessor` (GRIB files → NumPy arrays + utilities).
@@ -311,7 +313,7 @@ Examples:
 
 ```
 # Video: compile image frames into a video
-from datavizhub.processing.video_processor import VideoProcessor
+from zyra.processing.video_processor import VideoProcessor
 
 vp = VideoProcessor(input_directory="./frames", output_file="./out/movie.mp4")
 vp.load("./frames")
@@ -322,7 +324,7 @@ if vp.validate():
 
 ```
 # GRIB: read a GRIB file to arrays and dates
-from datavizhub.processing.grib_data_processor import GRIBDataProcessor
+from zyra.processing.grib_data_processor import GRIBDataProcessor
 
 gp = GRIBDataProcessor()
 data_list, dates = gp.process(grib_file_path="/path/to/file.grib2", shift_180=True)
@@ -333,7 +335,7 @@ data_list, dates = gp.process(grib_file_path="/path/to/file.grib2", shift_180=Tr
 Decode a GRIB2 subset returned as bytes, extract a variable, and write NetCDF:
 
 ```
-from datavizhub.processing import grib_decode, extract_variable, convert_to_format
+from zyra.processing import grib_decode, extract_variable, convert_to_format
 
 dec = grib_decode(data_bytes, backend="cfgrib")  # default backend
 da = extract_variable(dec, r"^TMP$")  # exact/regex match
@@ -343,7 +345,7 @@ nc_bytes = convert_to_format(dec, "netcdf", var="TMP")
 Work with NetCDF directly and subset spatially/temporally:
 
 ```
-from datavizhub.processing import load_netcdf, subset_netcdf
+from zyra.processing import load_netcdf, subset_netcdf
 
 ds = load_netcdf(nc_bytes)
 sub = subset_netcdf(ds, variables=["TMP"], bbox=(-130,20,-60,55), time_range=("2024-01-01","2024-01-02"))
@@ -356,9 +358,9 @@ Notes and fallbacks:
 - Generic NetCDF→GRIB2 is not supported by `wgrib2`. If `cdo` is installed, `convert_to_grib2()` uses `cdo -f grb2 copy` automatically; otherwise a clear exception is raised.
 
 CLI helpers (grouped commands):
-- `datavizhub process decode-grib2 <file_or_url> [--backend cfgrib|pygrib|wgrib2]`
-- `datavizhub process extract-variable <file_or_url> <pattern> [--backend ...]`
-- `datavizhub process convert-format <file_or_url> <netcdf|geotiff> -o out.ext [--var NAME] [--backend ...]`
+- `zyra process decode-grib2 <file_or_url> [--backend cfgrib|pygrib|wgrib2]`
+- `zyra process extract-variable <file_or_url> <pattern> [--backend ...]`
+- `zyra process convert-format <file_or_url> <netcdf|geotiff> -o out.ext [--var NAME] [--backend ...]`
 
 ## Development, Test, Lint
 
@@ -382,17 +384,17 @@ CLI helpers (grouped commands):
 Sample pipeline configs live under `samples/pipelines/`:
 
 - `nc_passthrough.yaml`: read NetCDF bytes from stdin and emit NetCDF to stdout.
-  - Usage: `cat tests/testdata/demo.nc | datavizhub run samples/pipelines/nc_passthrough.yaml > out.nc`
+  - Usage: `cat tests/testdata/demo.nc | zyra run samples/pipelines/nc_passthrough.yaml > out.nc`
 - `nc_to_file.yaml`: read NetCDF from stdin, then write to `out.nc` via `decimate local`.
-  - Usage: `cat tests/testdata/demo.nc | datavizhub run samples/pipelines/nc_to_file.yaml`
+  - Usage: `cat tests/testdata/demo.nc | zyra run samples/pipelines/nc_to_file.yaml`
 - `ftp_to_s3.yaml`: template for FTP → video composition → S3 upload (placeholders, not CI-safe).
-  - Dry-run mapping: `datavizhub run samples/pipelines/ftp_to_s3.yaml --dry-run`
+  - Dry-run mapping: `zyra run samples/pipelines/ftp_to_s3.yaml --dry-run`
   - Notes: Requires network access and credentials when running without `--dry-run`.
 - `ftp_to_local.yaml`: FTP → transform → video → local file copy (no S3/Vimeo).
-  - Dry-run mapping: `datavizhub run samples/pipelines/ftp_to_local.yaml --dry-run`
+  - Dry-run mapping: `zyra run samples/pipelines/ftp_to_local.yaml --dry-run`
   - Live run: writes `/tmp/frames_meta.json` and `/tmp/video.mp4` locally. Requires FTP network access only.
 - `extract_variable_to_file.yaml`: extract TMP from stdin, convert to NetCDF, and write to file.
-  - Usage: `cat tests/testdata/demo.nc | datavizhub run samples/pipelines/extract_variable_to_file.yaml`
+  - Usage: `cat tests/testdata/demo.nc | zyra run samples/pipelines/extract_variable_to_file.yaml`
 - `compose_video_to_local.yaml`: compose frames in a directory to MP4 and copy locally.
 
 Overrides
@@ -404,19 +406,19 @@ Overrides
 
 Dry run and argv output
 - Validate and print the expanded stage argv without executing:
-  - Text: `datavizhub run pipeline.yaml --dry-run`
-  - JSON: `datavizhub run pipeline.yaml --dry-run --print-argv-format=json`
+  - Text: `zyra run pipeline.yaml --dry-run`
+  - JSON: `zyra run pipeline.yaml --dry-run --print-argv-format=json`
     - Structure:
       ```json
       [
-        {"stage": 1, "name": "acquire", "argv": ["datavizhub", "acquire", "http", "https://..."]},
-        {"stage": 2, "name": "process", "argv": ["datavizhub", "process", "convert-format", "-", "netcdf"]}
+        {"stage": 1, "name": "acquire", "argv": ["zyra", "acquire", "http", "https://..."]},
+        {"stage": 2, "name": "process", "argv": ["zyra", "process", "convert-format", "-", "netcdf"]}
       ]
       ```
 
 Error handling
 - Stop on first error (default) or continue executing remaining stages:
-  - `datavizhub run pipeline.yaml --continue-on-error`
+  - `zyra run pipeline.yaml --continue-on-error`
 
 - Lint/format (if enabled in your env):
   - `poetry run black . && poetry run isort . && poetry run flake8`
@@ -427,9 +429,9 @@ The CLI supports streaming binary data through stdout/stdin so you can compose o
 
 - `.idx` → extract → convert (one-liner):
   ```bash
-  datavizhub process decode-grib2 file.grib2 --pattern "TMP" --raw | \
-  datavizhub process extract-variable - "TMP" --stdout --format grib2 | \
-  datavizhub process convert-format - geotiff --stdout > tmp.tif
+  zyra process decode-grib2 file.grib2 --pattern "TMP" --raw | \
+  zyra process extract-variable - "TMP" --stdout --format grib2 | \
+  zyra process convert-format - geotiff --stdout > tmp.tif
   ```
 
 - Notes on tools and fallbacks:
@@ -441,8 +443,8 @@ The CLI supports streaming binary data through stdout/stdin so you can compose o
   - `process convert-format` can read from stdin (`-`) and auto-detects GRIB2 vs NetCDF by magic bytes. NetCDF is opened with xarray; GRIB2 uses the configured backend to decode.
 
 Bytes-first demos:
-- Use `.idx`-aware subsetting directly with URLs: `datavizhub process decode-grib2 https://.../file.grib2 --pattern ":(UGRD|VGRD):10 m above ground:"`
-- Pipe small outputs without temp files: `datavizhub process convert-format local.grib2 netcdf --stdout | hexdump -C | head`
+- Use `.idx`-aware subsetting directly with URLs: `zyra process decode-grib2 https://.../file.grib2 --pattern ":(UGRD|VGRD):10 m above ground:"`
+- Pipe small outputs without temp files: `zyra process convert-format local.grib2 netcdf --stdout | hexdump -C | head`
 
 Offline demo assets:
 - Tiny NetCDF file: `tests/testdata/demo.nc`
@@ -456,13 +458,13 @@ Plot a data array with a basemap
 ```
 import numpy as np
 from importlib.resources import files, as_file
-from datavizhub.visualization import PlotManager, ColormapManager
+from zyra.visualization import PlotManager, ColormapManager
 
 # Example data
 data = np.random.rand(180, 360)
 
 # Locate packaged basemap asset
-resource = files("datavizhub.assets").joinpath("images/earth_vegetation.jpg")
+resource = files("zyra.assets").joinpath("images/earth_vegetation.jpg")
 with as_file(resource) as p:
     basemap_path = str(p)
 
@@ -483,7 +485,7 @@ Tile basemaps (static images)
 
 ```
 poetry install --with dev -E visualization
-poetry run python -m datavizhub.cli heatmap \
+poetry run python -m zyra.cli heatmap \
   --input samples/demo.npy \
   --output out.png \
   --map-type tile \
@@ -493,7 +495,7 @@ poetry run python -m datavizhub.cli heatmap \
 - Contour over a named tile source:
 
 ```
-poetry run python -m datavizhub.cli contour \
+poetry run python -m zyra.cli contour \
   --input samples/demo.npy --output contour.png \
   --levels 10 --filled \
   --map-type tile --tile-source Stamen.TerrainBackground
@@ -502,7 +504,7 @@ poetry run python -m datavizhub.cli contour \
 - Vector quiver over tiles:
 
 ```
-poetry run python -m datavizhub.cli vector \
+poetry run python -m zyra.cli vector \
   --u /path/U.npy --v /path/V.npy \
   --output vec.png \
   --map-type tile --tile-zoom 2
@@ -529,13 +531,13 @@ plotter.save("/tmp/heatmap_classified.png")
 Render interactive HTML (Folium or Plotly) via the CLI. Install extras as needed:
 
 - Poetry: `poetry install --with dev -E interactive` (or `-E visualization -E interactive`)
-- Pip: `pip install "datavizhub[interactive]"`
+- Pip: `pip install "zyra[interactive]"`
 
 Examples
 - Folium heatmap from a NumPy array:
 
 ```
-python -m datavizhub.cli interactive \
+python -m zyra.cli interactive \
   --input samples/demo.npy \
   --output out.html \
   --engine folium \
@@ -545,7 +547,7 @@ python -m datavizhub.cli interactive \
 - Plotly heatmap (standalone HTML):
 
 ```
-python -m datavizhub.cli interactive \
+python -m zyra.cli interactive \
   --input samples/demo.npy \
   --output out_plotly.html \
   --engine plotly \
@@ -556,7 +558,7 @@ python -m datavizhub.cli interactive \
 - Folium points from CSV:
 
 ```
-python -m datavizhub.cli interactive \
+python -m zyra.cli interactive \
   --input samples/points.csv \
   --output points.html \
   --engine folium \
@@ -566,7 +568,7 @@ python -m datavizhub.cli interactive \
 - Folium points with a time column (TimeDimension):
 
 ```
-python -m datavizhub.cli interactive \
+python -m zyra.cli interactive \
   --input samples/points_time.csv \
   --output points_time.html \
   --engine folium \
@@ -579,7 +581,7 @@ python -m datavizhub.cli interactive \
 - Folium vector quiver from U/V arrays:
 
 ```
-python -m datavizhub.cli interactive \
+python -m zyra.cli interactive \
   --mode vector \
   --u /path/U.npy \
   --v /path/V.npy \
@@ -598,8 +600,8 @@ CRS notes
 Compose FTP fetch + video + Vimeo upload
 
 ```python
-from datavizhub.connectors.backends import ftp as ftp_backend, vimeo as vimeo_backend
-from datavizhub.processing import VideoProcessor
+from zyra.connectors.backends import ftp as ftp_backend, vimeo as vimeo_backend
+from zyra.processing import VideoProcessor
 
 # Download a frame from FTP and write it to disk (repeat for remaining frames)
 frame_bytes = ftp_backend.fetch_bytes("ftp://ftp.example.com/pub/images/img_0001.png")
@@ -613,7 +615,7 @@ vimeo_backend.upload_path("/tmp/out.mp4", name="Latest Render")
 
 ## Utilities
 
-The `datavizhub.utils` package provides shared helpers for credentials, dates, files, images, and small JSON configs.
+The `zyra.utils` package provides shared helpers for credentials, dates, files, images, and small JSON configs.
 
 - CredentialManager: read/manage dotenv-style secrets without exporting globally.
 - DateManager: parse timestamps in filenames, compute date ranges, and reason about frame cadences.
@@ -625,7 +627,7 @@ Examples:
 
 ```
 # Credentials
-from datavizhub.utils import CredentialManager
+from zyra.utils import CredentialManager
 
 with CredentialManager(".env", namespace="MYAPP_") as cm:
     cm.read_credentials(expected_keys=["API_KEY"])  # expects MYAPP_API_KEY
@@ -634,7 +636,7 @@ with CredentialManager(".env", namespace="MYAPP_") as cm:
 
 ```
 # Dates
-from datavizhub.utils import DateManager
+from zyra.utils import DateManager
 
 dm = DateManager(["%Y%m%d"])
 start, end = dm.get_date_range("7D")
@@ -644,7 +646,7 @@ print(dm.is_date_in_range("frame_20240102.png", start, end))
 Batch fetching (functional connectors):
 
 ```
-from datavizhub.connectors.backends import http as http_backend
+from zyra.connectors.backends import http as http_backend
 
 urls = [
   "https://example.com/a.bin",
@@ -660,8 +662,8 @@ for u in urls:
 Minimal pipeline: build video from images and upload to S3
 
 ```python
-from datavizhub.processing import VideoProcessor
-from datavizhub.connectors.backends import s3 as s3_backend
+from zyra.processing import VideoProcessor
+from zyra.connectors.backends import s3 as s3_backend
 
 vp = VideoProcessor(input_directory="/data/images", output_file="/data/out/movie.mp4")
 vp.load("/data/images")
@@ -685,10 +687,10 @@ with open("/data/out/movie.mp4", "rb") as f:
 - Project structure, dev workflow, testing, and contribution tips: see [AGENTS.md](AGENTS.md).
 
 ## Documentation
-- Primary: Project wiki at https://github.com/NOAA-GSL/datavizhub/wiki
-  - API Routers and Endpoints: https://github.com/NOAA-GSL/datavizhub/wiki/DataVizHub-API-Routers-and-Endpoints
-  - Security Quickstart: https://github.com/NOAA-GSL/datavizhub/wiki/DataVizHub-API-Security-Quickstart
-- API docs (GitHub Pages): https://noaa-gsl.github.io/datavizhub/
+- Primary: Project wiki at https://github.com/NOAA-GSL/zyra/wiki
+  - API Routers and Endpoints: https://github.com/NOAA-GSL/zyra/wiki/DataVizHub-API-Routers-and-Endpoints
+  - Security Quickstart: https://github.com/NOAA-GSL/zyra/wiki/DataVizHub-API-Security-Quickstart
+- API docs (GitHub Pages): https://noaa-gsl.github.io/zyra/
 - CI-synced wiki: A GitHub Action mirrors the wiki into `docs/source/wiki/` so Sphinx can build it with the docs. Sync commits occur only on `main`; PRs/branches use the synced copy for builds without committing changes.
  - Wizard REPL (experimental): see docs/wizard-cli.md for autocomplete and edit-before-run usage.
 
@@ -704,7 +706,7 @@ CAPABILITIES vs. FEATURES:
 
 Examples:
 ```
-from datavizhub.processing.video_processor import VideoProcessor
+from zyra.processing.video_processor import VideoProcessor
 
 vp = VideoProcessor("./frames", "./out.mp4")
 print(vp.features)      # {'load','process','save','validate'}
@@ -714,13 +716,13 @@ print(vp.features)      # {'load','process','save','validate'}
 Distributed under the MIT License. See [LICENSE](LICENSE).
 
 ## Links
-- Source: https://github.com/NOAA-GSL/datavizhub
-- PyPI: https://pypi.org/project/datavizhub/
+- Source: https://github.com/NOAA-GSL/zyra
+- PyPI: https://pypi.org/project/zyra/
 ## API Service
 Expose the 4-stage CLI over HTTP using FastAPI.
 
 - Install with API extras: `poetry install --with dev -E api` or `--all-extras`.
-- Run locally: `poetry run uvicorn datavizhub.api.server:app --reload --host 0.0.0.0 --port 8000`.
+- Run locally: `poetry run uvicorn zyra.api.server:app --reload --host 0.0.0.0 --port 8000`.
 - Convenience script: `./scripts/start-api.sh`.
 
 Quick links:
@@ -755,7 +757,7 @@ POST /cli/run
 Notes:
 - For convenience, `args.input` is treated as `file_or_url` for processing commands.
 - This service runs CLI functions in-process; no shelling out is used.
- - Optional async backend: set `DATAVIZHUB_USE_REDIS=1` and `DATAVIZHUB_REDIS_URL=redis://host:6379/0`; run an RQ worker: `poetry run rq worker datavizhub`.
+ - Optional async backend: set `DATAVIZHUB_USE_REDIS=1` and `DATAVIZHUB_REDIS_URL=redis://host:6379/0`; run an RQ worker: `poetry run rq worker zyra`.
  - WebSocket usage: connect to `ws://localhost:8000/ws/jobs/{job_id}`.
    - Without Redis, in-memory streaming is enabled by default.
    - websocat quickstart:
@@ -811,7 +813,7 @@ Strict file_id resolution:
 - Set `DATAVIZHUB_STRICT_FILE_ID=1` to return `404` if any `file_id` cannot be resolved to an uploaded file path at request time.
 
 Results, TTL, and cleanup:
-- Results are stored under `DATAVIZHUB_RESULTS_DIR` (default `/tmp/datavizhub_results/{job_id}/`).
+- Results are stored under `DATAVIZHUB_RESULTS_DIR` (default `/tmp/zyra_results/{job_id}/`).
 - `/jobs/{job_id}/download` enforces TTL via `DATAVIZHUB_RESULTS_TTL_SECONDS` (default 86400s).
 - A background cleanup task removes expired files and prunes empty job dirs at `DATAVIZHUB_RESULTS_CLEAN_INTERVAL_SECONDS` (default 3600s).
 - For heavier-duty cleanup, consider a sidecar (e.g., `tmpreaper`) targeting the results dir.
@@ -826,7 +828,7 @@ MIME detection (optional):
 - Falls back to `mimetypes` when `python-magic` is not installed.
 
 WebSocket client extra:
-- Install `poetry install --with ws` to enable the `datavizhub-cli --ws` streaming option (bundles `websockets`).
+- Install `poetry install --with ws` to enable the `zyra-cli --ws` streaming option (bundles `websockets`).
 See Batch Mode section for multi-input workflows across acquisition, processing, and visualization.
 ### Running Tests
 

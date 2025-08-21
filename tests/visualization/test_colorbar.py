@@ -24,7 +24,7 @@ pytestmark = pytest.mark.skipif(
 
 def test_heatmap_manager_colorbar_axes():
     try:
-        from datavizhub.visualization import HeatmapManager
+        from zyra.visualization import HeatmapManager
     except Exception as e:
         import pytest
 

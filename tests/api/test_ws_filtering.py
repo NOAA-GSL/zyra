@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datavizhub.api.routers.ws import _ws_should_send
+from zyra.api.routers.ws import _ws_should_send
 
 
 def test_ws_filter_progress_only_filters_out_logs() -> None:

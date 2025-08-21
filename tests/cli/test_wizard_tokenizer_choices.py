@@ -1,5 +1,5 @@
 def test_tokenizer_extracts_choices_for_options():
-    import datavizhub.wizard as wiz
+    import zyra.wizard as wiz
 
     cap = {
         "visualize heatmap": {

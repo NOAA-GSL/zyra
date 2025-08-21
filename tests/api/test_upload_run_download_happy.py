@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from datavizhub.api.routers import files as files_router
-from datavizhub.api.routers import jobs as jobs_router
-from datavizhub.api.workers import jobs as jb
+from zyra.api.routers import files as files_router
+from zyra.api.routers import jobs as jobs_router
+from zyra.api.workers import jobs as jb
 
 
 def test_upload_run_download_happy_path(tmp_path: Path) -> None:

@@ -29,11 +29,11 @@ ignore = [
     "F841",
 ]
 # Visualization modules: relax modernization and minor style requirements
-"src/datavizhub/visualization/**/*.py" = [
+"src/zyra/visualization/**/*.py" = [
     "UP007",
     "SIM105",
     "PTH123",
     "F841",
 ]
 # Optional ImageManager re-export
-"src/datavizhub/utils/__init__.py" = ["F401"]
+"src/zyra/utils/__init__.py" = ["F401"]

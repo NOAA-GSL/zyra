@@ -50,7 +50,7 @@ def test_cli_animate_heatmap_npy():
         cmd = [
             sys.executable,
             "-m",
-            "datavizhub.cli",
+            "zyra.cli",
             "animate",
             "--mode",
             "heatmap",
@@ -104,7 +104,7 @@ def test_cli_animate_vector_npy(ensure_uv_stacks):
         cmd = [
             sys.executable,
             "-m",
-            "datavizhub.cli",
+            "zyra.cli",
             "animate",
             "--mode",
             "vector",

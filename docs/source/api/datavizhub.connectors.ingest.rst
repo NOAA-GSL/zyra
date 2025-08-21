@@ -1,8 +1,7 @@
-datavizhub.connectors.ingest module
+zyra.connectors.ingest module
 ===================================
 
-.. automodule:: datavizhub.connectors.ingest
+.. automodule:: zyra.connectors.ingest
    :members:
    :undoc-members:
    :show-inheritance:
-

@@ -2,7 +2,7 @@ import json
 
 
 def test_edit_commands_uses_wizard_session_id(monkeypatch, tmp_path):
-    import datavizhub.wizard as wiz
+    import zyra.wizard as wiz
 
     # Force prompt_toolkit path but stub the session
     monkeypatch.setattr(wiz, "PTK_AVAILABLE", True)
@@ -31,7 +31,7 @@ def test_edit_commands_uses_wizard_session_id(monkeypatch, tmp_path):
 
 
 def test_edit_commands_handles_missing_session_id(monkeypatch, tmp_path):
-    import datavizhub.wizard as wiz
+    import zyra.wizard as wiz
 
     # Force prompt_toolkit path but stub the session
     monkeypatch.setattr(wiz, "PTK_AVAILABLE", True)
