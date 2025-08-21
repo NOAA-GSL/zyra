@@ -255,7 +255,7 @@ def run_cli_job(
         from zyra.utils.env import env
 
         results_root = Path(
-            env("RESULTS_DIR", "/tmp/zyra_results") or "/tmp/zyra_results"
+            env("RESULTS_DIR", "/tmp/datavizhub_results") or "/tmp/datavizhub_results"
         )
         if job_id:
             results_dir = results_root / job_id
@@ -433,7 +433,7 @@ def start_job(job_id: str, stage: str, command: str, args: dict[str, Any]) -> No
         from zyra.utils.env import env
 
         results_root = Path(
-            env("RESULTS_DIR", "/tmp/zyra_results") or "/tmp/zyra_results"
+            env("RESULTS_DIR", "/tmp/datavizhub_results") or "/tmp/datavizhub_results"
         )
         results_dir = results_root / job_id
         results_dir.mkdir(parents=True, exist_ok=True)

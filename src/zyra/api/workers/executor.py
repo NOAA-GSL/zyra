@@ -512,7 +512,7 @@ def _ensure_results_dir(job_id: str) -> Path:
         raise ValueError("invalid job_id")
     from zyra.utils.env import env_path
 
-    base = env_path("RESULTS_DIR", "/tmp/zyra_results")
+    base = env_path("RESULTS_DIR", "/tmp/datavizhub_results")
     # Join using Path with validated single-segment job_id
     full = base / job_id
     full.mkdir(parents=True, exist_ok=True)
@@ -635,7 +635,7 @@ def write_manifest(job_id: str) -> Path | None:
             return None
         from zyra.utils.env import env_path
 
-        base = env_path("RESULTS_DIR", "/tmp/zyra_results")
+        base = env_path("RESULTS_DIR", "/tmp/datavizhub_results")
         full = base / job_id
         # Normalize and ensure full is contained within base
         base_resolved = base.resolve()

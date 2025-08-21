@@ -70,7 +70,7 @@ def _results_dir_for(job_id: str) -> Path:
     # Compute results dir using pathlib and verify containment
     from zyra.utils.env import env_path
 
-    base = env_path("RESULTS_DIR", "/tmp/zyra_results")
+    base = env_path("RESULTS_DIR", "/tmp/datavizhub_results")
     full = base / job_id
     try:
         _ = full.relative_to(base)
@@ -101,7 +101,7 @@ def _select_download_path(job_id: str, specific_file: str | None) -> Path:
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
     from zyra.utils.env import env_path
 
-    base = env_path("RESULTS_DIR", "/tmp/zyra_results")
+    base = env_path("RESULTS_DIR", "/tmp/datavizhub_results")
     full = base / job_id
     try:
         _ = full.relative_to(base)
@@ -247,7 +247,7 @@ def download_job_output(
             return None
         from zyra.utils.env import env_path
 
-        base_dir = env_path("RESULTS_DIR", "/tmp/zyra_results")
+        base_dir = env_path("RESULTS_DIR", "/tmp/datavizhub_results")
         full_dir = base_dir / job_id
         # Normalize and validate that full_dir is contained within base_dir
         base_dir_real = base_dir.resolve()
@@ -308,7 +308,7 @@ def download_job_output(
             p = None
             from zyra.utils.env import env_path
 
-            base_dir = env_path("RESULTS_DIR", "/tmp/zyra_results")
+            base_dir = env_path("RESULTS_DIR", "/tmp/datavizhub_results")
             try:
                 out = rec.get("output_file")
                 if isinstance(out, str) and out:
@@ -374,7 +374,7 @@ def download_job_output(
     try:
         from zyra.utils.env import env_path
 
-        base = env_path("RESULTS_DIR", "/tmp/zyra_results")
+        base = env_path("RESULTS_DIR", "/tmp/datavizhub_results")
         # Support when p is a Path or a string
         pname = p.name if hasattr(p, "name") else str(p)
         fname = Path(pname).name
@@ -470,7 +470,7 @@ def get_job_manifest(job_id: str):
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
     from zyra.utils.env import env_path
 
-    base = env_path("RESULTS_DIR", "/tmp/zyra_results")
+    base = env_path("RESULTS_DIR", "/tmp/datavizhub_results")
     full = base / job_id
     # Normalize and check containment
     mf = full / "manifest.json"

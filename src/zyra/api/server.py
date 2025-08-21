@@ -212,7 +212,7 @@ def create_app() -> FastAPI:
             },
         }
 
-    @app.get("/llm/test", tags=["system"])
+    @app.get("/llm/test", tags=["system"])  # type: ignore[misc]
     def llm_test(
         request: Request, provider: str | None = None, model: str | None = None
     ) -> dict:
@@ -351,7 +351,7 @@ def _seconds_env(name: str, default: int) -> int:
 async def _results_cleanup_loop() -> None:
     ttl = env_seconds("RESULTS_TTL_SECONDS", 86400)
     interval = env_seconds("RESULTS_CLEAN_INTERVAL_SECONDS", 3600)
-    root = env_path("RESULTS_DIR", "/tmp/zyra_results")
+    root = env_path("RESULTS_DIR", "/tmp/datavizhub_results")
     while True:
         try:
             if root.exists():
