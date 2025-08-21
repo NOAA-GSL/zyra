@@ -16,6 +16,28 @@ from fastapi.responses import FileResponse
 from zyra.api.models.cli_request import JobStatusResponse
 from zyra.api.workers import jobs as jobs_backend
 
+
+def _results_base_for(job_id: str) -> Path:
+    """Return preferred results base, falling back to legacy if job dir exists there.
+
+    Prefers new default `/tmp/zyra_results` (or env `ZYRA_RESULTS_DIR`/`RESULTS_DIR`).
+    If a directory for this job already exists under the legacy base
+    `/tmp/datavizhub_results` (or env `DATAVIZHUB_RESULTS_DIR`) and not under the
+    new base, return the legacy base to preserve continuity.
+    """
+    from pathlib import Path
+
+    from zyra.utils.env import env_path
+
+    base_new = env_path("RESULTS_DIR", "/tmp/zyra_results")
+    base_legacy = Path(
+        os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
+    )
+    if (base_legacy / job_id).exists() and not (base_new / job_id).exists():
+        return base_legacy
+    return base_new
+
+
 router = APIRouter(tags=["jobs"])
 
 # Strict allowlists for user-controlled path segments
@@ -68,9 +90,8 @@ def _results_dir_for(job_id: str) -> Path:
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
 
     # Compute results dir using pathlib and verify containment
-    from zyra.utils.env import env_path
 
-    base = env_path("RESULTS_DIR", "/tmp/datavizhub_results")
+    base = _results_base_for(job_id)
     full = base / job_id
     try:
         _ = full.relative_to(base)
@@ -99,9 +120,8 @@ def _select_download_path(job_id: str, specific_file: str | None) -> Path:
         or not SAFE_JOB_ID_RE.fullmatch(job_id)
     ):
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
-    from zyra.utils.env import env_path
 
-    base = env_path("RESULTS_DIR", "/tmp/datavizhub_results")
+    base = _results_base_for(job_id)
     full = base / job_id
     try:
         _ = full.relative_to(base)
@@ -245,9 +265,8 @@ def download_job_output(
             or not SAFE_JOB_ID_RE.fullmatch(job_id)
         ):
             return None
-        from zyra.utils.env import env_path
 
-        base_dir = env_path("RESULTS_DIR", "/tmp/datavizhub_results")
+        base_dir = _results_base_for(jid)
         full_dir = base_dir / job_id
         # Normalize and validate that full_dir is contained within base_dir
         base_dir_real = base_dir.resolve()
@@ -306,9 +325,8 @@ def download_job_output(
         else:
             # Prefer recorded output_file but re-anchor under results dir for containment
             p = None
-            from zyra.utils.env import env_path
 
-            base_dir = env_path("RESULTS_DIR", "/tmp/datavizhub_results")
+            base_dir = _results_base_for(jid)
             try:
                 out = rec.get("output_file")
                 if isinstance(out, str) and out:
@@ -372,9 +390,8 @@ def download_job_output(
     # then open it safely (O_NOFOLLOW) to avoid symlink traversal and to run TTL checks
     # using fstat on the opened file descriptor.
     try:
-        from zyra.utils.env import env_path
 
-        base = env_path("RESULTS_DIR", "/tmp/datavizhub_results")
+        base = _results_base_for(jid)
         # Support when p is a Path or a string
         pname = p.name if hasattr(p, "name") else str(p)
         fname = Path(pname).name
@@ -468,9 +485,8 @@ def get_job_manifest(job_id: str):
         or not SAFE_JOB_ID_RE.fullmatch(job_id)
     ):
         raise HTTPException(status_code=400, detail="Invalid job_id parameter")
-    from zyra.utils.env import env_path
 
-    base = env_path("RESULTS_DIR", "/tmp/datavizhub_results")
+    base = _results_base_for(job_id)
     full = base / job_id
     # Normalize and check containment
     mf = full / "manifest.json"

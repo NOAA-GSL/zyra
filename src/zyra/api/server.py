@@ -351,7 +351,10 @@ def _seconds_env(name: str, default: int) -> int:
 async def _results_cleanup_loop() -> None:
     ttl = env_seconds("RESULTS_TTL_SECONDS", 86400)
     interval = env_seconds("RESULTS_CLEAN_INTERVAL_SECONDS", 3600)
-    root = env_path("RESULTS_DIR", "/tmp/datavizhub_results")
+    # Prefer new Zyra default; also clean legacy base if present
+    from pathlib import Path
+
+    root = env_path("RESULTS_DIR", "/tmp/zyra_results")
     while True:
         try:
             if root.exists():
@@ -378,6 +381,36 @@ async def _results_cleanup_loop() -> None:
                             pass
                     except Exception:
                         continue
+            # Also attempt cleanup of legacy base to avoid stale artifacts during transition
+            try:
+                legacy = Path(
+                    os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
+                )
+                if legacy.exists():
+                    now = time.time()
+                    for job_dir in legacy.iterdir():
+                        if not job_dir.is_dir():
+                            continue
+                        try:
+                            empty = True
+                            for f in job_dir.iterdir():
+                                if not f.is_file():
+                                    continue
+                                empty = False
+                                try:
+                                    if now - f.stat().st_mtime > ttl:
+                                        f.unlink()
+                                except Exception:
+                                    pass
+                            try:
+                                if empty or not any(job_dir.iterdir()):
+                                    job_dir.rmdir()
+                            except Exception:
+                                pass
+                        except Exception:
+                            continue
+            except Exception:
+                pass
         except Exception:
             pass
         await asyncio.sleep(interval)

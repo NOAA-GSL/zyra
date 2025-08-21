@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import re
 import uuid
 from pathlib import Path
@@ -9,8 +10,38 @@ from zyra.utils.env import env_path
 
 router = APIRouter(tags=["files"])
 
-UPLOAD_DIR = env_path("UPLOAD_DIR", "/tmp/zyra_uploads")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+def _resolve_upload_dir() -> Path:
+    """Pick an uploads directory that is writable.
+
+    Respects `ZYRA_UPLOAD_DIR`/`DATAVIZHUB_UPLOAD_DIR` via env, but falls back to
+    `/tmp/zyra_uploads` when the configured path cannot be created (e.g., missing
+    permissions in CI). Ensures the directory exists before returning.
+    """
+    base = env_path("UPLOAD_DIR", "/tmp/zyra_uploads")
+    try:
+        base.mkdir(parents=True, exist_ok=True)
+        # Verify writability by creating a tiny probe file
+        probe = base / ".probe"
+        with probe.open("wb") as f:
+            f.write(b"ok")
+        with contextlib.suppress(Exception):
+            probe.unlink()
+        return base
+    except Exception:
+        # Not writable or cannot be created; fall back below
+        pass
+    # Fallback when configured dir is not writable or cannot be created
+    fallback = Path("/tmp/zyra_uploads")
+    try:
+        fallback.mkdir(parents=True, exist_ok=True)
+        return fallback
+    except Exception:
+        # last resort: keep the original and let downstream raise as needed
+        return base
+
+
+UPLOAD_DIR = _resolve_upload_dir()
 
 # Avoid B008: evaluate File() at module import and reuse as default
 _FILE_REQUIRED = File(...)

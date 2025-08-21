@@ -512,9 +512,16 @@ def _ensure_results_dir(job_id: str) -> Path:
         raise ValueError("invalid job_id")
     from zyra.utils.env import env_path
 
-    base = env_path("RESULTS_DIR", "/tmp/datavizhub_results")
-    # Join using Path with validated single-segment job_id
+    # Prefer new Zyra default; fall back to legacy job dir if it already exists
+    base = env_path("RESULTS_DIR", "/tmp/zyra_results")
+    legacy_base = Path(
+        os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
+    )
+    # If a legacy results dir for this job already exists and the new one does not, use legacy for continuity
     full = base / job_id
+    legacy_full = legacy_base / job_id
+    if legacy_full.exists() and not full.exists():
+        full = legacy_full
     full.mkdir(parents=True, exist_ok=True)
     return full
 
@@ -635,10 +642,18 @@ def write_manifest(job_id: str) -> Path | None:
             return None
         from zyra.utils.env import env_path
 
-        base = env_path("RESULTS_DIR", "/tmp/datavizhub_results")
-        full = base / job_id
+        base = env_path("RESULTS_DIR", "/tmp/zyra_results")
+        legacy_base = Path(
+            os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results")
+        )
+        # Choose base per existing job directory to preserve legacy runs
+        full = (
+            (legacy_base / job_id)
+            if (legacy_base / job_id).exists() and not (base / job_id).exists()
+            else (base / job_id)
+        )
         # Normalize and ensure full is contained within base
-        base_resolved = base.resolve()
+        base_resolved = full.parent.resolve()
         full_resolved = full.resolve()
         try:
             full_resolved.relative_to(base_resolved)

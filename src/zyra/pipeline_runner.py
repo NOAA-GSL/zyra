@@ -535,17 +535,18 @@ def register_cli_run(subparsers: Any) -> None:
             pairs.append((k, v))
         # Set verbosity/strict env via process env (visible to in-process stages)
         if ns.verbose:
-            os.environ["DATAVIZHUB_VERBOSITY"] = "debug"
+            # Prefer new ZYRA_* envs first; set legacy for back-compat next
             os.environ["ZYRA_VERBOSITY"] = "debug"
+            os.environ["DATAVIZHUB_VERBOSITY"] = "debug"
         elif ns.quiet:
-            os.environ["DATAVIZHUB_VERBOSITY"] = "quiet"
             os.environ["ZYRA_VERBOSITY"] = "quiet"
+            os.environ["DATAVIZHUB_VERBOSITY"] = "quiet"
         else:
-            os.environ.setdefault("DATAVIZHUB_VERBOSITY", "info")
             os.environ.setdefault("ZYRA_VERBOSITY", "info")
+            os.environ.setdefault("DATAVIZHUB_VERBOSITY", "info")
         if ns.strict_env:
-            os.environ["DATAVIZHUB_STRICT_ENV"] = "1"
             os.environ["ZYRA_STRICT_ENV"] = "1"
+            os.environ["DATAVIZHUB_STRICT_ENV"] = "1"
 
         return run_pipeline(
             ns.config,
