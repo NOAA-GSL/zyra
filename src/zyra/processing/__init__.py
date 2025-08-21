@@ -1,5 +1,13 @@
 from .base import DataProcessor
-from .grib_data_processor import GRIBDataProcessor, interpolate_time_steps
+
+# Optional: GRIB utilities rely on optional deps like pygrib/cfgrib. Keep import lazy-safe.
+try:
+    from .grib_data_processor import GRIBDataProcessor, interpolate_time_steps
+except (ImportError, ModuleNotFoundError):
+    # pygrib/scipy/siphon may be unavailable in minimal environments; expose
+    # GRIBDataProcessor only when its dependencies are installed.
+    GRIBDataProcessor = None  # type: ignore[assignment]
+    interpolate_time_steps = None  # type: ignore[assignment]
 from .grib_utils import (
     DecodedGRIB,
     VariableNotFoundError,
@@ -19,8 +27,6 @@ from .video_processor import VideoProcessor
 __all__ = [
     "DataProcessor",
     "VideoProcessor",
-    "GRIBDataProcessor",
-    "interpolate_time_steps",
     "DecodedGRIB",
     "VariableNotFoundError",
     "grib_decode",
@@ -32,6 +38,9 @@ __all__ = [
     "subset_netcdf",
     "convert_to_grib2",
 ]
+# Only export GRIBDataProcessor helpers when optional deps are present
+if GRIBDataProcessor is not None and interpolate_time_steps is not None:
+    __all__ += ["GRIBDataProcessor", "interpolate_time_steps"]
 
 # ---- CLI registration ---------------------------------------------------------------
 
