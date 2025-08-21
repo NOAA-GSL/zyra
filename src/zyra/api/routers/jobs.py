@@ -390,7 +390,6 @@ def download_job_output(
     # then open it safely (O_NOFOLLOW) to avoid symlink traversal and to run TTL checks
     # using fstat on the opened file descriptor.
     try:
-
         base = _results_base_for(jid)
         # Support when p is a Path or a string
         pname = p.name if hasattr(p, "name") else str(p)
