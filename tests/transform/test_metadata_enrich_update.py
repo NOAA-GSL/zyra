@@ -1,7 +1,7 @@
 import json
 
-from datavizhub.transform import _compute_frames_metadata as compute_meta
-from datavizhub.transform import register_cli as register_transform
+from zyra.transform import _compute_frames_metadata as compute_meta
+from zyra.transform import register_cli as register_transform
 
 
 def test_compute_frames_metadata_weekly(tmp_path):

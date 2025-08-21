@@ -1,8 +1,8 @@
 from datetime import datetime
 
 import pytest
-from datavizhub.utils.date_manager import DateManager
 from dateutil.relativedelta import relativedelta
+from zyra.utils.date_manager import DateManager
 
 
 @pytest.fixture()

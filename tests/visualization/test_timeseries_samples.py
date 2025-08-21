@@ -22,7 +22,7 @@ def test_cli_timeseries_samples_csv(tmp_path):
     cmd = [
         sys.executable,
         "-m",
-        "datavizhub.cli",
+        "zyra.cli",
         "visualize",
         "timeseries",
         "--input",

@@ -1,5 +1,5 @@
 def test_select_provider_openai_falls_back_to_mock(monkeypatch):
-    import datavizhub.wizard as wiz
+    import zyra.wizard as wiz
 
     monkeypatch.setenv("DATAVIZHUB_LLM_PROVIDER", "openai")
     # Simulate missing credential by unsetting the variable entirely
@@ -10,7 +10,7 @@ def test_select_provider_openai_falls_back_to_mock(monkeypatch):
 
 
 def test_select_provider_mock(monkeypatch):
-    import datavizhub.wizard as wiz
+    import zyra.wizard as wiz
 
     client = wiz._select_provider(provider="mock", model=None)
     assert isinstance(client, wiz.llm_client.MockClient)

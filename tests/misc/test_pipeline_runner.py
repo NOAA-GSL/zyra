@@ -8,7 +8,7 @@ def _run_cli(args, input_bytes: bytes | None = None):
     import subprocess
     import sys as _sys
 
-    cmd = [_sys.executable, "-m", "datavizhub.cli", *args]
+    cmd = [_sys.executable, "-m", "zyra.cli", *args]
     return subprocess.run(cmd, input=input_bytes, capture_output=True)
 
 
@@ -211,8 +211,8 @@ def test_dry_run_json_start_end_preserves_ids_and_reindexes(tmp_path: Path):
     # Reindexed stages start at 1; ids correspond to original stages 2 and 3
     assert items[0]["stage"] == 1 and items[0]["id"] == "s2"
     assert items[1]["stage"] == 2 and items[1]["id"] == "s3"
-    # argv arrays present and start with 'datavizhub'
-    assert isinstance(items[0]["argv"], list) and items[0]["argv"][0] == "datavizhub"
+    # argv arrays present and start with 'zyra'
+    assert isinstance(items[0]["argv"], list) and items[0]["argv"][0] == "zyra"
 
 
 @pytest.mark.pipeline

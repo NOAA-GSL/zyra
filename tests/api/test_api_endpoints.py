@@ -3,15 +3,15 @@ from __future__ import annotations
 import time
 
 import pytest
-from datavizhub.api.server import app
 from fastapi.testclient import TestClient
+from zyra.api.server import app
 
 client = TestClient(app)
 
 
 def test_arg_aliases_normalization_internal():
     # Validate internal normalization path for friendliness
-    from datavizhub.api.workers.executor import _normalize_args
+    from zyra.api.workers.executor import _normalize_args
 
     args = _normalize_args("process", "convert-format", {"src": "in", "dest": "out.nc"})
     assert args["file_or_url"] == "in"

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 # Avoid external dependencies and sockets: call router functions directly.
-from datavizhub.api.routers import cli as cli_router
+from zyra.api.routers import cli as cli_router
 
 
 def _get_commands() -> dict[str, dict]:

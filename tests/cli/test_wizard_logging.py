@@ -2,7 +2,7 @@ import json
 
 
 def test_log_schema_and_correlation_fields(tmp_path, monkeypatch):
-    from datavizhub.cli import main
+    from zyra.cli import main
 
     # Use a temp HOME so logs go to a known place
     home = tmp_path / "home"
@@ -47,7 +47,7 @@ def test_log_schema_and_correlation_fields(tmp_path, monkeypatch):
 
 
 def test_log_includes_assistant_reply_when_enabled(tmp_path, monkeypatch):
-    from datavizhub.cli import main
+    from zyra.cli import main
 
     home = tmp_path / "home"
     home.mkdir()

@@ -24,14 +24,14 @@ pytestmark = pytest.mark.skipif(
 
 
 def _get_basemap_path():
-    res = files("datavizhub.assets").joinpath("images/earth_vegetation.jpg")
+    res = files("zyra.assets").joinpath("images/earth_vegetation.jpg")
     with as_file(res) as p:
         return str(p)
 
 
 def test_heatmap_manager_renders_png():
     try:
-        from datavizhub.visualization import HeatmapManager
+        from zyra.visualization import HeatmapManager
     except Exception as e:
         # Skip if optional visualization deps are missing
         import pytest
@@ -53,7 +53,7 @@ def test_heatmap_manager_renders_png():
 
 def test_contour_manager_renders_png():
     try:
-        from datavizhub.visualization import ContourManager
+        from zyra.visualization import ContourManager
     except Exception as e:
         import pytest
 
@@ -97,7 +97,7 @@ def test_cli_heatmap_smoke():
         cmd = [
             sys.executable,
             "-m",
-            "datavizhub.visualization.cli",
+            "zyra.visualization.cli",
             "heatmap",
             "--input",
             npy,

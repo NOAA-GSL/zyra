@@ -5,7 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from datavizhub.api.server import app
+from zyra.api.server import app
 
 
 def _normalize_openapi(spec: dict) -> dict:

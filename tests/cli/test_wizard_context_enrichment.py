@@ -1,5 +1,5 @@
 def test_context_includes_enriched_option_details(monkeypatch, capsys):
-    import datavizhub.wizard as wiz
+    import zyra.wizard as wiz
 
     # Override manifest loader to a tiny enriched manifest
     cap = {
@@ -25,7 +25,7 @@ def test_context_includes_enriched_option_details(monkeypatch, capsys):
         seen["user_prompt"] = user_prompt
         return "```bash\ndatavizhub --help\n```"
 
-    from datavizhub.wizard import llm_client
+    from zyra.wizard import llm_client
 
     monkeypatch.setattr(llm_client.MockClient, "generate", staticmethod(fake_generate))
 

@@ -12,7 +12,7 @@ if str(SRC) not in sys.path:
 
 # -- Project information -----------------------------------------------------
 
-project = "DataVizHub"
+project = "Zyra"
 author = "NOAA-GSL"
 copyright = f"{datetime.now():%Y}, {author}"
 
@@ -103,6 +103,15 @@ autodoc_mock_imports = [
     "ffmpeg_python",
     "ffmpeg-python",
     # Mock API submodules that cause side effects on import during docs build
+    # Use Zyra namespace; legacy kept for transition
+    "zyra.api",
+    "zyra.api.server",
+    "zyra.api.routers",
+    "zyra.api.routers.cli",
+    "zyra.api.routers.files",
+    "zyra.api.workers",
+    "zyra.api.workers.executor",
+    "zyra.api.workers.jobs",
     "datavizhub.api",
     "datavizhub.api.server",
     "datavizhub.api.routers",

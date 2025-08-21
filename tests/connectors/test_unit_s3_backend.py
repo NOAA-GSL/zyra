@@ -1,12 +1,12 @@
 from unittest.mock import Mock, patch
 
 import pytest
-from datavizhub.connectors.backends import s3 as s3_backend
+from zyra.connectors.backends import s3 as s3_backend
 
 
 @pytest.fixture
 def s3_client():
-    with patch("datavizhub.connectors.backends.s3.boto3.client") as mock_boto3_client:
+    with patch("zyra.connectors.backends.s3.boto3.client") as mock_boto3_client:
         yield mock_boto3_client
 
 

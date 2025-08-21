@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from datavizhub.connectors.backends import ftp as ftp_backend
+from zyra.connectors.backends import ftp as ftp_backend
 
 
 def test_list_files_with_date_filter_and_credentials(monkeypatch):
@@ -27,7 +27,7 @@ def test_list_files_with_date_filter_and_credentials(monkeypatch):
                 "/SOS/DroughtRisk_Weekly/DroughtRisk_Weekly_20250101.png",
             ]
 
-    with patch("datavizhub.connectors.backends.ftp.FTP", _FTP):
+    with patch("zyra.connectors.backends.ftp.FTP", _FTP):
         names = ftp_backend.list_files(
             "ftp://anonymous:test%40example.com@ftp.host/SOS/DroughtRisk_Weekly",
             pattern=r"DroughtRisk_Weekly_(\d{8})\.png",
@@ -69,6 +69,6 @@ def test_sync_directory_cleans_zero_byte(tmp_path):
         def quit(self):
             return None
 
-    with patch("datavizhub.connectors.backends.ftp.FTP", _FTP2):
+    with patch("zyra.connectors.backends.ftp.FTP", _FTP2):
         ftp_backend.sync_directory("ftp://host/dir", str(d), clean_zero_bytes=True)
         assert not fz.exists()

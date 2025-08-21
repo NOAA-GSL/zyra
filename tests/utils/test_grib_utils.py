@@ -1,4 +1,4 @@
-from datavizhub.utils.grib import (
+from zyra.utils.grib import (
     compute_chunks,
     ensure_idx_path,
     idx_to_byteranges,

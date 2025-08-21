@@ -2,9 +2,9 @@
 
 
 def test_wizard_edit_flow_sanitizes_and_runs(monkeypatch, capsys):
-    import datavizhub.wizard as wiz
-    from datavizhub.cli import main
-    from datavizhub.wizard import llm_client
+    import zyra.wizard as wiz
+    from zyra.cli import main
+    from zyra.wizard import llm_client
 
     # Force no prompt_toolkit and no external editor
     monkeypatch.setattr(wiz, "PTK_AVAILABLE", False, raising=False)
@@ -47,7 +47,7 @@ def test_wizard_edit_flow_sanitizes_and_runs(monkeypatch, capsys):
 
 
 def test_tokenize_manifest_basic():
-    import datavizhub.wizard as wiz
+    import zyra.wizard as wiz
 
     cap = wiz._load_capabilities_manifest()
     assert cap is not None

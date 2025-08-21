@@ -12,7 +12,7 @@ def test_decimate_local_creates_parent_dirs_and_writes(tmp_path: Path):
     cmd = [
         sys.executable,
         "-m",
-        "datavizhub.cli",
+        "zyra.cli",
         "decimate",
         "local",
         "-i",

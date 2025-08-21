@@ -5,7 +5,7 @@ def test_manifest_contains_core_groups():
     group exists. This avoids coupling to optional/extras or specific
     subcommand names while still catching regressions.
     """
-    from datavizhub.wizard.manifest import build_manifest
+    from zyra.wizard.manifest import build_manifest
 
     mf = build_manifest()
     keys = list(mf.keys())

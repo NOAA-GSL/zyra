@@ -38,7 +38,7 @@ contained, validated paths (e.g., `os.open` with `O_NOFOLLOW`, `open(mf)` after
 
 ## Operational guidance
 
-- Configure `DATAVIZHUB_RESULTS_DIR` to a dedicated directory owned by the
+- Configure `ZYRA_RESULTS_DIR` to a dedicated directory owned by the
   service. Do not point it at shared or sensitive system paths.
 - Do not relax allowlists without revisiting containment and tests.
 - Keep tests for traversal and TTL behavior green.

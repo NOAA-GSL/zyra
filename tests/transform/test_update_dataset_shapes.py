@@ -1,6 +1,6 @@
 import json
 
-from datavizhub.transform import register_cli as register_transform
+from zyra.transform import register_cli as register_transform
 
 
 def _run_update(tmp_path, src_obj):

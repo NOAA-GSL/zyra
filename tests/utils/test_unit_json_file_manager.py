@@ -1,7 +1,7 @@
 from unittest.mock import mock_open, patch
 
 import pytest
-from datavizhub.utils.json_file_manager import JSONFileManager
+from zyra.utils.json_file_manager import JSONFileManager
 
 
 @pytest.fixture()
@@ -34,7 +34,7 @@ def test_save_file(mock_json_dump, mock_file, json_manager):
     mock_json_dump.assert_called_with(new_data, mock_file.return_value, indent=4)
 
 
-@patch("datavizhub.utils.json_file_manager.DateManager")
+@patch("zyra.utils.json_file_manager.DateManager")
 def test_update_dataset_times(mock_date_manager, json_manager):
     # Setup mock for DateManager
     mock_date_manager_instance = mock_date_manager.return_value

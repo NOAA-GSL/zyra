@@ -8,7 +8,7 @@ import pytest
 
 
 def _run_cli(args, input_bytes: Optional[bytes] = None) -> subprocess.CompletedProcess:
-    cmd = [sys.executable, "-m", "datavizhub.cli", *args]
+    cmd = [sys.executable, "-m", "zyra.cli", *args]
     return subprocess.run(cmd, input=input_bytes, capture_output=True)
 
 
@@ -20,7 +20,7 @@ def _read_demo_nc_bytes() -> bytes:
 @pytest.mark.cli
 def test_process_decode_grib2_raw_passthrough_group(monkeypatch, capsysbinary):
     # process decode-grib2 should accept NetCDF on stdin and passthrough with --raw
-    from datavizhub.cli import main
+    from zyra.cli import main
 
     demo = _read_demo_nc_bytes()
     fake_stdin = type("S", (), {"buffer": io.BytesIO(demo)})()
@@ -36,7 +36,7 @@ def test_process_decode_grib2_raw_passthrough_group(monkeypatch, capsysbinary):
 @pytest.mark.cli
 def test_process_convert_format_autodetect_netcdf_group(monkeypatch, capsysbinary):
     # process convert-format should read NetCDF on stdin and emit NetCDF bytes
-    from datavizhub.cli import main
+    from zyra.cli import main
 
     demo = _read_demo_nc_bytes()
     fake_stdin = type("S", (), {"buffer": io.BytesIO(demo)})()

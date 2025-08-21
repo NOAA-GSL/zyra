@@ -1,5 +1,5 @@
 def test_tokenizer_captures_default_and_help():
-    import datavizhub.wizard as wiz
+    import zyra.wizard as wiz
 
     cap = {
         "process convert-format": {
