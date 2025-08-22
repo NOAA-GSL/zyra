@@ -1,0 +1,385 @@
+openapi: 3.1.0
+info:
+  title: GitHub Repo Access - NOAA/GSL Zyra
+  version: 1.2.0
+servers:
+  - url: https://api.github.com
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    FileContent:
+      type: object
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        sha:
+          type: string
+        size:
+          type: integer
+        encoding:
+          type: string
+        content:
+          type: string
+        download_url:
+          type: string
+    DirectoryEntry:
+      type: object
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        type:
+          type: string
+          enum: [file, dir]
+        sha:
+          type: string
+        size:
+          type: integer
+        download_url:
+          type: string
+    Commit:
+      type: object
+      properties:
+        sha:
+          type: string
+        commit:
+          type: object
+          properties:
+            message:
+              type: string
+            author:
+              type: object
+              properties:
+                name:
+                  type: string
+                date:
+                  type: string
+    PullRequest:
+      type: object
+      properties:
+        number:
+          type: integer
+        title:
+          type: string
+        state:
+          type: string
+        user:
+          type: object
+          properties:
+            login:
+              type: string
+        created_at:
+          type: string
+    Branch:
+      type: object
+      properties:
+        name:
+          type: string
+        commit:
+          type: object
+          properties:
+            sha:
+              type: string
+            url:
+              type: string
+    Discussion:
+      type: object
+      properties:
+        number:
+          type: integer
+        title:
+          type: string
+        body:
+          type: string
+        state:
+          type: string
+        html_url:
+          type: string
+        created_at:
+          type: string
+        updated_at:
+          type: string
+        user:
+          type: object
+          properties:
+            login:
+              type: string
+    Issue:
+      type: object
+      properties:
+        number:
+          type: integer
+        title:
+          type: string
+        body:
+          type: string
+        state:
+          type: string
+        html_url:
+          type: string
+        created_at:
+          type: string
+        updated_at:
+          type: string
+        user:
+          type: object
+          properties:
+            login:
+              type: string
+    WikiFile:
+      type: object
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        sha:
+          type: string
+        size:
+          type: integer
+        encoding:
+          type: string
+        content:
+          type: string
+        download_url:
+          type: string
+paths:
+  /repos/NOAA-GSL/zyra/contents/{path}:
+    get:
+      operationId: getFileOrDirectory
+      summary: Get file contents or directory listing
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: ref
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File content or directory listing
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/FileContent"
+                  - type: array
+                    items:
+                      $ref: "#/components/schemas/DirectoryEntry"
+
+  /repos/NOAA-GSL/zyra/commits:
+    get:
+      operationId: listCommits
+      summary: List recent commits in the repository
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: sha
+          schema:
+            type: string
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+        - in: query
+          name: page
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Array of commits
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Commit"
+
+  /repos/NOAA-GSL/zyra/commits/{path}:
+    get:
+      operationId: listFileCommits
+      summary: Get commit history for a specific file or directory
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: sha
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File-specific commit history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Commit"
+
+  /repos/NOAA-GSL/zyra/pulls:
+    get:
+      operationId: listPullRequests
+      summary: List pull requests for the repository
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: state
+          schema:
+            type: string
+            enum: [open, closed, all]
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+        - in: query
+          name: page
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Array of pull requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PullRequest"
+
+  /repos/NOAA-GSL/zyra/branches:
+    get:
+      operationId: listBranches
+      summary: List all branches in the repository
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+        - in: query
+          name: page
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Array of branches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Branch"
+
+  /repos/NOAA-GSL/zyra/discussions:
+    get:
+      operationId: listDiscussions
+      summary: List discussions in the repository
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+        - in: query
+          name: page
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Array of discussions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Discussion"
+
+  /repos/NOAA-GSL/zyra/discussions/{discussion_number}:
+    get:
+      operationId: getDiscussion
+      summary: Get a single discussion by number
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: discussion_number
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Discussion details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Discussion"
+
+  /repos/NOAA-GSL/zyra/issues:
+    get:
+      operationId: listIssues
+      summary: List issues in the repository
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: state
+          schema:
+            type: string
+            enum: [open, closed, all]
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+        - in: query
+          name: page
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Array of issues
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Issue"
+
+  /repos/NOAA-GSL/zyra/issues/{issue_number}:
+    get:
+      operationId: getIssue
+      summary: Get a single issue by number
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: issue_number
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Issue details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Issue"
+
