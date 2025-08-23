@@ -19,6 +19,12 @@ It’s designed to make science not just rigorous, but also **accessible, transp
 
 ---
 
+## Why “Zyra”?
+
+The name Zyra was chosen to symbolize growth, weaving, and flow — small seeds of data can flourish into full workflows, and threads of analysis can be woven into something reproducible and sharable. It’s short, abstract, and flexible, giving the community space to shape its meaning. The name also carries playful associations: in pop culture, Zyra is a plant-themed character in League of Legends, a fitting metaphor for data that grows into insight. And as a backronym, it can stand for Zero-to-Yield Reproducible Analysis (the serious story) or Zany Yet Reproducible Analysis (the fun version) — reminding us that science can be both rigorous and creative.
+
+---
+
 ## A Framework for Everyone
 
 Zyra is:  
@@ -30,8 +36,29 @@ Zyra is:
 Whether you’re a **researcher**, **educator**, or **curious learner**, Zyra gives you a toolkit to turn data into something meaningful.
 
 ---
+## Quickstart
 
-## Technical Introduction
+Install Zyra from PyPI:
+
+```bash
+pip install zyra
+```
+
+Run an example workflow:
+
+```bash
+zyra acquire --source demo-weather
+zyra process --filter "last24h"
+zyra visualize --type line --output weather_plot.png
+```
+
+This will save a **line chart of demo weather data** as `weather_plot.png`. 🎉  
+
+👉 For more details, see the [Getting Started Guide](https://github.com/NOAA-GSL/zyra/wiki/Getting-Started).
+
+---
+
+## Introduction
 
 *(From the [Introduction wiki page](https://github.com/NOAA-GSL/zyra/wiki/Introduction))*  
 
@@ -103,6 +130,16 @@ Want to dive deeper? Here are some key wiki pages:
 - [CLI Expansion Plan](https://github.com/NOAA-GSL/zyra/wiki/Zyra-CLI-Expansion-Plan-with-Pipeline-Configs-and-Connectors-Refactor) – Roadmap for extending Zyra’s command-line interface.
 - [Wizard Interactive Assistant](https://github.com/NOAA-GSL/zyra/wiki/Wizard-Interactive-Assistant) – Plans for a guided CLI workflow builder.
 - [n8n Integration Plan](https://github.com/NOAA-GSL/zyra/wiki/n8n-Integration-Plan-for-Zyra) – Connecting Zyra with external automation tools.
+
+Jump into modules and documentation:
+
+- [Introduction (Wiki)](https://github.com/NOAA-GSL/zyra/wiki/Introduction) – High-level overview and design philosophy.  
+- [Pipeline Patterns (Wiki)](https://github.com/NOAA-GSL/zyra/wiki/Pipeline-Patterns) – Reusable workflow templates and patterns.  
+- [CLI Reference (Docs)](https://noaa-gsl.github.io/zyra/api/zyra.cli.html) – Full API and command options for the CLI.  
+- [Visualization Module (Docs)](https://noaa-gsl.github.io/zyra/api/zyra.visualization.html) – Visualization tools, managers, and usage guides.  
+- [Data Processing Module (Docs)](https://noaa-gsl.github.io/zyra/api/zyra.processing.html) – GRIB, NetCDF, video processing, and data transformations.  
+- [Acquisition & Connectors (Docs)](https://noaa-gsl.github.io/zyra/api/zyra.connectors.html) – Ingest data from various sources like FTP, HTTP/S, S3, and Vimeo.  
+- [Utilities (Docs)](https://noaa-gsl.github.io/zyra/api/zyra.utils.html) – Credential management, file handling, logging, and time utilities.
 
 ---
 
