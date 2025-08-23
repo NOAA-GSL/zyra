@@ -1,0 +1,3 @@
+[submodule "docs/source/wiki"]
+    path = docs/source/wiki
+    url = https://github.com/NOAA-GSL/zyra-wiki.git
