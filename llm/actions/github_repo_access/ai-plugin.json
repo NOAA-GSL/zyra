@@ -1,0 +1,16 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Zyra Repo Browser",
+  "name_for_model": "zyra_repo_browser",
+  "description_for_human": "Browse the NOAA-GSL/zyra GitHub repository: files, commits, branches, PRs, issues, and discussions.",
+  "description_for_model": "Use the GitHub API to read public data from the NOAA-GSL/zyra repository. Supports listing files/directories, fetching file content, and listing commits, branches, pull requests, issues, and discussions.",
+  "auth": { "type": "none" },
+  "api": {
+    "type": "openapi",
+    "url": "./openapi.yaml"
+  },
+  "logo_url": "",
+  "contact_email": "",
+  "legal_info_url": ""
+}
+

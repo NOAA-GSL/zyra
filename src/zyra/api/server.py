@@ -22,6 +22,7 @@ from zyra.api import __version__ as dvh_version
 from zyra.api.routers import cli as cli_router
 from zyra.api.routers import files as files_router
 from zyra.api.routers import jobs as jobs_router
+from zyra.api.routers import manifest as manifest_router
 from zyra.api.routers import ws as ws_router
 from zyra.api.security import require_api_key
 from zyra.utils.env import env, env_bool, env_int, env_path, env_seconds
@@ -82,6 +83,7 @@ def create_app() -> FastAPI:
     app.include_router(cli_router.router, dependencies=[Depends(require_api_key)])
     app.include_router(files_router.router, dependencies=[Depends(require_api_key)])
     app.include_router(ws_router.router)  # auth handled inside via query param
+    app.include_router(manifest_router.router, dependencies=[Depends(require_api_key)])
     app.include_router(jobs_router.router, dependencies=[Depends(require_api_key)])
 
     @app.get("/health", tags=["system"])
@@ -277,6 +279,7 @@ def create_app() -> FastAPI:
                 "/health",
                 "/ready",
                 "/llm/test",
+                "/commands",
                 "/cli/commands",
                 "/cli/examples",
                 "/cli/run",
@@ -323,6 +326,7 @@ def create_app() -> FastAPI:
             <ul>
               <li><a href=\"/health\">GET /health</a> — health probe</li>
               <li><a href=\"/ready\">GET /ready</a> — readiness checks</li>
+              <li><a href=\"/commands\">GET /commands</a> — list/summary/json, fuzzy details</li>
               <li><a href=\"/cli/commands\">GET /cli/commands</a> — discovery: stages, commands, args</li>
               <li><a href=\"/cli/examples\">GET /cli/examples</a> — curated examples for /cli/run</li>
               <li>POST /cli/run — see <a href=\"/docs#/%2Fcli%2Frun\">/docs</a></li>

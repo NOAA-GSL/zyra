@@ -1,0 +1,24 @@
+openapi: 3.0.3
+info:
+  title: Zyra Sample Action API
+  version: 0.1.0
+  description: Minimal spec exposing a single status endpoint.
+servers:
+  - url: http://localhost:8000
+paths:
+  /status:
+    get:
+      operationId: getStatus
+      summary: Get service status
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+

@@ -53,6 +53,40 @@ To keep development organized, we use a two-branch model:
 
 ---
 
+## Workflow Gap Issues & PRs
+
+Zyra now uses structured **Workflow Gap** issue and PR templates to ensure new CLI functionality is properly tracked.
+
+### Filing Bug Reports
+- Use the `🐞 Bug Report` template (`.github/ISSUE_TEMPLATE/bug_report.md`).
+- Provide clear steps to reproduce, expected vs. actual behavior, and environment details.
+
+### Filing Feature Requests
+- Use the `✨ Feature Request` template (`.github/ISSUE_TEMPLATE/feature_request.md`).
+- Describe the feature, motivation, proposed solution, and alternatives.
+- Use this template only for enhancements that do **not** map directly to CLI commands.
+
+
+### Filing Workflow Gap Issues
+- Use the `⚡ Workflow Gap / Missing Command` template (`.github/ISSUE_TEMPLATE/workflow_gap.md`).
+- Clearly describe:
+  - Which CLI commands exist today
+  - What is missing
+  - Why the feature is needed
+- The template will guide you to include an implementation plan and examples.
+
+### Submitting PRs for Workflow Gaps
+- All PRs that add CLI functionality should link to the related Workflow Gap issue.
+- The PR template (`.github/PULL_REQUEST_TEMPLATE.md`) includes a checklist:
+  - Add tests
+  - Write comprehensive **docstrings** (for auto-generated docs)
+  - Include examples in workflows
+- Ensure all boxes are checked before requesting review.
+
+By following these templates, contributors help keep Zyra’s CLI aligned with real workflows and ensure documentation stays accurate and reproducible.
+
+---
+
 ## Code Style
 
 - Python 3.10+ required.  

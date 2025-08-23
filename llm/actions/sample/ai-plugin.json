@@ -1,0 +1,16 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Zyra Sample",
+  "name_for_model": "zyra_sample",
+  "description_for_human": "Sample Action for querying a simple status endpoint.",
+  "description_for_model": "Call the status endpoint to fetch basic health info.",
+  "auth": { "type": "none" },
+  "api": {
+    "type": "openapi",
+    "url": "./openapi.yaml"
+  },
+  "logo_url": "",
+  "contact_email": "ops@example.com",
+  "legal_info_url": ""
+}
+
