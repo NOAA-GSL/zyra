@@ -28,8 +28,10 @@ Contents
 .. toctree::
    :maxdepth: 2
    :caption: Wiki
+   :glob:
 
-   wiki/index
+   wiki/*
+   !wiki/_Footer
 
 .. toctree::
    :maxdepth: 1

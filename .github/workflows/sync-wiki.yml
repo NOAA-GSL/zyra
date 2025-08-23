@@ -30,7 +30,12 @@ jobs:
 
       - name: Sync wiki into docs/source/wiki
         run: |
-          rsync -av --delete wiki/ main/docs/source/wiki/
+          # Ensure no nested .git remains from previous runs
+          if [ -d main/docs/source/wiki ]; then
+            find main/docs/source/wiki -name .git -type d -prune -exec rm -rf {} + || true
+          fi
+          # Mirror wiki contents but exclude the wiki's .git directory
+          rsync -av --delete --exclude '.git' wiki/ main/docs/source/wiki/
 
       - name: Commit wiki changes (main only)
         run: |
