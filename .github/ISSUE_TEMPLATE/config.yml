@@ -1,0 +1,25 @@
+blank_issues_enabled: false
+
+issue_templates:
+  - name: "🐞 Bug Report"
+    description: "Report a reproducible problem in Zyra"
+    file: bug_report.md
+    labels: ["bug"]
+
+  - name: "✨ Feature Request"
+    description: "Propose a new feature or enhancement"
+    file: feature_request.md
+    labels: ["enhancement"]
+
+  - name: "⚡ Workflow Gap / Missing Command"
+    description: "Report missing CLI functionality needed for a workflow"
+    file: workflow_gap.md
+    labels: ["workflow-gap", "enhancement"]
+
+contact_links:
+  - name: "📖 Documentation"
+    url: "https://github.com/NOAA-GSL/zyra/wiki"
+    about: "Check the Zyra documentation for guidance before opening an issue"
+  - name: "💬 Discussions"
+    url: "https://github.com/NOAA-GSL/zyra/discussions"
+    about: "For design, philosophy, and open-ended questions, please use Discussions"
