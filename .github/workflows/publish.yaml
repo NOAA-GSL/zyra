@@ -2,8 +2,12 @@ name: Publish to PyPI
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
+
+concurrency:
+  group: pypi-publish-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   publish:
@@ -20,6 +24,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -38,11 +44,21 @@ jobs:
           key: poetry-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
           restore-keys: poetry-${{ runner.os }}-
 
-      - name: Install dependencies
-        run: poetry install --no-root
+      - name: Ensure tag matches version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="v$(poetry version -s)"
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "Tag $TAG does not match project version $VERSION"
+            exit 1
+          fi
 
       - name: Build package
         run: poetry build
 
       - name: Publish to PyPI
-        run: poetry publish --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+          packages-dir: dist/
+          password: ${{ secrets.PYPI_API_TOKEN }}
