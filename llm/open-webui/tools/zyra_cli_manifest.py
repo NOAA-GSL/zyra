@@ -10,6 +10,10 @@ import requests
 # Public GitHub raw (fallback for public access)
 DEFAULT_GITHUB_CAPS_URL = "https://raw.githubusercontent.com/NOAA-GSL/zyra/main/src/zyra/wizard/zyra_capabilities.json"
 
+# Default timeouts (seconds)
+DEFAULT_API_TIMEOUT = 1.5
+DEFAULT_NET_TIMEOUT = 2.0
+
 # Tool-level Valves (shown in Open WebUI Tools UI)
 VALVES = [
     {
@@ -111,8 +115,14 @@ class Pipeline:
         zyra_api_base: str | None = os.getenv("ZYRA_API_BASE", "http://localhost:8000")
         zyra_api_key: str | None = os.getenv("ZYRA_API_KEY")
         api_key_header: str = os.getenv("API_KEY_HEADER", "X-API-Key") or "X-API-Key"
-        api_timeout: float = float(os.getenv("ZYRA_API_TIMEOUT", "1.5") or 1.5)
-        net_timeout: float = float(os.getenv("ZYRA_NET_TIMEOUT", "2.0") or 2.0)
+        api_timeout: float = float(
+            os.getenv("ZYRA_API_TIMEOUT", str(DEFAULT_API_TIMEOUT))
+            or DEFAULT_API_TIMEOUT
+        )
+        net_timeout: float = float(
+            os.getenv("ZYRA_NET_TIMEOUT", str(DEFAULT_NET_TIMEOUT))
+            or DEFAULT_NET_TIMEOUT
+        )
         caps_url: str | None = os.getenv("ZYRA_CAPABILITIES_URL")
         offline: bool = (os.getenv("ZYRA_OFFLINE", "0") or "0").strip().lower() in {
             "1",
@@ -162,11 +172,11 @@ def _timeouts(valves: Any, prefix: str) -> tuple[float, float]:
             return default
 
     if prefix == "api":
-        base = _vv("api_timeout", 1.5)
+        base = _vv("api_timeout", DEFAULT_API_TIMEOUT)
         cto = _vv("api_connect_timeout", base)
         rto = _vv("api_read_timeout", base)
         return (cto, rto)
-    base = _vv("net_timeout", 2.0)
+    base = _vv("net_timeout", DEFAULT_NET_TIMEOUT)
     cto = _vv("net_connect_timeout", base)
     rto = _vv("net_read_timeout", base)
     return (cto, rto)

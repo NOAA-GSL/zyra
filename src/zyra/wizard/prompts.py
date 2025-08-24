@@ -39,13 +39,13 @@ def _load_system_prompt_from_assets() -> str | None:
         base = ir.files("zyra.assets").joinpath("llm/prompts/wizard_system.md")
         if base.is_file():
             return base.read_text(encoding="utf-8")
+        return None
     except (FileNotFoundError, UnicodeDecodeError, OSError, ModuleNotFoundError) as exc:
         # Log known recoverable issues and fall back to the built-in default.
         logging.getLogger(__name__).warning(
             "Failed to load wizard system prompt from assets: %s", exc
         )
         return None
-    return None
 
 
 # System prompt for the Wizard LLM, loaded from packaged assets when available.

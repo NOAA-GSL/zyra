@@ -7,6 +7,9 @@ from typing import Any
 
 from zyra.utils.env import env_int
 
+# Percentage to decimal divisor (e.g., 50 -> 0.5)
+PERCENTAGE_TO_DECIMAL = 100.0
+
 # In-memory cache for the computed manifest
 _CACHE: dict[str, Any] | None = None
 _CACHE_TS: float | None = None
@@ -159,12 +162,8 @@ def _compute_manifest() -> dict[str, Any]:
 
 
 def _cache_ttl_seconds() -> int:
-    try:
-        # env_int reads ZYRA_<KEY>, so pass bare KEY
-        return int(env_int("MANIFEST_CACHE_TTL", 300))
-    except (ValueError, TypeError):
-        # Fallback to default only for invalid types/values
-        return 300
+    # env_int reads ZYRA_<KEY> and already returns an int with defaults
+    return env_int("MANIFEST_CACHE_TTL", 300)
 
 
 def get_manifest(force_refresh: bool = False) -> dict[str, Any]:
@@ -234,7 +233,7 @@ def get_command(
 
     if fuzzy_cutoff is None:
         # Read percentage (0-100) and convert to 0.0-1.0 cutoff
-        fuzzy_cutoff = env_int("MANIFEST_FUZZY_CUTOFF", 50) / 100.0
+        fuzzy_cutoff = env_int("MANIFEST_FUZZY_CUTOFF", 50) / PERCENTAGE_TO_DECIMAL
 
     match = difflib.get_close_matches(command_name, names, n=1, cutoff=fuzzy_cutoff)
     if not match:

@@ -10,6 +10,11 @@ from typing import Any
 
 import requests
 
+# Client-side code search scan tuning
+SCAN_MULTIPLIER = 4  # scan up to 4x requested results
+MIN_SCAN_SIZE = 10  # ensure we scan at least 10 files
+MAX_SCAN_SIZE = 200  # hard cap on files scanned
+
 try:  # pragma: no cover - only needed in Open WebUI runtime
     from pydantic import BaseModel, Field  # type: ignore
 except Exception:  # pragma: no cover
@@ -816,8 +821,8 @@ class Tools:
             filtered.append(p)
 
         # 4) fetch and scan a limited number of files for the query string
-        max_scan = int(per_page or 10) * 4  # scan up to 4x requested results
-        max_scan = max(10, min(max_scan, 200))
+        max_scan = int(per_page or MIN_SCAN_SIZE) * SCAN_MULTIPLIER
+        max_scan = max(MIN_SCAN_SIZE, min(max_scan, MAX_SCAN_SIZE))
         results = []
         qre = re.compile(re.escape(query), re.IGNORECASE)
         for p in filtered[:max_scan]:
@@ -849,7 +854,7 @@ class Tools:
                             "snippet": snippet,
                         }
                     )
-            if len(results) >= int(per_page or 10):
+            if len(results) >= int(per_page or MIN_SCAN_SIZE):
                 break
 
         try:
