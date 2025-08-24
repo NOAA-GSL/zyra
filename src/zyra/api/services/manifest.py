@@ -10,13 +10,18 @@ from zyra.utils.env import env_int
 # Percentage-to-decimal divisor constant (e.g., 50 -> 0.5)
 PERCENT_TO_DECIMAL_DIVISOR = 100.0
 
+# Allowed detail keys for get_command()
+VALID_DETAILS = {"options", "example"}
+
 
 def percentage_to_decimal(percent: int | float) -> float:
     """Convert a 0–100 percentage to a 0.0–1.0 decimal fraction."""
     try:
         return float(percent) / PERCENT_TO_DECIMAL_DIVISOR
-    except Exception:
-        return 0.0
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"Invalid percentage value: {percent!r}. Expected a numeric 0–100."
+        ) from exc
 
 
 # In-memory cache for the computed manifest
@@ -293,6 +298,13 @@ def get_command(
     fuzzy_cutoff: float | None = None,
     refresh: bool = False,
 ) -> dict[str, Any]:
+    # Validate details parameter early to provide clear errors to API consumers
+    if details is not None and details not in VALID_DETAILS:
+        return {
+            "error": "Invalid details parameter",
+            "requested": details,
+            "allowed": sorted(list(VALID_DETAILS)),
+        }
     data = get_manifest(force_refresh=refresh)
     names = list(data.keys())
 
