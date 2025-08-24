@@ -1,0 +1,10 @@
+# Environment & secrets
+.env
+.env*
+*.env
+*.pem
+*.key
+*.cert
+
+# Dependency lockfile
+poetry.lock

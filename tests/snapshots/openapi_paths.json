@@ -3,6 +3,7 @@
   "/cli/commands",
   "/cli/examples",
   "/cli/run",
+  "/commands",
   "/health",
   "/jobs/{job_id}",
   "/jobs/{job_id}/download",

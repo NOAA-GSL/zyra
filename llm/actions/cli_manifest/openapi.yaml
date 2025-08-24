@@ -1,0 +1,104 @@
+openapi: 3.1.0
+info:
+  title: Zyra CLI Manifest API
+  version: "1.0.0"
+  description: |
+    Exposes the Zyra CLI command manifest (`zyra_capabilities.json`)
+    directly from the NOAA-GSL/zyra repository.
+
+    ⚠️ Note: An `/execute` endpoint is included as a placeholder but is currently disabled.
+    Only the `/zyra_capabilities.json` endpoint is active.
+
+servers:
+  - url: https://raw.githubusercontent.com/NOAA-GSL/zyra/main/src/zyra/wizard
+
+paths:
+  /zyra_capabilities.json:
+    get:
+      summary: Retrieve available CLI commands
+      operationId: listCommands
+      description: |
+        Fetch the latest Zyra CLI command manifest (`zyra_capabilities.json`)
+        from the main branch of the repository.
+      responses:
+        '200':
+          description: A JSON object describing all available CLI commands.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  commands:
+                    type: array
+                    description: List of CLI commands
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          description: Command name
+                          example: "generate-plot"
+                        description:
+                          type: string
+                          description: Human-readable description
+                          example: "Generate a visualization from a dataset"
+                        options:
+                          type: array
+                          description: CLI flags/options for the command
+                          items:
+                            type: object
+                            properties:
+                              flag:
+                                type: string
+                                example: "--input"
+                              description:
+                                type: string
+                                example: "Path to the input dataset"
+                              type:
+                                type: string
+                                enum: [string, integer, boolean, array, object]
+                                example: "string"
+
+  /execute:
+    post:
+      summary: Execute a Zyra command (DISABLED)
+      operationId: executeCommand
+      description: |
+        Placeholder for future functionality: run CLI commands via API.
+        This endpoint is currently disabled and will always return 501 Not Implemented.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                command:
+                  type: string
+                  description: CLI command name
+                  example: "generate-plot"
+                args:
+                  type: array
+                  items:
+                    type: string
+                  description: Positional arguments
+                  example: ["dataset.csv"]
+                options:
+                  type: object
+                  additionalProperties: true
+                  description: CLI options as key-value pairs
+                  example:
+                    --input: "dataset.csv"
+                    --format: "png"
+      responses:
+        '501':
+          description: Not implemented
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "This endpoint is disabled. Command execution is not available."
+
