@@ -75,6 +75,17 @@ Zyra now uses structured **Workflow Gap** issue and PR templates to ensure new C
   - Why the feature is needed
 - The template will guide you to include an implementation plan and examples.
 
+### Filing Task Issues (Maintenance / Chores)
+- Use the `🧹 Task` template (`.github/ISSUE_TEMPLATE/task.md`).
+- Use this for non-functional work such as refactors, dependency updates, CI or docs maintenance, code hygiene, and cleanup tasks.
+- Do not use for bugs or new features; if the work changes CLI semantics or adds commands, prefer the appropriate Bug/Feature/Workflow Gap template.
+- Please include:
+  - A concise scope statement (what is and is not in scope)
+  - Acceptance criteria (clear, testable completion conditions)
+  - Impact/risk notes (blast radius, rollback considerations)
+  - Validation steps (how reviewers can verify the task)
+  - Links to related issues/PRs
+
 ### Submitting PRs for Workflow Gaps
 - All PRs that add CLI functionality should link to the related Workflow Gap issue.
 - The PR template (`.github/PULL_REQUEST_TEMPLATE.md`) includes a checklist:
@@ -113,6 +124,7 @@ By following these templates, contributors help keep Zyra’s CLI aligned with r
 - Make sure your branch is up-to-date with `staging`.  
 - Include descriptive commit messages.  
 - Request a review from at least one maintainer.  
+ - Link the related issue (Bug/Feature/Workflow Gap/Task) in the PR description.  
 
 ---
 

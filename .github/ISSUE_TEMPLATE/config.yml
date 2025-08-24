@@ -16,6 +16,11 @@ issue_templates:
     file: workflow_gap.md
     labels: ["workflow-gap", "enhancement"]
 
+  - name: "🧹 Task"
+    description: "Track remedial or maintenance work (not a bug or feature)"
+    file: task.md
+    labels: ["task"]
+
 contact_links:
   - name: "📖 Documentation"
     url: "https://github.com/NOAA-GSL/zyra/wiki"
