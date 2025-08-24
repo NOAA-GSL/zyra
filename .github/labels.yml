@@ -1,0 +1,17 @@
+labels:
+  - name: bug
+    color: d73a4a
+    description: "Something isn't working"
+
+  - name: enhancement
+    color: a2eeef
+    description: "New feature or request"
+
+  - name: workflow-gap
+    color: fbca04
+    description: "Missing CLI functionality or structural gap"
+
+  - name: task
+    color: c5def5
+    description: "Remedial or maintenance work (not a bug or feature)"
+
