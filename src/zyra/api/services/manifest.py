@@ -160,8 +160,10 @@ def _compute_manifest() -> dict[str, Any]:
 
 def _cache_ttl_seconds() -> int:
     try:
-        return int(env_int("ZYRA_MANIFEST_CACHE_TTL", 300))
-    except Exception:
+        # env_int reads ZYRA_<KEY>, so pass bare KEY
+        return int(env_int("MANIFEST_CACHE_TTL", 300))
+    except (ValueError, TypeError):
+        # Fallback to default only for invalid types/values
         return 300
 
 
@@ -231,11 +233,8 @@ def get_command(
     names = list(data.keys())
 
     if fuzzy_cutoff is None:
-        try:
-            # no dedicated env-float helper; accept int seconds style values
-            fuzzy_cutoff = float(str(env_int("MANIFEST_FUZZY_CUTOFF", 0))) or 0.5
-        except Exception:
-            fuzzy_cutoff = 0.5
+        # Read percentage (0-100) and convert to 0.0-1.0 cutoff
+        fuzzy_cutoff = env_int("MANIFEST_FUZZY_CUTOFF", 50) / 100.0
 
     match = difflib.get_close_matches(command_name, names, n=1, cutoff=fuzzy_cutoff)
     if not match:

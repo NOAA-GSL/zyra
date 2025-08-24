@@ -296,15 +296,24 @@ class ContentResult:
     decoded_text: str | None = None
 
 
-def _decode_content(obj: dict[str, Any]) -> dict[str, Any]:
-    if isinstance(obj, dict) and obj.get("encoding") == "base64" and obj.get("content"):
+def _decode_content(obj: Any) -> Any:
+    """If given a GitHub contents file dict, return a copy with decoded_text.
+
+    - For GitHub file JSON objects with base64 `content`, returns a shallow copy
+      of the dict that includes `decoded_text` (UTF-8, errors replaced).
+    - For non-dict inputs or dicts without base64 content, returns the input unchanged.
+    """
+    if not isinstance(obj, dict):
+        return obj
+    if obj.get("encoding") == "base64" and obj.get("content"):
         try:
             raw = base64.b64decode(str(obj["content"]).encode())
             text = raw.decode("utf-8", errors="replace")
-            obj = dict(obj)
-            obj["decoded_text"] = text
+            new_obj = dict(obj)
+            new_obj["decoded_text"] = text
+            return new_obj
         except Exception:
-            pass
+            return obj
     return obj
 
 
