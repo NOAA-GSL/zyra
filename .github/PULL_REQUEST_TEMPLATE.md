@@ -7,8 +7,12 @@ Provide a short summary of the changes in this PR.
 ## Related Issue
 
 Closes #<issue-number> (or Links to: #<issue-number>)  
-Select one: Bug | Feature | Workflow Gap | Task
 
+## Issue Type
+- [ ] Bug
+- [ ] Feature
+- [ ] Workflow Gap
+- [ ] Task
 ## Changes
 
 - [ ] Implemented functionality in `src/zyra/`
