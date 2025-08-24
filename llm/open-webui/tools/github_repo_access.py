@@ -17,7 +17,7 @@ MAX_SCAN_SIZE = 200  # hard cap on files scanned
 
 try:  # pragma: no cover - only needed in Open WebUI runtime
     from pydantic import BaseModel, Field  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     BaseModel = object  # type: ignore[misc,assignment]
 
     def Field(*_a: object, **kw: object):  # type: ignore[func-returns-value]

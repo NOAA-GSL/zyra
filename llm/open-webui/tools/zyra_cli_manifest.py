@@ -102,7 +102,7 @@ VALVES = [
 
 try:  # pragma: no cover - only needed in Open WebUI runtime
     from pydantic import BaseModel, Field  # type: ignore
-except Exception:  # pragma: no cover
+except (ImportError, ModuleNotFoundError):  # pragma: no cover
     BaseModel = object  # type: ignore[misc,assignment]
 
     def Field(*_args: object, **_kwargs: object):  # type: ignore[func-returns-value]

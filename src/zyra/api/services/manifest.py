@@ -7,8 +7,17 @@ from typing import Any
 
 from zyra.utils.env import env_int
 
-# Percentage to decimal divisor (e.g., 50 -> 0.5)
-PERCENTAGE_TO_DECIMAL = 100.0
+# Percentage-to-decimal divisor constant (e.g., 50 -> 0.5)
+PERCENT_TO_DECIMAL_DIVISOR = 100.0
+
+
+def percentage_to_decimal(percent: int | float) -> float:
+    """Convert a 0–100 percentage to a 0.0–1.0 decimal fraction."""
+    try:
+        return float(percent) / PERCENT_TO_DECIMAL_DIVISOR
+    except Exception:
+        return 0.0
+
 
 # In-memory cache for the computed manifest
 _CACHE: dict[str, Any] | None = None
@@ -214,10 +223,66 @@ def list_commands(
 
 
 def _example_for(cmd: str, info: dict[str, Any]) -> str:
+    """Construct a basic example invocation for a command.
+
+    This is intentionally simple and meant as a hint, not exhaustive. We try to
+    include one positional (if present) and one common option flag with a
+    reasonable placeholder based on type hints.
+    """
     example = f"zyra {cmd}"
-    options = list((info.get("options") or {}).keys())
-    if options:
-        example += f" {options[0]} <value>"
+
+    # Include a positional placeholder if available (prefer required)
+    try:
+        pos_list = list(info.get("positionals") or [])
+        chosen_pos = next((p for p in pos_list if p.get("required")), None)
+        if chosen_pos is None and pos_list:
+            chosen_pos = pos_list[0]
+        if isinstance(chosen_pos, dict):
+            name = str(chosen_pos.get("name") or "arg")
+            example += f" <{name}>"
+    except Exception:
+        pass
+
+    # Choose a representative option flag
+    try:
+        options = info.get("options") or {}
+        if isinstance(options, dict) and options:
+            # Prefer common long-form flags if available
+            preferred = [
+                "--input",
+                "--inputs",
+                "--output",
+                "--output-dir",
+                "--file",
+                "--path",
+                "--url",
+            ]
+            flags = list(options.keys())
+            flag = next((f for f in preferred if f in flags), None)
+            if flag is None:
+                # Prefer any long flag, pick the longest for readability
+                long_flags = [
+                    f for f in flags if isinstance(f, str) and f.startswith("--")
+                ]
+                flag = max(long_flags, key=len) if long_flags else flags[0]
+
+            meta = options.get(flag, {}) if isinstance(flag, str) else {}
+            if isinstance(meta, dict):
+                typ = str(meta.get("type") or "")
+                path_arg = bool(meta.get("path_arg", False))
+                if typ == "bool":
+                    example += f" {flag}"
+                else:
+                    placeholder = "<value>"
+                    lname = flag.lower() if isinstance(flag, str) else ""
+                    if path_arg or any(k in lname for k in ("path", "file", "dir")):
+                        placeholder = "<path>"
+                    elif "url" in lname:
+                        placeholder = "<url>"
+                    example += f" {flag} {placeholder}"
+    except Exception:
+        pass
+
     return example
 
 
@@ -232,8 +297,8 @@ def get_command(
     names = list(data.keys())
 
     if fuzzy_cutoff is None:
-        # Read percentage (0-100) and convert to 0.0-1.0 cutoff
-        fuzzy_cutoff = env_int("MANIFEST_FUZZY_CUTOFF", 50) / PERCENTAGE_TO_DECIMAL
+        # Read percentage and convert to 0.0–1.0 cutoff via helper
+        fuzzy_cutoff = percentage_to_decimal(env_int("MANIFEST_FUZZY_CUTOFF", 50))
 
     match = difflib.get_close_matches(command_name, names, n=1, cutoff=fuzzy_cutoff)
     if not match:

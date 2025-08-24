@@ -40,10 +40,22 @@ def _load_system_prompt_from_assets() -> str | None:
         if base.is_file():
             return base.read_text(encoding="utf-8")
         return None
-    except (FileNotFoundError, UnicodeDecodeError, OSError, ModuleNotFoundError) as exc:
-        # Log known recoverable issues and fall back to the built-in default.
+    except ModuleNotFoundError as exc:
+        # Assets package not installed/available: expected in some runtimes.
+        logging.getLogger(__name__).info(
+            "Wizard assets package unavailable; using built-in prompt: %s", exc
+        )
+        return None
+    except FileNotFoundError as exc:
+        # Asset file missing from package. Warn and fall back.
         logging.getLogger(__name__).warning(
-            "Failed to load wizard system prompt from assets: %s", exc
+            "Wizard prompt asset not found; using built-in prompt: %s", exc
+        )
+        return None
+    except (UnicodeDecodeError, OSError) as exc:
+        # Decode or OS errors likely indicate corruption or permission issues.
+        logging.getLogger(__name__).error(
+            "Error reading wizard prompt asset; using built-in prompt: %s", exc
         )
         return None
 
