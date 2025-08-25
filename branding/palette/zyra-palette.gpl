@@ -1,0 +1,21 @@
+GIMP Palette
+Name: Zyra Base Palette
+Columns: 8
+# Updated with leaf green, soil, and cable blue
+   0   23   45	Navy	#00172D
+  26   90  105	Ocean Blue	#1A5A69
+   0   82  158	Cable Blue	#00529E
+  95  157  174	Seafoam	#5F9DAE
+   9   26   27	Deep Teal	#091A1B
+ 154  178  177	Mist	#9AB2B1
+  44  103   12	Leaf Green	#2C670C
+  87   98   22	Olive	#576216
+  80   69   44	Soil	#50452C
+ 255  193    7	Amber Accent	#FFC107
+ 244   67   54	Red Accent	#F44336
+  35   35   35	Neutral 900	#232323
+ 139  137  133	Neutral 700	#8B8985
+ 163  162  157	Neutral 600	#A3A29D
+ 216  215  211	Neutral 400	#D8D7D3
+ 247  245  238	Neutral 200	#F7F5EE
+ 254  254  254	Neutral 50	#FEFEFE

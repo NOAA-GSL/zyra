@@ -39,6 +39,12 @@ Contents
 
    contributing/wiki-sync
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Branding
+
+   branding/swatches
+
 External Wiki
 -------------
 
