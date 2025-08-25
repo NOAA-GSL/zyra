@@ -10,5 +10,7 @@
   "/jobs/{job_id}/manifest",
   "/llm/test",
   "/ready",
+  "/search",
+  "/search/profiles",
   "/upload"
 ]

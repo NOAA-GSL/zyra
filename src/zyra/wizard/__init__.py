@@ -1714,23 +1714,29 @@ def _run_semantic_search(
     prof_wms = prof_sources.get("ogc_wms") or []
     if isinstance(prof_wms, list):
         wms_urls = list(wms_urls) + [u for u in prof_wms if isinstance(u, str)]
+
     def _try_wms(query: str) -> None:
         for u in wms_urls:
             with suppress(Exception):
                 items.extend(
                     OGCWMSBackend(u, weights=prof_weights).search(query, limit=limit)
                 )
+
     _try_wms(q)
     # Remote Records
     prof_rec = prof_sources.get("ogc_records") or []
     if isinstance(prof_rec, list):
         rec_urls = list(rec_urls) + [u for u in prof_rec if isinstance(u, str)]
+
     def _try_rec(query: str) -> None:
         for u in rec_urls:
             with suppress(Exception):
                 items.extend(
-                    OGCRecordsBackend(u, weights=prof_weights).search(query, limit=limit)
+                    OGCRecordsBackend(u, weights=prof_weights).search(
+                        query, limit=limit
+                    )
                 )
+
     _try_rec(q)
 
     # Fallback query normalization if nothing found
@@ -1773,7 +1779,7 @@ def _run_semantic_search(
     if not items:
         print(
             "No results. Tip: try specifying a profile (e.g., --profile gibs) or using offline samples: "
-            "zyra search \"temperature\" --ogc-wms file:samples/ogc/sample_wms_capabilities.xml",
+            'zyra search "temperature" --ogc-wms file:samples/ogc/sample_wms_capabilities.xml',
         )
     return 0
 

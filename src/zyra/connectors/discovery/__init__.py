@@ -132,7 +132,9 @@ class LocalCatalogBackend(DiscoveryBackend):
         data = self._load()
         # Token-aware matching: break the query into words and score per-token
         tokens = [t for t in re.split(r"\W+", query) if t]
-        token_patterns = [re.compile(re.escape(t), re.IGNORECASE) for t in tokens if len(t) >= 3]
+        token_patterns = [
+            re.compile(re.escape(t), re.IGNORECASE) for t in tokens if len(t) >= 3
+        ]
         scored: list[tuple[int, dict[str, Any]]] = []
         if token_patterns:
             for it in data:
@@ -522,34 +524,54 @@ def _semantic_search(ns: argparse.Namespace) -> list[DatasetMetadata]:
     results: list[DatasetMetadata] = []
     # Local inclusion: mirror default behavior (remote-only when remote present unless include_local)
     any_remote = bool(
-        wms_urls or rec_urls or (isinstance(prof_sources.get("ogc_wms"), list) and prof_sources.get("ogc_wms")) or (isinstance(prof_sources.get("ogc_records"), list) and prof_sources.get("ogc_records"))
+        wms_urls
+        or rec_urls
+        or (
+            isinstance(prof_sources.get("ogc_wms"), list)
+            and prof_sources.get("ogc_wms")
+        )
+        or (
+            isinstance(prof_sources.get("ogc_records"), list)
+            and prof_sources.get("ogc_records")
+        )
     )
     if not remote_only:
         cat = catalog_file
         if not cat:
-            local = prof_sources.get("local") if isinstance(prof_sources.get("local"), dict) else None
+            local = (
+                prof_sources.get("local")
+                if isinstance(prof_sources.get("local"), dict)
+                else None
+            )
             if isinstance(local, dict):
                 cat = local.get("catalog_file")
         local_explicit = bool(cat)
         include_local_eff = include_local or (not any_remote)
         if include_local_eff or local_explicit:
-            results.extend(LocalCatalogBackend(cat, weights=prof_weights).search(q, limit=limit))
+            results.extend(
+                LocalCatalogBackend(cat, weights=prof_weights).search(q, limit=limit)
+            )
 
     # Remote WMS
     prof_wms = prof_sources.get("ogc_wms") or []
     if isinstance(prof_wms, list):
         wms_urls = list(wms_urls) + [u for u in prof_wms if isinstance(u, str)]
     from contextlib import suppress
+
     for u in wms_urls:
         with suppress(Exception):
-            results.extend(OGCWMSBackend(u, weights=prof_weights).search(q, limit=limit))
+            results.extend(
+                OGCWMSBackend(u, weights=prof_weights).search(q, limit=limit)
+            )
     # Remote Records
     prof_rec = prof_sources.get("ogc_records") or []
     if isinstance(prof_rec, list):
         rec_urls = list(rec_urls) + [u for u in prof_rec if isinstance(u, str)]
     for u in rec_urls:
         with suppress(Exception):
-            results.extend(OGCRecordsBackend(u, weights=prof_weights).search(q, limit=limit))
+            results.extend(
+                OGCRecordsBackend(u, weights=prof_weights).search(q, limit=limit)
+            )
 
     # Optional show-plan
     if getattr(ns, "show_plan", False):
@@ -598,7 +620,9 @@ def _semantic_analyze(ns: argparse.Namespace) -> int:
     if getattr(ns, "ogc_records", None):
         from .ogc_records import OGCRecordsBackend
 
-        items.extend(OGCRecordsBackend(ns.ogc_records).search(eff_query, limit=ns.limit))
+        items.extend(
+            OGCRecordsBackend(ns.ogc_records).search(eff_query, limit=ns.limit)
+        )
     # 2) Analyze via LLM
     import json as _json
 
@@ -608,7 +632,7 @@ def _semantic_analyze(ns: argparse.Namespace) -> int:
     def compact(d: DatasetMetadata) -> dict[str, Any]:
         desc = d.description or ""
         if len(desc) > 240:
-            desc = desc[: 239] + "…"
+            desc = desc[:239] + "…"
         return {
             "id": d.id,
             "name": d.name,

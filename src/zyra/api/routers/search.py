@@ -183,7 +183,9 @@ def list_profiles() -> dict[str, Any]:
                         }
                     )
                 except Exception:
-                    entries.append({"id": pid, "name": pid, "description": None, "keywords": []})
+                    entries.append(
+                        {"id": pid, "name": pid, "description": None, "keywords": []}
+                    )
         names.sort()
         entries.sort(key=lambda e: e.get("id") or "")
         return {"profiles": names, "entries": entries}
@@ -191,163 +193,6 @@ def list_profiles() -> dict[str, Any]:
         raise HTTPException(
             status_code=500, detail=f"Failed to list profiles: {e}"
         ) from e
-
-
-@router.post("/semantic_search")
-def semantic_search(body: dict) -> dict[str, Any]:
-    """Perform a generalized search and return LLM-assisted analysis/ranking.
-
-    Body keys (all optional except 'query'):
-    - query (str): user request
-    - limit (int)
-    - profile, profile_file, catalog_file (str)
-    - ogc_wms, ogc_records (str or list[str])
-    - include_local, remote_only (bool)
-    - analysis_limit (int): max items to pass to LLM (default: 20)
-    """
-    try:
-        q = str(body.get("query") or "").strip()
-        if not q:
-            raise HTTPException(status_code=400, detail="Missing 'query'")
-        limit = int(body.get("limit") or 10)
-        include_local = bool(body.get("include_local") or False)
-        remote_only = bool(body.get("remote_only") or False)
-        profile = body.get("profile")
-        profile_file = body.get("profile_file")
-        catalog_file = body.get("catalog_file")
-        analysis_limit = int(body.get("analysis_limit") or 20)
-        ogc_wms = body.get("ogc_wms")
-        ogc_records = body.get("ogc_records")
-        if isinstance(ogc_wms, list):
-            ogc_wms = ",".join(map(str, ogc_wms))
-        if isinstance(ogc_records, list):
-            ogc_records = ",".join(map(str, ogc_records))
-
-        # Reuse search logic from GET /search
-        items: list[Any] = []
-        from zyra.connectors.discovery import LocalCatalogBackend
-
-        prof_sources: dict[str, Any] = {}
-        prof_weights: dict[str, int] = {}
-        if profile:
-            import json as _json
-            from importlib import resources as importlib_resources
-
-            pkg = "zyra.assets.profiles"
-            res = f"{profile}.json"
-            path = importlib_resources.files(pkg).joinpath(res)
-            with importlib_resources.as_file(path) as p:
-                prof0 = _json.loads(p.read_text(encoding="utf-8"))
-            prof_sources.update(dict(prof0.get("sources") or {}))
-            prof_weights.update(
-                {k: int(v) for k, v in (prof0.get("weights") or {}).items()}
-            )
-        if profile_file:
-            import json as _json
-            from pathlib import Path
-
-            prof1 = _json.loads(Path(profile_file).read_text(encoding="utf-8"))
-            prof_sources.update(dict(prof1.get("sources") or {}))
-            prof_weights.update(
-                {k: int(v) for k, v in (prof1.get("weights") or {}).items()}
-            )
-
-        # Local inclusion
-        if not remote_only:
-            cat = catalog_file
-            if not cat:
-                local = (
-                    prof_sources.get("local")
-                    if isinstance(prof_sources.get("local"), dict)
-                    else None
-                )
-                if isinstance(local, dict):
-                    cat = local.get("catalog_file")
-            # If any remote present and local not explicit and include_local false, skip
-            any_remote = bool(ogc_wms or ogc_records or (isinstance(prof_sources.get("ogc_wms"), list) and prof_sources.get("ogc_wms")) or (isinstance(prof_sources.get("ogc_records"), list) and prof_sources.get("ogc_records")))
-            local_explicit = bool(cat)
-            if not (any_remote and not local_explicit and not include_local):
-                items.extend(LocalCatalogBackend(cat, weights=prof_weights).search(q, limit=limit))
-
-        # WMS
-        wms_urls: list[str] = []
-        if ogc_wms:
-            wms_urls.extend([u.strip() for u in str(ogc_wms).split(",") if u.strip()])
-        prof_wms = prof_sources.get("ogc_wms") or []
-        if isinstance(prof_wms, list):
-            wms_urls.extend([u for u in prof_wms if isinstance(u, str)])
-        if wms_urls:
-            from contextlib import suppress
-
-            from zyra.connectors.discovery.ogc import OGCWMSBackend
-
-            for url in wms_urls:
-                with suppress(Exception):
-                    items.extend(
-                        OGCWMSBackend(url, weights=prof_weights).search(q, limit=limit)
-                    )
-
-        # Records
-        rec_urls: list[str] = []
-        if ogc_records:
-            rec_urls.extend(
-                [u.strip() for u in str(ogc_records).split(",") if u.strip()]
-            )
-        prof_rec = prof_sources.get("ogc_records") or []
-        if isinstance(prof_rec, list):
-            rec_urls.extend([u for u in prof_rec if isinstance(u, str)])
-        if rec_urls:
-            from contextlib import suppress
-
-            from zyra.connectors.discovery.ogc_records import OGCRecordsBackend
-
-            for url in rec_urls:
-                with suppress(Exception):
-                    items.extend(
-                        OGCRecordsBackend(url, weights=prof_weights).search(q, limit=limit)
-                    )
-
-        # Prepare compact context for analysis
-        def compact(d: Any) -> dict[str, Any]:
-            desc = getattr(d, "description", None) or ""
-            if len(desc) > 240:
-                desc = desc[: 239] + "…"
-            return {
-                "id": getattr(d, "id", None),
-                "name": getattr(d, "name", None),
-                "description": desc,
-                "source": getattr(d, "source", None),
-                "format": getattr(d, "format", None),
-                "uri": getattr(d, "uri", None),
-            }
-
-        ctx_items = [compact(i) for i in items[: max(1, analysis_limit)]]
-
-        # Analyze via LLM
-        from zyra.wizard import _select_provider  # type: ignore[attr-defined]
-        from zyra.wizard.prompts import load_semantic_analysis_prompt
-
-        client = _select_provider(None, None)
-        sys_prompt = load_semantic_analysis_prompt()
-        import json as _json
-
-        user = _json.dumps({"query": q, "results": ctx_items})
-        analysis_raw = client.generate(sys_prompt, user)
-        try:
-            analysis = _json.loads(analysis_raw.strip())
-        except Exception:
-            analysis = {"summary": analysis_raw.strip(), "picks": []}
-
-        return {
-            "query": q,
-            "limit": limit,
-            "items": ctx_items,
-            "analysis": analysis,
-        }
-    except HTTPException:
-        raise
-    except Exception as e:  # pragma: no cover - defensive
-        raise HTTPException(status_code=500, detail=f"Semantic search failed: {e}") from e
 
 
 @router.post("/search")
@@ -418,10 +263,25 @@ def post_search(body: dict) -> dict[str, Any]:
                 )
                 if isinstance(local, dict):
                     cat = local.get("catalog_file")
-            any_remote = bool(ogc_wms or ogc_records or (isinstance(prof_sources.get("ogc_wms"), list) and prof_sources.get("ogc_wms")) or (isinstance(prof_sources.get("ogc_records"), list) and prof_sources.get("ogc_records")))
+            any_remote = bool(
+                ogc_wms
+                or ogc_records
+                or (
+                    isinstance(prof_sources.get("ogc_wms"), list)
+                    and prof_sources.get("ogc_wms")
+                )
+                or (
+                    isinstance(prof_sources.get("ogc_records"), list)
+                    and prof_sources.get("ogc_records")
+                )
+            )
             local_explicit = bool(cat)
             if not (any_remote and not local_explicit and not include_local):
-                items.extend(LocalCatalogBackend(cat, weights=prof_weights).search(q, limit=limit))
+                items.extend(
+                    LocalCatalogBackend(cat, weights=prof_weights).search(
+                        q, limit=limit
+                    )
+                )
 
         # WMS
         wms_urls: list[str] = []
@@ -458,7 +318,9 @@ def post_search(body: dict) -> dict[str, Any]:
             for url in rec_urls:
                 with suppress(Exception):
                     items.extend(
-                        OGCRecordsBackend(url, weights=prof_weights).search(q, limit=limit)
+                        OGCRecordsBackend(url, weights=prof_weights).search(
+                            q, limit=limit
+                        )
                     )
 
         # If not analyzing, return like GET /search (serialize dataclasses safely)
@@ -471,7 +333,7 @@ def post_search(body: dict) -> dict[str, Any]:
         def compact(d: Any) -> dict[str, Any]:
             desc = getattr(d, "description", None) or ""
             if len(desc) > 240:
-                desc = desc[: 239] + "…"
+                desc = desc[:239] + "…"
             return {
                 "id": getattr(d, "id", None),
                 "name": getattr(d, "name", None),
@@ -481,7 +343,9 @@ def post_search(body: dict) -> dict[str, Any]:
                 "uri": getattr(d, "uri", None),
             }
 
-        ctx_items = [compact(i) for i in items[: max(1, int(body.get("analysis_limit") or 20))]]
+        ctx_items = [
+            compact(i) for i in items[: max(1, int(body.get("analysis_limit") or 20))]
+        ]
         import json as _json
 
         from zyra.wizard import _select_provider  # type: ignore[attr-defined]

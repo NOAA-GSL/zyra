@@ -92,7 +92,9 @@ def load_semantic_analysis_prompt() -> str:
     try:
         from importlib import resources as ir
 
-        base = ir.files("zyra.assets").joinpath("llm/prompts/semantic_analysis_system.md")
+        base = ir.files("zyra.assets").joinpath(
+            "llm/prompts/semantic_analysis_system.md"
+        )
         with ir.as_file(base) as p:
             return p.read_text(encoding="utf-8")
     except Exception:
