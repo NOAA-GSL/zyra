@@ -10,6 +10,7 @@ Subpackages
    zyra.connectors.backends
    zyra.connectors.ingest
    zyra.connectors.egress
+   zyra.connectors.discovery
 
 Module contents
 ---------------

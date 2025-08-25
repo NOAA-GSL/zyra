@@ -1,0 +1,15 @@
+{
+  "name": "NOAA SOS Packaged Catalog",
+  "description": "Science On a Sphere (SOS) dataset catalog bundled with Zyra for offline/educational use.",
+  "keywords": ["sos", "noaa", "education", "catalog", "offline"],
+  "sources": {
+    "local": {
+      "catalog_file": "pkg:zyra.assets.metadata/sos_dataset_metadata.json"
+    }
+  },
+  "weights": {
+    "title": 3,
+    "description": 2,
+    "keywords": 1
+  }
+}

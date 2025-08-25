@@ -8,14 +8,16 @@ import re
 import shlex
 import uuid
 import warnings
+from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import datetime
 from importlib.util import find_spec as _find_spec
 from pathlib import Path
 from pathlib import Path as _Path
+from typing import Any
 
 from .llm_client import LLMClient
-from .prompts import SYSTEM_PROMPT
+from .prompts import SYSTEM_PROMPT, load_semantic_search_prompt
 from .resolver import MissingArgsError, MissingArgumentResolver
 
 try:
@@ -1531,8 +1533,37 @@ def register_cli(p: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Ask for missing required arguments in one-shot mode",
     )
+    p.add_argument(
+        "--semantic",
+        help=(
+            "Natural language semantic search (plans zyra search, runs backends, prints results)"
+        ),
+    )
+    p.add_argument(
+        "--limit",
+        type=int,
+        help="Override result limit for --semantic",
+    )
+    p.add_argument(
+        "--show-plan",
+        action="store_true",
+        help="Print the generated semantic search plan (JSON)",
+    )
 
     def _cmd(ns: argparse.Namespace) -> int:
+        # Semantic search one-shot
+        if getattr(ns, "semantic", None):
+            try:
+                return _run_semantic_search(
+                    ns.semantic,
+                    provider=ns.provider,
+                    model=ns.model,
+                    limit_override=ns.limit,
+                    show_plan=bool(getattr(ns, "show_plan", False)),
+                )
+            except Exception as e:
+                print(f"Semantic search failed: {e}")
+                return 2
         if ns.test_llm:
             ok, msg = _test_llm_connectivity(ns.provider, ns.model)
             print(msg)
@@ -1576,3 +1607,201 @@ def register_cli(p: argparse.ArgumentParser) -> None:
         return _interactive_loop(ns)
 
     p.set_defaults(func=_cmd)
+
+
+def _run_semantic_search(
+    nl_query: str,
+    *,
+    provider: str | None,
+    model: str | None,
+    limit_override: int | None,
+    show_plan: bool = False,
+) -> int:
+    """Plan and execute a semantic dataset search and print results.
+
+    Uses the same LLM provider/model as Wizard to produce a structured plan,
+    then executes discovery backends accordingly.
+    """
+    # 1) Plan with LLM
+    client = _select_provider(provider, model)
+    sys_prompt = load_semantic_search_prompt()
+    user = (
+        "Given a user's dataset request, produce a minimal JSON search plan.\n"
+        f"User request: {nl_query}\n"
+        "If unsure about endpoints, prefer profile 'sos'. Keep keys minimal."
+    )
+    plan_raw = client.generate(sys_prompt, user)
+    try:
+        import json as _json
+
+        plan = _json.loads(plan_raw.strip())
+    except Exception:
+        plan = {"query": nl_query, "profile": "sos"}
+    if limit_override is not None:
+        plan["limit"] = limit_override
+    raw_plan = dict(plan)
+
+    # 2) Execute using discovery backends
+    from zyra.connectors.discovery import LocalCatalogBackend
+    from zyra.connectors.discovery.ogc import OGCWMSBackend
+    from zyra.connectors.discovery.ogc_records import OGCRecordsBackend
+
+    q = str(plan.get("query", nl_query) or nl_query)
+    limit = int(plan.get("limit", 10))
+    include_local = bool(plan.get("include_local", False))
+    remote_only = bool(plan.get("remote_only", False))
+    profile = plan.get("profile")
+    catalog_file = plan.get("catalog_file")
+    wms_urls = plan.get("ogc_wms") or []
+    rec_urls = plan.get("ogc_records") or []
+
+    # Heuristic: choose/override a reasonable profile if none provided, or if LLM defaulted to 'sos'
+    if (not profile or profile == "sos") and not wms_urls and not rec_urls:
+        ql = q.lower()
+        if "sea surface temperature" in ql or "sst" in ql or "nasa" in ql:
+            profile = "gibs"
+        elif "lake" in ql or "pygeoapi" in ql:
+            profile = "pygeoapi"
+        else:
+            profile = "sos"
+
+    # Resolve profile sources
+    prof_sources: dict[str, Any] = {}
+    prof_weights: dict[str, int] = {}
+    if isinstance(profile, str) and profile:
+        with suppress(Exception):
+            import json as _json
+            from importlib import resources as ir
+
+            base = ir.files("zyra.assets.profiles").joinpath(profile + ".json")
+            with ir.as_file(base) as p:
+                pr = _json.loads(p.read_text(encoding="utf-8"))
+            prof_sources = dict(pr.get("sources") or {})
+            prof_weights = {k: int(v) for k, v in (pr.get("weights") or {}).items()}
+
+    items: list[Any] = []
+    # Local inclusion logic: remote-only if remote present and local not explicitly requested
+    any_remote = bool(
+        wms_urls
+        or rec_urls
+        or (
+            isinstance(prof_sources.get("ogc_wms"), list)
+            and prof_sources.get("ogc_wms")
+        )
+        or (
+            isinstance(prof_sources.get("ogc_records"), list)
+            and prof_sources.get("ogc_records")
+        )
+    )
+    if not remote_only:
+        cat = catalog_file
+        if not cat:
+            local = (
+                prof_sources.get("local")
+                if isinstance(prof_sources.get("local"), dict)
+                else None
+            )
+            if isinstance(local, dict):
+                cat = local.get("catalog_file")
+        local_explicit = bool(cat)
+        include_local_eff = include_local or (not any_remote)
+        if include_local_eff or local_explicit:
+            items.extend(
+                LocalCatalogBackend(cat, weights=prof_weights).search(q, limit=limit)
+            )
+
+    # Remote WMS
+    prof_wms = prof_sources.get("ogc_wms") or []
+    if isinstance(prof_wms, list):
+        wms_urls = list(wms_urls) + [u for u in prof_wms if isinstance(u, str)]
+    def _try_wms(query: str) -> None:
+        for u in wms_urls:
+            with suppress(Exception):
+                items.extend(
+                    OGCWMSBackend(u, weights=prof_weights).search(query, limit=limit)
+                )
+    _try_wms(q)
+    # Remote Records
+    prof_rec = prof_sources.get("ogc_records") or []
+    if isinstance(prof_rec, list):
+        rec_urls = list(rec_urls) + [u for u in prof_rec if isinstance(u, str)]
+    def _try_rec(query: str) -> None:
+        for u in rec_urls:
+            with suppress(Exception):
+                items.extend(
+                    OGCRecordsBackend(u, weights=prof_weights).search(query, limit=limit)
+                )
+    _try_rec(q)
+
+    # Fallback query normalization if nothing found
+    if not items:
+        ql = q.lower()
+        variants: list[str] = []
+        if "sea surface temperature" in ql or "sst" in ql:
+            variants += ["Sea Surface Temperature", "Temperature"]
+        if "precip" in ql:
+            variants += ["Precipitation", "Rain"]
+        for v in variants:
+            _try_wms(v)
+            _try_rec(v)
+            if items:
+                break
+
+    # Optionally print both the raw plan and effective execution plan
+    if show_plan:
+        try:
+            import json as _json
+
+            effective = {
+                "query": q,
+                "limit": limit,
+                "profile": profile,
+                "catalog_file": catalog_file,
+                "include_local": include_local,
+                "remote_only": remote_only,
+                "ogc_wms": wms_urls or None,
+                "ogc_records": rec_urls or None,
+            }
+            print(_json.dumps(raw_plan, indent=2))
+            print(_json.dumps({k: v for k, v in effective.items() if v}, indent=2))
+        except Exception:
+            pass
+
+    # Trim to limit and print human-readable table (with hint if empty)
+    items = items[: max(0, limit) or None]
+    _print_discovery_table(items)
+    if not items:
+        print(
+            "No results. Tip: try specifying a profile (e.g., --profile gibs) or using offline samples: "
+            "zyra search \"temperature\" --ogc-wms file:samples/ogc/sample_wms_capabilities.xml",
+        )
+    return 0
+
+
+def _print_discovery_table(items: list[Any]) -> None:
+    rows = [("ID", "Name", "Source", "Format", "URI")]
+    for d in items or []:
+        rows.append(
+            (
+                getattr(d, "id", ""),
+                getattr(d, "name", ""),
+                getattr(d, "source", ""),
+                getattr(d, "format", ""),
+                getattr(d, "uri", ""),
+            )
+        )
+    caps = (28, 36, 12, 8, 60)
+    widths = [
+        min(max(len(str(r[i])) for r in rows), caps[i]) for i in range(len(rows[0]))
+    ]
+
+    def fit(s: str, w: int) -> str:
+        return s if len(s) <= w else s[: max(0, w - 1)] + "\u2026"
+
+    for i, r in enumerate(rows):
+        line = "  ".join(
+            fit(str(r[j]), widths[j]).ljust(widths[j]) for j in range(len(r))
+        )
+        print(line)
+        if i == 0:
+            print("  ".join("-" * w for w in widths))

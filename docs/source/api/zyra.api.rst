@@ -9,3 +9,4 @@ Submodules
 
    zyra.api.server
    zyra.api.routers.cli
+   zyra.api.routers.search

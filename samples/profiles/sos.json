@@ -1,0 +1,13 @@
+{
+  "sources": {
+    "local": {
+      "catalog_file": "pkg:zyra.assets.metadata/sos_dataset_metadata.json"
+    }
+  },
+  "weights": {
+    "title": 3,
+    "description": 2,
+    "keywords": 1
+  }
+}
+

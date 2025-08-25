@@ -525,6 +525,14 @@ def main(argv: list[str] | None = None) -> int:
     elif first_non_flag == "run":
         # Already registered above
         pass
+    elif first_non_flag == "search":
+        # Single command for dataset discovery
+        from zyra.connectors import discovery as _discovery_mod
+
+        p_search = sub.add_parser(
+            "search", help="Search datasets (local SOS catalog; JSON/YAML export)"
+        )
+        _discovery_mod.register_cli(p_search)
     elif first_non_flag == "wizard":
         # Lightweight: registers a single command with optional LLM backends
         from zyra import wizard as _wizard_mod
@@ -535,6 +543,7 @@ def main(argv: list[str] | None = None) -> int:
         _wizard_mod.register_cli(p_wiz)
     elif first_non_flag == "generate-manifest":
         # Developer utility to generate capabilities manifest
+        from zyra.connectors import discovery as _discovery_mod
         from zyra.wizard.manifest import save_manifest as _save_manifest
 
         p_gen = sub.add_parser(
@@ -558,6 +567,7 @@ def main(argv: list[str] | None = None) -> int:
         import zyra.transform as _transform_mod
         from zyra import processing as _process_mod
         from zyra import wizard as _wizard_mod
+        from zyra.connectors import discovery as _discovery_mod
         from zyra.connectors import egress as _egress_mod
         from zyra.connectors import ingest as _ingest_mod
         from zyra.visualization import cli_register as _visual_mod
@@ -594,6 +604,12 @@ def main(argv: list[str] | None = None) -> int:
             "wizard", help="Interactive assistant that suggests/runs CLI commands"
         )
         _wizard_mod.register_cli(p_wiz)
+
+        # Search (single command)
+        p_search = sub.add_parser(
+            "search", help="Search datasets (local SOS catalog; JSON/YAML export)"
+        )
+        _discovery_mod.register_cli(p_search)
 
         # Generate-manifest
         p_gen = sub.add_parser(

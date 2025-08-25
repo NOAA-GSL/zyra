@@ -51,6 +51,16 @@ Project Structure & Module Organization
   - `utils/`: shared helpers/utilities.
   - `assets/`: packaged static resources; access with `importlib.resources` (`zyra.assets`).
   - `cli.py`, `pipeline_runner.py`: root CLI and pipeline runner.
+  - Capabilities manifest: `src/zyra/wizard/zyra_capabilities.json` (generated)
+
+### Updating the CLI Capabilities Manifest
+
+When you add or change CLI commands/options (e.g., new `search` flags), regenerate the capabilities manifest so assistants have an accurate view of the CLI:
+
+- `poetry run zyra generate-manifest`
+- Optionally write to a custom location with `-o path.json`
+
+The Wizard loads this manifest to ground its suggestions. If the file is missing, the Wizard falls back to building a dynamic manifest at runtime.
 
 Build, Test, and Development
 

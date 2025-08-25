@@ -1685,6 +1685,98 @@
     },
     "positionals": []
   },
+  "search": {
+    "description": "zyra search",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--query",
+          "--limit",
+          "--catalog-file",
+          "--include-local",
+          "--profile",
+          "--profile-file",
+          "--semantic-analyze",
+          "--analysis-limit",
+          "--semantic",
+          "--show-plan",
+          "--ogc-wms",
+          "--remote-only",
+          "--ogc-records",
+          "--json",
+          "--yaml",
+          "--select"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--query": "Search query (alternative to positional)",
+      "--limit": {
+        "help": "Maximum number of results (default: 10)",
+        "type": "int",
+        "default": 10
+      },
+      "--catalog-file": "Path to a local catalog JSON file (overrides packaged SOS catalog)",
+      "--include-local": {
+        "help": "When remote sources are provided, also include local catalog results",
+        "type": "str",
+        "default": false
+      },
+      "--profile": "Name of a bundled profile under zyra.assets.profiles (e.g., sos)",
+      "--profile-file": "Path to a JSON profile describing sources (local/ogc) and optional scoring weights",
+      "--semantic-analyze": {
+        "help": "Perform general search and send results to LLM for analysis/ranking (prints summary and picks)",
+        "type": "str",
+        "default": false
+      },
+      "--analysis-limit": {
+        "help": "Max number of results to include in LLM analysis (default: 20)",
+        "type": "int",
+        "default": 20
+      },
+      "--semantic": "Natural-language semantic search; plans sources via LLM and executes backends",
+      "--show-plan": {
+        "help": "Print the generated semantic search plan (JSON)",
+        "type": "str",
+        "default": false
+      },
+      "--ogc-wms": "WMS GetCapabilities URL to search (remote). If provided, results include remote matches; use --remote-only to skip local catalog.",
+      "--remote-only": {
+        "help": "When used with --ogc-wms, only show remote results",
+        "type": "str",
+        "default": false
+      },
+      "--ogc-records": "OGC API - Records items URL to search (remote). Often ends with /collections/{id}/items",
+      "--json": {
+        "help": "Output results in JSON format",
+        "type": "str",
+        "default": false
+      },
+      "--yaml": {
+        "help": "Output results in YAML format",
+        "type": "str",
+        "default": false
+      },
+      "--select": {
+        "help": "Select a single result by 1-based index and print its URI only",
+        "type": "int"
+      }
+    },
+    "positionals": [
+      {
+        "name": "query",
+        "help": "Search query (matches title/keywords/description)",
+        "type": "str",
+        "required": false,
+        "nargs": "?"
+      }
+    ]
+  },
   "run": {
     "description": "zyra run",
     "doc": "",
