@@ -182,6 +182,7 @@ The Wizard can ground suggestions using a structured capabilities manifest that 
 - Generation:
   - `poetry run zyra generate-manifest` (writes to `src/zyra/wizard/zyra_capabilities.json` by default).
   - Use `-o /path/to/file.json` to write elsewhere.
+  - Note: When new CLI commands or options are added (e.g., `search` flags), regenerate the manifest so assistants and tools stay in sync.
 - Packaging: The manifest under `src/zyra/wizard/zyra_capabilities.json` is bundled with the package.
 - Usage in Wizard: On each turn, Wizard loads the manifest (if present), selects relevant entries by keyword match against the user prompt, and prepends a short context like:
   - `- Relevant commands:`
@@ -287,3 +288,10 @@ After (enriched):
   - Wizard falls back to mock suggestions and continues; set `--provider mock` to avoid network entirely.
 - Nothing happens on execute:
   - Try `--dry-run` to inspect commands; then run with `-y`.
+Note on semantic dataset search
+-------------------------------
+
+Semantic dataset discovery now lives under the `search` command for a more natural fit:
+
+- Use: `zyra search --semantic "your dataset request" --limit 10 --show-plan`.
+- Wizard `--semantic` remains available for compatibility, but new workflows should prefer `zyra search --semantic`.
