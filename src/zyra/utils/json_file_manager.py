@@ -28,8 +28,11 @@ class JSONFileManager:
 
     Parameters
     ----------
-    file_path : str
-        Path to a JSON file on disk.
+    file_path : str | None
+        Optional path to a JSON file on disk. When provided, the file is read
+        immediately and made available via ``self.data``. When omitted, the
+        instance can be used with ``read_json``/``write_json`` utility methods
+        for ad-hoc file operations.
 
     Examples
     --------
@@ -38,12 +41,19 @@ class JSONFileManager:
         jm = JSONFileManager("./data.json")
         jm.data["foo"] = "bar"
         jm.save_file()
+
+    Ad-hoc helpers without binding to a path::
+
+        jm = JSONFileManager()
+        data = jm.read_json("./input.json")
+        jm.write_json("./out.json", data)
     """
 
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str | None = None):
         self.file_path = file_path
         self.data = None
-        self.read_file()
+        if file_path:
+            self.read_file()
 
     def read_file(self) -> None:
         """Read the JSON file from disk into memory.
@@ -54,6 +64,10 @@ class JSONFileManager:
             Populates ``self.data`` or sets it to ``None`` on error.
         """
         try:
+            if not self.file_path:
+                # Nothing to read if no file path is bound
+                self.data = None
+                return
             file = Path(self.file_path)
             with file.open("r") as f:
                 self.data = json.load(f)
@@ -78,11 +92,36 @@ class JSONFileManager:
         """
         file_path = new_file_path if new_file_path else self.file_path
         try:
+            if not file_path:
+                raise OSError("No file path provided for save_file")
             file_ = Path(file_path)
             with file_.open("w") as f:
                 json.dump(self.data, f, indent=4)
         except OSError:
             logging.error(f"Error writing to file: {file_path}")
+
+    # Lightweight helpers for callers that want one-off JSON IO without
+    # binding the manager to a specific path at construction time.
+    def read_json(self, path: str):
+        """Read JSON from ``path`` and return the parsed object.
+
+        Returns ``None`` and logs on error.
+        """
+        try:
+            return json.loads(Path(path).read_text(encoding="utf-8"))
+        except Exception:
+            logging.error(f"Error reading JSON from file: {path}")
+            return None
+
+    def write_json(self, path: str, data) -> None:
+        """Write ``data`` as pretty JSON to ``path``.
+
+        Logs on error and does not raise.
+        """
+        try:
+            Path(path).write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        except Exception:
+            logging.error(f"Error writing JSON to file: {path}")
 
     def update_dataset_times(self, target_id: str, directory: str) -> str:
         """Update start/end times for a dataset using directory image dates.

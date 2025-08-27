@@ -458,7 +458,9 @@ def register_cli(p: argparse.ArgumentParser) -> None:
                     )
                 )
                 # If no profile provided, auto-scope SOS defaults to local items
-                if not getattr(ns, "profile", None) and not getattr(ns, "profile_file", None):
+                if not getattr(ns, "profile", None) and not getattr(
+                    ns, "profile_file", None
+                ):
                     try:
                         pkg = "zyra.assets.profiles"
                         res = "sos.json"
@@ -467,8 +469,8 @@ def register_cli(p: argparse.ArgumentParser) -> None:
                             import json as _json
 
                             prof0 = _json.loads(p.read_text(encoding="utf-8"))
-                        enr = (prof0.get("enrichment") or {})
-                        ed = (enr.get("defaults") or {})
+                        enr = prof0.get("enrichment") or {}
+                        ed = enr.get("defaults") or {}
                         if isinstance(ed, dict):
                             prof_defaults.update(ed)
                         lp = enr.get("license_policy") or {}

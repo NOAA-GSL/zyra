@@ -24,5 +24,8 @@ def test_profile_defaults_applied_to_sos_items():
     )
     assert out and out[0].enrichment is not None
     s = out[0].enrichment.spatial
-    assert s is not None and s.crs == "EPSG:4326" and s.bbox == [-180.0, -90.0, 180.0, 90.0]
-
+    assert (
+        s is not None
+        and s.crs == "EPSG:4326"
+        and s.bbox == [-180.0, -90.0, 180.0, 90.0]
+    )

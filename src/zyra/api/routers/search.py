@@ -192,9 +192,11 @@ def search(
                         res = "sos.json"
                         path = importlib_resources.files(pkg).joinpath(res)
                         with importlib_resources.as_file(path) as p:
-                            prof0 = __import__("json").loads(p.read_text(encoding="utf-8"))
-                        enr = (prof0.get("enrichment") or {})
-                        ed = (enr.get("defaults") or {})
+                            prof0 = __import__("json").loads(
+                                p.read_text(encoding="utf-8")
+                            )
+                        enr = prof0.get("enrichment") or {}
+                        ed = enr.get("defaults") or {}
                         if isinstance(ed, dict):
                             prof_defaults.update(ed)
                         lp = enr.get("license_policy") or {}
@@ -432,8 +434,8 @@ def post_search(body: dict) -> dict[str, Any]:
                         path = importlib_resources.files(pkg).joinpath(res)
                         with importlib_resources.as_file(path) as p:
                             prof0 = _json.loads(p.read_text(encoding="utf-8"))
-                        enr = (prof0.get("enrichment") or {})
-                        ed = (enr.get("defaults") or {})
+                        enr = prof0.get("enrichment") or {}
+                        ed = enr.get("defaults") or {}
                         if isinstance(ed, dict):
                             prof_defaults.update(ed)
                         lp = enr.get("license_policy") or {}

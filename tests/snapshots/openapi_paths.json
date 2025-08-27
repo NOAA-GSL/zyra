@@ -4,6 +4,7 @@
   "/cli/examples",
   "/cli/run",
   "/commands",
+  "/enrich",
   "/health",
   "/jobs/{job_id}",
   "/jobs/{job_id}/download",
