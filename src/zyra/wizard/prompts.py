@@ -63,3 +63,42 @@ def _load_system_prompt_from_assets() -> str | None:
 # System prompt for the Wizard LLM, loaded from packaged assets when available.
 _asset_prompt = _load_system_prompt_from_assets()
 SYSTEM_PROMPT = _asset_prompt if _asset_prompt else _default_system_prompt()
+
+
+def load_semantic_search_prompt() -> str:
+    """Load system prompt for semantic search planning.
+
+    Falls back to a minimal built-in prompt if the asset is unavailable.
+    """
+    try:
+        from importlib import resources as ir
+
+        base = ir.files("zyra.assets").joinpath("llm/prompts/semantic_search_system.md")
+        with ir.as_file(base) as p:
+            return p.read_text(encoding="utf-8")
+    except Exception:
+        return (
+            "You convert natural language into a JSON search plan with keys: "
+            "query, limit, include_local, remote_only, profile, catalog_file, ogc_wms, ogc_records. "
+            "Return only JSON."
+        )
+
+
+def load_semantic_analysis_prompt() -> str:
+    """Load system prompt for semantic analysis of search results.
+
+    Falls back to a minimal built-in prompt if the asset is unavailable.
+    """
+    try:
+        from importlib import resources as ir
+
+        base = ir.files("zyra.assets").joinpath(
+            "llm/prompts/semantic_analysis_system.md"
+        )
+        with ir.as_file(base) as p:
+            return p.read_text(encoding="utf-8")
+    except Exception:
+        return (
+            "You analyze a user's request and a list of results, and return JSON with keys 'summary' and 'picks'. "
+            "Each pick is {id, reason}. Do not invent IDs."
+        )

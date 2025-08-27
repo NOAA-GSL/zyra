@@ -27,6 +27,12 @@ Contents
 
 .. toctree::
    :maxdepth: 2
+   :caption: Guides
+
+   discovery
+
+.. toctree::
+   :maxdepth: 2
    :caption: Wiki
    :glob:
 

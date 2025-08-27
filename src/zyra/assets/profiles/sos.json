@@ -1,0 +1,32 @@
+{
+  "name": "NOAA SOS Packaged Catalog",
+  "description": "Science On a Sphere (SOS) dataset catalog bundled with Zyra for offline/educational use.",
+  "keywords": ["sos", "noaa", "education", "catalog", "offline"],
+  "sources": {
+    "local": {
+      "catalog_file": "pkg:zyra.assets.metadata/sos_dataset_metadata.json"
+    }
+  },
+  "enrichment": {
+    "defaults": {
+      "spatial": {
+        "bbox": [-180.0, -90.0, 180.0, 90.0],
+        "crs": "EPSG:4326"
+      }
+    },
+    "license_policy": {
+      "noaa_domains": ["noaa.gov"],
+      "noaa_keywords": [
+        "NOAA",
+        "National Oceanic and Atmospheric Administration"
+      ],
+      "noaa_license": "Public domain (U.S. Government work)",
+      "non_noaa_note": "Ownership per contributing organization; see dataset page for permitted uses (educational/journalistic/personal) and restrictions for other uses."
+    }
+  },
+  "weights": {
+    "title": 3,
+    "description": 2,
+    "keywords": 1
+  }
+}

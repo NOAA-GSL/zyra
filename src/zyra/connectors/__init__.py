@@ -5,6 +5,7 @@ For flows that benefit from a light OO wrapper (e.g., persisting bucket/host
 config), thin connector classes are available in ``zyra.connectors.clients``.
 """
 
+from . import discovery as discovery  # help linters/IDE resolve subpackage
 from .base import (
     ByteRanged,
     Connector,
@@ -32,4 +33,6 @@ __all__ = [
     # Light OO wrappers
     "FTPConnector",
     "S3Connector",
+    # Subpackages
+    "discovery",
 ]

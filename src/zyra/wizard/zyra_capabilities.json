@@ -1623,6 +1623,90 @@
     },
     "positionals": []
   },
+  "transform enrich-datasets": {
+    "description": "zyra transform enrich-datasets",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--items-file",
+          "--profile",
+          "--profile-file",
+          "--enrich",
+          "--enrich-timeout",
+          "--enrich-workers",
+          "--cache-ttl",
+          "--offline",
+          "--https-only",
+          "--allow-host",
+          "--deny-host",
+          "--max-probe-bytes",
+          "--output"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--items-file": {
+        "help": "Path to items JSON",
+        "type": "str",
+        "required": true
+      },
+      "--profile": "Bundled profile name under zyra.assets.profiles",
+      "--profile-file": "External profile JSON path",
+      "--enrich": {
+        "help": "Enrichment level",
+        "choices": [
+          "shallow",
+          "capabilities",
+          "probe"
+        ],
+        "type": "str",
+        "required": true
+      },
+      "--enrich-timeout": {
+        "help": "Per-item timeout (s)",
+        "type": "float",
+        "default": 3.0
+      },
+      "--enrich-workers": {
+        "help": "Concurrency (workers)",
+        "type": "int",
+        "default": 4
+      },
+      "--cache-ttl": {
+        "help": "Cache TTL seconds",
+        "type": "int",
+        "default": 86400
+      },
+      "--offline": {
+        "help": "Disable network during enrichment",
+        "type": "str",
+        "default": false
+      },
+      "--https-only": {
+        "help": "Require HTTPS for remote probing",
+        "type": "str",
+        "default": false
+      },
+      "--allow-host": "Allow host suffix (repeatable)",
+      "--deny-host": "Deny host suffix (repeatable)",
+      "--max-probe-bytes": {
+        "help": "Skip probing when larger than this size",
+        "type": "int"
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      }
+    },
+    "positionals": []
+  },
   "transform update-dataset-json": {
     "description": "zyra transform update-dataset-json",
     "doc": "",
@@ -1681,6 +1765,139 @@
         "path_arg": true,
         "type": "path",
         "default": "-"
+      }
+    },
+    "positionals": []
+  },
+  "search api": {
+    "description": "zyra search api",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--url",
+          "--query",
+          "--limit",
+          "--json",
+          "--csv",
+          "--table",
+          "--verbose",
+          "--param",
+          "--header",
+          "--timeout",
+          "--retries",
+          "--concurrency",
+          "--no-openapi",
+          "--endpoint",
+          "--qp",
+          "--result-key",
+          "--post",
+          "--json-param",
+          "--json-body",
+          "--fields",
+          "--limit-total",
+          "--dedupe",
+          "--sort",
+          "--print-openapi",
+          "--suggest-flags"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--url": {
+        "help": "Base API URL (repeatable). Examples: https://zyra.noaa.gov/api",
+        "type": "str",
+        "required": true
+      },
+      "--query": {
+        "help": "Search query to pass to remote APIs",
+        "type": "str",
+        "required": true
+      },
+      "--limit": {
+        "help": "Maximum results per source (default: 10)",
+        "type": "int",
+        "default": 10
+      },
+      "--json": {
+        "help": "Output in JSON (default)",
+        "type": "str",
+        "default": false
+      },
+      "--csv": {
+        "help": "Output in CSV (columns: source,dataset,description,link)",
+        "type": "str",
+        "default": false
+      },
+      "--table": {
+        "help": "Pretty table output to the terminal",
+        "type": "str",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Print debug info about requests and response shapes",
+        "type": "str",
+        "default": false
+      },
+      "--param": "Extra query param k=v (repeatable)",
+      "--header": "HTTP header k=v (repeatable)",
+      "--timeout": {
+        "help": "Request timeout seconds (default: 30)",
+        "type": "float",
+        "default": 30.0
+      },
+      "--retries": {
+        "help": "Retry attempts for transient failures (default: 0)",
+        "type": "int",
+        "default": 0
+      },
+      "--concurrency": {
+        "help": "Parallel requests across URLs (default: 4)",
+        "type": "int",
+        "default": 4
+      },
+      "--no-openapi": {
+        "help": "Skip OpenAPI discovery and use /search",
+        "type": "str",
+        "default": false
+      },
+      "--endpoint": "Override endpoint path (e.g., /search/items)",
+      "--qp": "Override query parameter name (default: q)",
+      "--result-key": "Read array from this key when response is an object (e.g., items)",
+      "--post": {
+        "help": "Use POST /search with JSON body instead of GET",
+        "type": "str",
+        "default": false
+      },
+      "--json-param": "JSON body field k=v (repeatable)",
+      "--json-body": "JSON body as raw string or @/path/to/file.json",
+      "--fields": "Comma-separated output fields for CSV/table (default: source,dataset,link)",
+      "--limit-total": {
+        "help": "Limit total aggregated results across URLs",
+        "type": "int"
+      },
+      "--dedupe": {
+        "help": "Drop duplicates by key (dataset or link)",
+        "choices": [
+          "dataset",
+          "link"
+        ],
+        "type": "str"
+      },
+      "--sort": "Sort by comma-separated keys (e.g., source,dataset)",
+      "--print-openapi": {
+        "help": "Print discovered endpoint and query params for each URL",
+        "type": "str",
+        "default": false
+      },
+      "--suggest-flags": {
+        "help": "Suggest simple OpenAPI query params that can be passed via --param",
+        "type": "str",
+        "default": false
       }
     },
     "positionals": []

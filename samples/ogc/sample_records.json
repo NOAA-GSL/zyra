@@ -1,0 +1,31 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "temp-1",
+      "properties": {
+        "title": "Global Temperature Tiles",
+        "description": "OGC tiles of global temperature",
+        "keywords": ["temperature", "global"]
+      },
+      "links": [
+        {"rel": "self", "href": "https://example.com/collections/temp/items?f=json"},
+        {"rel": "data", "href": "https://example.com/collections/temp"}
+      ]
+    },
+    {
+      "type": "Feature",
+      "id": "precip-1",
+      "properties": {
+        "title": "Precipitation",
+        "description": "Accumulated precipitation",
+        "keywords": ["precip", "rain"]
+      },
+      "links": [
+        {"rel": "items", "href": "https://example.com/collections/precip/items"}
+      ]
+    }
+  ]
+}
+

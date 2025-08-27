@@ -110,7 +110,7 @@ def _cmd_metadata(ns: argparse.Namespace) -> int:
 
 
 def register_cli(subparsers: Any) -> None:
-    """Register transform subcommands (metadata, enrich-metadata, update-dataset-json)."""
+    """Register transform subcommands (metadata, enrich-metadata, enrich-datasets, update-dataset-json)."""
     p = subparsers.add_parser("metadata", help="Compute frames metadata as JSON")
     p.add_argument(
         "--frames-dir",
@@ -195,6 +195,151 @@ def register_cli(subparsers: Any) -> None:
     )
     add_output_option(p2)
     p2.set_defaults(func=_cmd_enrich)
+
+    # Enrich a list of dataset items (id,name,description,source,format,uri)
+    def _cmd_enrich_datasets(ns: argparse.Namespace) -> int:
+        """CLI: enrich dataset items provided in a JSON file.
+
+        Input JSON can be either a list of items or an object with an `items` array.
+        Each item should contain: id, name, description, source, format, uri.
+        """
+        configure_logging_from_env()
+        from zyra.connectors.discovery import DatasetMetadata
+        from zyra.transform.enrich import enrich_items
+        from zyra.utils.json_file_manager import JSONFileManager
+        from zyra.utils.serialize import to_list
+
+        fm = JSONFileManager()
+        try:
+            data = fm.read_json(ns.items_file)
+        except Exception as exc:
+            raise SystemExit(f"Failed to read items JSON: {exc}") from exc
+        if isinstance(data, dict) and isinstance(data.get("items"), list):
+            items_in_raw = data.get("items")
+        elif isinstance(data, list):
+            items_in_raw = data
+        else:
+            raise SystemExit(
+                "Input JSON must be a list or an object with an 'items' array"
+            )
+
+        # Optional profiles for defaults and license policy
+        prof_defaults: dict[str, Any] = {}
+        prof_license_policy: dict[str, Any] = {}
+        if getattr(ns, "profile", None):
+            try:
+                from importlib import resources as importlib_resources
+
+                pkg = "zyra.assets.profiles"
+                res = f"{ns.profile}.json"
+                path = importlib_resources.files(pkg).joinpath(res)
+                with importlib_resources.as_file(path) as p:
+                    import json as _json
+
+                    prof0 = _json.loads(p.read_text(encoding="utf-8"))
+                enr = prof0.get("enrichment") or {}
+                ed = enr.get("defaults") or {}
+                if isinstance(ed, dict):
+                    prof_defaults.update(ed)
+                lp = enr.get("license_policy") or {}
+                if isinstance(lp, dict):
+                    prof_license_policy.update(lp)
+            except Exception as exc:
+                raise SystemExit(
+                    f"Failed to load bundled profile '{ns.profile}': {exc}"
+                ) from exc
+        if getattr(ns, "profile_file", None):
+            try:
+                import json as _json
+
+                prof1 = _json.loads(Path(ns.profile_file).read_text(encoding="utf-8"))
+                enr = prof1.get("enrichment") or {}
+                ed = enr.get("defaults") or {}
+                if isinstance(ed, dict):
+                    prof_defaults.update(ed)
+                lp = enr.get("license_policy") or {}
+                if isinstance(lp, dict):
+                    prof_license_policy.update(lp)
+            except Exception as exc:
+                raise SystemExit(f"Failed to load profile file: {exc}") from exc
+
+        # Normalize to DatasetMetadata
+        items_in: list[DatasetMetadata] = []
+        for d in items_in_raw:
+            try:
+                items_in.append(
+                    DatasetMetadata(
+                        id=str(d.get("id")),
+                        name=str(d.get("name")),
+                        description=d.get("description"),
+                        source=str(d.get("source")),
+                        format=str(d.get("format")),
+                        uri=str(d.get("uri")),
+                    )
+                )
+            except Exception:
+                continue
+        enriched = enrich_items(
+            items_in,
+            level=str(ns.enrich),
+            timeout=float(getattr(ns, "enrich_timeout", 3.0) or 3.0),
+            workers=int(getattr(ns, "enrich_workers", 4) or 4),
+            cache_ttl=int(getattr(ns, "cache_ttl", 86400) or 86400),
+            offline=bool(getattr(ns, "offline", False) or False),
+            https_only=bool(getattr(ns, "https_only", False) or False),
+            allow_hosts=list(getattr(ns, "allow_host", []) or []),
+            deny_hosts=list(getattr(ns, "deny_host", []) or []),
+            max_probe_bytes=(getattr(ns, "max_probe_bytes", None)),
+            profile_defaults=prof_defaults,
+            profile_license_policy=prof_license_policy,
+        )
+        payload = (json.dumps(to_list(enriched), indent=2) + "\n").encode("utf-8")
+        with open_output(ns.output) as f:
+            f.write(payload)
+        return 0
+
+    p3 = subparsers.add_parser(
+        "enrich-datasets",
+        help=(
+            "Enrich dataset items JSON (id,name,description,source,format,uri) with metadata\n"
+            "Use --profile/--profile-file for defaults and license policy"
+        ),
+    )
+    p3.add_argument(
+        "--items-file", required=True, dest="items_file", help="Path to items JSON"
+    )
+    p3.add_argument("--profile", help="Bundled profile name under zyra.assets.profiles")
+    p3.add_argument("--profile-file", help="External profile JSON path")
+    p3.add_argument(
+        "--enrich",
+        required=True,
+        choices=["shallow", "capabilities", "probe"],
+        help="Enrichment level",
+    )
+    p3.add_argument(
+        "--enrich-timeout", type=float, default=3.0, help="Per-item timeout (s)"
+    )
+    p3.add_argument(
+        "--enrich-workers", type=int, default=4, help="Concurrency (workers)"
+    )
+    p3.add_argument("--cache-ttl", type=int, default=86400, help="Cache TTL seconds")
+    p3.add_argument(
+        "--offline", action="store_true", help="Disable network during enrichment"
+    )
+    p3.add_argument(
+        "--https-only", action="store_true", help="Require HTTPS for remote probing"
+    )
+    p3.add_argument(
+        "--allow-host", action="append", help="Allow host suffix (repeatable)"
+    )
+    p3.add_argument(
+        "--deny-host", action="append", help="Deny host suffix (repeatable)"
+    )
+    p3.add_argument(
+        "--max-probe-bytes", type=int, help="Skip probing when larger than this size"
+    )
+    add_output_option(p3)
+    p3.set_defaults(func=_cmd_enrich_datasets)
 
     # Update a dataset.json entry's startTime/endTime (and optionally dataLink) by dataset id
     def _cmd_update_dataset(ns: argparse.Namespace) -> int:

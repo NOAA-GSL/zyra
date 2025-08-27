@@ -1,0 +1,23 @@
+{
+  "name": "NASA GIBS WMS (EPSG:4326 'best')",
+  "description": "NASA Global Imagery Browse Services (GIBS) Web Map Service; global imagery layers (e.g., SST).",
+  "keywords": ["nasa", "gibs", "wms", "imagery", "layers", "sst", "temperature"],
+  "sources": {
+    "ogc_wms": [
+      "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?service=WMS&request=GetCapabilities"
+    ]
+  },
+  "enrichment": {
+    "defaults": {
+      "spatial": {
+        "crs": "EPSG:4326"
+      }
+    }
+  },
+  "weights": {
+    "title": 3,
+    "abstract": 2,
+    "name": 1,
+    "keywords": 1
+  }
+}
