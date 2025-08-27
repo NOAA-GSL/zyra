@@ -15,12 +15,12 @@ from dataclasses import dataclass
 from typing import Any
 
 from . import DatasetMetadata, DiscoveryBackend
+from .utils import slugify
 
 
 def _slug(s: str) -> str:
-    import re as _re
-
-    return _re.sub(r"\W+", "-", s).strip("-").lower()
+    # Backward-compatibility wrapper; use shared utility
+    return slugify(s)
 
 
 @dataclass
@@ -56,7 +56,7 @@ class OGCRecordsBackend(DiscoveryBackend):
             r = requests.get(url, timeout=10)
             r.raise_for_status()
             return r.json()
-        except ModuleNotFoundError as e:  # pragma: no cover - env dependent
+        except ImportError as e:  # pragma: no cover - env dependent
             raise RuntimeError(
                 "requests is not installed; provide items_json or install connectors extras"
             ) from e

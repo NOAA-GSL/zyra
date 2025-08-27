@@ -1655,15 +1655,48 @@ def _run_semantic_search(
     wms_urls = plan.get("ogc_wms") or []
     rec_urls = plan.get("ogc_records") or []
 
-    # Heuristic: choose/override a reasonable profile if none provided, or if LLM defaulted to 'sos'
+    # Heuristic: choose/override a reasonable profile from configurable rules
     if (not profile or profile == "sos") and not wms_urls and not rec_urls:
-        ql = q.lower()
-        if "sea surface temperature" in ql or "sst" in ql or "nasa" in ql:
-            profile = "gibs"
-        elif "lake" in ql or "pygeoapi" in ql:
-            profile = "pygeoapi"
-        else:
-            profile = "sos"
+
+        def _select_profile_from_rules(text: str) -> str:
+            import json as _json
+            import re as _re
+            from importlib import resources as _ir
+
+            # Load bundled rules; fall back to in-code defaults
+            rules: list[dict] = []
+            try:
+                base = _ir.files("zyra.assets.profiles").joinpath(
+                    "profile_heuristics.json"
+                )
+                with _ir.as_file(base) as p:
+                    rules = _json.loads(p.read_text(encoding="utf-8"))
+            except Exception:
+                rules = [
+                    {
+                        "profile": "gibs",
+                        "contains_any": ["sea surface temperature", "sst", "nasa"],
+                    },
+                    {"profile": "pygeoapi", "contains_any": ["lake", "pygeoapi"]},
+                ]
+            tl = text.lower()
+            for r in rules:
+                prof = str(r.get("profile") or "").strip()
+                if not prof:
+                    continue
+                any_terms = [str(s).lower() for s in (r.get("contains_any") or [])]
+                if any_terms and any(t in tl for t in any_terms):
+                    return prof
+                any_rx = r.get("regex_any") or []
+                for pat in any_rx:
+                    try:
+                        if _re.search(str(pat), text, _re.IGNORECASE):
+                            return prof
+                    except Exception:
+                        continue
+            return "sos"
+
+        profile = _select_profile_from_rules(q)
 
     # Resolve profile sources
     prof_sources: dict[str, Any] = {}

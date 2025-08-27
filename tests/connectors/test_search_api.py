@@ -48,7 +48,7 @@ class _FakeRequests:
         }
         return _DummyResponse(self.payload)
 
-    def post(self, url, json=None, headers=None, timeout=None):  # noqa: A002 - param name json intentional
+    def post(self, url, json=None, headers=None, timeout=None):
         self.last.post = {
             "url": url,
             "json": json,

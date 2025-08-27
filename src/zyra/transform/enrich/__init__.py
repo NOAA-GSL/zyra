@@ -25,12 +25,12 @@ from .models import (
 class BaseEnricher(Protocol):
     name: str
 
-    def supports(self, item: DatasetMetadata) -> bool:  # pragma: no cover - interface
+    def supports(self, item: DatasetMetadata) -> bool:
         ...
 
     def enrich(
         self, item: DatasetMetadata, level: str, ctx: dict[str, Any]
-    ) -> DatasetEnrichment | None:  # pragma: no cover - interface
+    ) -> DatasetEnrichment | None:
         ...
 
 

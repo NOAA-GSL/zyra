@@ -666,73 +666,45 @@ def register_cli(p: argparse.ArgumentParser) -> None:
                 print(f"Failed to load profile: {e}", file=__import__("sys").stderr)
                 return 2
 
-        # Decide whether to include local: default to remote-only when any remote
-        # sources are provided, unless explicitly including local.
-        include_local = not ns.remote_only
-        # Determine remote presence from CLI flags and profile
-        any_remote = bool(
-            getattr(ns, "ogc_wms", None) or getattr(ns, "ogc_records", None)
-        )
-        # profile-based remote (set later) also counts; we'll recompute after loading profile
-        if not ns.remote_only and include_local:
-            # After profile load, we can refine below
-            pass
+        # Decide local inclusion consistently via helper
+        from .utils import compute_inclusion
 
-        if not ns.remote_only:
-            # CLI override takes precedence, else use profile's local.catalog_file
-            cat_path = getattr(ns, "catalog_file", None)
-            if not cat_path:
-                local = (
-                    prof_sources.get("local")
-                    if isinstance(prof_sources.get("local"), dict)
-                    else None
-                )
-                if isinstance(local, dict):
-                    cat_path = local.get("catalog_file")
-            # If remote requested and no local explicitly configured and not include-local, skip local
-            # Recompute any_remote including profile sources
-            prof_has_remote = bool(
-                (
-                    isinstance(prof_sources.get("ogc_wms"), list)
-                    and prof_sources.get("ogc_wms")
-                )
-                or (
-                    isinstance(prof_sources.get("ogc_records"), list)
-                    and prof_sources.get("ogc_records")
+        include_local, any_remote, cat_path = compute_inclusion(
+            getattr(ns, "ogc_wms", None),
+            getattr(ns, "ogc_records", None),
+            prof_sources,
+            remote_only=bool(getattr(ns, "remote_only", False)),
+            include_local_flag=bool(getattr(ns, "include_local", False)),
+            catalog_file_flag=getattr(ns, "catalog_file", None),
+        )
+        if include_local:
+            items.extend(
+                LocalCatalogBackend(cat_path, weights=prof_weights).search(
+                    effective_query, limit=ns.limit
                 )
             )
-            any_remote = any_remote or prof_has_remote
-            local_explicit = bool(cat_path)
-            if (not ns.include_local) and any_remote and not local_explicit:
-                include_local = False
-            if include_local:
-                items.extend(
-                    LocalCatalogBackend(cat_path, weights=prof_weights).search(
-                        effective_query, limit=ns.limit
-                    )
-                )
-                # If no profile provided, auto-scope SOS defaults to local items
-                if not getattr(ns, "profile", None) and not getattr(
-                    ns, "profile_file", None
-                ):
-                    try:
-                        pkg = "zyra.assets.profiles"
-                        res = "sos.json"
-                        path = importlib_resources.files(pkg).joinpath(res)
-                        with importlib_resources.as_file(path) as p:
-                            import json as _json
+            # If no profile provided, auto-scope SOS defaults to local items
+            if not getattr(ns, "profile", None) and not getattr(
+                ns, "profile_file", None
+            ):
+                try:
+                    pkg = "zyra.assets.profiles"
+                    res = "sos.json"
+                    path = importlib_resources.files(pkg).joinpath(res)
+                    with importlib_resources.as_file(path) as p:
+                        import json as _json
 
-                            prof0 = _json.loads(p.read_text(encoding="utf-8"))
-                        enr = prof0.get("enrichment") or {}
-                        ed = enr.get("defaults") or {}
-                        if isinstance(ed, dict):
-                            prof_defaults.update(ed)
-                        lp = enr.get("license_policy") or {}
-                        if isinstance(lp, dict):
-                            prof_license_policy.update(lp)
-                        defaults_sources = ["sos-catalog"]
-                    except Exception:
-                        pass
+                        prof0 = _json.loads(p.read_text(encoding="utf-8"))
+                    enr = prof0.get("enrichment") or {}
+                    ed = enr.get("defaults") or {}
+                    if isinstance(ed, dict):
+                        prof_defaults.update(ed)
+                    lp = enr.get("license_policy") or {}
+                    if isinstance(lp, dict):
+                        prof_license_policy.update(lp)
+                    defaults_sources = ["sos-catalog"]
+                except Exception:
+                    pass
         # Optional remote OGC WMS
         # Remote WMS: combine CLI flag and profile list
         wms_urls = []
@@ -906,35 +878,20 @@ def _semantic_search(ns: argparse.Namespace) -> list[DatasetMetadata]:
             prof_weights = {k: int(v) for k, v in (pr.get("weights") or {}).items()}
 
     results: list[DatasetMetadata] = []
-    # Local inclusion: mirror default behavior (remote-only when remote present unless include_local)
-    any_remote = bool(
-        wms_urls
-        or rec_urls
-        or (
-            isinstance(prof_sources.get("ogc_wms"), list)
-            and prof_sources.get("ogc_wms")
-        )
-        or (
-            isinstance(prof_sources.get("ogc_records"), list)
-            and prof_sources.get("ogc_records")
-        )
+    from .utils import compute_inclusion as _compute_inclusion
+
+    include_local_eff, _any_remote, cat = _compute_inclusion(
+        wms_urls,
+        rec_urls,
+        prof_sources,
+        remote_only=bool(remote_only),
+        include_local_flag=bool(include_local),
+        catalog_file_flag=catalog_file,
     )
-    if not remote_only:
-        cat = catalog_file
-        if not cat:
-            local = (
-                prof_sources.get("local")
-                if isinstance(prof_sources.get("local"), dict)
-                else None
-            )
-            if isinstance(local, dict):
-                cat = local.get("catalog_file")
-        local_explicit = bool(cat)
-        include_local_eff = include_local or (not any_remote)
-        if include_local_eff or local_explicit:
-            results.extend(
-                LocalCatalogBackend(cat, weights=prof_weights).search(q, limit=limit)
-            )
+    if include_local_eff:
+        results.extend(
+            LocalCatalogBackend(cat, weights=prof_weights).search(q, limit=limit)
+        )
 
     # Remote WMS
     prof_wms = prof_sources.get("ogc_wms") or []
@@ -1010,23 +967,14 @@ def _semantic_analyze(ns: argparse.Namespace) -> int:
     # 2) Analyze via LLM
     import json as _json
 
+    from zyra.utils.serialize import compact_dataset
     from zyra.wizard import _select_provider  # type: ignore[attr-defined]
     from zyra.wizard.prompts import load_semantic_analysis_prompt
 
-    def compact(d: DatasetMetadata) -> dict[str, Any]:
-        desc = d.description or ""
-        if len(desc) > 240:
-            desc = desc[:239] + "…"
-        return {
-            "id": d.id,
-            "name": d.name,
-            "description": desc,
-            "source": d.source,
-            "format": d.format,
-            "uri": d.uri,
-        }
-
-    ctx_items = [compact(i) for i in items[: max(1, getattr(ns, "analysis_limit", 20))]]
+    ctx_items = [
+        compact_dataset(i, max_desc_len=240)
+        for i in items[: max(1, getattr(ns, "analysis_limit", 20))]
+    ]
     client = _select_provider(None, None)
     sys_prompt = load_semantic_analysis_prompt()
     user = _json.dumps({"query": eff_query, "results": ctx_items})

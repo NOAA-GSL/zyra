@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from . import DatasetMetadata, DiscoveryBackend
+from .utils import slugify
 
 
 def _findtext(el: ET.Element, local_name: str) -> str | None:
@@ -36,7 +37,8 @@ def _findtext(el: ET.Element, local_name: str) -> str | None:
 
 
 def _slug(s: str) -> str:
-    return re.sub(r"\W+", "-", s).strip("-").lower()
+    # Backward-compatibility wrapper; use shared utility
+    return slugify(s)
 
 
 @dataclass
@@ -73,7 +75,7 @@ class OGCWMSBackend(DiscoveryBackend):
             r = requests.get(url, timeout=10)
             r.raise_for_status()
             return ET.fromstring(r.text)
-        except ModuleNotFoundError as e:  # pragma: no cover - env dependent
+        except ImportError as e:  # pragma: no cover - env dependent
             raise RuntimeError(
                 "requests is not installed; provide capabilities_xml or install connectors extras"
             ) from e

@@ -146,65 +146,43 @@ def search(
             if isinstance(ed, dict):
                 prof_defaults.update(ed)
 
-        # Local inclusion: default to remote-only when any remote provided unless include_local
-        include_local_eff = not remote_only
-        if include_local:
-            include_local_eff = True
-        # Local
-        if include_local_eff:
-            cat = catalog_file
-            if not cat:
-                local = (
-                    prof_sources.get("local")
-                    if isinstance(prof_sources.get("local"), dict)
-                    else None
-                )
-                if isinstance(local, dict):
-                    cat = local.get("catalog_file")
-            # If any remote present and no explicit local path or profile-local and not include_local, drop local
-            any_remote = bool(ogc_wms or ogc_records)
-            if not any_remote:
-                any_remote = bool(
-                    (
-                        isinstance(prof_sources.get("ogc_wms"), list)
-                        and prof_sources.get("ogc_wms")
-                    )
-                    or (
-                        isinstance(prof_sources.get("ogc_records"), list)
-                        and prof_sources.get("ogc_records")
-                    )
-                )
-            local_explicit = bool(cat)
-            if any_remote and not local_explicit and not include_local:
-                include_local_eff = False
-            if include_local_eff:
-                items.extend(
-                    LocalCatalogBackend(cat, weights=prof_weights).search(
-                        q, limit=limit
-                    )
-                )
-                # If no profile specified, auto-apply SOS defaults scoped to local items
-                if not profile and not profile_file:
-                    try:
-                        from importlib import resources as importlib_resources
+        # Local inclusion: consistent policy via shared helper
+        from zyra.connectors.discovery.utils import (
+            compute_inclusion as _compute_inclusion,
+        )
 
-                        pkg = "zyra.assets.profiles"
-                        res = "sos.json"
-                        path = importlib_resources.files(pkg).joinpath(res)
-                        with importlib_resources.as_file(path) as p:
-                            prof0 = __import__("json").loads(
-                                p.read_text(encoding="utf-8")
-                            )
-                        enr = prof0.get("enrichment") or {}
-                        ed = enr.get("defaults") or {}
-                        if isinstance(ed, dict):
-                            prof_defaults.update(ed)
-                        lp = enr.get("license_policy") or {}
-                        if isinstance(lp, dict):
-                            prof_license_policy.update(lp)
-                        defaults_sources = ["sos-catalog"]
-                    except Exception:
-                        pass
+        include_local_eff, _any_remote, cat = _compute_inclusion(
+            ogc_wms,
+            ogc_records,
+            prof_sources,
+            remote_only=bool(remote_only),
+            include_local_flag=bool(include_local),
+            catalog_file_flag=catalog_file,
+        )
+        if include_local_eff:
+            items.extend(
+                LocalCatalogBackend(cat, weights=prof_weights).search(q, limit=limit)
+            )
+            # If no profile specified, auto-apply SOS defaults scoped to local items
+            if not profile and not profile_file:
+                try:
+                    from importlib import resources as importlib_resources
+
+                    pkg = "zyra.assets.profiles"
+                    res = "sos.json"
+                    path = importlib_resources.files(pkg).joinpath(res)
+                    with importlib_resources.as_file(path) as p:
+                        prof0 = __import__("json").loads(p.read_text(encoding="utf-8"))
+                    enr = prof0.get("enrichment") or {}
+                    ed = enr.get("defaults") or {}
+                    if isinstance(ed, dict):
+                        prof_defaults.update(ed)
+                    lp = enr.get("license_policy") or {}
+                    if isinstance(lp, dict):
+                        prof_license_policy.update(lp)
+                    defaults_sources = ["sos-catalog"]
+                except Exception:
+                    pass
 
         # WMS
         wms_urls: list[str] = []
@@ -393,57 +371,43 @@ def post_search(body: dict) -> dict[str, Any]:
             if isinstance(lp, dict):
                 prof_license_policy.update(lp)
 
-        # Local inclusion
-        if not remote_only:
-            cat = catalog_file
-            if not cat:
-                local = (
-                    prof_sources.get("local")
-                    if isinstance(prof_sources.get("local"), dict)
-                    else None
-                )
-                if isinstance(local, dict):
-                    cat = local.get("catalog_file")
-            any_remote = bool(
-                ogc_wms
-                or ogc_records
-                or (
-                    isinstance(prof_sources.get("ogc_wms"), list)
-                    and prof_sources.get("ogc_wms")
-                )
-                or (
-                    isinstance(prof_sources.get("ogc_records"), list)
-                    and prof_sources.get("ogc_records")
-                )
-            )
-            local_explicit = bool(cat)
-            if not (any_remote and not local_explicit and not include_local):
-                items.extend(
-                    LocalCatalogBackend(cat, weights=prof_weights).search(
-                        q, limit=limit
-                    )
-                )
-                # Auto-apply SOS defaults when no explicit profile
-                if not profile and not profile_file:
-                    try:
-                        import json as _json
-                        from importlib import resources as importlib_resources
+        # Local inclusion (POST body path)
+        from zyra.connectors.discovery.utils import (
+            compute_inclusion as _compute_inclusion,
+        )
 
-                        pkg = "zyra.assets.profiles"
-                        res = "sos.json"
-                        path = importlib_resources.files(pkg).joinpath(res)
-                        with importlib_resources.as_file(path) as p:
-                            prof0 = _json.loads(p.read_text(encoding="utf-8"))
-                        enr = prof0.get("enrichment") or {}
-                        ed = enr.get("defaults") or {}
-                        if isinstance(ed, dict):
-                            prof_defaults.update(ed)
-                        lp = enr.get("license_policy") or {}
-                        if isinstance(lp, dict):
-                            prof_license_policy.update(lp)
-                        defaults_sources = ["sos-catalog"]
-                    except Exception:
-                        pass
+        include_local_eff, _any_remote, cat = _compute_inclusion(
+            ogc_wms,
+            ogc_records,
+            prof_sources,
+            remote_only=bool(remote_only),
+            include_local_flag=bool(include_local),
+            catalog_file_flag=catalog_file,
+        )
+        if include_local_eff:
+            items.extend(
+                LocalCatalogBackend(cat, weights=prof_weights).search(q, limit=limit)
+            )
+            if not profile and not profile_file:
+                try:
+                    import json as _json
+                    from importlib import resources as importlib_resources
+
+                    pkg = "zyra.assets.profiles"
+                    res = "sos.json"
+                    path = importlib_resources.files(pkg).joinpath(res)
+                    with importlib_resources.as_file(path) as p:
+                        prof0 = _json.loads(p.read_text(encoding="utf-8"))
+                    enr = prof0.get("enrichment") or {}
+                    ed = enr.get("defaults") or {}
+                    if isinstance(ed, dict):
+                        prof_defaults.update(ed)
+                    lp = enr.get("license_policy") or {}
+                    if isinstance(lp, dict):
+                        prof_license_policy.update(lp)
+                    defaults_sources = ["sos-catalog"]
+                except Exception:
+                    pass
 
         # WMS
         wms_urls: list[str] = []
@@ -516,21 +480,11 @@ def post_search(body: dict) -> dict[str, Any]:
             return {"items": to_list(items[: max(0, limit) or None])}
 
         # Otherwise, perform analysis just like /semantic_search
-        def compact(d: Any) -> dict[str, Any]:
-            desc = getattr(d, "description", None) or ""
-            if len(desc) > 240:
-                desc = desc[:239] + "…"
-            return {
-                "id": getattr(d, "id", None),
-                "name": getattr(d, "name", None),
-                "description": desc,
-                "source": getattr(d, "source", None),
-                "format": getattr(d, "format", None),
-                "uri": getattr(d, "uri", None),
-            }
+        from zyra.utils.serialize import compact_dataset
 
         ctx_items = [
-            compact(i) for i in items[: max(1, int(body.get("analysis_limit") or 20))]
+            compact_dataset(i, max_desc_len=240)
+            for i in items[: max(1, int(body.get("analysis_limit") or 20))]
         ]
         import json as _json
 
