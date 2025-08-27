@@ -1623,6 +1623,90 @@
     },
     "positionals": []
   },
+  "transform enrich-datasets": {
+    "description": "zyra transform enrich-datasets",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--items-file",
+          "--profile",
+          "--profile-file",
+          "--enrich",
+          "--enrich-timeout",
+          "--enrich-workers",
+          "--cache-ttl",
+          "--offline",
+          "--https-only",
+          "--allow-host",
+          "--deny-host",
+          "--max-probe-bytes",
+          "--output"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--items-file": {
+        "help": "Path to items JSON",
+        "type": "str",
+        "required": true
+      },
+      "--profile": "Bundled profile name under zyra.assets.profiles",
+      "--profile-file": "External profile JSON path",
+      "--enrich": {
+        "help": "Enrichment level",
+        "choices": [
+          "shallow",
+          "capabilities",
+          "probe"
+        ],
+        "type": "str",
+        "required": true
+      },
+      "--enrich-timeout": {
+        "help": "Per-item timeout (s)",
+        "type": "float",
+        "default": 3.0
+      },
+      "--enrich-workers": {
+        "help": "Concurrency (workers)",
+        "type": "int",
+        "default": 4
+      },
+      "--cache-ttl": {
+        "help": "Cache TTL seconds",
+        "type": "int",
+        "default": 86400
+      },
+      "--offline": {
+        "help": "Disable network during enrichment",
+        "type": "str",
+        "default": false
+      },
+      "--https-only": {
+        "help": "Require HTTPS for remote probing",
+        "type": "str",
+        "default": false
+      },
+      "--allow-host": "Allow host suffix (repeatable)",
+      "--deny-host": "Deny host suffix (repeatable)",
+      "--max-probe-bytes": {
+        "help": "Skip probing when larger than this size",
+        "type": "int"
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      }
+    },
+    "positionals": []
+  },
   "transform update-dataset-json": {
     "description": "zyra transform update-dataset-json",
     "doc": "",
@@ -1709,7 +1793,17 @@
           "--ogc-records",
           "--json",
           "--yaml",
-          "--select"
+          "--select",
+          "--enrich",
+          "--enrich-timeout",
+          "--enrich-workers",
+          "--cache-ttl",
+          "--enrich-async",
+          "--offline",
+          "--https-only",
+          "--allow-host",
+          "--deny-host",
+          "--max-probe-bytes"
         ]
       }
     ],
@@ -1764,6 +1858,51 @@
       },
       "--select": {
         "help": "Select a single result by 1-based index and print its URI only",
+        "type": "int"
+      },
+      "--enrich": {
+        "help": "Optional metadata enrichment level: shallow|capabilities|probe (bounded, cached)",
+        "choices": [
+          "shallow",
+          "capabilities",
+          "probe"
+        ],
+        "type": "str"
+      },
+      "--enrich-timeout": {
+        "help": "Per-item soft timeout seconds for enrichment (default: 3.0)",
+        "type": "float",
+        "default": 3.0
+      },
+      "--enrich-workers": {
+        "help": "Enrichment concurrency (workers). Default: 4",
+        "type": "int",
+        "default": 4
+      },
+      "--cache-ttl": {
+        "help": "Enrichment cache TTL seconds. Default: 86400 (1 day)",
+        "type": "int",
+        "default": 86400
+      },
+      "--enrich-async": {
+        "help": "Request async enrichment (API-driven). CLI-only runs print a warning and run sync.",
+        "type": "str",
+        "default": false
+      },
+      "--offline": {
+        "help": "Disable network fetches during enrichment; local files only",
+        "type": "str",
+        "default": false
+      },
+      "--https-only": {
+        "help": "Require HTTPS for any remote probing",
+        "type": "str",
+        "default": false
+      },
+      "--allow-host": "Explicitly allow a host suffix for remote probing (can repeat)",
+      "--deny-host": "Explicitly deny a host suffix for remote probing (can repeat)",
+      "--max-probe-bytes": {
+        "help": "Maximum content length to probe (bytes); larger assets are skipped",
         "type": "int"
       }
     },

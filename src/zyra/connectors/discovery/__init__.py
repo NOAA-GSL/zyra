@@ -274,6 +274,66 @@ def register_cli(p: argparse.ArgumentParser) -> None:
         type=int,
         help=("Select a single result by 1-based index and print its URI only"),
     )
+    # Enrichment flags (Phase 2)
+    p.add_argument(
+        "--enrich",
+        choices=["shallow", "capabilities", "probe"],
+        help=(
+            "Optional metadata enrichment level: shallow|capabilities|probe (bounded, cached)"
+        ),
+    )
+    p.add_argument(
+        "--enrich-timeout",
+        type=float,
+        default=3.0,
+        help="Per-item soft timeout seconds for enrichment (default: 3.0)",
+    )
+    p.add_argument(
+        "--enrich-workers",
+        type=int,
+        default=4,
+        help="Enrichment concurrency (workers). Default: 4",
+    )
+    p.add_argument(
+        "--cache-ttl",
+        type=int,
+        default=86400,
+        help="Enrichment cache TTL seconds. Default: 86400 (1 day)",
+    )
+    p.add_argument(
+        "--enrich-async",
+        action="store_true",
+        help=(
+            "Request async enrichment (API-driven). CLI-only runs print a warning and run sync."
+        ),
+    )
+    p.add_argument(
+        "--offline",
+        action="store_true",
+        help=("Disable network fetches during enrichment; local files only"),
+    )
+    p.add_argument(
+        "--https-only",
+        action="store_true",
+        help=("Require HTTPS for any remote probing"),
+    )
+    p.add_argument(
+        "--allow-host",
+        action="append",
+        dest="allow_hosts",
+        help=("Explicitly allow a host suffix for remote probing (can repeat)"),
+    )
+    p.add_argument(
+        "--deny-host",
+        action="append",
+        dest="deny_hosts",
+        help=("Explicitly deny a host suffix for remote probing (can repeat)"),
+    )
+    p.add_argument(
+        "--max-probe-bytes",
+        type=int,
+        help=("Maximum content length to probe (bytes); larger assets are skipped"),
+    )
 
     def _cmd(ns: argparse.Namespace) -> int:
         items: list[DatasetMetadata] = []
@@ -303,6 +363,9 @@ def register_cli(p: argparse.ArgumentParser) -> None:
         # Optional profile(s)
         prof_sources: dict[str, Any] = {}
         prof_weights: dict[str, int] = {}
+        prof_defaults: dict[str, Any] = {}
+        prof_license_policy: dict[str, Any] = {}
+        defaults_sources: list[str] = []
         # Bundled profile by name
         if getattr(ns, "profile", None):
             try:
@@ -315,6 +378,13 @@ def register_cli(p: argparse.ArgumentParser) -> None:
                 prof_weights.update(
                     {k: int(v) for k, v in (prof0.get("weights") or {}).items()}
                 )
+                enr = prof0.get("enrichment") or {}
+                ed = enr.get("defaults") or {}
+                if isinstance(ed, dict):
+                    prof_defaults.update(ed)
+                lp = enr.get("license_policy") or {}
+                if isinstance(lp, dict):
+                    prof_license_policy.update(lp)
             except Exception as e:
                 print(
                     f"Failed to load bundled profile '{ns.profile}': {e}",
@@ -331,6 +401,13 @@ def register_cli(p: argparse.ArgumentParser) -> None:
                 prof_weights.update(
                     {k: int(v) for k, v in (prof.get("weights") or {}).items()}
                 )
+                enr = prof.get("enrichment") or {}
+                ed = enr.get("defaults") or {}
+                if isinstance(ed, dict):
+                    prof_defaults.update(ed)
+                lp = enr.get("license_policy") or {}
+                if isinstance(lp, dict):
+                    prof_license_policy.update(lp)
             except Exception as e:
                 print(f"Failed to load profile: {e}", file=__import__("sys").stderr)
                 return 2
@@ -380,6 +457,26 @@ def register_cli(p: argparse.ArgumentParser) -> None:
                         effective_query, limit=ns.limit
                     )
                 )
+                # If no profile provided, auto-scope SOS defaults to local items
+                if not getattr(ns, "profile", None) and not getattr(ns, "profile_file", None):
+                    try:
+                        pkg = "zyra.assets.profiles"
+                        res = "sos.json"
+                        path = importlib_resources.files(pkg).joinpath(res)
+                        with importlib_resources.as_file(path) as p:
+                            import json as _json
+
+                            prof0 = _json.loads(p.read_text(encoding="utf-8"))
+                        enr = (prof0.get("enrichment") or {})
+                        ed = (enr.get("defaults") or {})
+                        if isinstance(ed, dict):
+                            prof_defaults.update(ed)
+                        lp = enr.get("license_policy") or {}
+                        if isinstance(lp, dict):
+                            prof_license_policy.update(lp)
+                        defaults_sources = ["sos-catalog"]
+                    except Exception:
+                        pass
         # Optional remote OGC WMS
         # Remote WMS: combine CLI flag and profile list
         wms_urls = []
@@ -421,6 +518,33 @@ def register_cli(p: argparse.ArgumentParser) -> None:
                     f"Remote OGC Records search failed: {e}",
                     file=__import__("sys").stderr,
                 )
+        # Optional enrichment
+        if getattr(ns, "enrich", None):
+            try:
+                from zyra.transform.enrich import enrich_items
+
+                items = enrich_items(
+                    items,
+                    level=str(ns.enrich),
+                    timeout=float(getattr(ns, "enrich_timeout", 3.0) or 3.0),
+                    workers=int(getattr(ns, "enrich_workers", 4) or 4),
+                    cache_ttl=int(getattr(ns, "cache_ttl", 86400) or 86400),
+                    offline=bool(getattr(ns, "offline", False) or False),
+                    https_only=bool(getattr(ns, "https_only", False) or False),
+                    allow_hosts=list(getattr(ns, "allow_hosts", []) or []),
+                    deny_hosts=list(getattr(ns, "deny_hosts", []) or []),
+                    max_probe_bytes=(getattr(ns, "max_probe_bytes", None)),
+                    profile_defaults=prof_defaults,
+                    profile_license_policy=prof_license_policy,
+                    defaults_sources=defaults_sources,
+                )
+            except Exception as e:
+                print(f"Enrichment failed: {e}", file=__import__("sys").stderr)
+            if getattr(ns, "enrich_async", False):
+                print(
+                    "note: --enrich-async is only available via the API; returned sync results",
+                    file=__import__("sys").stderr,
+                )
         return _emit_results(ns, items)
 
     p.set_defaults(func=_cmd)
@@ -443,14 +567,18 @@ def _emit_results(ns: argparse.Namespace, items: list[DatasetMetadata]) -> int:
         print("Choose one of --json or --yaml", file=__import__("sys").stderr)
         return 2
     if ns.json:
-        out = [d.__dict__ for d in items]
+        from zyra.utils.serialize import to_list
+
+        out = to_list(items)
         print(json.dumps(out, indent=2))
         return 0
     if ns.yaml:
         try:
             import yaml  # type: ignore
 
-            out = [d.__dict__ for d in items]
+            from zyra.utils.serialize import to_list
+
+            out = to_list(items)
             print(yaml.safe_dump(out, sort_keys=False))
             return 0
         except Exception:

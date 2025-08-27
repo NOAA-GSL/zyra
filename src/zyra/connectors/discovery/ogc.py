@@ -104,6 +104,12 @@ class OGCWMSBackend(DiscoveryBackend):
     def search(self, query: str, *, limit: int = 10) -> list[DatasetMetadata]:
         root = self._load_xml()
         base = self._get_getmap_base(root) or self.endpoint
+        # Token-aware matching: prefer multi-token scoring for long queries
+        tokens = [t for t in re.split(r"\W+", query) if t]
+        token_patterns = [
+            re.compile(re.escape(t), re.IGNORECASE) for t in tokens if len(t) >= 3
+        ]
+        use_tokens = len(token_patterns) >= 2
         rx = re.compile(re.escape(query), re.IGNORECASE)
         results: list[tuple[int, DatasetMetadata]] = []
         w = self.weights or {}
@@ -112,12 +118,21 @@ class OGCWMSBackend(DiscoveryBackend):
             abstract = _findtext(layer, "Abstract") or ""
             name = _findtext(layer, "Name") or title or "layer"
             score = 0
-            if rx.search(title):
-                score += int(w.get("title", 3))
-            if rx.search(abstract):
-                score += int(w.get("abstract", 2))
-            if rx.search(name):
-                score += int(w.get("name", 1))
+            if use_tokens:
+                for pat in token_patterns:
+                    if pat.search(title):
+                        score += int(w.get("title", 3))
+                    if pat.search(abstract):
+                        score += int(w.get("abstract", 2))
+                    if pat.search(name):
+                        score += int(w.get("name", 1))
+            else:
+                if rx.search(title):
+                    score += int(w.get("title", 3))
+                if rx.search(abstract):
+                    score += int(w.get("abstract", 2))
+                if rx.search(name):
+                    score += int(w.get("name", 1))
             # Keywords (WMS KeywordList)
             for kw in layer.iter():
                 if (

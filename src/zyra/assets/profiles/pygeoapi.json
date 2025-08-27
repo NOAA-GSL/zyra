@@ -8,6 +8,13 @@
       "https://demo.pygeoapi.io/master/collections/obs/items?limit=100"
     ]
   },
+  "enrichment": {
+    "defaults": {
+      "spatial": {
+        "crs": "EPSG:4326"
+      }
+    }
+  },
   "weights": {
     "title": 3,
     "description": 2,
