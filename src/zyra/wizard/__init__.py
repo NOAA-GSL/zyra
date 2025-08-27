@@ -7,7 +7,6 @@ import os
 import re
 import shlex
 import uuid
-import warnings
 from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -126,10 +125,8 @@ def _select_provider(provider: str | None, model: str | None) -> LLMClient:
         try:
             return OpenAIClient(model=model_name, base_url=base_url)
         except (RuntimeError, ImportError, AttributeError) as exc:
-            warnings.warn(
-                f"OpenAI unavailable: {exc}. Falling back to mock.",
-                category=UserWarning,
-                stacklevel=2,
+            logging.getLogger(__name__).warning(
+                "OpenAI unavailable: %s. Falling back to mock.", exc
             )
             return MockClient()
     if prov == "ollama":
@@ -138,10 +135,8 @@ def _select_provider(provider: str | None, model: str | None) -> LLMClient:
         try:
             return OllamaClient(model=model_name, base_url=base_url)
         except (ImportError, AttributeError) as exc:
-            warnings.warn(
-                f"Ollama unavailable: {exc}. Falling back to mock.",
-                category=UserWarning,
-                stacklevel=2,
+            logging.getLogger(__name__).warning(
+                "Ollama unavailable: %s. Falling back to mock.", exc
             )
             return MockClient()
     if prov == "mock":
@@ -149,10 +144,8 @@ def _select_provider(provider: str | None, model: str | None) -> LLMClient:
 
         return MockClient()
     # Fallback to mock for unknown providers
-    warnings.warn(
-        f"Unknown LLM provider '{prov}'. Falling back to mock.",
-        category=UserWarning,
-        stacklevel=2,
+    logging.getLogger(__name__).warning(
+        "Unknown LLM provider '%s'. Falling back to mock.", prov
     )
     from .llm_client import MockClient
 
