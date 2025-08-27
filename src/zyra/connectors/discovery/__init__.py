@@ -3,11 +3,21 @@
 Implements a lightweight local backend that searches the packaged
 SOS dataset catalog at `zyra.assets.metadata/sos_dataset_metadata.json`.
 
+Also includes a federated API search subcommand, ``zyra search api``, that can
+query one or more Zyra-like APIs exposing ``/search`` (or equivalent via
+OpenAPI). Results are normalized and can be emitted as JSON/CSV or displayed
+as a compact table.
+
 Usage examples:
   - zyra search "tsunami"
   - zyra search "GFS" --json
   - Use the selected URI with the matching connector, e.g.:
       zyra acquire ftp "$(zyra search 'earthquake' --select 1)" -o out.bin
+
+API search examples:
+  - zyra search api --url https://zyra.noaa.gov/api --query "temperature"
+  - zyra search api --url https://zyra.a.edu/api --url https://zyra.b.edu/api \
+        --query "precipitation" --table
 """
 
 from __future__ import annotations
@@ -179,6 +189,250 @@ def _print_table(items: Iterable[DatasetMetadata]) -> None:
 
 
 def register_cli(p: argparse.ArgumentParser) -> None:
+    # Optional subcommands under `zyra search`.
+    # Keep base (no subcommand) behavior intact for local/OGC discovery.
+    sub = p.add_subparsers(dest="search_cmd", required=False)
+
+    # -----------------------------
+    # api: federated API search
+    # -----------------------------
+    p_api = sub.add_parser(
+        "api",
+        help=("Query remote Zyra-like APIs via /search; supports federated URLs"),
+    )
+    p_api.add_argument(
+        "--url",
+        action="append",
+        required=True,
+        help=("Base API URL (repeatable). Examples: https://zyra.noaa.gov/api"),
+    )
+    p_api.add_argument(
+        "--query",
+        dest="api_query",
+        required=True,
+        help="Search query to pass to remote APIs",
+    )
+    p_api.add_argument(
+        "-l",
+        "--limit",
+        type=int,
+        default=10,
+        help="Maximum results per source (default: 10)",
+    )
+    p_api.add_argument(
+        "--json",
+        action="store_true",
+        help="Output in JSON (default)",
+    )
+    p_api.add_argument(
+        "--csv",
+        action="store_true",
+        help="Output in CSV (columns: source,dataset,description,link)",
+    )
+    p_api.add_argument(
+        "--table",
+        action="store_true",
+        help="Pretty table output to the terminal",
+    )
+    p_api.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Print debug info about requests and response shapes",
+    )
+    # Request shaping
+    p_api.add_argument(
+        "--param",
+        action="append",
+        help="Extra query param k=v (repeatable)",
+    )
+    p_api.add_argument(
+        "--header",
+        action="append",
+        help="HTTP header k=v (repeatable)",
+    )
+    p_api.add_argument(
+        "--timeout",
+        type=float,
+        default=30.0,
+        help="Request timeout seconds (default: 30)",
+    )
+    p_api.add_argument(
+        "--retries",
+        type=int,
+        default=0,
+        help="Retry attempts for transient failures (default: 0)",
+    )
+    p_api.add_argument(
+        "--concurrency",
+        type=int,
+        default=4,
+        help="Parallel requests across URLs (default: 4)",
+    )
+    # Endpoint control
+    p_api.add_argument(
+        "--no-openapi",
+        action="store_true",
+        help="Skip OpenAPI discovery and use /search",
+    )
+    p_api.add_argument(
+        "--endpoint",
+        help="Override endpoint path (e.g., /search/items)",
+    )
+    p_api.add_argument(
+        "--qp",
+        help="Override query parameter name (default: q)",
+    )
+    p_api.add_argument(
+        "--result-key",
+        help="Read array from this key when response is an object (e.g., items)",
+    )
+    # POST support
+    p_api.add_argument(
+        "--post",
+        action="store_true",
+        help="Use POST /search with JSON body instead of GET",
+    )
+    p_api.add_argument(
+        "--json-param",
+        action="append",
+        help="JSON body field k=v (repeatable)",
+    )
+    p_api.add_argument(
+        "--json-body",
+        help="JSON body as raw string or @/path/to/file.json",
+    )
+    # Output shaping
+    p_api.add_argument(
+        "--fields",
+        help=(
+            "Comma-separated output fields for CSV/table (default: source,dataset,link)"
+        ),
+    )
+    p_api.add_argument(
+        "--limit-total",
+        type=int,
+        help="Limit total aggregated results across URLs",
+    )
+    p_api.add_argument(
+        "--dedupe",
+        choices=["dataset", "link"],
+        help="Drop duplicates by key (dataset or link)",
+    )
+    p_api.add_argument(
+        "--sort",
+        help="Sort by comma-separated keys (e.g., source,dataset)",
+    )
+    # OpenAPI diagnostics
+    p_api.add_argument(
+        "--print-openapi",
+        action="store_true",
+        help="Print discovered endpoint and query params for each URL",
+    )
+    p_api.add_argument(
+        "--suggest-flags",
+        action="store_true",
+        help="Suggest simple OpenAPI query params that can be passed via --param",
+    )
+
+    def _cmd_api(ns: argparse.Namespace) -> int:
+        try:
+            from .api_search import federated_api_search, print_api_table
+
+            urls: list[str] = [u.strip() for u in (ns.url or []) if u and u.strip()]
+            if not urls:
+                print(
+                    "error: provide at least one --url", file=__import__("sys").stderr
+                )
+                return 2
+            eff_query = (
+                getattr(ns, "api_query", None)
+                or getattr(ns, "query", None)
+                or getattr(ns, "q", None)
+            )
+            if not eff_query:
+                print(
+                    "error: missing --query; pass it after the subcommand (e.g., zyra search api --query 'text')",
+                    file=__import__("sys").stderr,
+                )
+                return 2
+            # OpenAPI diagnostics
+            if ns.print_openapi or ns.suggest_flags:
+                from .api_search import print_openapi_info
+
+                for u in urls:
+                    print_openapi_info(
+                        u, suggest=bool(ns.suggest_flags), verbose=bool(ns.verbose)
+                    )
+                return 0
+
+            rows = federated_api_search(
+                urls,
+                eff_query,
+                limit=int(ns.limit or 10),
+                verbose=bool(ns.verbose),
+                params=list(ns.param or []) if ns.param else None,
+                headers=list(ns.header or []) if ns.header else None,
+                timeout=float(ns.timeout or 30.0),
+                retries=int(ns.retries or 0),
+                concurrency=int(ns.concurrency or 4),
+                no_openapi=bool(ns.no_openapi),
+                endpoint=ns.endpoint,
+                qp_name=ns.qp,
+                result_key=ns.result_key,
+                use_post=bool(ns.post),
+                json_params=list(ns.json_param or []) if ns.json_param else None,
+                json_body=ns.json_body,
+            )
+            # Output shaping
+            if ns.dedupe:
+                key = ns.dedupe
+                seen: set[str] = set()
+                deduped = []
+                for r in rows:
+                    v = str(r.get(key) or "")
+                    if v and v not in seen:
+                        seen.add(v)
+                        deduped.append(r)
+                rows = deduped
+            if ns.sort:
+                keys = [k.strip() for k in ns.sort.split(",") if k.strip()]
+                rows = sorted(
+                    rows, key=lambda r: tuple(str(r.get(k) or "") for k in keys)
+                )
+            if ns.limit_total:
+                rows = rows[: max(0, int(ns.limit_total)) or None]
+            # Default to JSON unless CSV/table explicitly requested
+            fields = (
+                [s.strip() for s in ns.fields.split(",") if s.strip()]
+                if ns.fields
+                else None
+            )
+            if ns.csv:
+                import csv
+                import sys
+
+                cols = fields or ["source", "dataset", "description", "link"]
+                w = csv.DictWriter(sys.stdout, fieldnames=cols)
+                w.writeheader()
+                for r in rows:
+                    w.writerow({k: r.get(k) for k in cols})
+                return 0
+            if ns.table:
+                print_api_table(rows, fields=fields)
+                return 0
+            # JSON (default)
+            print(__import__("json").dumps(rows, indent=2))
+            return 0
+        except Exception as e:  # pragma: no cover - defensive
+            print(f"API search failed: {e}", file=__import__("sys").stderr)
+            return 2
+
+    p_api.set_defaults(func=_cmd_api)
+
+    # -----------------------------
+    # Base `zyra search` arguments
+    # -----------------------------
     p.add_argument(
         "query",
         nargs="?",
