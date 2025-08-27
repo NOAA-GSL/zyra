@@ -102,9 +102,23 @@ def _select_provider(provider: str | None, model: str | None) -> LLMClient:
     cfg = _load_config()
     from zyra.utils.env import env
 
-    prov = provider or env("LLM_PROVIDER") or cfg.get("provider") or "openai"
+    # Resolve provider/model from env/config; prioritize DATAVIZHUB_* for
+    # backward-compat with legacy setups, with ZYRA_* also supported via env().
+    prov = (
+        provider
+        or os.environ.get("DATAVIZHUB_LLM_PROVIDER")
+        or env("LLM_PROVIDER")
+        or cfg.get("provider")
+        or "openai"
+    )
     prov = str(prov).lower()
-    model_name = model or env("LLM_MODEL") or cfg.get("model") or None
+    model_name = (
+        model
+        or os.environ.get("DATAVIZHUB_LLM_MODEL")
+        or env("LLM_MODEL")
+        or cfg.get("model")
+        or None
+    )
     base_url = cfg.get("base_url")
     if prov == "openai":
         from .llm_client import MockClient, OpenAIClient
@@ -206,6 +220,50 @@ def _test_llm_connectivity(provider: str | None, model: str | None) -> tuple[boo
 
     # mock is always 'connected'
     return True, "✅ Using mock LLM provider"
+
+
+def select_profile_from_rules(text: str) -> str:
+    """Suggest a bundled profile name based on simple heuristics.
+
+    Loads optional rules from the packaged asset
+    ``zyra.assets.profiles/profile_heuristics.json``. If not present,
+    falls back to built-in defaults. Rules support:
+    - ``contains_any``: list of substrings (case-insensitive)
+    - ``regex_any``: list of regex patterns (OR)
+    """
+    import json as _json
+    import re as _re
+    from importlib import resources as _ir
+
+    rules: list[dict] = []
+    try:
+        base = _ir.files("zyra.assets.profiles").joinpath("profile_heuristics.json")
+        with _ir.as_file(base) as p:
+            rules = _json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        rules = [
+            {
+                "profile": "gibs",
+                "contains_any": ["sea surface temperature", "sst", "nasa"],
+            },
+            {"profile": "pygeoapi", "contains_any": ["lake", "pygeoapi"]},
+        ]
+    tl = text.lower()
+    for r in rules:
+        prof = str(r.get("profile") or "").strip()
+        if not prof:
+            continue
+        any_terms = [str(s).lower() for s in (r.get("contains_any") or [])]
+        if any_terms and any(t in tl for t in any_terms):
+            return prof
+        any_rx = r.get("regex_any") or []
+        for pat in any_rx:
+            try:
+                if _re.search(str(pat), text, _re.IGNORECASE):
+                    return prof
+            except Exception:
+                continue
+    return "sos"
 
 
 _CAP_MANIFEST_CACHE: dict | None = None
@@ -1657,46 +1715,7 @@ def _run_semantic_search(
 
     # Heuristic: choose/override a reasonable profile from configurable rules
     if (not profile or profile == "sos") and not wms_urls and not rec_urls:
-
-        def _select_profile_from_rules(text: str) -> str:
-            import json as _json
-            import re as _re
-            from importlib import resources as _ir
-
-            # Load bundled rules; fall back to in-code defaults
-            rules: list[dict] = []
-            try:
-                base = _ir.files("zyra.assets.profiles").joinpath(
-                    "profile_heuristics.json"
-                )
-                with _ir.as_file(base) as p:
-                    rules = _json.loads(p.read_text(encoding="utf-8"))
-            except Exception:
-                rules = [
-                    {
-                        "profile": "gibs",
-                        "contains_any": ["sea surface temperature", "sst", "nasa"],
-                    },
-                    {"profile": "pygeoapi", "contains_any": ["lake", "pygeoapi"]},
-                ]
-            tl = text.lower()
-            for r in rules:
-                prof = str(r.get("profile") or "").strip()
-                if not prof:
-                    continue
-                any_terms = [str(s).lower() for s in (r.get("contains_any") or [])]
-                if any_terms and any(t in tl for t in any_terms):
-                    return prof
-                any_rx = r.get("regex_any") or []
-                for pat in any_rx:
-                    try:
-                        if _re.search(str(pat), text, _re.IGNORECASE):
-                            return prof
-                    except Exception:
-                        continue
-            return "sos"
-
-        profile = _select_profile_from_rules(q)
+        profile = select_profile_from_rules(q)
 
     # Resolve profile sources
     prof_sources: dict[str, Any] = {}

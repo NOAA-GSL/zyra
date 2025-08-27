@@ -19,7 +19,6 @@ Key entry points
   concurrency and retries.
 - :func:`print_openapi_info` — show discovered endpoint and query parameters.
 """
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -28,15 +27,56 @@ from urllib.parse import urljoin, urlparse
 
 from zyra.connectors.backends import http as http_backend
 
+_requests = None  # lazily imported requests module
+
 
 def _ensure_requests() -> None:
-    import importlib.util as _ilu
+    """Ensure the requests module is importable and cache it.
 
-    if _ilu.find_spec("requests") is None:  # pragma: no cover - env dependent
+    Consolidates the availability check and import to avoid delayed errors
+    at first use inside request loops.
+    """
+    global _requests
+    if _requests is not None:
+        return
+    try:  # pragma: no cover - import success depends on env extra
+        import requests as _req  # type: ignore
+
+        _requests = _req
+    except Exception as err:  # pragma: no cover - env dependent
         raise RuntimeError(
             "HTTP client requires the 'requests' extra. Install with: "
             "poetry install -E connectors"
-        )
+        ) from err
+
+
+def _get_requests():
+    """Return the cached requests module, importing if necessary.
+
+    Keeps testability: respects monkeypatched ``sys.modules['requests']``
+    even when ``_ensure_requests`` is stubbed in tests.
+    """
+    global _requests
+    # Prefer an already-imported/monkeypatched module in sys.modules
+    try:
+        import sys as _sys
+
+        mod = _sys.modules.get("requests")
+        if mod is not None and mod is not _requests:
+            _requests = mod  # type: ignore[assignment]
+            return mod
+    except Exception:
+        pass
+    if _requests is not None:
+        return _requests
+    try:  # try direct import which will use any sys.modules override
+        import requests as _req  # type: ignore
+
+        _requests = _req
+        return _req
+    except Exception:
+        _ensure_requests()
+        return _requests
 
 
 @dataclass
@@ -243,19 +283,16 @@ def query_single_api(
     attempts = max(1, int(retries or 0) + 1)
     for _ in range(attempts):
         try:
-            import requests  # type: ignore
-
+            req = _get_requests()
             if use_post:
                 body = _parse_json_body(json_body)
                 if body is None:
                     body = _parse_kv_list(json_params)
                 if not isinstance(body, dict):
                     body = {"query": query, "limit": int(limit)}
-                r = requests.post(url, json=body, headers=hdrs or None, timeout=timeout)
+                r = req.post(url, json=body, headers=hdrs or None, timeout=timeout)
             else:
-                r = requests.get(
-                    url, params=qparams, headers=hdrs or None, timeout=timeout
-                )
+                r = req.get(url, params=qparams, headers=hdrs or None, timeout=timeout)
             r.raise_for_status()
             data = r.json()
             break
@@ -293,9 +330,8 @@ def query_single_api(
         # Fallback tries: alternate param name and default /search path
         for qp_eff in (qp, "q", "query"):
             try:
-                import requests  # type: ignore
-
-                r = requests.get(
+                req = _get_requests()
+                r = req.get(
                     base_url.rstrip("/") + "/search",
                     params={qp_eff: query, "limit": int(limit)},
                     headers=hdrs or None,

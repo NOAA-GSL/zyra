@@ -24,7 +24,8 @@ def _key_to_path(base: Path, key: str) -> Path:
     # Avoid long filenames; hash the key but keep a readable prefix
     import hashlib
 
-    h = hashlib.sha1(key.encode("utf-8")).hexdigest()
+    # Use SHA-256 for stronger hashing of cache keys
+    h = hashlib.sha256(key.encode("utf-8")).hexdigest()
     prefix = key[:32].replace(os.sep, "_").replace(":", "_")
     fname = f"{prefix}.{h}.json"
     return base / fname

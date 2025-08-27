@@ -757,11 +757,7 @@ class SOSLicenseEnricher:
     def supports(self, item: DatasetMetadata) -> bool:
         return (item.source or "").lower() == "sos-catalog"
 
-    def _slug_from_url(self, url: str) -> str:
-        import re as _re
-
-        m = _re.search(r"/datasets/([^/]+)/?", url)
-        return m.group(1) if m else _re.sub(r"\W+", "-", url).strip("-")
+    # Use the shared slug logic from LocalCatalogBackend to avoid duplication
 
     def _load_catalog(self) -> list[dict[str, Any]] | None:
         try:
@@ -791,7 +787,9 @@ class SOSLicenseEnricher:
                 url = d.get("url") or ""
                 if not isinstance(url, str):
                     continue
-                if self._slug_from_url(url) == (item.id or ""):
+                from zyra.connectors.discovery import LocalCatalogBackend
+
+                if LocalCatalogBackend._slug_from_url(url) == (item.id or ""):
                     entry = d
                     break
             if not entry:
