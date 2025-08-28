@@ -5,7 +5,9 @@ from zyra.wizard.llm_client import OllamaClient
 
 def test_ollama_error_no_leak_by_default(monkeypatch):
     # Ensure hints are disabled
-    monkeypatch.delenv("LLM_ERROR_HINTS", raising=False)
+    # Clear the supported env variants used by env_bool
+    monkeypatch.delenv("ZYRA_LLM_ERROR_HINTS", raising=False)
+    monkeypatch.delenv("DATAVIZHUB_LLM_ERROR_HINTS", raising=False)
     c = OllamaClient(model="mistral", base_url="http://localhost:11434")
     out = c.generate("sys", "user")
     # Should include generic fallback but no exception details or host URLs

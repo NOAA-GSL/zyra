@@ -166,6 +166,14 @@ class LocalCatalogBackend(DiscoveryBackend):
                     # Fall through; Path read may still raise appropriately
                     pass
                 # Optional allowlist already enforced above when envs are set.
+                # Explicitly deny suspicious traversal patterns prior to resolving.
+                _raw = str(cp)
+                _scan = _raw.replace("\\", "/")
+                _parts = [p for p in _scan.split("/") if p]
+                if any(p == ".." for p in _parts):
+                    raise ValueError(
+                        "catalog_file contains parent traversal segment ('..')"
+                    )
                 # Resolve to a normalized absolute path (handles symlinks) before reading.
                 resolved = Path(cp).resolve()
                 # Re-validate containment post-resolve for defense-in-depth
