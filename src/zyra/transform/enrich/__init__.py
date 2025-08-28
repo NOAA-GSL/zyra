@@ -52,20 +52,36 @@ class ShallowEnricher:
         vars: list[DatasetVariable] = []
         text = f"{item.name}\n{item.description or ''}"
         unit_rx = re.compile(r"\b(K|Pa|hPa|m/s|m|degC|mm|%|kg/m\^?3)\b", re.I)
+
+        # Candidate variable names from free text
         cand = set()
         for m in re.finditer(r"\b([A-Za-z][A-Za-z0-9_]{2,})\b", text):
             s = m.group(1)
             if s.lower() in {"the", "and", "for", "with", "data", "dataset"}:
                 continue
             cand.add(s)
-        units = unit_rx.findall(text)
+
+        def _guess_unit_for_var(var: str) -> str | None:
+            # Look for a unit mention near the variable in text (local window)
+            try:
+                for m in re.finditer(re.escape(var), text, flags=re.IGNORECASE):
+                    i0, i1 = m.span()
+                    window = text[max(0, i0 - 40) : min(len(text), i1 + 40)]
+                    um = unit_rx.search(window)
+                    if um:
+                        return um.group(0)
+            except Exception:
+                pass
+            # Fall back to None when no per-variable unit context is found
+            return None
+
         for v in sorted(list(cand))[:3]:
             vars.append(
                 DatasetVariable(
                     name=v,
                     long_name=None,
                     standard_name=None,
-                    units=(units[0] if units else None),
+                    units=_guess_unit_for_var(v),
                     dims=None,
                     shape=None,
                 )
@@ -715,15 +731,11 @@ class ProfileDefaultsEnricher:
         t_start = tdef.get("start") if isinstance(tdef, dict) else None
         t_end = tdef.get("end") if isinstance(tdef, dict) else None
         t_cadence = tdef.get("cadence") if isinstance(tdef, dict) else None
-        lic = (
-            pd.get("license")
-            if isinstance(pd.get("license"), str)
-            else pd.get("license")
-        )
+        lic = pd.get("license") if isinstance(pd.get("license"), str) else None
         fmt = (
             pd.get("format_detail")
             if isinstance(pd.get("format_detail"), str)
-            else pd.get("format_detail")
+            else None
         )
         if not any([bbox, crs, t_start, t_end, t_cadence, lic, fmt]):
             return None
@@ -744,8 +756,8 @@ class ProfileDefaultsEnricher:
             ),
             spatial=(SpatialInfo(bbox=bbox, crs=crs) if (bbox or crs) else None),
             size=None,
-            format_detail=(fmt if isinstance(fmt, str) else None),
-            license=(lic if isinstance(lic, str) else None),
+            format_detail=fmt,
+            license=lic,
             updated_at=_now_iso(),
             provenance=prov,
         )

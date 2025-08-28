@@ -120,7 +120,25 @@ class LocalCatalogBackend(DiscoveryBackend):
     def _slug_from_url(url: str) -> str:
         # e.g., https://sos.noaa.gov/catalog/datasets/tsunami-history/ -> tsunami-history
         m = re.search(r"/datasets/([^/]+)/?", url)
-        return m.group(1) if m else re.sub(r"\W+", "-", url).strip("-")
+        if m:
+            return m.group(1)
+        # Fallback: derive a compact slug and cap length with a hash suffix for stability
+        try:
+            import hashlib
+            from urllib.parse import urlparse
+
+            parsed = urlparse(url)
+            path_parts = [p for p in (parsed.path or "").split("/") if p]
+            # Prefer last path segment; otherwise use host or whole URL as candidate
+            candidate = path_parts[-1] if path_parts else (parsed.netloc or url)
+            slug = re.sub(r"\W+", "-", candidate).strip("-") or "item"
+            MAX = 64
+            if len(slug) > MAX:
+                h = hashlib.sha1(url.encode("utf-8")).hexdigest()[:8]
+                slug = slug[: MAX - 9].rstrip("-") + "-" + h
+            return slug
+        except Exception:
+            return re.sub(r"\W+", "-", url).strip("-")[:64]
 
     def _normalize(self, item: dict[str, Any]) -> DatasetMetadata:
         url = str(item.get("url") or "")

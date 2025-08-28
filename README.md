@@ -848,3 +848,16 @@ See Batch Mode section for multi-input workflows across acquisition, processing,
 - Clients send the key in the header (default): `X-API-Key: <your-key>`.
 - WebSocket: include `?api_key=<your-key>` in the URL (e.g., `ws://host/ws/jobs/<job_id>?api_key=KEY`).
 - `/examples` includes an API key field and will pass it in requests and WS URLs.
+File inputs and allowlists:
+- Some endpoints accept file parameters that can reference packaged assets or local files:
+  - `GET /search` and `POST /search` support `catalog_file` and `profile_file`.
+  - Accepted forms:
+    - Packaged reference: `pkg:module/resource` loaded via `importlib.resources`.
+    - Local file path under allowlisted base directories.
+  - Allowlist environment variables:
+    - Catalogs: `ZYRA_CATALOG_DIR`, `DATA_DIR`
+    - Profiles: `ZYRA_PROFILE_DIR`, `DATA_DIR`
+  - Requests with non-`pkg:` paths outside these directories are rejected (HTTP 400).
+  - Example:
+    - `export ZYRA_CATALOG_DIR=/srv/zyra/catalogs`
+    - `GET /search?q=alpha&catalog_file=/srv/zyra/catalogs/custom.json`

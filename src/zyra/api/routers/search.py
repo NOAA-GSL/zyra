@@ -11,11 +11,34 @@ Response
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 
 router = APIRouter(tags=["search"])
+
+
+def _is_under_allowed(p: str, base_envs: list[str]) -> bool:
+    try:
+        path = Path(p).resolve()
+        for env in base_envs:
+            base = os.getenv(env)
+            if not base:
+                continue
+            try:
+                base_path = Path(base).resolve()
+                if hasattr(path, "is_relative_to"):
+                    if path.is_relative_to(base_path):
+                        return True
+                else:  # pragma: no cover - Python < 3.9
+                    return str(path).startswith(str(base_path))
+            except Exception:
+                continue
+        return False
+    except Exception:
+        return False
 
 
 @router.get("/search")
@@ -68,7 +91,10 @@ def search(
         from zyra.connectors.discovery import LocalCatalogBackend
 
         items: list[Any] = []
-        # Profiles
+        # Profiles and file inputs: allow packaged refs or safe paths under allowlisted bases
+        allowed_catalog_envs = ["ZYRA_CATALOG_DIR", "DATA_DIR"]
+        allowed_profile_envs = ["ZYRA_PROFILE_DIR", "DATA_DIR"]
+
         prof_sources: dict[str, Any] = {}
         prof_weights: dict[str, int] = {}
         prof_defaults: dict[str, Any] = {}
@@ -119,9 +145,36 @@ def search(
                 prof_defaults.update(ed)
         if profile_file:
             import json as _json
-            from pathlib import Path
+            from importlib import resources as importlib_resources
 
-            prof1 = _json.loads(Path(profile_file).read_text(encoding="utf-8"))
+            if str(profile_file).startswith("pkg:"):
+                ref = str(profile_file)[4:]
+                try:
+                    if ":" in ref and "/" not in ref:
+                        pkg, res = ref.split(":", 1)
+                    else:
+                        parts = ref.split("/", 1)
+                        pkg = parts[0]
+                        res = parts[1] if len(parts) > 1 else None
+                    if not pkg or not res:
+                        raise ValueError("Invalid pkg reference")
+                    path = importlib_resources.files(pkg).joinpath(res)
+                    with importlib_resources.as_file(path) as p:
+                        prof1 = _json.loads(p.read_text(encoding="utf-8"))
+                except Exception as e:
+                    raise HTTPException(
+                        status_code=400, detail=f"Invalid profile_file: {e}"
+                    ) from e
+            else:
+                # Allow only if under allowlisted base directories
+                if not _is_under_allowed(str(profile_file), allowed_profile_envs):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=(
+                            "profile_file not allowed; must be under ZYRA_PROFILE_DIR or DATA_DIR"
+                        ),
+                    )
+                prof1 = _json.loads(Path(str(profile_file)).read_text(encoding="utf-8"))
             prof_sources.update(dict(prof1.get("sources") or {}))
             prof_weights.update(
                 {k: int(v) for k, v in (prof1.get("weights") or {}).items()}
@@ -160,6 +213,17 @@ def search(
             catalog_file_flag=catalog_file,
         )
         if include_local_eff:
+            # Validate/sanitize catalog path before passing to backend
+            if cat and (
+                not str(cat).startswith("pkg:")
+                and not _is_under_allowed(str(cat), allowed_catalog_envs)
+            ):
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "catalog_file not allowed; must be under ZYRA_CATALOG_DIR or DATA_DIR"
+                    ),
+                )
             items.extend(
                 LocalCatalogBackend(cat, weights=prof_weights).search(q, limit=limit)
             )
@@ -330,6 +394,9 @@ def post_search(body: dict) -> dict[str, Any]:
         items: list[Any] = []
         from zyra.connectors.discovery import LocalCatalogBackend
 
+        allowed_catalog_envs = ["ZYRA_CATALOG_DIR", "DATA_DIR"]
+        allowed_profile_envs = ["ZYRA_PROFILE_DIR", "DATA_DIR"]
+
         prof_sources: dict[str, Any] = {}
         prof_weights: dict[str, int] = {}
         prof_defaults: dict[str, Any] = {}
@@ -356,9 +423,36 @@ def post_search(body: dict) -> dict[str, Any]:
                 prof_license_policy.update(lp)
         if profile_file:
             import json as _json
-            from pathlib import Path
 
-            prof1 = _json.loads(Path(profile_file).read_text(encoding="utf-8"))
+            if str(profile_file).startswith("pkg:"):
+                from importlib import resources as importlib_resources
+
+                ref = str(profile_file)[4:]  # strip 'pkg:'
+                try:
+                    if ":" in ref and "/" not in ref:
+                        pkg, res = ref.split(":", 1)
+                    else:
+                        parts = ref.split("/", 1)
+                        pkg = parts[0]
+                        res = parts[1] if len(parts) > 1 else None
+                    if not pkg or not res:
+                        raise ValueError("Invalid pkg reference")
+                    path = importlib_resources.files(pkg).joinpath(res)
+                    with importlib_resources.as_file(path) as p:
+                        prof1 = _json.loads(p.read_text(encoding="utf-8"))
+                except Exception as e:
+                    raise HTTPException(
+                        status_code=400, detail=f"Invalid profile_file: {e}"
+                    ) from e
+            else:
+                if not _is_under_allowed(str(profile_file), allowed_profile_envs):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=(
+                            "profile_file not allowed; must be under ZYRA_PROFILE_DIR or DATA_DIR"
+                        ),
+                    )
+                prof1 = _json.loads(Path(str(profile_file)).read_text(encoding="utf-8"))
             prof_sources.update(dict(prof1.get("sources") or {}))
             prof_weights.update(
                 {k: int(v) for k, v in (prof1.get("weights") or {}).items()}
@@ -385,6 +479,16 @@ def post_search(body: dict) -> dict[str, Any]:
             catalog_file_flag=catalog_file,
         )
         if include_local_eff:
+            if cat and (
+                not str(cat).startswith("pkg:")
+                and not _is_under_allowed(str(cat), allowed_catalog_envs)
+            ):
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "catalog_file not allowed; must be under ZYRA_CATALOG_DIR or DATA_DIR"
+                    ),
+                )
             items.extend(
                 LocalCatalogBackend(cat, weights=prof_weights).search(q, limit=limit)
             )
