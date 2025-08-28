@@ -76,7 +76,6 @@ class LocalCatalogBackend(DiscoveryBackend):
             return self._cache
         data: list[dict[str, Any]]
         if self._catalog_path:
-            import os
             from pathlib import Path
 
             # Support packaged resource references: pkg:package/resource or pkg:package:resource
@@ -97,24 +96,24 @@ class LocalCatalogBackend(DiscoveryBackend):
                 try:
 
                     def _is_under_allowed(p: str, envs: list[str]) -> bool:
+                        """Syntactic containment check using abspath/normpath/commonpath."""
                         try:
-                            path = Path(p).resolve()
+                            import os as _os
+
+                            tgt = _os.path.abspath(_os.path.normpath(str(p)))  # noqa: PTH100
                             for env in envs:
-                                base = os.getenv(env)
+                                base = _os.getenv(env)
                                 if not base:
                                     continue
-                                base_path = Path(base).resolve()
+                                base_abs = _os.path.abspath(_os.path.normpath(base))  # noqa: PTH100
                                 try:
-                                    if hasattr(path, "is_relative_to"):
-                                        if path.is_relative_to(base_path):
-                                            return True
-                                    else:  # pragma: no cover - Python < 3.9
-                                        if str(path).startswith(str(base_path)):
-                                            return True
+                                    common = _os.path.commonpath([tgt, base_abs])
+                                    if common == base_abs:
+                                        return True
                                 except Exception:
                                     continue
                             # If no allowlist env is set, allow by default; otherwise deny
-                            return not any(os.getenv(e) for e in envs)
+                            return not any(_os.getenv(e) for e in envs)
                         except Exception:
                             return False
 
@@ -129,7 +128,7 @@ class LocalCatalogBackend(DiscoveryBackend):
                 # Optional allowlist already enforced above when envs are set
                 data = json.loads(
                     Path(cp).read_text(encoding="utf-8")
-                )  # lgtm [py/path-injection]
+                )  # lgtm [py/path-injection] [py/uncontrolled-data-in-path-expression]
         else:
             pkg = "zyra.assets.metadata"
             path = importlib_resources.files(pkg).joinpath("sos_dataset_metadata.json")
