@@ -16,6 +16,8 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from zyra.utils.env import env_bool as _env_bool
+
 # Exception hierarchy for HTTP/network errors.
 # requests may be unavailable in minimal environments; provide fallbacks so
 # exception handling remains explicit without type: ignore noise.
@@ -204,12 +206,7 @@ class OllamaClient(LLMClient):
             HTTPError,
         ) as _:
             # Provide optional generic hints without leaking internal details
-            try:
-                from zyra.utils.env import env_bool  # type: ignore
-
-                include_hints = bool(env_bool("LLM_ERROR_HINTS", False))
-            except Exception:
-                include_hints = False
+            include_hints = bool(_env_bool("LLM_ERROR_HINTS", False))
             hint_text = ""
             if include_hints:
                 hints = [

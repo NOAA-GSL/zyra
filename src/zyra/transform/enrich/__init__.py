@@ -167,6 +167,10 @@ class WMSCapabilitiesEnricher:
         self, item: DatasetMetadata, level: str, ctx: dict[str, Any]
     ) -> DatasetEnrichment | None:
         offline = bool(ctx.get("offline")) if ctx else False
+        https_only = bool(ctx.get("https_only")) if ctx else False
+        allow = list(ctx.get("allow_hosts") or []) if ctx else []
+        deny = list(ctx.get("deny_hosts") or []) if ctx else []
+        req_timeout = float(ctx.get("timeout") or 3.0)
         import xml.etree.ElementTree as ET
 
         def _load_xml(uri: str) -> ET.Element | None:
@@ -189,10 +193,17 @@ class WMSCapabilitiesEnricher:
             if "service=wms" not in url.lower():
                 sep = "&" if "?" in url else "?"
                 url = f"{url}{sep}service=WMS&request=GetCapabilities"
+            # Basic SSRF hardening: allowlist/denylist hosts and optional HTTPS-only
+            try:
+                if not _host_ok(url, https_only, allow, deny):
+                    return None
+            except Exception:
+                return None
             try:
                 import requests  # type: ignore
 
-                r = requests.get(url, timeout=5)
+                # Use configured/request timeout instead of a hard-coded value
+                r = requests.get(url, timeout=max(1.0, float(req_timeout or 3.0)))
                 r.raise_for_status()
                 return ET.fromstring(r.text)
             except Exception:

@@ -94,6 +94,34 @@ class LocalCatalogBackend(DiscoveryBackend):
             else:
                 # Optional allowlist: if env vars are set, require catalog under one of them
                 try:
+                    # First, perform a syntactic containment check without resolving symlinks.
+                    # This guards obvious traversal attempts before any filesystem resolution.
+                    try:
+                        import os as _os
+
+                        def _syntactic_allowed(p0: str, envs0: list[str]) -> bool:
+                            tgt = _os.path.abspath(_os.path.normpath(str(p0)))  # noqa: PTH100
+                            have_env = False
+                            for _env in envs0:
+                                base = _os.getenv(_env)
+                                if not base:
+                                    continue
+                                have_env = True
+                                base_abs = _os.path.abspath(_os.path.normpath(base))  # noqa: PTH100
+                                try:
+                                    if _os.path.commonpath([tgt, base_abs]) == base_abs:
+                                        return True
+                                except Exception:
+                                    continue
+                            return not have_env
+
+                        allowed_envs = ["ZYRA_CATALOG_DIR", "DATA_DIR"]
+                        if not _syntactic_allowed(cp, allowed_envs):
+                            raise ValueError(
+                                "catalog_file not allowed; must be under ZYRA_CATALOG_DIR or DATA_DIR"
+                            )
+                    except Exception:
+                        pass
 
                     def _is_under_allowed(p: str, envs: list[str]) -> bool:
                         """Robust path containment: resolve symlinks and compare real paths.
