@@ -1,0 +1,17 @@
+{
+  "stac_version": "1.0.0",
+  "type": "Collection",
+  "id": "sample-collection",
+  "description": "Sample STAC collection for testing",
+  "extent": {
+    "spatial": { "bbox": [[-10.0, -5.0, 20.0, 15.0]] },
+    "temporal": { "interval": [["2020-01-01T00:00:00Z", "2021-01-01T00:00:00Z"]] }
+  },
+  "summaries": {
+    "eo:bands": [
+      { "name": "B1", "common_name": "blue", "unit": "1" },
+      { "name": "B2", "common_name": "green", "unit": "1" }
+    ]
+  }
+}
+

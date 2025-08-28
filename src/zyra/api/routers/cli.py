@@ -622,6 +622,7 @@ def examples_page(request: Request) -> HTMLResponse:
     <div class=\"header\">
       <h1>Zyra API Examples</h1>
       <a class=\"small\" href=\"/docs\">OpenAPI Docs</a>
+      <a class=\"small\" href=\"https://github.com/NOAA-GSL/zyra/blob/main/docs/source/wiki/Search-API-and-Profiles.md\" target=\"_blank\">Search API & Profiles</a>
     </div>
     <section class=\"example\">
       <h2>Upload → Run → Download</h2>
@@ -652,6 +653,69 @@ def examples_page(request: Request) -> HTMLResponse:
         <a id=\"dlLink\" href=\"#\" download>Download</a>
         <a id=\"mfLink\" href=\"#\" target=\"_blank\">Manifest</a>
       </div>
+    </section>
+
+    <section class=\"example\">
+      <h2>Search API</h2>
+      <div class=\"small\">Enter parameters for <code>/search</code> and run. When remote sources are provided (WMS/Records), local results are omitted unless <code>include_local</code> is set or a local catalog/profile is provided.</div>
+      <div class=\"row\" style=\"margin:.5rem 0\">
+        <label>q: <input id=\"srchQ\" placeholder=\"query\" value=\"tsunami\" /></label>
+        <label>limit: <input id=\"srchLimit\" type=\"number\" min=\"1\" max=\"100\" value=\"5\" style=\"width:5rem\" /></label>
+        <label>profile: <input id=\"srchProfile\" placeholder=\"sos | gibs | pygeoapi\" style=\"width:14rem\" /></label>
+      </div>
+      <div class=\"row\" style=\"margin:.25rem 0\">
+        <label>catalog_file: <input id=\"srchCatalog\" placeholder=\"pkg:zyra.assets.metadata/sos_dataset_metadata.json\" style=\"width:36rem\" /></label>
+      </div>
+      <div class=\"row\" style=\"margin:.25rem 0\">
+        <label>ogc_wms: <input id=\"srchWMS\" placeholder=\"https://...GetCapabilities\" style=\"width:36rem\" /></label>
+      </div>
+      <div class=\"row\" style=\"margin:.25rem 0\">
+        <label>ogc_records: <input id=\"srchRecords\" placeholder=\"https://.../collections/.../items?limit=100\" style=\"width:36rem\" /></label>
+      </div>
+      <div class=\"row\" style=\"margin:.25rem 0\">
+        <label><input type=\"checkbox\" id=\"srchIncludeLocal\" /> include_local</label>
+        <label style=\"margin-left:1rem\"><input type=\"checkbox\" id=\"srchRemoteOnly\" /> remote_only</label>
+        <span style=\"margin-left:1rem\">API Key:</span>
+        <input type=\"password\" id=\"apiKey2\" placeholder=\"X-API-Key\" style=\"width:12rem\" />
+        <button id=\"btnSearch\">Run /search</button>
+        <span class=\"status\" id=\"srchStatus\"></span>
+      </div>
+      <div class=\"small\" style=\"margin:.5rem 0\">Bundled profiles: <span id=\"profilesList\">(loading)</span></div>
+      <pre id=\"srchOut\"></pre>
+    </section>
+
+    <section class=\"example\">
+      <h2>Search API (POST)</h2>
+      <div class=\"small\">Send a JSON body to <code>POST /search</code>. Toggle <code>analyze</code> to include LLM-assisted summary and picks.</div>
+      <div class=\"row\" style=\"margin:.5rem 0\">
+        <label>q: <input id=\"srch2Q\" placeholder=\"query\" value=\"tsunami history datasets\" /></label>
+        <label>limit: <input id=\"srch2Limit\" type=\"number\" min=\"1\" max=\"100\" value=\"10\" style=\"width:5rem\" /></label>
+        <label>profile: <input id=\"srch2Profile\" placeholder=\"sos | gibs | pygeoapi\" style=\"width:14rem\" /></label>
+      </div>
+      <div class=\"row\" style=\"margin:.25rem 0\">
+        <label>catalog_file: <input id=\"srch2Catalog\" placeholder=\"pkg:zyra.assets.metadata/sos_dataset_metadata.json\" style=\"width:36rem\" /></label>
+      </div>
+      <div class=\"row\" style=\"margin:.25rem 0\">
+        <label>ogc_wms: <input id=\"srch2WMS\" placeholder=\"https://...GetCapabilities\" style=\"width:36rem\" /></label>
+      </div>
+      <div class=\"row\" style=\"margin:.25rem 0\">
+        <label>ogc_records: <input id=\"srch2Records\" placeholder=\"https://.../collections/.../items?limit=100\" style=\"width:36rem\" /></label>
+      </div>
+      <div class=\"row\" style=\"margin:.25rem 0\">
+        <label><input type=\"checkbox\" id=\"srch2IncludeLocal\" /> include_local</label>
+        <label style=\"margin-left:1rem\"><input type=\"checkbox\" id=\"srch2RemoteOnly\" /> remote_only</label>
+        <label style=\"margin-left:1rem\"><input type=\"checkbox\" id=\"srch2Analyze\" /> analyze</label>
+        <label style=\"margin-left:1rem\">analysis_limit: <input id=\"srch2AnalysisLimit\" type=\"number\" min=\"1\" max=\"100\" value=\"20\" style=\"width:5rem\" /></label>
+      </div>
+      <div class=\"row\" style=\"margin:.25rem 0\">
+        <span>API Key:</span>
+        <input type=\"password\" id=\"apiKey3\" placeholder=\"X-API-Key\" style=\"width:12rem\" />
+        <button id=\"btnSearchPost\">POST /search</button>
+        <span class=\"status\" id=\"srch2Status\"></span>
+      </div>
+      <div class=\"small\" style=\"margin:.25rem 0\">Presets: <a href=\"#\" id=\"btnPresetTsunami\">Historical Tsunami (SOS)</a></div>
+      <div class=\"small\" style=\"margin:.25rem 0\">Bundled profiles: <span id=\"profilesList2\">(loading)</span></div>
+      <pre id=\"srch2Out\"></pre>
     </section>
 
     <div id=\"container\">Loading examples…</div>
@@ -759,6 +823,98 @@ def examples_page(request: Request) -> HTMLResponse:
             }
           }
         };
+
+        // Search example
+        document.getElementById('btnSearch').onclick = async () => {
+          const out = document.getElementById('srchOut'); out.textContent='';
+          const st = document.getElementById('srchStatus'); st.textContent='Running…';
+          const params = new URLSearchParams();
+          const q = document.getElementById('srchQ').value || '';
+          if (!q) { st.textContent='Missing q'; return; }
+          params.set('q', q);
+          const lim = document.getElementById('srchLimit').value || '10';
+          params.set('limit', lim);
+          const prof = document.getElementById('srchProfile').value; if (prof) params.set('profile', prof);
+          const cat = document.getElementById('srchCatalog').value; if (cat) params.set('catalog_file', cat);
+          const wms = document.getElementById('srchWMS').value; if (wms) params.set('ogc_wms', wms);
+          const rec = document.getElementById('srchRecords').value; if (rec) params.set('ogc_records', rec);
+          if (document.getElementById('srchIncludeLocal').checked) params.set('include_local', 'true');
+          if (document.getElementById('srchRemoteOnly').checked) params.set('remote_only', 'true');
+          const apiKey = document.getElementById('apiKey2').value;
+          const headers = apiKey ? { 'X-API-Key': apiKey } : {};
+          try {
+            const r = await fetch('/search?' + params.toString(), { headers });
+            st.textContent = 'HTTP ' + r.status;
+            const t = await r.text();
+            try { out.textContent = JSON.stringify(JSON.parse(t), null, 2); } catch { out.textContent = t; }
+          } catch (e) { st.textContent='Error'; out.textContent = String(e); }
+        };
+
+        // POST /search example
+        document.getElementById('btnSearchPost').onclick = async () => {
+          const out = document.getElementById('srch2Out'); out.textContent='';
+          const st = document.getElementById('srch2Status'); st.textContent='Running…';
+          const body = {};
+          const q = document.getElementById('srch2Q').value || '';
+          if (!q) { st.textContent = 'Missing q'; return; }
+          body.query = q;
+          const lim = document.getElementById('srch2Limit').value || '10';
+          body.limit = parseInt(lim, 10);
+          const prof = document.getElementById('srch2Profile').value; if (prof) body.profile = prof;
+          const cat = document.getElementById('srch2Catalog').value; if (cat) body.catalog_file = cat;
+          const wms = document.getElementById('srch2WMS').value; if (wms) body.ogc_wms = wms;
+          const rec = document.getElementById('srch2Records').value; if (rec) body.ogc_records = rec;
+          if (document.getElementById('srch2IncludeLocal').checked) body.include_local = true;
+          if (document.getElementById('srch2RemoteOnly').checked) body.remote_only = true;
+          if (document.getElementById('srch2Analyze').checked) body.analyze = true;
+          const al = document.getElementById('srch2AnalysisLimit').value; if (al) body.analysis_limit = parseInt(al, 10);
+          const apiKey = document.getElementById('apiKey3').value;
+          const headers = { 'Content-Type': 'application/json' };
+          if (apiKey) headers['X-API-Key'] = apiKey;
+          try {
+            const r = await fetch('/search', { method: 'POST', headers, body: JSON.stringify(body) });
+            st.textContent = 'HTTP ' + r.status;
+            const t = await r.text();
+            try { out.textContent = JSON.stringify(JSON.parse(t), null, 2); } catch { out.textContent = t; }
+          } catch (e) { st.textContent='Error'; out.textContent = String(e); }
+        };
+
+        // Load bundled profiles and render as quick-select links
+        try {
+          const apiKey = document.getElementById('apiKey2').value;
+          const headers = apiKey ? { 'X-API-Key': apiKey } : {};
+          const r = await fetch('/search/profiles', { headers });
+          const js = await r.json();
+          const names = (js && js.profiles) || [];
+          let entries = (js && js.entries) || [];
+          if (!entries.length) {
+            entries = names.map((id) => ({ id, name: id, description: '', keywords: [] }));
+          }
+          const renderList = (spanId) => {
+            const span = document.getElementById(spanId);
+            if (!span) return;
+            span.textContent = '';
+            if (!entries.length) { span.textContent = '(none found)'; return; }
+            entries.forEach((ent, i) => {
+              const a = document.createElement('a');
+              a.href = '#'; a.textContent = ent.name || ent.id; a.className = 'small';
+              const kws = Array.isArray(ent.keywords) && ent.keywords.length ? ' [keywords: ' + ent.keywords.join(', ') + ']' : '';
+              const desc = ent.description ? (' — ' + ent.description) : '';
+              a.title = (ent.description || '') + (kws || '');
+              a.onclick = (ev) => {
+                ev.preventDefault();
+                const id = ent.id || ent.name;
+                const f1 = document.getElementById('srchProfile'); if (f1) f1.value = id;
+                const f2 = document.getElementById('srch2Profile'); if (f2) f2.value = id;
+              };
+              if (i>0) span.appendChild(document.createTextNode(' | '));
+              span.appendChild(a);
+              span.appendChild(document.createTextNode(desc + (kws ? ' ' + kws : '')));
+            });
+          };
+          renderList('profilesList');
+          renderList('profilesList2');
+        } catch {}
 
         try {
           const res = await fetch('/cli/examples');

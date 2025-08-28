@@ -23,6 +23,7 @@ from zyra.api.routers import cli as cli_router
 from zyra.api.routers import files as files_router
 from zyra.api.routers import jobs as jobs_router
 from zyra.api.routers import manifest as manifest_router
+from zyra.api.routers import search as search_router
 from zyra.api.routers import ws as ws_router
 from zyra.api.security import require_api_key
 from zyra.utils.env import env, env_bool, env_int, env_path, env_seconds
@@ -84,6 +85,7 @@ def create_app() -> FastAPI:
     app.include_router(files_router.router, dependencies=[Depends(require_api_key)])
     app.include_router(ws_router.router)  # auth handled inside via query param
     app.include_router(manifest_router.router, dependencies=[Depends(require_api_key)])
+    app.include_router(search_router.router, dependencies=[Depends(require_api_key)])
     app.include_router(jobs_router.router, dependencies=[Depends(require_api_key)])
 
     @app.get("/health", tags=["system"])
@@ -330,6 +332,9 @@ def create_app() -> FastAPI:
               <li><a href=\"/cli/commands\">GET /cli/commands</a> — discovery: stages, commands, args</li>
               <li><a href=\"/cli/examples\">GET /cli/examples</a> — curated examples for /cli/run</li>
               <li>POST /cli/run — see <a href=\"/docs#/%2Fcli%2Frun\">/docs</a></li>
+              <li><a href=\"/search\">GET /search</a> — dataset discovery</li>
+              <li><a href=\"/search/profiles\">GET /search/profiles</a> — bundled profiles</li>
+              <li>POST /semantic_search — discovery + LLM analysis (see /docs)</li>
               <li><a href=\"/jobs/{{job_id}}\">GET /jobs/{{job_id}}</a> — job status</li>
               <li><a href=\"/jobs/{{job_id}}/manifest\">GET /jobs/{{job_id}}/manifest</a> — artifacts</li>
               <li><a href=\"/jobs/{{job_id}}/download\">GET /jobs/{{job_id}}/download</a> — download</li>

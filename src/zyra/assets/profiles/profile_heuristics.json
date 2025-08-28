@@ -1,0 +1,13 @@
+[
+  {
+    "profile": "gibs",
+    "contains_any": ["sea surface temperature", "sst", "nasa"],
+    "description": "Remote imagery and tiling (NASA GIBS / SST, NASA keywords)"
+  },
+  {
+    "profile": "pygeoapi",
+    "contains_any": ["lake", "pygeoapi"],
+    "description": "OGC API style services and lake datasets"
+  }
+]
+

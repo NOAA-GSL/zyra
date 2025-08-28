@@ -50,6 +50,27 @@ def _safe_call_register(
         return
 
 
+def _safe_add_single(
+    sub: argparse._SubParsersAction,
+    *,
+    name: str,
+    help_text: str,
+    import_path: str,
+    register_attr: str = "register_cli",
+) -> None:
+    """Add a single command parser and call register_cli(parser).
+
+    For groups that expose a single command without subcommands (e.g., search).
+    """
+    try:
+        mod = importlib.import_module(import_path)
+        registrar = getattr(mod, register_attr)
+        p = sub.add_parser(name, help=help_text)
+        registrar(p)
+    except (ImportError, AttributeError):  # pragma: no cover - optional extras
+        return
+
+
 def _safe_register_all(sub: argparse._SubParsersAction) -> None:
     """Register all top-level groups, skipping modules that fail to import.
 
@@ -100,6 +121,14 @@ def _safe_register_all(sub: argparse._SubParsersAction) -> None:
         help_text="Transform helpers (metadata, etc.)",
         dest="transform_cmd",
         import_path="zyra.transform",
+    )
+
+    # search (single command)
+    _safe_add_single(
+        sub,
+        name="search",
+        help_text="Search datasets (local SOS catalog; OGC backends; semantic)",
+        import_path="zyra.connectors.discovery",
     )
 
     # run

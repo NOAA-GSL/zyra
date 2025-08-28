@@ -16,6 +16,8 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from zyra.utils.env import env_bool as _env_bool
+
 # Exception hierarchy for HTTP/network errors.
 # requests may be unavailable in minimal environments; provide fallbacks so
 # exception handling remains explicit without type: ignore noise.
@@ -129,9 +131,11 @@ class OpenAIClient(LLMClient):
             TypeError,
             RequestException,
             HTTPError,
-        ) as exc:
-            return f"# OpenAI error: {exc}\n" + _get_mock_singleton().generate(
-                system_prompt, user_prompt
+        ) as _:
+            # Avoid exposing exception details; provide generic hint and fallback to mock
+            return (
+                "# OpenAI error: fallback response used\n"
+                + _get_mock_singleton().generate(system_prompt, user_prompt)
             )
 
 
@@ -200,37 +204,18 @@ class OllamaClient(LLMClient):
             TypeError,
             RequestException,
             HTTPError,
-        ) as exc:
-            # Provide targeted hints for common connectivity issues
-            err = str(exc)
-            hints = []
-            try:
-                from urllib.parse import urlparse
-
-                parsed = urlparse(self.base_url)
-                host = parsed.hostname or ""
-            except Exception:
-                host = ""
-
-            if (
-                "Connection refused" in err
-                or "Failed to establish a new connection" in err
-            ):
-                if host in {"localhost", "127.0.0.1"}:
-                    hints.append(
-                        "Ollama may not be listening on localhost inside your container."
-                    )
-                    hints.append(
-                        "If using Docker on Linux, add --add-host=host.docker.internal:host-gateway and set OLLAMA_BASE_URL=http://host.docker.internal:11434."
-                    )
-                else:
-                    hints.append(f"Verify OLLAMA_BASE_URL is correct: {self.base_url}")
-                hints.append(
-                    "Ensure the server is started with: OLLAMA_HOST=0.0.0.0 ollama serve"
-                )
-            hint_text = ("\n# " + "\n# ".join(hints)) if hints else ""
+        ) as _:
+            # Provide optional generic hints without leaking internal details
+            include_hints = bool(_env_bool("LLM_ERROR_HINTS", False))
+            hint_text = ""
+            if include_hints:
+                hints = [
+                    "Verify OLLAMA_BASE_URL points to your Ollama server",
+                    "Ensure the server is started with: OLLAMA_HOST=0.0.0.0 ollama serve",
+                ]
+                hint_text = "\n# " + "\n# ".join(hints)
             return (
-                f"# Ollama error: {exc}{hint_text}\n"
+                f"# Ollama error: fallback response used{hint_text}\n"
                 + _get_mock_singleton().generate(system_prompt, user_prompt)
             )
 

@@ -304,6 +304,90 @@ def run_cli_job(
     return payload
 
 
+def run_enrich_job(args: dict[str, Any], job_id: str | None = None) -> dict[str, Any]:
+    """Worker entry: run metadata enrichment and persist results as JSON.
+
+    Args expects:
+    - items: list of DatasetMetadata-like dicts
+    - enrich: level string
+    - enrich_timeout, enrich_workers, cache_ttl
+    """
+    if job_id is None:
+        try:
+            from rq import get_current_job
+
+            _job = get_current_job()
+            job_id = _job.id if _job else None
+        except Exception:
+            job_id = None
+    channel = f"jobs.{job_id}.progress" if job_id else None
+    if channel:
+        _pub(channel, {"progress": 0.0, "stage": "enrich"})
+    try:
+        from zyra.connectors.discovery import DatasetMetadata
+        from zyra.transform.enrich import enrich_items
+        from zyra.utils.serialize import to_list
+
+        # Normalize input items to DatasetMetadata
+        items_in: list[DatasetMetadata] = []
+        for d in args.get("items") or []:
+            try:
+                items_in.append(
+                    DatasetMetadata(
+                        id=str(d.get("id")),
+                        name=str(d.get("name")),
+                        description=d.get("description"),
+                        source=str(d.get("source")),
+                        format=str(d.get("format")),
+                        uri=str(d.get("uri")),
+                    )
+                )
+            except Exception:
+                continue
+        res = enrich_items(
+            items_in,
+            level=str(args.get("enrich") or "shallow"),
+            timeout=float(args.get("enrich_timeout") or 3.0),
+            workers=int(args.get("enrich_workers") or 4),
+            cache_ttl=int(args.get("cache_ttl") or 86400),
+            offline=bool(args.get("offline") or False),
+            https_only=bool(args.get("https_only") or False),
+            allow_hosts=list(args.get("allow_hosts") or []),
+            deny_hosts=list(args.get("deny_hosts") or []),
+            max_probe_bytes=args.get("max_probe_bytes"),
+            profile_defaults=dict(args.get("profile_defaults") or {}),
+            profile_license_policy=dict(args.get("profile_license_policy") or {}),
+        )
+        # Persist to results dir
+        from zyra.utils.env import env
+
+        out_file = None
+        if job_id:
+            base = Path(env("RESULTS_DIR", "/tmp/zyra_results") or "/tmp/zyra_results")
+            rd = base / job_id
+            rd.mkdir(parents=True, exist_ok=True)
+            out_path = rd / "enriched.json"
+            out_path.write_text(json.dumps(to_list(res)), encoding="utf-8")
+            out_file = str(out_path)
+            with contextlib.suppress(Exception):
+                write_manifest(job_id)
+        payload = {
+            "progress": 1.0,
+            "exit_code": 0,
+            "output_file": out_file,
+        }
+        if channel:
+            _pub(channel, payload)
+        return payload
+    except Exception as exc:  # pragma: no cover
+        if channel:
+            _pub(
+                channel,
+                {"progress": 1.0, "exit_code": 1, "stderr": str(exc)},
+            )
+        return {"progress": 1.0, "exit_code": 1, "stderr": str(exc)}
+
+
 # In-memory fallback (used when USE_REDIS is false)
 # NOTE: This job store is scoped to the API layer to integrate pub/sub streaming
 # and Redis-compatible semantics when Redis is disabled. It is distinct from
@@ -372,6 +456,28 @@ def submit_job(stage: str, command: str, args: dict[str, Any]) -> str:
             "updated_at": time.time(),
         }
         # For API symmetry, we only enqueue here; caller should start background task
+        return job_id
+
+
+def submit_enrich_job(args: dict[str, Any]) -> str:
+    """Submit an enrichment job and return job id."""
+    if is_redis_enabled():
+        _r, q = _get_redis_and_queue()
+        job = q.enqueue(run_enrich_job, args)  # type: ignore[arg-type]
+        return job.get_id()
+    else:
+        import uuid
+
+        _cleanup_jobs()
+        job_id = uuid.uuid4().hex
+        _JOBS[job_id] = {
+            "status": "queued",
+            "stdout": "",
+            "stderr": "",
+            "exit_code": None,
+            "created_at": time.time(),
+            "updated_at": time.time(),
+        }
         return job_id
 
 
@@ -484,6 +590,29 @@ def start_job(job_id: str, stage: str, command: str, args: dict[str, Any]) -> No
         payload["output_file"] = rec["output_file"]
     _pub(channel, payload)
     rec["status"] = "succeeded" if code == 0 else "failed"
+    rec["updated_at"] = time.time()
+    _cleanup_jobs()
+
+
+def start_enrich_job(job_id: str, args: dict[str, Any]) -> None:
+    """Start an enrichment job in in-memory mode and update job store."""
+    if is_redis_enabled():
+        return
+    rec = _JOBS.get(job_id)
+    if not rec:
+        return
+    rec["status"] = "running"
+    rec["updated_at"] = time.time()
+    channel = f"jobs.{job_id}.progress"
+    _pub(channel, {"progress": 0.0, "stage": "enrich"})
+    payload = run_enrich_job(args, job_id)
+    # Update record
+    rec["stdout"] = None
+    rec["stderr"] = payload.get("stderr")
+    rec["exit_code"] = payload.get("exit_code")
+    if payload.get("output_file"):
+        rec["output_file"] = payload.get("output_file")
+    rec["status"] = "succeeded" if payload.get("exit_code") == 0 else "failed"
     rec["updated_at"] = time.time()
     _cleanup_jobs()
 

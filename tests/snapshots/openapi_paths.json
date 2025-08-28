@@ -4,11 +4,14 @@
   "/cli/examples",
   "/cli/run",
   "/commands",
+  "/enrich",
   "/health",
   "/jobs/{job_id}",
   "/jobs/{job_id}/download",
   "/jobs/{job_id}/manifest",
   "/llm/test",
   "/ready",
+  "/search",
+  "/search/profiles",
   "/upload"
 ]

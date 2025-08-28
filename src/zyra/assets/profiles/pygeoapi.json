@@ -1,0 +1,25 @@
+{
+  "name": "pygeoapi Demo (Records)",
+  "description": "Demo OGC API - Records collections from pygeoapi (e.g., lakes, obs) useful for testing discovery flows.",
+  "keywords": ["ogc", "records", "pygeoapi", "demo", "lakes", "observations"],
+  "sources": {
+    "ogc_records": [
+      "https://demo.pygeoapi.io/master/collections/lakes/items?limit=100",
+      "https://demo.pygeoapi.io/master/collections/obs/items?limit=100"
+    ]
+  },
+  "enrichment": {
+    "defaults": {
+      "spatial": {
+        "crs": "EPSG:4326"
+      }
+    }
+  },
+  "weights": {
+    "title": 3,
+    "description": 2,
+    "keywords": 1,
+    "link_titles": 1,
+    "generic_props": 1
+  }
+}
