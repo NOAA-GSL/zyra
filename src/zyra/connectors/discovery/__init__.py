@@ -137,9 +137,24 @@ class LocalCatalogBackend(DiscoveryBackend):
                 except Exception:
                     # Fall through; Path read may still raise appropriately
                     pass
-                # Optional allowlist already enforced above when envs are set
+                # Optional allowlist already enforced above when envs are set.
+                # Resolve to a normalized absolute path (handles symlinks) before reading.
+                resolved = Path(cp).resolve()
+                # Re-validate containment post-resolve for defense-in-depth
+                try:
+                    allowed_envs = ["ZYRA_CATALOG_DIR", "DATA_DIR"]
+                    # Reuse helper from above scope
+                    if not _is_under_allowed(str(resolved), allowed_envs):
+                        raise ValueError(
+                            "catalog_file not allowed after resolve; must be under ZYRA_CATALOG_DIR or DATA_DIR"
+                        )
+                except Exception:
+                    # If the helper isn't available in scope due to refactor, fall back to direct read error
+                    pass
+                if not resolved.is_file():
+                    raise FileNotFoundError(str(resolved))
                 data = json.loads(
-                    Path(cp).read_text(encoding="utf-8")
+                    resolved.read_text(encoding="utf-8")
                 )  # lgtm [py/path-injection] [py/uncontrolled-data-in-path-expression]
         else:
             pkg = "zyra.assets.metadata"

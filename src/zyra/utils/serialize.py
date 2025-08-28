@@ -63,7 +63,11 @@ def compact_dataset(x: Any, max_desc_len: int = 240) -> dict[str, Any]:
     if isinstance(x, dict):
         get = x.get  # type: ignore[assignment]
     else:
-        get = lambda k, default=None: getattr(x, k, default)  # noqa: E731
+
+        def _get(k: str, default: Any | None = None) -> Any:
+            return getattr(x, k, default)
+
+        get = _get
 
     desc_raw = get("description") or ""
     desc = truncate_text(str(desc_raw), max_desc_len)

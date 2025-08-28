@@ -592,6 +592,12 @@ class NetCDFProbeEnricher:
                 return None
         except Exception:
             size = None
+        # If probing a remote resource with unknown size and a max cap is set, skip for safety
+        try:
+            if (not _is_local_uri(uri)) and (max_bytes is not None) and (size is None):
+                return None
+        except Exception:
+            pass
         try:
             import xarray as xr  # type: ignore
 
@@ -702,6 +708,12 @@ class GeoTIFFProbeEnricher:
                 return None
         except Exception:
             size = None
+        # If probing a remote resource with unknown size and a max cap is set, skip for safety
+        try:
+            if (not _is_local_uri(uri)) and (max_bytes is not None) and (size is None):
+                return None
+        except Exception:
+            pass
         try:
             import rasterio  # type: ignore
 

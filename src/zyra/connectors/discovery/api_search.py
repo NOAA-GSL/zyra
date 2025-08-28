@@ -293,9 +293,39 @@ def query_single_api(
             req = _get_requests()
             if use_post:
                 body = _parse_json_body(json_body)
+                if json_body and body is None and verbose:
+                    try:
+                        import sys
+
+                        print(
+                            f"[zyra.search.api] {host} POST body JSON parse failed; raw={json_body!r}",
+                            file=sys.stderr,
+                        )
+                    except Exception:
+                        pass
                 if body is None:
                     body = _parse_kv_list(json_params)
+                    if verbose:
+                        try:
+                            import sys
+
+                            print(
+                                f"[zyra.search.api] {host} using key=value json_params fallback: {list(json_params or [])}",
+                                file=sys.stderr,
+                            )
+                        except Exception:
+                            pass
                 if not isinstance(body, dict):
+                    if verbose:
+                        try:
+                            import sys
+
+                            print(
+                                f"[zyra.search.api] {host} POST body invalid; using default {{'query': ..., 'limit': ...}}",
+                                file=sys.stderr,
+                            )
+                        except Exception:
+                            pass
                     body = {"query": query, "limit": int(limit)}
                 r = req.post(url, json=body, headers=hdrs or None, timeout=timeout)
             else:

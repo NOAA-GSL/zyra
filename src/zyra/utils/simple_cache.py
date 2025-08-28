@@ -67,4 +67,4 @@ def set(key: str, value: Any, ttl_seconds: int) -> None:
         return
 
 
-"""Uses standard library contextlib.suppress for best-effort cache cleanup."""
+# End of module

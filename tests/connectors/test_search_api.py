@@ -111,8 +111,16 @@ def test_federated_api_concurrency(monkeypatch):
     monkeypatch.setattr(mod, "_ensure_requests", lambda: None)
 
     def _stub_query_single_api(u, *a, **k):
-        host = urlparse(u).netloc or u
-        return [{"source": host, "dataset": f"D-{host}", "link": f"http://{host}/d"}]
+        pu = urlparse(u)
+        scheme = pu.scheme or "http"
+        host = pu.netloc or u
+        return [
+            {
+                "source": host,
+                "dataset": f"D-{host}",
+                "link": f"{scheme}://{host}/d",
+            }
+        ]
 
     monkeypatch.setattr(mod, "query_single_api", _stub_query_single_api)
 
