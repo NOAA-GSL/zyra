@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import time
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -40,7 +41,7 @@ def get(key: str) -> Any | None:
         data = json.loads(p.read_text(encoding="utf-8"))
         if float(data.get("expires_at") or 0) < time.time():
             # Expired; best-effort delete
-            with contextlib_suppress():
+            with suppress(Exception):
                 p.unlink()
             return None
         return data.get("payload")
@@ -66,9 +67,4 @@ def set(key: str, value: Any, ttl_seconds: int) -> None:
         return
 
 
-class contextlib_suppress:
-    def __enter__(self) -> None:  # pragma: no cover - simple helper
-        return None
-
-    def __exit__(self, exc_type, exc, tb) -> bool:  # pragma: no cover
-        return True
+"""Uses standard library contextlib.suppress for best-effort cache cleanup."""

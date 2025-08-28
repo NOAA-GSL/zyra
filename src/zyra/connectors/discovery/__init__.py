@@ -96,24 +96,36 @@ class LocalCatalogBackend(DiscoveryBackend):
                 try:
 
                     def _is_under_allowed(p: str, envs: list[str]) -> bool:
-                        """Syntactic containment check using abspath/normpath/commonpath."""
+                        """Robust path containment: resolve symlinks and compare real paths.
+
+                        Uses Path.resolve() on both target and base to prevent traversal via
+                        symlinks and to normalize case/segments where applicable.
+                        """
                         try:
                             import os as _os
 
-                            tgt = _os.path.abspath(_os.path.normpath(str(p)))  # noqa: PTH100
+                            tgt_res = (
+                                Path(str(p)).resolve()
+                            )  # lgtm [py/uncontrolled-data-in-path-expression]
+                            allowed_set = False
                             for env in envs:
                                 base = _os.getenv(env)
                                 if not base:
                                     continue
-                                base_abs = _os.path.abspath(_os.path.normpath(base))  # noqa: PTH100
+                                allowed_set = True
                                 try:
-                                    common = _os.path.commonpath([tgt, base_abs])
-                                    if common == base_abs:
-                                        return True
+                                    base_res = Path(base).resolve()
+                                    # Python 3.9+: is_relative_to ensures proper path semantics
+                                    if hasattr(tgt_res, "is_relative_to"):
+                                        if tgt_res.is_relative_to(base_res):
+                                            return True
+                                    else:  # pragma: no cover - old Python fallback
+                                        if str(tgt_res).startswith(str(base_res)):
+                                            return True
                                 except Exception:
                                     continue
                             # If no allowlist env is set, allow by default; otherwise deny
-                            return not any(_os.getenv(e) for e in envs)
+                            return not allowed_set
                         except Exception:
                             return False
 

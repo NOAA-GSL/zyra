@@ -21,6 +21,45 @@ from .models import (
     TimeInfo,
 )
 
+# Expanded, centralized units detection patterns for shallow extraction.
+# Split into "word" units (matched with word boundaries) and symbol/compound units.
+_UNIT_WORDS = [
+    r"K",
+    r"Kelvin",
+    r"degC",
+    r"Celsius",
+    r"Pa",
+    r"hPa",
+    r"bar",
+    r"mb",
+    r"m",
+    r"meter(?:s)?",
+    r"cm",
+    r"centimeter(?:s)?",
+    r"mm",
+    r"km",
+    r"kilometer(?:s)?",
+]
+_UNIT_SYMBOLS = [
+    r"%",
+    r"°C",
+    r"m/s",
+    r"m s-1",
+    r"kg/m\^?3",
+    r"kg m-3",
+    r"kg/m²",
+    r"kg/m2",
+    r"kg m-2",
+]
+_UNITS_PATTERN = (
+    r"(?:\\b(?:"
+    + r"|".join(_UNIT_WORDS)
+    + r")\\b|(?:"
+    + r"|".join(_UNIT_SYMBOLS)
+    + r"))"
+)
+UNITS_REGEX = re.compile(_UNITS_PATTERN, re.I)
+
 
 class BaseEnricher(Protocol):
     name: str
@@ -51,7 +90,7 @@ class ShallowEnricher:
     ) -> DatasetEnrichment:
         vars: list[DatasetVariable] = []
         text = f"{item.name}\n{item.description or ''}"
-        unit_rx = re.compile(r"\b(K|Pa|hPa|m/s|m|degC|mm|%|kg/m\^?3)\b", re.I)
+        unit_rx = UNITS_REGEX
 
         # Candidate variable names from free text
         cand = set()
@@ -890,6 +929,7 @@ def enrich_items(
     profile_defaults: dict[str, Any] | None = None,
     profile_license_policy: dict[str, Any] | None = None,
     defaults_sources: list[str] | None = None,
+    max_total_timeout: float | None = None,
 ) -> list[DatasetMetadataExtended]:
     enrs = _REGISTRY.get(level, [])
     if not enrs:
@@ -962,7 +1002,14 @@ def enrich_items(
 
     with _fut.ThreadPoolExecutor(max_workers=max(1, int(workers))) as ex:
         futs = [ex.submit(_do_one, i) for i in range(len(items_list))]
-        _fut.wait(futs, timeout=max(1.0, timeout) * len(items_list) * 1.5)
+        # Base total timeout scales with item count; apply optional ceiling to avoid excessive waits
+        base_total = max(1.0, float(timeout or 0.0)) * max(1, len(items_list)) * 1.5
+        total = (
+            min(base_total, float(max_total_timeout))
+            if max_total_timeout is not None
+            else base_total
+        )
+        _fut.wait(futs, timeout=total)
 
     return out
 

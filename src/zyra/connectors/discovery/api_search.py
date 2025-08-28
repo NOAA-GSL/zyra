@@ -29,6 +29,10 @@ from zyra.connectors.backends import http as http_backend
 
 _requests = None  # lazily imported requests module
 
+# Common query parameter names for search endpoints, in preference order.
+# Centralized to keep fallbacks consistent across discovery paths.
+FALLBACK_QUERY_PARAM_NAMES: tuple[str, ...] = ("q", "query")
+
 
 def _ensure_requests() -> None:
     """Ensure the requests module is importable and cache it.
@@ -110,9 +114,10 @@ def _discover_search_spec(base_url: str) -> APISearchSpec:
     """Infer search endpoint and query parameter name from OpenAPI.
 
     - Prefers the shortest path containing ``/search`` that exposes a GET
-      operation; picks the query parameter named ``q`` or ``query`` when
-      present (prefers ``q``).
-    - Falls back to ``/search`` with ``q`` when OpenAPI is absent.
+      operation; picks the first matching query parameter from
+      ``FALLBACK_QUERY_PARAM_NAMES`` (prefers earlier names, e.g., ``q``).
+    - Falls back to ``/search`` with the first name in
+      ``FALLBACK_QUERY_PARAM_NAMES`` when OpenAPI is absent.
     """
     spec = _load_openapi(base_url)
     if spec and isinstance(spec.get("paths"), dict):
@@ -137,13 +142,15 @@ def _discover_search_spec(base_url: str) -> APISearchSpec:
             q_name = None
             if isinstance(params, list):
                 names = [str(p.get("name")) for p in params if isinstance(p, dict)]
-                if "q" in names:
-                    q_name = "q"
-                elif "query" in names:
-                    q_name = "query"
-            return APISearchSpec(path=path, query_param=q_name or "q")
+                for candidate in FALLBACK_QUERY_PARAM_NAMES:
+                    if candidate in names:
+                        q_name = candidate
+                        break
+            return APISearchSpec(
+                path=path, query_param=q_name or FALLBACK_QUERY_PARAM_NAMES[0]
+            )
     # Fallback
-    return APISearchSpec(path="/search", query_param="q")
+    return APISearchSpec(path="/search", query_param=FALLBACK_QUERY_PARAM_NAMES[0])
 
 
 def print_openapi_info(
@@ -328,7 +335,9 @@ def query_single_api(
 
     if seq_any is None:
         # Fallback tries: alternate param name and default /search path
-        for qp_eff in (qp, "q", "query"):
+        candidates: list[str] = [str(qp)] if qp else []
+        candidates.extend(list(FALLBACK_QUERY_PARAM_NAMES))
+        for qp_eff in candidates:
             try:
                 req = _get_requests()
                 r = req.get(

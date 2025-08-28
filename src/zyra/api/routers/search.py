@@ -180,7 +180,7 @@ def search(
                 # Contained, normalized path under allowlisted base dirs
                 prof1 = _json.loads(
                     resolved.read_text(encoding="utf-8")
-                )  # lgtm [py/path-injection]
+                )  # lgtm [py/path-injection] [py/uncontrolled-data-in-path-expression]
             prof_sources.update(dict(prof1.get("sources") or {}))
             prof_weights.update(
                 {k: int(v) for k, v in (prof1.get("weights") or {}).items()}
@@ -466,7 +466,7 @@ def post_search(body: dict) -> dict[str, Any]:
                 # Contained, normalized path under allowlisted base dirs
                 prof1 = _json.loads(
                     resolved.read_text(encoding="utf-8")
-                )  # lgtm [py/path-injection]
+                )  # lgtm [py/path-injection] [py/uncontrolled-data-in-path-expression]
             prof_sources.update(dict(prof1.get("sources") or {}))
             prof_weights.update(
                 {k: int(v) for k, v in (prof1.get("weights") or {}).items()}
