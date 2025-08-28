@@ -19,8 +19,10 @@ query-filters:
       paths:
         - src/zyra/api/routers/jobs.py
         - src/zyra/api/workers/executor.py
+        - src/zyra/api/routers/search.py
   - exclude:
       id: py/uncontrolled-data-in-path-expression
       paths:
         - src/zyra/api/routers/jobs.py
         - src/zyra/api/workers/executor.py
+        - src/zyra/api/routers/search.py

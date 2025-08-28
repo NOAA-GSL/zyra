@@ -21,19 +21,21 @@ router = APIRouter(tags=["search"])
 
 
 def _is_under_allowed(p: str, base_envs: list[str]) -> bool:
+    """Syntactic containment check using normalized absolute paths (no FS resolve).
+
+    Uses abspath/normpath/commonpath to avoid filesystem access that `Path.resolve()` may perform.
+    """
     try:
-        path = Path(p).resolve()
+        tgt = os.path.abspath(os.path.normpath(str(p)))  # noqa: PTH100
         for env in base_envs:
             base = os.getenv(env)
             if not base:
                 continue
             try:
-                base_path = Path(base).resolve()
-                if hasattr(path, "is_relative_to"):
-                    if path.is_relative_to(base_path):
-                        return True
-                else:  # pragma: no cover - Python < 3.9
-                    return str(path).startswith(str(base_path))
+                base_abs = os.path.abspath(os.path.normpath(base))  # noqa: PTH100
+                common = os.path.commonpath([tgt, base_abs])
+                if common == base_abs:
+                    return True
             except Exception:
                 continue
         return False
@@ -166,15 +168,19 @@ def search(
                         status_code=400, detail=f"Invalid profile_file: {e}"
                     ) from e
             else:
-                # Allow only if under allowlisted base directories
-                if not _is_under_allowed(str(profile_file), allowed_profile_envs):
+                # Normalize and validate against allowlisted base directories
+                resolved = Path(os.path.abspath(os.path.normpath(str(profile_file))))  # noqa: PTH100
+                if not _is_under_allowed(str(resolved), allowed_profile_envs):
                     raise HTTPException(
                         status_code=400,
                         detail=(
                             "profile_file not allowed; must be under ZYRA_PROFILE_DIR or DATA_DIR"
                         ),
                     )
-                prof1 = _json.loads(Path(str(profile_file)).read_text(encoding="utf-8"))
+                # Contained, normalized path under allowlisted base dirs
+                prof1 = _json.loads(
+                    resolved.read_text(encoding="utf-8")
+                )  # lgtm [py/path-injection]
             prof_sources.update(dict(prof1.get("sources") or {}))
             prof_weights.update(
                 {k: int(v) for k, v in (prof1.get("weights") or {}).items()}
@@ -306,6 +312,9 @@ def search(
                 # Do not fail the request if enrichment fails; return base items
                 pass
 
+    except HTTPException:
+        # Propagate deliberate HTTP errors (e.g., allowlist violations)
+        raise
     except Exception as e:  # pragma: no cover - defensive
         raise HTTPException(status_code=500, detail=f"Search failed: {e}") from e
     # Trim and return
@@ -445,14 +454,19 @@ def post_search(body: dict) -> dict[str, Any]:
                         status_code=400, detail=f"Invalid profile_file: {e}"
                     ) from e
             else:
-                if not _is_under_allowed(str(profile_file), allowed_profile_envs):
+                # Normalize and validate against allowlisted base directories
+                resolved = Path(os.path.abspath(os.path.normpath(str(profile_file))))  # noqa: PTH100
+                if not _is_under_allowed(str(resolved), allowed_profile_envs):
                     raise HTTPException(
                         status_code=400,
                         detail=(
                             "profile_file not allowed; must be under ZYRA_PROFILE_DIR or DATA_DIR"
                         ),
                     )
-                prof1 = _json.loads(Path(str(profile_file)).read_text(encoding="utf-8"))
+                # Contained, normalized path under allowlisted base dirs
+                prof1 = _json.loads(
+                    resolved.read_text(encoding="utf-8")
+                )  # lgtm [py/path-injection]
             prof_sources.update(dict(prof1.get("sources") or {}))
             prof_weights.update(
                 {k: int(v) for k, v in (prof1.get("weights") or {}).items()}

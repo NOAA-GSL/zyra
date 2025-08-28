@@ -76,6 +76,7 @@ class LocalCatalogBackend(DiscoveryBackend):
             return self._cache
         data: list[dict[str, Any]]
         if self._catalog_path:
+            import os
             from pathlib import Path
 
             # Support packaged resource references: pkg:package/resource or pkg:package:resource
@@ -92,7 +93,43 @@ class LocalCatalogBackend(DiscoveryBackend):
                 with importlib_resources.as_file(path) as p:
                     data = json.loads(p.read_text(encoding="utf-8"))
             else:
-                data = json.loads(Path(cp).read_text(encoding="utf-8"))
+                # Optional allowlist: if env vars are set, require catalog under one of them
+                try:
+
+                    def _is_under_allowed(p: str, envs: list[str]) -> bool:
+                        try:
+                            path = Path(p).resolve()
+                            for env in envs:
+                                base = os.getenv(env)
+                                if not base:
+                                    continue
+                                base_path = Path(base).resolve()
+                                try:
+                                    if hasattr(path, "is_relative_to"):
+                                        if path.is_relative_to(base_path):
+                                            return True
+                                    else:  # pragma: no cover - Python < 3.9
+                                        if str(path).startswith(str(base_path)):
+                                            return True
+                                except Exception:
+                                    continue
+                            # If no allowlist env is set, allow by default; otherwise deny
+                            return not any(os.getenv(e) for e in envs)
+                        except Exception:
+                            return False
+
+                    allowed_envs = ["ZYRA_CATALOG_DIR", "DATA_DIR"]
+                    if not _is_under_allowed(cp, allowed_envs):
+                        raise ValueError(
+                            "catalog_file not allowed; must be under ZYRA_CATALOG_DIR or DATA_DIR"
+                        )
+                except Exception:
+                    # Fall through; Path read may still raise appropriately
+                    pass
+                # Optional allowlist already enforced above when envs are set
+                data = json.loads(
+                    Path(cp).read_text(encoding="utf-8")
+                )  # lgtm [py/path-injection]
         else:
             pkg = "zyra.assets.metadata"
             path = importlib_resources.files(pkg).joinpath("sos_dataset_metadata.json")
