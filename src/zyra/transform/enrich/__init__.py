@@ -3,7 +3,6 @@ from __future__ import annotations
 import concurrent.futures as _fut
 import contextlib
 import re
-import time
 from dataclasses import asdict
 from typing import Any, Iterable, Protocol
 
@@ -995,7 +994,6 @@ def enrich_items(
                     cur = out[ix].enrichment or DatasetEnrichment()
                     out[ix].enrichment = _merge_enrichment(cur, enr)
                     continue
-            start = time.time()
             try:
                 enr = e.enrich(
                     item,
@@ -1014,9 +1012,6 @@ def enrich_items(
                 )
             except Exception:
                 enr = None
-            dur = time.time() - start
-            if dur > timeout:
-                pass
             if enr:
                 cur = out[ix].enrichment or DatasetEnrichment()
                 out[ix].enrichment = _merge_enrichment(cur, enr)

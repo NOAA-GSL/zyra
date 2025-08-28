@@ -213,7 +213,7 @@ class OllamaClient(LLMClient):
                     "Verify OLLAMA_BASE_URL points to your Ollama server",
                     "Ensure the server is started with: OLLAMA_HOST=0.0.0.0 ollama serve",
                 ]
-                hint_text = ("\n# " + "\n# ".join(hints)) if hints else ""
+                hint_text = "\n# " + "\n# ".join(hints)
             return (
                 f"# Ollama error: fallback response used{hint_text}\n"
                 + _get_mock_singleton().generate(system_prompt, user_prompt)
