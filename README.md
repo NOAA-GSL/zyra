@@ -162,6 +162,8 @@ zyra
 
 Notes
 - All subcommands accept `-` for stdin/stdout where applicable to support piping.
+  - `transform enrich-metadata` can read frames metadata JSON from stdin via `--read-frames-meta-stdin`.
+  - `decimate s3` can read bytes from stdin via `--read-stdin` (alias for `-i -`).
 
 ### Quick Usage by Group
 
@@ -181,7 +183,7 @@ Notes
   - Animate frames and compose to MP4: `zyra visualize animate --mode heatmap --input cube.npy --output-dir frames && zyra visualize compose-video --frames frames -o out.mp4`
 
 - Decimate
-  - Upload to S3 from stdin: `cat out.png | zyra decimate s3 -i - --url s3://bucket/products/out.png`
+- Upload to S3 from stdin: `cat out.png | zyra decimate s3 --read-stdin --url s3://bucket/products/out.png`
 - HTTP POST JSON: `echo '{"ok":true}' | zyra decimate post -i - https://example.com/ingest --content-type application/json`
 
 ## Batch Mode
@@ -425,7 +427,7 @@ Error handling
 
 ## Chaining Commands with --raw and --stdout
 
-The CLI supports streaming binary data through stdout/stdin so you can compose offline pipelines without touching disk.
+The CLI supports streaming binary data through stdout/stdin so you can compose offline pipelines without touching disk. For JSON metadata, chain `transform metadata -o - | zyra transform enrich-metadata --read-frames-meta-stdin ...` to avoid temp files. Note: stdin is a single stream; if you read frames metadata from stdin, pass the Vimeo URI via `--vimeo-uri` (not `--read-vimeo-uri`).
 
 - `.idx` → extract → convert (one-liner):
   ```bash
@@ -830,6 +832,10 @@ MIME detection (optional):
 WebSocket client extra:
 - Install `poetry install --with ws` to enable the `zyra-cli --ws` streaming option (bundles `websockets`).
 See Batch Mode section for multi-input workflows across acquisition, processing, and visualization.
+
+Logging workflows to a file
+- Use `zyra run <config.yaml> --log-file /path/to/logs/workflow.log [--log-file-mode overwrite]` to capture runner and stage logs into a dataset‑scoped location (default appends).
+- Alternatively, provide a directory and let Zyra write `workflow.log`: `zyra run <config.yaml> --log-dir /data/rt/dataset/<id>/logs`.
 ### Running Tests
 
 - Install dev deps and optional extras:

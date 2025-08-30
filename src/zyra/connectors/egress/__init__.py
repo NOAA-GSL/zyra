@@ -40,6 +40,11 @@ def _cmd_local(ns: argparse.Namespace) -> int:
 def _cmd_s3(ns: argparse.Namespace) -> int:
     """Upload stdin or input file to S3 (s3:// or bucket/key)."""
     configure_logging_from_env()
+    # Convenience alias: --read-stdin behaves like -i -
+    if getattr(ns, "read_stdin", False):
+        ns.input = "-"
+    if not getattr(ns, "input", None):
+        raise SystemExit("--input PATH or --read-stdin is required")
     data = _read_all(ns.input)
     ok = s3_backend.upload_bytes(data, ns.url if ns.url else ns.bucket, ns.key)
     if not ok:
@@ -72,7 +77,13 @@ def register_cli(dec_subparsers: Any) -> None:
 
     # s3
     p_s3 = dec_subparsers.add_parser("s3", help="Upload to S3")
-    add_input_option(p_s3, required=True)
+    # Input is optional when --read-stdin is provided
+    add_input_option(p_s3, required=False)
+    p_s3.add_argument(
+        "--read-stdin",
+        action="store_true",
+        help="Read object body from stdin (alias for -i -)",
+    )
     grp = p_s3.add_mutually_exclusive_group(required=True)
     grp.add_argument("--url", help="Full URL s3://bucket/key")
     grp.add_argument("--bucket", help="Bucket name")

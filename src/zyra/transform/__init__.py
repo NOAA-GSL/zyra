@@ -144,9 +144,15 @@ def register_cli(subparsers: Any) -> None:
         from zyra.utils.json_file_manager import JSONFileManager
 
         fm = JSONFileManager()
-        # Load base metadata JSON from file
+        # Load base metadata JSON from file or stdin when requested
         try:
-            base = fm.read_json(ns.frames_meta)
+            if getattr(ns, "read_frames_meta_stdin", False):
+                import sys
+
+                js = sys.stdin.buffer.read().decode("utf-8", errors="ignore")
+                base = json.loads(js)
+            else:
+                base = fm.read_json(ns.frames_meta)
         except Exception as exc:
             raise SystemExit(f"Failed to read frames metadata: {exc}") from exc
         if not isinstance(base, dict):
@@ -177,11 +183,18 @@ def register_cli(subparsers: Any) -> None:
     p2 = subparsers.add_parser(
         "enrich-metadata", help="Enrich frames metadata with dataset id and Vimeo URI"
     )
-    p2.add_argument(
+    # Source of base frames metadata: file or stdin
+    srcgrp = p2.add_mutually_exclusive_group(required=True)
+    srcgrp.add_argument(
         "--frames-meta",
-        required=True,
         dest="frames_meta",
         help="Path to frames metadata JSON",
+    )
+    srcgrp.add_argument(
+        "--read-frames-meta-stdin",
+        dest="read_frames_meta_stdin",
+        action="store_true",
+        help="Read frames metadata JSON from stdin",
     )
     p2.add_argument(
         "--dataset-id", dest="dataset_id", help="Dataset identifier to embed"
