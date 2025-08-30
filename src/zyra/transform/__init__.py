@@ -141,14 +141,14 @@ def register_cli(subparsers: Any) -> None:
         ``updated_at``.
         """
         configure_logging_from_env()
+        import sys
+
         from zyra.utils.json_file_manager import JSONFileManager
 
         fm = JSONFileManager()
         # Load base metadata JSON from file or stdin when requested
         try:
             if getattr(ns, "read_frames_meta_stdin", False):
-                import sys
-
                 raw = sys.stdin.buffer.read()
                 try:
                     js = raw.decode("utf-8")
@@ -174,8 +174,6 @@ def register_cli(subparsers: Any) -> None:
         # Attach vimeo_uri from arg or stdin
         vuri = getattr(ns, "vimeo_uri", None)
         if getattr(ns, "read_vimeo_uri", False):
-            import sys
-
             raw = sys.stdin.buffer.read()
             try:
                 data = raw.decode("utf-8").strip()
@@ -378,6 +376,8 @@ def register_cli(subparsers: Any) -> None:
         ``dataLink`` from a Vimeo URI. Writes the updated JSON to ``--output``.
         """
         configure_logging_from_env()
+        import sys
+
         # Fetch input JSON
         raw: bytes
         src = ns.input_url or ns.input_file
@@ -411,8 +411,6 @@ def register_cli(subparsers: Any) -> None:
             except Exception:
                 pass
         if ns.read_meta_stdin:
-            import sys
-
             raw_meta = sys.stdin.buffer.read()
             try:
                 js = raw_meta.decode("utf-8")
