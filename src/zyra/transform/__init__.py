@@ -149,8 +149,19 @@ def register_cli(subparsers: Any) -> None:
             if getattr(ns, "read_frames_meta_stdin", False):
                 import sys
 
-                js = sys.stdin.buffer.read().decode("utf-8", errors="ignore")
-                base = json.loads(js)
+                raw = sys.stdin.buffer.read()
+                try:
+                    js = raw.decode("utf-8")
+                except UnicodeDecodeError as e:
+                    raise SystemExit(
+                        f"Failed to decode stdin as UTF-8 for frames metadata: {e}"
+                    ) from e
+                try:
+                    base = json.loads(js)
+                except json.JSONDecodeError as e:
+                    raise SystemExit(
+                        f"Invalid JSON on stdin for frames metadata: {e}"
+                    ) from e
             else:
                 base = fm.read_json(ns.frames_meta)
         except Exception as exc:
@@ -163,14 +174,17 @@ def register_cli(subparsers: Any) -> None:
         # Attach vimeo_uri from arg or stdin
         vuri = getattr(ns, "vimeo_uri", None)
         if getattr(ns, "read_vimeo_uri", False):
-            try:
-                import sys
+            import sys
 
-                data = sys.stdin.buffer.read().decode("utf-8", errors="ignore").strip()
-                if data:
-                    vuri = data.splitlines()[0].strip()
-            except Exception:
-                pass
+            raw = sys.stdin.buffer.read()
+            try:
+                data = raw.decode("utf-8").strip()
+            except UnicodeDecodeError as e:
+                raise SystemExit(
+                    f"Failed to decode stdin as UTF-8 for Vimeo URI: {e}"
+                ) from e
+            if data:
+                vuri = data.splitlines()[0].strip()
         if vuri:
             base["vimeo_uri"] = vuri
         # Add updated_at timestamp
@@ -397,20 +411,30 @@ def register_cli(subparsers: Any) -> None:
             except Exception:
                 pass
         if ns.read_meta_stdin:
-            try:
-                import sys
+            import sys
 
-                js = sys.stdin.buffer.read().decode("utf-8", errors="ignore")
+            raw_meta = sys.stdin.buffer.read()
+            try:
+                js = raw_meta.decode("utf-8")
+            except UnicodeDecodeError as e:
+                raise SystemExit(
+                    f"Failed to decode stdin as UTF-8 for metadata JSON: {e}"
+                ) from e
+            try:
                 meta2 = json.loads(js)
-                start = start or meta2.get("start_datetime")
-                end = end or meta2.get("end_datetime")
-                vimeo_uri = vimeo_uri or meta2.get("vimeo_uri")
-            except Exception:
-                pass
+            except json.JSONDecodeError as e:
+                raise SystemExit(f"Invalid metadata JSON on stdin: {e}") from e
+            start = start or meta2.get("start_datetime")
+            end = end or meta2.get("end_datetime")
+            vimeo_uri = vimeo_uri or meta2.get("vimeo_uri")
         # Parse dataset JSON
         try:
-            data = json.loads(raw.decode("utf-8", errors="ignore"))
-        except Exception as exc:
+            text = raw.decode("utf-8")
+        except UnicodeDecodeError as e:
+            raise SystemExit(f"Dataset JSON is not valid UTF-8: {e}") from e
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as exc:
             raise SystemExit(f"Invalid dataset JSON: {exc}") from exc
         # Build dataLink from Vimeo if requested
         data_link = None

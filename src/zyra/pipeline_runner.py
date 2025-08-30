@@ -596,9 +596,28 @@ def register_cli_run(subparsers: Any) -> None:
                 fh.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
                 root = logging.getLogger()
                 # Avoid adding duplicate file handlers for the same path
-                if not any(
-                    getattr(h, "baseFilename", None) == str(pth) for h in root.handlers
-                ):
+                # Avoid duplicate file handlers: compare resolved paths
+                try:
+                    target = pth.resolve()
+                except Exception:
+                    target = pth
+                exists = False
+                for h in root.handlers:
+                    bf = getattr(h, "baseFilename", None)
+                    if not bf:
+                        continue
+                    try:
+                        from pathlib import Path as _P
+
+                        if _P(bf).resolve() == target:
+                            exists = True
+                            break
+                    except Exception:
+                        # Fall back to string compare if resolve fails
+                        if str(bf) == str(target):
+                            exists = True
+                            break
+                if not exists:
                     root.addHandler(fh)
                 # Set root level based on env verbosity
                 lvl_map = {

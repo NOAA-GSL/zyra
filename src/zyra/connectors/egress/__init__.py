@@ -40,11 +40,18 @@ def _cmd_local(ns: argparse.Namespace) -> int:
 def _cmd_s3(ns: argparse.Namespace) -> int:
     """Upload stdin or input file to S3 (s3:// or bucket/key)."""
     configure_logging_from_env()
+    # Validate mutually exclusive input sources
+    read_stdin = bool(getattr(ns, "read_stdin", False))
+    current_input = getattr(ns, "input", None)
+    if read_stdin and current_input not in (None, "-"):
+        raise SystemExit(
+            "Options --input and --read-stdin are mutually exclusive; provide exactly one."
+        )
     # Convenience alias: --read-stdin behaves like -i -
-    if getattr(ns, "read_stdin", False):
+    if read_stdin:
         ns.input = "-"
     if not getattr(ns, "input", None):
-        raise SystemExit("--input PATH or --read-stdin is required")
+        raise SystemExit("Missing input: specify --input PATH or use --read-stdin")
     data = _read_all(ns.input)
     ok = s3_backend.upload_bytes(data, ns.url if ns.url else ns.bucket, ns.key)
     if not ok:

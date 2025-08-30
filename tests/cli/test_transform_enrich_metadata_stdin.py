@@ -2,6 +2,7 @@ import io
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 
 def test_transform_enrich_metadata_reads_from_stdin(monkeypatch, tmp_path: Path):
@@ -12,7 +13,7 @@ def test_transform_enrich_metadata_reads_from_stdin(monkeypatch, tmp_path: Path)
         "end_datetime": "2025-01-02T00:00:00",
     }
     data = (json.dumps(base) + "\n").encode()
-    fake_stdin = type("S", (), {"buffer": io.BytesIO(data)})()
+    fake_stdin = SimpleNamespace(buffer=io.BytesIO(data))
     monkeypatch.setattr(sys, "stdin", fake_stdin)
 
     out_path = tmp_path / "out.json"

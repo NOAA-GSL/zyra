@@ -1,12 +1,13 @@
 import io
 import sys
+from types import SimpleNamespace
 
 
 def test_egress_s3_read_stdin_alias(monkeypatch):
     from zyra.cli import main as cli_main
 
     sent = b"hello world\n"
-    fake_stdin = type("S", (), {"buffer": io.BytesIO(sent)})()
+    fake_stdin = SimpleNamespace(buffer=io.BytesIO(sent))
     monkeypatch.setattr(sys, "stdin", fake_stdin)
 
     captured = {}
