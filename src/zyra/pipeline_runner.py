@@ -441,6 +441,10 @@ def run_pipeline(
                         "Hint: pipe input bytes or set ZYRA_DEFAULT_STDIN=/path/to/file (legacy DATAVIZHUB_DEFAULT_STDIN).\n"
                     )
                     sys.stderr.write(msg)
+                    from contextlib import suppress
+
+                    with suppress(Exception):
+                        logging.getLogger(__name__).error(msg.strip())
             except Exception:
                 pass
         if rc != 0:
@@ -456,6 +460,10 @@ def run_pipeline(
                     "or set ZYRA_VERBOSITY=debug (legacy DATAVIZHUB_VERBOSITY) for stage headings.\n"
                 )
                 sys.stderr.write(msg)
+                from contextlib import suppress
+
+                with suppress(Exception):
+                    logging.getLogger(__name__).error(msg.strip())
             except Exception:
                 pass
             if not continue_on_error:
@@ -525,6 +533,24 @@ def register_cli_run(subparsers: Any) -> None:
         action="store_true",
         help="Fail if ${VAR} placeholders are not set in environment",
     )
+    # Logging destination: either a file or a directory (defaults to workflow.log)
+    lg = p.add_mutually_exclusive_group()
+    lg.add_argument(
+        "--log-file",
+        dest="log_file",
+        help="Write runner and stage logs to the given file",
+    )
+    lg.add_argument(
+        "--log-dir",
+        dest="log_dir",
+        help="Write logs under this directory as workflow.log",
+    )
+    p.add_argument(
+        "--log-file-mode",
+        choices=["append", "overwrite"],
+        default="append",
+        help="Log file write mode (default: append)",
+    )
 
     def _cmd(ns: argparse.Namespace) -> int:
         pairs: list[tuple[str, str]] = []
@@ -547,6 +573,63 @@ def register_cli_run(subparsers: Any) -> None:
         if ns.strict_env:
             os.environ["ZYRA_STRICT_ENV"] = "1"
             os.environ["DATAVIZHUB_STRICT_ENV"] = "1"
+
+        # Optional file logging for the runner and in-process stages
+        # Resolve log file from --log-file or --log-dir
+        log_target = None
+        if getattr(ns, "log_file", None):
+            log_target = ns.log_file
+        elif getattr(ns, "log_dir", None):
+            from pathlib import Path
+
+            log_target = str(Path(ns.log_dir) / "workflow.log")
+
+        if log_target:
+            try:
+                from pathlib import Path
+
+                mode = "a" if ns.log_file_mode != "overwrite" else "w"
+                pth = Path(log_target)
+                if pth.parent:
+                    pth.parent.mkdir(parents=True, exist_ok=True)
+                fh = logging.FileHandler(pth, mode=mode, encoding="utf-8")
+                fh.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+                root = logging.getLogger()
+                # Avoid adding duplicate file handlers for the same path
+                # Avoid duplicate file handlers: compare resolved paths
+                try:
+                    target = pth.resolve()
+                except Exception:
+                    target = pth
+                exists = False
+                for h in root.handlers:
+                    bf = getattr(h, "baseFilename", None)
+                    if not bf:
+                        continue
+                    try:
+                        from pathlib import Path as _P
+
+                        if _P(bf).resolve() == target:
+                            exists = True
+                            break
+                    except Exception:
+                        # Fall back to string compare if resolve fails
+                        if str(bf) == str(target):
+                            exists = True
+                            break
+                if not exists:
+                    root.addHandler(fh)
+                # Set root level based on env verbosity
+                lvl_map = {
+                    "debug": logging.DEBUG,
+                    "info": logging.INFO,
+                    "quiet": logging.ERROR,
+                }
+                verb = os.environ.get("ZYRA_VERBOSITY", "info").lower()
+                root.setLevel(lvl_map.get(verb, logging.INFO))
+            except Exception:
+                # Non-fatal if log file cannot be configured
+                pass
 
         return run_pipeline(
             ns.config,

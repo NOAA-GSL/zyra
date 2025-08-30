@@ -1428,6 +1428,7 @@
         "options": [
           "--help",
           "--input",
+          "--read-stdin",
           "--url",
           "--bucket",
           "--key"
@@ -1439,8 +1440,12 @@
       "--input": {
         "help": "Input path or '-' for stdin",
         "path_arg": true,
-        "type": "path",
-        "required": true
+        "type": "path"
+      },
+      "--read-stdin": {
+        "help": "Read object body from stdin (alias for -i -)",
+        "type": "str",
+        "default": false
       },
       "--url": "Full URL s3://bucket/key",
       "--bucket": "Bucket name",
@@ -1592,6 +1597,7 @@
         "options": [
           "--help",
           "--frames-meta",
+          "--read-frames-meta-stdin",
           "--dataset-id",
           "--vimeo-uri",
           "--read-vimeo-uri",
@@ -1604,8 +1610,12 @@
       "--frames-meta": {
         "help": "Path to frames metadata JSON",
         "path_arg": true,
-        "type": "path",
-        "required": true
+        "type": "path"
+      },
+      "--read-frames-meta-stdin": {
+        "help": "Read frames metadata JSON from stdin",
+        "type": "str",
+        "default": false
       },
       "--dataset-id": "Dataset identifier to embed",
       "--vimeo-uri": "Vimeo video URI to embed in metadata",
@@ -1921,7 +1931,10 @@
           "--only",
           "--verbose",
           "--quiet",
-          "--strict-env"
+          "--strict-env",
+          "--log-file",
+          "--log-dir",
+          "--log-file-mode"
         ]
       }
     ],
@@ -1979,6 +1992,17 @@
         "help": "Fail if ${VAR} placeholders are not set in environment",
         "type": "str",
         "default": false
+      },
+      "--log-file": "Write runner and stage logs to the given file",
+      "--log-dir": "Write logs under this directory as workflow.log",
+      "--log-file-mode": {
+        "help": "Log file write mode (default: append)",
+        "choices": [
+          "append",
+          "overwrite"
+        ],
+        "type": "str",
+        "default": "append"
       }
     },
     "positionals": [
