@@ -4,6 +4,8 @@ from pathlib import Path
 
 import numpy as np
 
+from tests.helpers import project_root
+
 
 def test_interactive_folium_heatmap_html():
     try:
@@ -98,7 +100,7 @@ def test_interactive_folium_points_html():
     import tempfile
 
     # Use provided samples/points.csv
-    repo_root = Path(__file__).resolve().parents[2]
+    repo_root = project_root(Path(__file__))
     points_csv = repo_root / "samples" / "points.csv"
     if not points_csv.exists():
         import pytest

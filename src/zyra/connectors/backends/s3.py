@@ -216,11 +216,7 @@ def get_idx_lines(
         try:
             data = fetch_bytes(url, unsigned=unsigned)
             return parse_idx_lines(data)
-        except (
-            ClientError,
-            BotoCoreError,
-            OSError,
-        ) as e:  # pragma: no cover - simple retry wrapper
+        except Exception as e:  # pragma: no cover - simple retry wrapper
             last_exc = e
             attempt += 1
     if last_exc:

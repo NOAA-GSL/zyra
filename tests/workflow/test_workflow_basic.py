@@ -27,7 +27,7 @@ def test_workflow_serial_dag(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 
     # Seed stdin via env so first job has input
-    demo_nc = Path(__file__).resolve().parents[2] / "tests/testdata/demo.nc"
+    demo_nc = Path(__file__).resolve().parent.parent / "testdata/demo.nc"
     assert demo_nc.exists()
     monkeypatch.setenv("ZYRA_DEFAULT_STDIN", str(demo_nc))
 

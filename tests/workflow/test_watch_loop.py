@@ -29,7 +29,7 @@ def test_watch_loop_runs_multiple_iterations(tmp_path: Path, monkeypatch):
     )
     # Ensure outputs under tmp_path and seed stdin
     monkeypatch.chdir(tmp_path)
-    demo_nc = Path(__file__).resolve().parents[2] / "tests/testdata/demo.nc"
+    demo_nc = Path(__file__).resolve().parent.parent / "testdata/demo.nc"
     monkeypatch.setenv("ZYRA_DEFAULT_STDIN", str(demo_nc))
 
     (tmp_path / "trigger.txt").write_text("x", encoding="utf-8")

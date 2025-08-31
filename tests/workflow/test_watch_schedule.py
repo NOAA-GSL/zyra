@@ -34,7 +34,7 @@ def test_watch_schedule_runs_on_match(tmp_path: Path, monkeypatch):
 
     # Ensure outputs under tmp_path and seed stdin
     monkeypatch.chdir(tmp_path)
-    demo_nc = Path(__file__).resolve().parents[2] / "tests/testdata/demo.nc"
+    demo_nc = Path(__file__).resolve().parent.parent / "testdata/demo.nc"
     monkeypatch.setenv("ZYRA_DEFAULT_STDIN", str(demo_nc))
 
     # Create trigger file referenced by dataset-update and run watch in single-poll mode

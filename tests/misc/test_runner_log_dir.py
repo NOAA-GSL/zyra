@@ -1,6 +1,8 @@
 import textwrap
 from pathlib import Path
 
+from tests.helpers import project_root
+
 
 def test_runner_writes_log_file_with_log_dir(tmp_path: Path, monkeypatch):
     from zyra.cli import main as cli_main
@@ -31,7 +33,7 @@ def test_runner_writes_log_file_with_log_dir(tmp_path: Path, monkeypatch):
     )
 
     # Seed stdin via env so runner feeds bytes to the first stage
-    repo_root = Path(__file__).resolve().parents[2]
+    repo_root = project_root(Path(__file__))
     demo_nc = repo_root / "tests/testdata/demo.nc"
     assert demo_nc.exists()
     monkeypatch.setenv("ZYRA_DEFAULT_STDIN", str(demo_nc))

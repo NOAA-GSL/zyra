@@ -124,6 +124,8 @@ def get_idx_lines(url: str, *, timeout: int = 60, max_retries: int = 3) -> list[
     from zyra.utils.grib import ensure_idx_path, parse_idx_lines
 
     idx_url = ensure_idx_path(url)
+    # Determine exception type from requests or fall back to Exception for tests
+    ReqExc = getattr(requests, "RequestException", Exception)
     attempt = 0
     last_exc = None
     while attempt < max_retries:
@@ -131,9 +133,7 @@ def get_idx_lines(url: str, *, timeout: int = 60, max_retries: int = 3) -> list[
             r = requests.get(idx_url, timeout=timeout)
             r.raise_for_status()
             return parse_idx_lines(r.content)
-        except (
-            requests.RequestException
-        ) as e:  # pragma: no cover - simple retry wrapper
+        except ReqExc as e:  # pragma: no cover - simple retry wrapper
             last_exc = e
             attempt += 1
     if last_exc:

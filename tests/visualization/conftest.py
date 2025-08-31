@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.helpers import project_root
+
 
 @pytest.fixture(scope="session")
 def ensure_uv_stacks():
@@ -12,7 +14,7 @@ def ensure_uv_stacks():
 
     This makes vector/particles tests self-healing without committing binaries.
     """
-    repo_root = Path(__file__).resolve().parents[2]
+    repo_root = project_root(Path(__file__))
     samples_dir = repo_root / "samples"
     u_path = samples_dir / "u_stack.npy"
     v_path = samples_dir / "v_stack.npy"

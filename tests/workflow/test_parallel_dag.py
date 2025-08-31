@@ -24,7 +24,7 @@ def test_parallel_dag_two_independent_jobs(tmp_path: Path, monkeypatch):
     )
 
     monkeypatch.chdir(tmp_path)
-    demo_nc = Path(__file__).resolve().parents[2] / "tests/testdata/demo.nc"
+    demo_nc = Path(__file__).resolve().parent.parent / "testdata/demo.nc"
     monkeypatch.setenv("ZYRA_DEFAULT_STDIN", str(demo_nc))
 
     rc = cli_main(["run", str(wf), "--max-workers", "2"])
