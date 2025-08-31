@@ -73,7 +73,7 @@ class DateManager:
                     f" Did you mean '{sugg}'?" if sugg and sugg != bad[0] else "",
                 )
         except (re.error, TypeError, ValueError):
-            # Never fail initialization due to advisory warnings or malformed patterns
+            # Never fail initialization due to advisory warnings or invalid format strings
             pass
 
     @staticmethod

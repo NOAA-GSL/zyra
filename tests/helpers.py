@@ -13,5 +13,5 @@ def project_root(start: Path | None = None) -> Path:
     for anc in [here, *here.parents]:
         if (anc / "pyproject.toml").exists():
             return anc
-    # Fallback: the highest parent available
-    return here.parents[-1]
+    # Fallback: the highest parent available, or `here` if none
+    return here.parents[-1] if here.parents else here

@@ -262,7 +262,16 @@ def _run_job(job: Job) -> int:
         # Some steps may close sys.stdout.buffer; guard against closed BytesIO
         try:
             current = buf_out.getvalue()
+        except (ValueError, AttributeError) as _exc:
+            # Mirror API executor behavior: log a warning to aid debugging
+            import logging as _logging
+
+            _logging.getLogger(__name__).warning(
+                "stdout buffer was closed by command; no bytes captured"
+            )
+            current = b""
         except Exception:
+            # Defensive fallback without additional logging noise
             current = b""
     # Success
     if total:
