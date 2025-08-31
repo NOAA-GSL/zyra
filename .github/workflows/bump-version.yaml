@@ -71,30 +71,30 @@ jobs:
         id: check
         run: |
           python - << 'PY'
-import os, subprocess, sys
-try:
-    import tomllib  # Python 3.11+
-except ModuleNotFoundError:
-    import tomli as tomllib  # type: ignore[no-redef]
+          import os, subprocess, sys
+          try:
+              import tomllib  # Python 3.11+
+          except ModuleNotFoundError:
+              import tomli as tomllib  # type: ignore[no-redef]
 
-def read_version_from_blob(blob: bytes) -> str:
-    data = tomllib.loads(blob.decode('utf-8'))
-    return data['tool']['poetry']['version']
+          def read_version_from_blob(blob: bytes) -> str:
+              data = tomllib.loads(blob.decode('utf-8'))
+              return data['tool']['poetry']['version']
 
-head_toml = open('pyproject.toml', 'rb').read()
-base_ref = os.environ['BASE'] if 'BASE' in os.environ else '${{ steps.vars.outputs.base }}'
-cp = subprocess.run(['git', 'show', f'origin/{base_ref}:pyproject.toml'], check=True, capture_output=True)
-base_toml = cp.stdout
+          head_toml = open('pyproject.toml', 'rb').read()
+          base_ref = '${{ steps.vars.outputs.base }}'
+          cp = subprocess.run(['git', 'show', f'origin/{base_ref}:pyproject.toml'], check=True, capture_output=True)
+          base_toml = cp.stdout
 
-head_ver = read_version_from_blob(head_toml)
-base_ver = read_version_from_blob(base_toml)
+          head_ver = read_version_from_blob(head_toml)
+          base_ver = read_version_from_blob(base_toml)
 
-should_bump = (head_ver == base_ver)
-print(f"Head version: {head_ver}; Base version: {base_ver}; Should bump: {should_bump}")
-out = open(os.environ['GITHUB_OUTPUT'], 'a')
-out.write(f"should_bump={'true' if should_bump else 'false'}\n")
-out.close()
-PY
+          should_bump = (head_ver == base_ver)
+          print(f"Head version: {head_ver}; Base version: {base_ver}; Should bump: {should_bump}")
+          out = open(os.environ['GITHUB_OUTPUT'], 'a')
+          out.write(f"should_bump={'true' if should_bump else 'false'}\n")
+          out.close()
+          PY
 
       - name: Configure Git
         run: |
