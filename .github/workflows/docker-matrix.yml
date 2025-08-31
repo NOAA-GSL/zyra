@@ -2,8 +2,16 @@ name: Build Docker Images (matrix)
 
 on:
   pull_request:
-  push:
-    branches: [ main, staging ]
+    paths:
+      - 'docker/**'
+      - 'Dockerfile'
+      - 'pyproject.toml'
+      - '.github/workflows/docker-matrix.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: docker-matrix-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -12,6 +20,7 @@ jobs:
   build:
     name: Build ${{ matrix.target.name }} (WITH_WGRIB2=${{ matrix.target.with_wgrib2 }})
     runs-on: ubuntu-latest
+    if: (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || ((matrix.target.name == 'zyra' && matrix.target.with_wgrib2 == 'source') || (matrix.target.name == 'zyra-scheduler' && matrix.target.with_wgrib2 == 'none')))
     strategy:
       fail-fast: false
       matrix:
@@ -40,7 +49,8 @@ jobs:
           push: false
           provenance: false
           sbom: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           build-args: |
             WITH_WGRIB2=${{ matrix.target.with_wgrib2 }}
           tags: test/${{ matrix.target.name }}:${{ matrix.target.with_wgrib2 }}
-
