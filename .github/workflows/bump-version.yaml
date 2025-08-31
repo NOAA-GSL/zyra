@@ -71,23 +71,34 @@ jobs:
         id: check
         run: |
           python - << 'PY'
-          import os, subprocess, sys
-          try:
-              import tomllib  # Python 3.11+
-          except ModuleNotFoundError:
-              import tomli as tomllib  # type: ignore[no-redef]
+          import os, re, subprocess, sys
 
-          def read_version_from_blob(blob: bytes) -> str:
-              data = tomllib.loads(blob.decode('utf-8'))
-              return data['tool']['poetry']['version']
+          def extract_version_from_toml_text(text: str) -> str:
+              """Parse tool.poetry.version from a TOML string without extra deps.
 
-          head_toml = open('pyproject.toml', 'rb').read()
+              Looks for the [tool.poetry] section and returns the first
+              version = "X.Y.Z" key found before the next section.
+              """
+              in_section = False
+              for line in text.splitlines():
+                  if re.match(r"\s*\[tool\.poetry\]\s*$", line):
+                      in_section = True
+                      continue
+                  if in_section and re.match(r"\s*\[.*\]\s*$", line):
+                      break
+                  if in_section:
+                      m = re.match(r"\s*version\s*=\s*['\"]([^'\"]+)['\"]", line)
+                      if m:
+                          return m.group(1)
+              raise RuntimeError("version not found in [tool.poetry] section")
+
+          head_toml = open('pyproject.toml', 'r', encoding='utf-8').read()
           base_ref = '${{ steps.vars.outputs.base }}'
           cp = subprocess.run(['git', 'show', f'origin/{base_ref}:pyproject.toml'], check=True, capture_output=True)
-          base_toml = cp.stdout
+          base_toml = cp.stdout.decode('utf-8')
 
-          head_ver = read_version_from_blob(head_toml)
-          base_ver = read_version_from_blob(base_toml)
+          head_ver = extract_version_from_toml_text(head_toml)
+          base_ver = extract_version_from_toml_text(base_toml)
 
           should_bump = (head_ver == base_ver)
           print(f"Head version: {head_ver}; Base version: {base_ver}; Should bump: {should_bump}")
