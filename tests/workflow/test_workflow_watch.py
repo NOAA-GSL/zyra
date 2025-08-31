@@ -1,6 +1,8 @@
 import textwrap
 from pathlib import Path
 
+from tests.helpers import project_root
+
 
 def test_workflow_watch_dataset_update_runs(tmp_path: Path, monkeypatch):
     from zyra.cli import main as cli_main
@@ -34,7 +36,8 @@ def test_workflow_watch_dataset_update_runs(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     # Resolve test data relative to the tests/ directory to avoid fragile
     # assumptions about repository depth. From tests/workflow/ -> tests/testdata/demo.nc
-    demo_nc = Path(__file__).resolve().parent.parent / "testdata/demo.nc"
+    repo_root = project_root(Path(__file__))
+    demo_nc = repo_root / "tests/testdata/demo.nc"
     assert demo_nc.exists()
     monkeypatch.setenv("ZYRA_DEFAULT_STDIN", str(demo_nc))
 

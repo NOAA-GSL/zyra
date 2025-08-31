@@ -175,7 +175,10 @@ def delete(url_or_path: str) -> bool:
     except all_errors:
         return False
     except Exception:
-        # Handle generic exceptions from test doubles/mocks
+        # Test doubles in unit tests may raise a plain Exception rather than
+        # an ftplib-specific error. Handle these as non-fatal and return False
+        # to preserve the semantic of "delete failed / missing file" without
+        # coupling tests to ftplib's exception hierarchy.
         return False
 
 

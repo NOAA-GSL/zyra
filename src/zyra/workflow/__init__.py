@@ -14,8 +14,10 @@ detected to be a workflow file (contains ``jobs`` and/or ``on``).
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import shlex
+import sys
 import time
 from contextlib import suppress
 from dataclasses import dataclass, field
@@ -25,6 +27,31 @@ from typing import Any
 
 from zyra.cli import main as cli_main
 from zyra.utils.env import env, env_bool
+
+
+class _StdInProxy:
+    """Minimal binary stdin proxy exposing a .buffer attribute."""
+
+    def __init__(self, buf: io.BytesIO) -> None:
+        self.buffer = buf
+
+
+class _StdOutProxy:
+    """Minimal text stdout proxy that captures .buffer writes.
+
+    Provides write/flush methods to satisfy typical text IO usage while
+    preserving access to the underlying binary buffer via .buffer.
+    """
+
+    def __init__(self, buf: io.BytesIO) -> None:
+        self.buffer = buf
+
+    def write(self, s: str) -> int:  # type: ignore[override]
+        # Text writes are ignored; binary writes go to .buffer
+        return len(s or "")
+
+    def flush(self) -> None:  # pragma: no cover - no-op
+        return
 
 
 def _load_yaml_or_json(path: str) -> dict[str, Any]:
@@ -72,6 +99,20 @@ class Job:
     # Steps may be shell strings or argv vectors
     steps: list[object]
     needs: list[str] = field(default_factory=list)
+
+
+def _expand_env_value(val: Any, *, strict: bool) -> Any:
+    """Expand ${VAR} placeholders in a string using pipeline runner helper.
+
+    Imported lazily to avoid pulling the full runner unless needed.
+    """
+    if not isinstance(val, str):
+        return val
+    from zyra.pipeline_runner import (
+        _expand_env as _exp,
+    )
+
+    return _exp(val, strict=strict)
 
 
 def _parse_workflow(doc: dict[str, Any]) -> tuple[list[str], dict[str, Job]]:
@@ -161,8 +202,6 @@ def _run_job(job: Job) -> int:
 
     Returns the job exit code (0 for success).
     """
-    import io
-    import sys
 
     # Lightweight logging to stderr so step progress is visible even when
     # stdout is captured for piping between steps.
@@ -183,21 +222,15 @@ def _run_job(job: Job) -> int:
     for i, step in enumerate(job.steps):
         if isinstance(step, str):
             # Expand ${VAR} placeholders before splitting
-            _pr = __import__(
-                "zyra.pipeline_runner", fromlist=["_expand_env"]
-            )  # dynamic import to avoid hard dep
-            step = str(_pr._expand_env(step, strict=strict_env))  # type: ignore[attr-defined]
+            step = str(_expand_env_value(step, strict=strict_env))
             argv = shlex.split(step)
         else:
-            _pr = __import__(
-                "zyra.pipeline_runner", fromlist=["_expand_env"]
-            )  # dynamic import
             argv = [
-                str(_pr._expand_env(x, strict=strict_env))
+                str(_expand_env_value(x, strict=strict_env))
                 if isinstance(x, str)
                 else str(x)
                 for x in (step or [])
-            ]  # type: ignore[attr-defined]
+            ]
         if verb in {"info", "debug"}:
             _log(f"[job {job.name}] step {i+1}/{total}: {' '.join(argv)}")
         # Seed from env if the first step expects '-' and no stdin was provided
@@ -212,16 +245,8 @@ def _run_job(job: Job) -> int:
         old_stdin, old_stdout = sys.stdin, sys.stdout
         buf_in = io.BytesIO(current or b"")
         buf_out = io.BytesIO()
-        sys.stdin = type("S", (), {"buffer": buf_in})()  # type: ignore
-        sys.stdout = type(
-            "S",
-            (),
-            {
-                "buffer": buf_out,
-                "write": lambda self, s: None,
-                "flush": lambda self: None,
-            },
-        )()  # type: ignore
+        sys.stdin = _StdInProxy(buf_in)  # type: ignore[assignment]
+        sys.stdout = _StdOutProxy(buf_out)  # type: ignore[assignment]
         try:
             rc = int(cli_main(argv) or 0)
         except SystemExit as exc:  # normalize
@@ -269,21 +294,15 @@ def _run_job_subprocess(job: Job) -> int:
         _log(f"[job {job.name}] starting ({total} step{'s' if total != 1 else ''})")
     for i, step in enumerate(job.steps):
         if isinstance(step, str):
-            _pr = __import__(
-                "zyra.pipeline_runner", fromlist=["_expand_env"]
-            )  # dynamic import
-            step = str(_pr._expand_env(step, strict=strict_env))  # type: ignore[attr-defined]
+            step = str(_expand_env_value(step, strict=strict_env))
             argv = shlex.split(step)
         else:
-            _pr = __import__(
-                "zyra.pipeline_runner", fromlist=["_expand_env"]
-            )  # dynamic import
             argv = [
-                str(_pr._expand_env(x, strict=strict_env))
+                str(_expand_env_value(x, strict=strict_env))
                 if isinstance(x, str)
                 else str(x)
                 for x in (step or [])
-            ]  # type: ignore[attr-defined]
+            ]
         # Seed stdin for the first step when DEFAULT_STDIN is configured and
         # no stdin was provided. This supports pipelines under parallel execution.
         if i == 0 and current is None:

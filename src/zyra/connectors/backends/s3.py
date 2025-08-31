@@ -66,15 +66,9 @@ def upload_bytes(data: bytes, url_or_bucket: str, key: str | None = None) -> boo
     else:
         bucket = url_or_bucket
     c = boto3.client("s3")
-    # Set Content-Type for JSON keys; avoid broad exception handling
+    # Set Content-Type for JSON keys
     extra_args = None
-    ext_is_json = False
-    if key is not None:
-        try:
-            ext_is_json = str(key).lower().endswith(".json")
-        except (AttributeError, TypeError, ValueError):
-            ext_is_json = False
-    if ext_is_json:
+    if key is not None and str(key).lower().endswith(".json"):
         extra_args = {"ContentType": "application/json"}
     # Upload from a temp file to satisfy upload_file
     import tempfile

@@ -110,5 +110,5 @@ def to_cartopy_crs(crs: str | None):
             return ccrs.PlateCarree()
         code = int(epsg.split(":", 1)[1])
         return ccrs.epsg(code)
-    except (ImportError, ValueError, AttributeError):
+    except (ImportError, ValueError):
         return None

@@ -46,7 +46,8 @@ def get(key: str) -> Any | None:
                 p.unlink()
             return None
         return data.get("payload")
-    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+    # Note: json.JSONDecodeError is a subclass of ValueError; ValueError covers it.
+    except (OSError, ValueError, TypeError):
         return None
 
 

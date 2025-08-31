@@ -125,9 +125,17 @@ class JSONFileManager:
 
         Logs on error and does not raise.
         """
+        # Serialize first so programming errors (unserializable objects) surface clearly
+        text: str
         try:
-            Path(path).write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
-        except (OSError, TypeError, ValueError) as exc:
+            text = json.dumps(data, indent=2) + "\n"
+        except (TypeError, ValueError):
+            # Treat invalid JSON payloads as programming errors; let them propagate
+            raise
+        # Perform IO separately and log OS-level failures
+        try:
+            Path(path).write_text(text, encoding="utf-8")
+        except OSError as exc:
             logging.error(f"Error writing JSON to file {path}: {exc}")
 
     def update_dataset_times(self, target_id: str, directory: str) -> str:
