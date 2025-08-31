@@ -46,7 +46,7 @@ RUN curl -fsSLO "$WGRIB2_URL" \
     && if [[ -n "$WGRIB2_SHA256" ]]; then \
          echo "$WGRIB2_SHA256  $(basename "$WGRIB2_URL")" | sha256sum -c -; \
        else \
-         echo "Skipping SHA256 verification for $(basename "$WGRIB2_URL") (WGRIB2_SHA256 not set)"; \
+         echo "WARNING: Skipping SHA256 verification for $(basename "$WGRIB2_URL") (WGRIB2_SHA256 not set)"; \
        fi \
     && tar -xvzf "$(basename "$WGRIB2_URL")" \
     && cd grib2 \

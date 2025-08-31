@@ -19,7 +19,7 @@ RUN set -eux; \
     else \
       test -n "$WGRIB2_URL"; \
       curl -fsSLO "$WGRIB2_URL"; \
-      if [[ -n "$WGRIB2_SHA256" ]]; then echo "$WGRIB2_SHA256  $(basename "$WGRIB2_URL")" | sha256sum -c -; else echo "Skipping SHA256 verification"; fi; \
+      if [[ -n "$WGRIB2_SHA256" ]]; then echo "$WGRIB2_SHA256  $(basename "$WGRIB2_URL")" | sha256sum -c -; else echo "WARNING: Skipping SHA256 verification (WGRIB2_SHA256 not set)"; fi; \
       tar -xvzf "$(basename "$WGRIB2_URL")"; \
       cd grib2; \
       make CC=gcc FC=gfortran USE_AEC=0 USE_OPENJPEG=0 USE_NETCDF3=0 USE_NETCDF4=0; \
