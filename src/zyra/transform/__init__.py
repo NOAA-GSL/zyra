@@ -104,6 +104,15 @@ def _cmd_metadata(ns: argparse.Namespace) -> int:
     )
     payload = (json.dumps(meta, indent=2) + "\n").encode("utf-8")
     # Write to stdout or file
+    # Ensure parent directories exist when writing to a file path
+    if ns.output and ns.output != "-":
+        try:
+            out_path = Path(ns.output)
+            if out_path.parent:
+                out_path.parent.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            # Fall through; open_output will surface any remaining errors
+            pass
     with open_output(ns.output) as f:
         f.write(payload)
     return 0

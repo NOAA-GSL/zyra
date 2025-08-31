@@ -115,49 +115,60 @@ def register_cli(dec_subparsers: Any) -> None:
     # vimeo
     def _cmd_vimeo(ns: argparse.Namespace) -> int:
         configure_logging_from_env()
+        import logging
         import sys
 
-        # Upload or replace
-        uri: str
-        if getattr(ns, "replace_uri", None):
-            # Replace existing video file
-            path = ns.input
-            if path == "-":
-                import tempfile
+        try:
+            # Upload or replace
+            uri: str
+            if getattr(ns, "replace_uri", None):
+                # Replace existing video file
+                path = ns.input
+                if path == "-":
+                    import tempfile
 
-                data = _read_all(ns.input)
-                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as tmp:
-                    tmp.write(data)
-                    tmp.flush()
-                    uri = vimeo_backend.update_video(tmp.name, ns.replace_uri)
+                    data = _read_all(ns.input)
+                    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as tmp:
+                        tmp.write(data)
+                        tmp.flush()
+                        uri = vimeo_backend.update_video(tmp.name, ns.replace_uri)
+                else:
+                    uri = vimeo_backend.update_video(path, ns.replace_uri)
+                # Optional description update
+                if getattr(ns, "description", None):
+                    from contextlib import suppress
+
+                    with suppress(Exception):
+                        vimeo_backend.update_description(uri, ns.description)
             else:
-                uri = vimeo_backend.update_video(path, ns.replace_uri)
-            # Optional description update
-            if getattr(ns, "description", None):
-                from contextlib import suppress
+                # Upload new video
+                path = ns.input
+                if path == "-":
+                    import tempfile
 
-                with suppress(Exception):
-                    vimeo_backend.update_description(uri, ns.description)
-        else:
-            # Upload new video
-            path = ns.input
-            if path == "-":
-                import tempfile
-
-                data = _read_all(ns.input)
-                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as tmp:
-                    tmp.write(data)
-                    tmp.flush()
+                    data = _read_all(ns.input)
+                    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as tmp:
+                        tmp.write(data)
+                        tmp.flush()
+                        uri = vimeo_backend.upload_path(
+                            tmp.name, name=ns.name, description=ns.description
+                        )
+                else:
                     uri = vimeo_backend.upload_path(
-                        tmp.name, name=ns.name, description=ns.description
+                        path, name=ns.name, description=ns.description
                     )
-            else:
-                uri = vimeo_backend.upload_path(
-                    path, name=ns.name, description=ns.description
-                )
-        # Emit the resulting URI to stdout so pipelines can capture it
-        sys.stdout.write(str(uri) + "\n")
-        return 0
+            # Emit the resulting URI to stdout so pipelines can capture it
+            sys.stdout.write(str(uri) + "\n")
+            return 0
+        except Exception as exc:
+            msg = (
+                "Vimeo upload failed. Ensure the 'PyVimeo' extra is installed and credentials are set.\n"
+                "Install: poetry install -E connectors (or pip install 'zyra[datatransfer]')\n"
+                "Env: export VIMEO_ACCESS_TOKEN=... (and any required client key/secret).\n"
+                f"Details: {exc}"
+            )
+            logging.error(msg)
+            return 2
 
     p_vimeo = dec_subparsers.add_parser(
         "vimeo", help="Upload or replace a video on Vimeo"

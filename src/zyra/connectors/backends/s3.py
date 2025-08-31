@@ -9,7 +9,6 @@ downloads.
 from __future__ import annotations
 
 import re
-import tempfile
 from typing import Iterable
 
 import boto3
@@ -57,17 +56,23 @@ def fetch_bytes(
 
 
 def upload_bytes(data: bytes, url_or_bucket: str, key: str | None = None) -> bool:
-    """Upload bytes to an S3 object by writing to a temporary file first."""
+    """Upload bytes to an S3 object.
+
+    - Uses put_object to avoid intermediate temp files.
+    - Sets ContentType for common types (e.g., application/json for .json keys).
+    """
     if key is None:
         bucket, key = parse_s3_url(url_or_bucket)
     else:
         bucket = url_or_bucket
     c = boto3.client("s3")
-    # Upload from a temp file
-    with tempfile.NamedTemporaryFile(suffix=".bin", delete=True) as tmp:
-        tmp.write(data)
-        tmp.flush()
-        c.upload_file(tmp.name, bucket, key)  # type: ignore[arg-type]
+    extra: dict = {}
+    try:
+        if str(key).lower().endswith(".json"):
+            extra["ContentType"] = "application/json"
+    except Exception:
+        pass
+    c.put_object(Bucket=bucket, Key=key, Body=data, **extra)  # type: ignore[arg-type]
     return True
 
 

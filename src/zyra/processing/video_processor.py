@@ -41,11 +41,13 @@ class VideoProcessor(DataProcessor):
         output_file: str,
         basemap: Optional[str] = None,
         fps: int = 30,
+        input_glob: Optional[str] = None,
     ):
         self.input_directory = input_directory
         self.output_file = output_file
         self.basemap = basemap
         self.fps = int(fps)
+        self.input_glob = input_glob
 
     FEATURES = {"load", "process", "save", "validate"}
 
@@ -69,7 +71,8 @@ class VideoProcessor(DataProcessor):
             The output file path on success; ``None`` if processing failed.
         """
         fps = int(kwargs.get("fps", self.fps))
-        success = self.process_video(fps=fps)
+        input_glob = kwargs.get("input_glob", self.input_glob)
+        success = self.process_video(fps=fps, input_glob=input_glob)
         return self.output_file if success else None
 
     def save(self, output_path: Optional[str] = None) -> Optional[str]:
@@ -126,7 +129,9 @@ class VideoProcessor(DataProcessor):
             logging.error(f"An error occurred while checking FFmpeg installation: {e}")
             return False
 
-    def process_video(self, *, fps: int | None = None) -> bool:
+    def process_video(
+        self, *, fps: int | None = None, input_glob: Optional[str] = None
+    ) -> bool:
         """Build the video using FFmpeg from frames in ``input_directory``.
 
         Notes
@@ -142,15 +147,22 @@ class VideoProcessor(DataProcessor):
         try:
             input_dir = Path(self.input_directory)
             logging.debug("Scanning directory for files...")
-            files = sorted(
-                [f for f in input_dir.iterdir() if f.is_file()], key=lambda f: f.name
-            )
+            if input_glob:
+                files = sorted(input_dir.glob(str(input_glob)))
+            else:
+                files = sorted(
+                    [f for f in input_dir.iterdir() if f.is_file()],
+                    key=lambda f: f.name,
+                )
             if not files:
                 logging.error("No files found in the video input directory.")
                 return False
             logging.debug(f"Found {len(files)} files.")
-            file_extension = files[0].suffix
-            input_pattern = f"{self.input_directory}/*{file_extension}"
+            if input_glob:
+                input_pattern = f"{self.input_directory}/{input_glob}"
+            else:
+                file_extension = files[0].suffix
+                input_pattern = f"{self.input_directory}/*{file_extension}"
             logging.debug(f"Processing files with extension: {file_extension}")
             output_path = self.output_file
             ffmpeg_cmd = "ffmpeg"

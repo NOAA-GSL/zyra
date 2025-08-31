@@ -24,6 +24,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterable
 
+from zyra.utils.env import env_int
+
 
 class DateManager:
     """High-level utilities for working with dates and filenames.
@@ -45,6 +47,59 @@ class DateManager:
     def __init__(self, date_formats: list[str] | None = None) -> None:
         """Optionally store preferred date formats for filename parsing."""
         self.date_formats = date_formats or []
+        # Throttle repeated parse errors to reduce noisy logs on large listings
+        try:
+            self._no_date_limit = max(0, env_int("DATE_NO_MATCH_LOG_LIMIT", 50))
+        except Exception:
+            self._no_date_limit = 50
+        self._no_date_count = 0
+        self._no_date_notice_emitted = False
+        # Help users who pass formats like 'YYYYMMDD' instead of strftime tokens
+        # by emitting a one-time warning per DateManager instance.
+        try:
+            bad: list[str] = []
+            for fmt in self.date_formats:
+                if (
+                    isinstance(fmt, str)
+                    and "%" not in fmt
+                    and re.search(r"[YyMdHhS]", fmt)
+                ):
+                    bad.append(fmt)
+            if bad:
+                sugg = self._suggest_strftime(bad[0])
+                logging.warning(
+                    "date_format '%s' does not use strftime tokens; expected e.g. '%%Y%%m%%d'.%s",
+                    bad[0],
+                    f" Did you mean '{sugg}'?" if sugg and sugg != bad[0] else "",
+                )
+        except Exception:
+            # Never fail initialization due to warnings
+            pass
+
+    @staticmethod
+    def _suggest_strftime(fmt: str) -> str:
+        """Suggest a strftime-style pattern for common aliases like YYYYMMDD.
+
+        This is a best-effort heuristic for user guidance only.
+        """
+        repl = [
+            (r"YYYY", "%Y"),
+            (r"yyyy", "%Y"),
+            (r"YY", "%y"),
+            (r"yy", "%y"),
+            (r"MM", "%m"),
+            (r"DD", "%d"),
+            (r"dd", "%d"),
+            (r"HH", "%H"),
+            (r"hh", "%H"),
+            (r"mm", "%M"),  # minute (common confusion)
+            (r"SS", "%S"),
+            (r"ss", "%S"),
+        ]
+        out = str(fmt)
+        for pat, sub in repl:
+            out = re.sub(pat, sub, out)
+        return out
 
     # The remainder of this class mirrors the original DateManager implementation
     # with docstrings retained or added where relevant.
@@ -144,11 +199,25 @@ class DateManager:
                 extracted_date = datetime.fromisoformat(extracted_date_str)
                 return start_date <= extracted_date <= end_date
             except ValueError as e:
-                logging.error(
-                    f"Error converting extracted date string to datetime: {e}"
-                )
+                if self._no_date_count < self._no_date_limit:
+                    logging.error(
+                        f"Error converting extracted date string to datetime: {e}"
+                    )
+                elif not self._no_date_notice_emitted:
+                    logging.error(
+                        "Further date-parse errors suppressed (limit reached)."
+                    )
+                    self._no_date_notice_emitted = True
+                self._no_date_count += 1
         else:
-            logging.error(f"No valid date extracted from filename: {filename}")
+            if self._no_date_count < self._no_date_limit:
+                logging.error(f"No valid date extracted from filename: {filename}")
+            elif not self._no_date_notice_emitted:
+                logging.error(
+                    "Further 'No valid date extracted' messages suppressed (limit reached)."
+                )
+                self._no_date_notice_emitted = True
+            self._no_date_count += 1
         return False
 
     def extract_date_time(self, string: str) -> str | None:

@@ -273,6 +273,10 @@ def register_cli(subparsers: Any) -> None:
     )
     p_cv.add_argument("--frames", required=True, help="Frames directory")
     p_cv.add_argument("-o", "--output", required=True, help="Output MP4 path")
+    p_cv.add_argument(
+        "--glob",
+        help="Filename glob within frames dir (e.g., '*.png'); defaults to first extension found",
+    )
     p_cv.add_argument("--fps", type=int, default=30)
     p_cv.add_argument("--basemap")
     p_cv.set_defaults(func=handle_compose_video)

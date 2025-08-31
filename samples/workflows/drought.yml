@@ -1,0 +1,108 @@
+name: drought-video
+
+# This workflow uses "structured steps": each step provides
+#   - stage: top-level CLI group (acquire/process/visualize/decimate/transform)
+#   - command: the subcommand to run under that stage
+#   - args: mapping of arguments
+# Keys under "args" translate to CLI flags:
+#   - snake_case -> --kebab-case (e.g., sync_dir -> --sync-dir)
+#   - boolean true is a presence flag (e.g., read_stdin -> --read-stdin)
+#   - strings and numbers become flag values
+# Some commands accept positionals (e.g., acquire ftp path); the runner
+# knows which args are positional and orders them for you.
+
+on:
+  # Schedule: run every Thursday at 12:05 UTC; can also be started manually
+  schedule:
+    - cron: "5 12 * * 4"
+  workflow_dispatch: {}
+
+env:
+  FTP_HOST: ftp.nnvl.noaa.gov
+  FTP_PATH: /SOS/DroughtRisk_Weekly
+  DATASET_ID: INTERNAL_SOS_DROUGHT_RT
+  VIMEO_URI: /videos/900195230
+  S3_URL: s3://metadata.sosexplorer.gov/dataset.json
+  SINCE_PERIOD: P1Y
+  # Frame cadence in seconds (1 week)
+  PERIOD_SECONDS: 604800
+
+  # Secrets required at runtime (do NOT hardcode here):
+  # - VIMEO_ACCESS_TOKEN and VIMEO_CLIENT_ID and VIMEO_CLIENT_SECRET for the Vimeo upload step.
+  # - AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY for update-dataset-json when writing to S3.
+  # Provide these via container/orchestrator secrets or environment variables.
+
+jobs:
+  acquire-images:
+    # Fetch weekly drought frames from NOAA FTP and mirror to a local folder.
+    # Filters to PNGs named like: DroughtRisk_Weekly_YYYYMMDD.png
+    steps:
+      - stage: acquire
+        command: ftp
+        args:
+          path: ${FTP_HOST}${FTP_PATH}
+          sync_dir: /data/images/${DATASET_ID}
+          since_period: ${SINCE_PERIOD}
+          pattern: '^DroughtRisk_Weekly_[0-9]{8}\.png$'
+          date_format: '%Y%m%d'
+
+  validate-frames:
+    needs: acquire-images
+    # Scan frames, extract first/last timestamps, and compute the expected
+    # frame count based on the weekly cadence. Writes frames-meta.json.
+    steps:
+      - stage: transform
+        command: metadata
+        args:
+          frames_dir: /data/images/${DATASET_ID}
+          pattern: '^DroughtRisk_Weekly_[0-9]{8}\.png$'
+          datetime_format: '%Y%m%d'
+          period_seconds: ${PERIOD_SECONDS}
+          output: /data/images/${DATASET_ID}/metadata/frames-meta.json
+
+  compose-video:
+    needs: validate-frames
+    # Compose all PNG frames into an MP4 using ffmpeg.
+    steps:
+      - stage: visualize
+        command: compose-video
+        args:
+          frames: /data/images/${DATASET_ID}
+          output: /data/output/${DATASET_ID}.mp4
+
+  upload-vimeo:
+    needs: compose-video
+    # Replace the existing Vimeo video with the newly composed MP4.
+    # Requires VIMEO_ACCESS_TOKEN (or client id/secret) to be available in env.
+    steps:
+      - stage: decimate
+        command: vimeo
+        args:
+          input: /data/output/${DATASET_ID}.mp4
+          replace_uri: ${VIMEO_URI}
+
+  update-metadata:
+    needs: [validate-frames, upload-vimeo]
+    steps:
+      # Safety net: back up current dataset.json to local metadata directory
+      - stage: acquire
+        command: s3
+        args:
+          url: ${S3_URL}
+          output: /data/images/${DATASET_ID}/metadata/dataset.json.bak
+      # Write updated dataset JSON to stdout, then upload to S3
+      # - startTime/endTime come from frames-meta.json
+      # - dataLink is updated to the Vimeo URI if provided
+      - stage: transform
+        command: update-dataset-json
+        args:
+          input_url: ${S3_URL}
+          dataset_id: ${DATASET_ID}
+          meta: /data/images/${DATASET_ID}/metadata/frames-meta.json
+          vimeo_uri: ${VIMEO_URI}
+          output: '-'
+      - stage: decimate
+        command: s3
+        args:
+          read_stdin: true
+          url: ${S3_URL}

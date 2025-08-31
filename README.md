@@ -1,4 +1,4 @@
-# Zyra (formerly DataVizHub)
+# Zyra
 
 ## Overview
 Zyra is a utility library for building data-driven visual products. It provides composable helpers for data transfer (FTP/HTTP/S3/Vimeo), data processing (GRIB/imagery/video), and visualization (matplotlib + basemap overlays). Use these pieces to script your own pipelines; this repo focuses on the reusable building blocks rather than end-user scripts.
@@ -836,6 +836,55 @@ See Batch Mode section for multi-input workflows across acquisition, processing,
 Logging workflows to a file
 - Use `zyra run <config.yaml> --log-file /path/to/logs/workflow.log [--log-file-mode overwrite]` to capture runner and stage logs into a dataset‑scoped location (default appends).
 - Alternatively, provide a directory and let Zyra write `workflow.log`: `zyra run <config.yaml> --log-dir /data/rt/dataset/<id>/logs`.
+
+## Workflows (DAG + Watch)
+
+Zyra can run directed workflows defined in YAML/JSON with `on:` triggers and `jobs:`.
+
+Example `workflow.yml`:
+
+```
+on:
+  schedule:
+    - cron: "0 * * * *"   # hourly
+  dataset-update:
+    - path: /data/input.csv
+      check: hash          # or: timestamp, size
+
+jobs:
+  acquire:
+    steps:
+      - "acquire http https://example.com/data.bin -o -"
+      - {stage: decimate, command: local, args: {input: "-", path: data.bin}}
+
+  process:
+    needs: acquire
+    steps:
+      - {stage: process, command: convert-format, args: {file_or_url: data.bin, format: netcdf, stdout: true}}
+      - {stage: decimate, command: local, args: {input: "-", path: out.nc}}
+```
+
+Run the workflow:
+
+- Manual (serial or parallel):
+  - `zyra run workflow.yml` (serial)
+  - `zyra run workflow.yml --max-workers 4` (parallel DAG; up to 4 jobs at once)
+
+- Watch once (single poll):
+  - `zyra run workflow.yml --watch --state-file state.json --run-on-first`
+
+- Watch loop:
+  - `zyra run workflow.yml --watch --watch-interval 30 --watch-count 10 --state-file state.json`
+  - Evaluates `on.schedule` and `on.dataset-update` every 30s; stops after 10 iterations.
+
+- Export cron entries:
+  - `zyra run workflow.yml --export-cron`
+
+Notes:
+- Steps can be shell-like strings or structured mappings (`{stage, command, args}`).
+- Watch mode deduplicates schedule triggers to once per minute; dataset-update state is persisted in `--state-file`.
+- Parallel mode executes each job in a subprocess to isolate stdin/stdout.
+- Dry run: preview the workflow plan without running jobs: `zyra run workflow.yml --dry-run` (prints JSON with jobs, needs, and argv for each step).
 ### Running Tests
 
 - Install dev deps and optional extras:

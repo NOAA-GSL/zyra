@@ -629,6 +629,8 @@ def main(argv: list[str] | None = None) -> int:
 
         p_gen.set_defaults(func=_cmd_gen)
 
+        # No separate workflow group; use `zyra run` for workflows
+
     args = parser.parse_args(args_list)
     return args.func(args)
 
