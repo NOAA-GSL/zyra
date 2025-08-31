@@ -6,6 +6,7 @@ import pytest
 
 
 def _load_wait_module():
+    """Dynamically load the wait_for_pypi module from the scripts directory."""
     path = pathlib.Path("scripts/wait_for_pypi.py").resolve()
     spec = importlib.util.spec_from_file_location("wait_for_pypi", path)
     assert spec and spec.loader
@@ -15,18 +16,21 @@ def _load_wait_module():
 
 
 def test_fetch_json_rejects_non_https():
+    """fetch_json should reject non-HTTPS URLs for security."""
     mod = _load_wait_module()
     with pytest.raises(ValueError):
         mod.fetch_json("http://pypi.org/pypi/pkg/json")
 
 
 def test_fetch_json_rejects_non_pypi_host():
+    """fetch_json should reject URLs not hosted on pypi.org."""
     mod = _load_wait_module()
     with pytest.raises(ValueError):
         mod.fetch_json("https://example.com/foo.json")
 
 
 def test_fetch_json_allows_pypi_https_and_reads(monkeypatch):
+    """fetch_json should accept a valid PyPI URL and return parsed JSON."""
     mod = _load_wait_module()
 
     class FakeResponse:
@@ -50,6 +54,7 @@ def test_fetch_json_allows_pypi_https_and_reads(monkeypatch):
 
 
 def test_main_retries_on_urlerror_and_times_out(monkeypatch):
+    """main should retry on transient URLError and exit 1 after retries."""
     mod = _load_wait_module()
 
     def raising_fetch(_url: str, timeout: float = 10.0):  # noqa: ARG001
@@ -62,6 +67,7 @@ def test_main_retries_on_urlerror_and_times_out(monkeypatch):
 
 
 def test_main_bubbles_unexpected_errors(monkeypatch):
+    """main should propagate unexpected exceptions for visibility in CI."""
     mod = _load_wait_module()
 
     def raising_fetch(_url: str, timeout: float = 10.0):  # noqa: ARG001

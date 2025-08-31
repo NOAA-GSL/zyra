@@ -38,6 +38,19 @@ def fetch_json(url: str, timeout: float = 10.0) -> dict[str, Any]:
 
 
 def main(argv: list[str]) -> int:
+    """CLI entry for waiting until a PyPI release exists.
+
+    Parameters:
+    - argv: Command-line arguments where:
+      - argv[1]: package name (e.g., "zyra")
+      - argv[2]: version string (e.g., "1.2.3")
+      - argv[3]: optional retries (int, default 60)
+      - argv[4]: optional delay seconds between retries (int, default 10)
+
+    Returns:
+    - 0 when the package version is found on PyPI.
+    - 1 on usage error or timeout after all retries.
+    """
     if len(argv) < 3:
         print(
             "Usage: wait_for_pypi.py <package> <version> [retries] [delay_seconds]",

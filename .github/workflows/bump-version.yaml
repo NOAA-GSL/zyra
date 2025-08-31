@@ -2,20 +2,47 @@ name: Bump Version on PR from staging to main
 
 on:
   pull_request:
-    types: [opened]
+    types: [opened, reopened, synchronize, ready_for_review]
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: PR head branch to bump (default staging)
+        required: true
+        default: staging
+
+permissions:
+  contents: write
 
 jobs:
   bump-version:
-    if: github.head_ref == 'staging'
+    # Fire for staging->main PRs from same repo, or manual runs
+    if: >-
+      (github.event_name == 'pull_request' &&
+       github.base_ref == 'main' &&
+       github.head_ref == 'staging' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+      || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     steps:
+      - name: Determine branches
+        id: vars
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "head=${{ github.head_ref }}" >> "$GITHUB_OUTPUT"
+            echo "base=${{ github.base_ref }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "head=${{ inputs.branch }}" >> "$GITHUB_OUTPUT"
+            echo "base=main" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: staging
+          ref: ${{ steps.vars.outputs.head }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -36,9 +63,38 @@ jobs:
           restore-keys: |
             poetry-${{ runner.os }}-
 
-      # Optional if needed for plugins/scripts
-      # - name: Install dependencies
-      #   run: poetry install --no-root
+      - name: Fetch base branch
+        run: |
+          git fetch origin "${{ steps.vars.outputs.base }}"
+
+      - name: Determine if version bump is needed
+        id: check
+        run: |
+          python - << 'PY'
+import os, subprocess, sys
+try:
+    import tomllib  # Python 3.11+
+except ModuleNotFoundError:
+    import tomli as tomllib  # type: ignore[no-redef]
+
+def read_version_from_blob(blob: bytes) -> str:
+    data = tomllib.loads(blob.decode('utf-8'))
+    return data['tool']['poetry']['version']
+
+head_toml = open('pyproject.toml', 'rb').read()
+base_ref = os.environ['BASE'] if 'BASE' in os.environ else '${{ steps.vars.outputs.base }}'
+cp = subprocess.run(['git', 'show', f'origin/{base_ref}:pyproject.toml'], check=True, capture_output=True)
+base_toml = cp.stdout
+
+head_ver = read_version_from_blob(head_toml)
+base_ver = read_version_from_blob(base_toml)
+
+should_bump = (head_ver == base_ver)
+print(f"Head version: {head_ver}; Base version: {base_ver}; Should bump: {should_bump}")
+out = open(os.environ['GITHUB_OUTPUT'], 'a')
+out.write(f"should_bump={'true' if should_bump else 'false'}\n")
+out.close()
+PY
 
       - name: Configure Git
         run: |
@@ -46,8 +102,13 @@ jobs:
           git config user.email "github-actions@github.com"
 
       - name: Bump patch version using Poetry
+        if: steps.check.outputs.should_bump == 'true'
         run: |
           poetry version patch
           git add pyproject.toml
           git commit -m "ci: bump version" || echo "No changes to commit"
-          git push origin staging
+          git push origin "${{ steps.vars.outputs.head }}"
+
+      - name: Skip bump (already bumped)
+        if: steps.check.outputs.should_bump != 'true'
+        run: echo "Version already diverged from base; skipping bump."
