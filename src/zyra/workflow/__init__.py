@@ -213,7 +213,15 @@ def _run_job(job: Job) -> int:
         buf_in = io.BytesIO(current or b"")
         buf_out = io.BytesIO()
         sys.stdin = type("S", (), {"buffer": buf_in})()  # type: ignore
-        sys.stdout = type("S", (), {"buffer": buf_out, "write": lambda self, s: None})()  # type: ignore
+        sys.stdout = type(
+            "S",
+            (),
+            {
+                "buffer": buf_out,
+                "write": lambda self, s: None,
+                "flush": lambda self: None,
+            },
+        )()  # type: ignore
         try:
             rc = int(cli_main(argv) or 0)
         except SystemExit as exc:  # normalize
@@ -408,10 +416,9 @@ def cmd_run(ns: argparse.Namespace) -> int:
                         status[name] = "done"
                         continue
                     status[name] = "running"
-                    # Run jobs in-process in separate threads to preserve
-                    # stdin/stdout piping semantics expected by tests,
-                    # avoiding environment/path issues in subprocesses.
-                    fut = ex.submit(_run_job, jobs[name])
+                    # Run each job in a subprocess to avoid global stdout/stderr
+                    # interference across threads and match isolation semantics.
+                    fut = ex.submit(_run_job_subprocess, jobs[name])
                     running[fut] = name
 
             submit_ready()

@@ -321,7 +321,15 @@ def _run_cli(argv: list[str], input_bytes: bytes | None) -> tuple[int, bytes, st
     buf_in = io.BytesIO(input_bytes or b"")
     buf_out = io.BytesIO()
     sys.stdin = type("S", (), {"buffer": buf_in})()  # type: ignore
-    sys.stdout = type("S", (), {"buffer": buf_out, "write": lambda self, s: None})()  # type: ignore
+    sys.stdout = type(
+        "S",
+        (),
+        {
+            "buffer": buf_out,
+            "write": lambda self, s: None,
+            "flush": lambda self: None,
+        },
+    )()  # type: ignore
     try:
         rc = cli_main(argv)
         try:

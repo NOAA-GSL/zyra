@@ -118,6 +118,22 @@ def register_cli(dec_subparsers: Any) -> None:
         import logging
         import sys
 
+        # Resolve description from --description or --description-file
+        desc: str | None = getattr(ns, "description", None)
+        if not desc and getattr(ns, "description_file", None):
+            try:
+                from pathlib import Path as _P
+
+                data = _P(ns.description_file).read_text(encoding="utf-8")
+                # Truncate overly long descriptions to a safe size
+                max_len = 4800
+                if len(data) > max_len:
+                    data = data[: max_len - 12] + "\n...[truncated]"
+                desc = data
+            except Exception as exc:
+                logging.warning(f"Failed to read --description-file: {exc}")
+                desc = None
+
         try:
             # Upload or replace
             uri: str
@@ -135,11 +151,14 @@ def register_cli(dec_subparsers: Any) -> None:
                 else:
                     uri = vimeo_backend.update_video(path, ns.replace_uri)
                 # Optional description update
-                if getattr(ns, "description", None):
-                    from contextlib import suppress
-
-                    with suppress(Exception):
-                        vimeo_backend.update_description(uri, ns.description)
+                if desc:
+                    try:
+                        vimeo_backend.update_description(uri, desc)
+                        logging.info(
+                            "Updated Vimeo description (chars=%d)", len(desc or "")
+                        )
+                    except Exception as exc:
+                        logging.warning("Vimeo description update failed: %s", str(exc))
             else:
                 # Upload new video
                 path = ns.input
@@ -151,11 +170,11 @@ def register_cli(dec_subparsers: Any) -> None:
                         tmp.write(data)
                         tmp.flush()
                         uri = vimeo_backend.upload_path(
-                            tmp.name, name=ns.name, description=ns.description
+                            tmp.name, name=ns.name, description=desc
                         )
                 else:
                     uri = vimeo_backend.upload_path(
-                        path, name=ns.name, description=ns.description
+                        path, name=ns.name, description=desc
                     )
             # Emit the resulting URI to stdout so pipelines can capture it
             sys.stdout.write(str(uri) + "\n")
@@ -176,6 +195,11 @@ def register_cli(dec_subparsers: Any) -> None:
     add_input_option(p_vimeo, required=True)
     p_vimeo.add_argument("--name", help="Video title")
     p_vimeo.add_argument("--description", help="Video description")
+    p_vimeo.add_argument(
+        "--description-file",
+        dest="description_file",
+        help="Read description text from a file (UTF-8)",
+    )
     p_vimeo.add_argument(
         "--replace-uri",
         dest="replace_uri",

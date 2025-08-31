@@ -14,6 +14,7 @@ subsetting, and S3 URL parsing.
 """
 
 import argparse
+import os
 import re
 import sys
 from pathlib import Path
@@ -474,6 +475,17 @@ def _viz_wind_cmd(ns: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="zyra")
+    # Global verbosity controls for all commands
+    vgrp = parser.add_mutually_exclusive_group()
+    vgrp.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Verbose output (sets ZYRA_VERBOSITY=debug)",
+    )
+    vgrp.add_argument(
+        "--quiet", action="store_true", help="Quiet output (sets ZYRA_VERBOSITY=quiet)"
+    )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     # Pre-scan argv to support lazy registration and avoid importing heavy stacks unnecessarily
@@ -632,6 +644,16 @@ def main(argv: list[str] | None = None) -> int:
         # No separate workflow group; use `zyra run` for workflows
 
     args = parser.parse_args(args_list)
+    # Apply global verbosity to environment so downstream modules pick it up
+    if getattr(args, "verbose", False):
+        os.environ["ZYRA_VERBOSITY"] = "debug"
+        os.environ["DATAVIZHUB_VERBOSITY"] = "debug"
+    elif getattr(args, "quiet", False):
+        os.environ["ZYRA_VERBOSITY"] = "quiet"
+        os.environ["DATAVIZHUB_VERBOSITY"] = "quiet"
+    else:
+        os.environ.setdefault("ZYRA_VERBOSITY", "info")
+        os.environ.setdefault("DATAVIZHUB_VERBOSITY", "info")
     return args.func(args)
 
 
