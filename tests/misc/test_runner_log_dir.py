@@ -1,7 +1,7 @@
 import textwrap
 from pathlib import Path
 
-from tests.helpers import project_root
+from ..helpers import project_root
 
 
 def test_runner_writes_log_file_with_log_dir(tmp_path: Path, monkeypatch):

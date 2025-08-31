@@ -13,7 +13,7 @@ def test_cli_timeseries_samples_csv(tmp_path):
     except Exception as e:
         pytest.skip(f"Visualization deps missing: {e}")
 
-    from tests.helpers import project_root
+    from ..helpers import project_root
 
     repo_root = project_root(Path(__file__))
     csv_path = repo_root / "samples" / "timeseries.csv"

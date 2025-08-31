@@ -1,7 +1,7 @@
 import textwrap
 from pathlib import Path
 
-from tests.helpers import project_root
+from ..helpers import project_root
 
 
 def test_workflow_watch_dataset_update_runs(tmp_path: Path, monkeypatch):
