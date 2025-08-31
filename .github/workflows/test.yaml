@@ -58,8 +58,8 @@ jobs:
       DATAVIZHUB_DEFAULT_STDIN: tests/testdata/demo.nc
       # Verbose logs across all commands to surface subprocess errors in CI
       ZYRA_VERBOSITY: debug
-      # Use subprocess-based parallel jobs for isolation; capture stderr via -s
-      ZYRA_WORKFLOW_PARALLEL_MODE: subprocess
+      # Force thread-based parallel jobs in CI to stabilize this test
+      ZYRA_WORKFLOW_PARALLEL_MODE: thread
       
     steps:
       - name: Check out code
