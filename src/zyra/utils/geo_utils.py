@@ -28,7 +28,7 @@ def detect_crs_from_xarray(ds) -> str | None:
                 epsg = _parse_epsg(str(v)) if v is not None else None
                 if epsg:
                     return epsg
-    except Exception:
+    except (AttributeError, KeyError, TypeError, ValueError):
         pass
     # Dataset-level hints
     for key in ("crs", "spatial_ref", "crs_wkt", "proj4"):
@@ -41,7 +41,7 @@ def detect_crs_from_xarray(ds) -> str | None:
         crs = ds.rio.crs  # type: ignore[attr-defined]
         if crs:
             return _parse_epsg(str(crs)) or str(crs)
-    except Exception:
+    except (AttributeError, TypeError, ValueError):
         pass
     return None
 
@@ -63,14 +63,14 @@ def detect_crs_from_path(path: str, *, var: str | None = None) -> str | None:
                 return detect_crs_from_xarray(ds)
             finally:
                 ds.close()
-        except Exception:
+        except (OSError, ImportError, ValueError):
             return None
     elif path.lower().endswith(".csv"):
         try:
             import pandas as pd
 
             return detect_crs_from_csv(pd.read_csv(path))
-        except Exception:
+        except (OSError, ImportError, ValueError):
             return None
     else:
         # .npy and others: assume lon/lat unless overridden
@@ -110,5 +110,5 @@ def to_cartopy_crs(crs: str | None):
             return ccrs.PlateCarree()
         code = int(epsg.split(":", 1)[1])
         return ccrs.epsg(code)
-    except Exception:
+    except (ImportError, ValueError):
         return None

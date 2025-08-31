@@ -9,12 +9,11 @@ downloads.
 from __future__ import annotations
 
 import re
-import tempfile
 from typing import Iterable
 
 import boto3
 from botocore import config as _botocore_config
-from botocore.exceptions import ClientError
+from botocore.exceptions import BotoCoreError, ClientError
 
 from zyra.utils.date_manager import DateManager
 from zyra.utils.grib import (
@@ -57,17 +56,28 @@ def fetch_bytes(
 
 
 def upload_bytes(data: bytes, url_or_bucket: str, key: str | None = None) -> bool:
-    """Upload bytes to an S3 object by writing to a temporary file first."""
+    """Upload bytes to an S3 object using managed transfer.
+
+    - Calls ``upload_file`` for compatibility with existing tests/mocks.
+    - Sets ``ContentType=application/json`` for ``.json`` keys via ExtraArgs.
+    """
     if key is None:
         bucket, key = parse_s3_url(url_or_bucket)
     else:
         bucket = url_or_bucket
     c = boto3.client("s3")
-    # Upload from a temp file
+    # Set Content-Type for JSON keys
+    extra_args = None
+    if key is not None and str(key).lower().endswith(".json"):
+        extra_args = {"ContentType": "application/json"}
+    # Upload from a temp file to satisfy upload_file
+    import tempfile
+
     with tempfile.NamedTemporaryFile(suffix=".bin", delete=True) as tmp:
         tmp.write(data)
         tmp.flush()
-        c.upload_file(tmp.name, bucket, key)  # type: ignore[arg-type]
+        kwargs = {"ExtraArgs": extra_args} if extra_args else {}
+        c.upload_file(tmp.name, bucket, key, **kwargs)  # type: ignore[arg-type]
     return True
 
 
@@ -156,7 +166,7 @@ def stat(url_or_bucket: str, key: str | None = None):
             "last_modified": resp.get("LastModified"),
             "etag": resp.get("ETag"),
         }
-    except Exception:
+    except (ClientError, BotoCoreError, ValueError, TypeError):
         return None
 
 
@@ -170,7 +180,7 @@ def get_size(url_or_bucket: str, key: str | None = None) -> int | None:
     try:
         resp = c.head_object(Bucket=bucket, Key=key)  # type: ignore[arg-type]
         return int(resp.get("ContentLength", 0))
-    except Exception:
+    except (ClientError, BotoCoreError, ValueError, TypeError):
         return None
 
 

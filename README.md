@@ -1,4 +1,4 @@
-# Zyra (formerly DataVizHub)
+# Zyra
 
 ## Overview
 Zyra is a utility library for building data-driven visual products. It provides composable helpers for data transfer (FTP/HTTP/S3/Vimeo), data processing (GRIB/imagery/video), and visualization (matplotlib + basemap overlays). Use these pieces to script your own pipelines; this repo focuses on the reusable building blocks rather than end-user scripts.
@@ -162,6 +162,8 @@ zyra
 
 Notes
 - All subcommands accept `-` for stdin/stdout where applicable to support piping.
+  - `transform enrich-metadata` can read frames metadata JSON from stdin via `--read-frames-meta-stdin`.
+  - `decimate s3` can read bytes from stdin via `--read-stdin` (alias for `-i -`).
 
 ### Quick Usage by Group
 
@@ -181,7 +183,7 @@ Notes
   - Animate frames and compose to MP4: `zyra visualize animate --mode heatmap --input cube.npy --output-dir frames && zyra visualize compose-video --frames frames -o out.mp4`
 
 - Decimate
-  - Upload to S3 from stdin: `cat out.png | zyra decimate s3 -i - --url s3://bucket/products/out.png`
+- Upload to S3 from stdin: `cat out.png | zyra decimate s3 --read-stdin --url s3://bucket/products/out.png`
 - HTTP POST JSON: `echo '{"ok":true}' | zyra decimate post -i - https://example.com/ingest --content-type application/json`
 
 ## Batch Mode
@@ -425,7 +427,7 @@ Error handling
 
 ## Chaining Commands with --raw and --stdout
 
-The CLI supports streaming binary data through stdout/stdin so you can compose offline pipelines without touching disk.
+The CLI supports streaming binary data through stdout/stdin so you can compose offline pipelines without touching disk. For JSON metadata, chain `transform metadata -o - | zyra transform enrich-metadata --read-frames-meta-stdin ...` to avoid temp files. Note: stdin is a single stream; if you read frames metadata from stdin, pass the Vimeo URI via `--vimeo-uri` (not `--read-vimeo-uri`).
 
 - `.idx` → extract → convert (one-liner):
   ```bash
@@ -830,6 +832,59 @@ MIME detection (optional):
 WebSocket client extra:
 - Install `poetry install --with ws` to enable the `zyra-cli --ws` streaming option (bundles `websockets`).
 See Batch Mode section for multi-input workflows across acquisition, processing, and visualization.
+
+Logging workflows to a file
+- Use `zyra run <config.yaml> --log-file /path/to/logs/workflow.log [--log-file-mode overwrite]` to capture runner and stage logs into a dataset‑scoped location (default appends).
+- Alternatively, provide a directory and let Zyra write `workflow.log`: `zyra run <config.yaml> --log-dir /data/rt/dataset/<id>/logs`.
+
+## Workflows (DAG + Watch)
+
+Zyra can run directed workflows defined in YAML/JSON with `on:` triggers and `jobs:`.
+
+Example `workflow.yml`:
+
+```
+on:
+  schedule:
+    - cron: "0 * * * *"   # hourly
+  dataset-update:
+    - path: /data/input.csv
+      check: hash          # or: timestamp, size
+
+jobs:
+  acquire:
+    steps:
+      - "acquire http https://example.com/data.bin -o -"
+      - {stage: decimate, command: local, args: {input: "-", path: data.bin}}
+
+  process:
+    needs: acquire
+    steps:
+      - {stage: process, command: convert-format, args: {file_or_url: data.bin, format: netcdf, stdout: true}}
+      - {stage: decimate, command: local, args: {input: "-", path: out.nc}}
+```
+
+Run the workflow:
+
+- Manual (serial or parallel):
+  - `zyra run workflow.yml` (serial)
+  - `zyra run workflow.yml --max-workers 4` (parallel DAG; up to 4 jobs at once)
+
+- Watch once (single poll):
+  - `zyra run workflow.yml --watch --state-file state.json --run-on-first`
+
+- Watch loop:
+  - `zyra run workflow.yml --watch --watch-interval 30 --watch-count 10 --state-file state.json`
+  - Evaluates `on.schedule` and `on.dataset-update` every 30s; stops after 10 iterations.
+
+- Export cron entries:
+  - `zyra run workflow.yml --export-cron`
+
+Notes:
+- Steps can be shell-like strings or structured mappings (`{stage, command, args}`).
+- Watch mode deduplicates schedule triggers to once per minute; dataset-update state is persisted in `--state-file`.
+- Parallel mode executes each job in a subprocess to isolate stdin/stdout.
+- Dry run: preview the workflow plan without running jobs: `zyra run workflow.yml --dry-run` (prints JSON with jobs, needs, and argv for each step).
 ### Running Tests
 
 - Install dev deps and optional extras:

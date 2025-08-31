@@ -19,7 +19,7 @@ if _HAS_IMAGE:  # pragma: no cover - optional path
         from .image_manager import (  # type: ignore  # noqa: F401
             ImageManager as ImageManager,
         )
-    except Exception:  # ImportError or missing optional deps
+    except (ImportError, ModuleNotFoundError):  # Import error for optional deps
         # Defer import errors for optional heavy dependencies until
         # submodule is explicitly imported by consumers.
         _HAS_IMAGE = False

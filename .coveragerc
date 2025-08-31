@@ -1,0 +1,15 @@
+[run]
+# Measure branch coverage consistently across runs
+branch = True
+parallel = True
+
+[report]
+omit =
+    tests/*
+    */site-packages/*
+
+[paths]
+source =
+    src
+    */site-packages/zyra
+

@@ -11,13 +11,36 @@ from typing import Any
 from zyra.utils.env import env, env_bool
 
 
+def _load_yaml_or_json_generic(path: str) -> dict[str, Any]:
+    """Load YAML/JSON for lightweight schema probing (workflow vs pipeline)."""
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except FileNotFoundError as exc:
+        raise SystemExit(
+            f"Config file not found: {path}. Use an absolute path or run from the project root."
+        ) from exc
+    try:
+        import yaml  # type: ignore
+
+        return yaml.safe_load(text)  # type: ignore[no-any-return]
+    except ModuleNotFoundError:
+        return json.loads(text)
+    except Exception:
+        return json.loads(text)
+
+
 def _load_config(path: str) -> dict[str, Any]:
     """Load a pipeline config from YAML or JSON file.
 
     Prefer YAML when available; provide a helpful error if a YAML file is used
     but PyYAML is not installed.
     """
-    text = Path(path).read_text(encoding="utf-8")
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except FileNotFoundError as exc:
+        raise SystemExit(
+            f"Config file not found: {path}. Use an absolute path or run from the project root."
+        ) from exc
     # Try YAML first
     try:
         import yaml  # type: ignore
@@ -298,10 +321,25 @@ def _run_cli(argv: list[str], input_bytes: bytes | None) -> tuple[int, bytes, st
     buf_in = io.BytesIO(input_bytes or b"")
     buf_out = io.BytesIO()
     sys.stdin = type("S", (), {"buffer": buf_in})()  # type: ignore
-    sys.stdout = type("S", (), {"buffer": buf_out, "write": lambda self, s: None})()  # type: ignore
+    sys.stdout = type(
+        "S",
+        (),
+        {
+            "buffer": buf_out,
+            "write": lambda self, s: None,
+            "flush": lambda self: None,
+        },
+    )()  # type: ignore
     try:
         rc = cli_main(argv)
-        out = buf_out.getvalue()
+        try:
+            out = buf_out.getvalue()
+        except Exception:
+            # Some commands may close sys.stdout.buffer; treat as empty output
+            logging.getLogger(__name__).warning(
+                "stdout buffer was closed by command; no bytes captured"
+            )
+            out = b""
         return int(rc), out, ""
     except SystemExit as exc:
         return int(getattr(exc, "code", 2) or 2), b"", str(exc)
@@ -441,6 +479,10 @@ def run_pipeline(
                         "Hint: pipe input bytes or set ZYRA_DEFAULT_STDIN=/path/to/file (legacy DATAVIZHUB_DEFAULT_STDIN).\n"
                     )
                     sys.stderr.write(msg)
+                    from contextlib import suppress
+
+                    with suppress(Exception):
+                        logging.getLogger(__name__).error(msg.strip())
             except Exception:
                 pass
         if rc != 0:
@@ -456,6 +498,10 @@ def run_pipeline(
                     "or set ZYRA_VERBOSITY=debug (legacy DATAVIZHUB_VERBOSITY) for stage headings.\n"
                 )
                 sys.stderr.write(msg)
+                from contextlib import suppress
+
+                with suppress(Exception):
+                    logging.getLogger(__name__).error(msg.strip())
             except Exception:
                 pass
             if not continue_on_error:
@@ -525,8 +571,78 @@ def register_cli_run(subparsers: Any) -> None:
         action="store_true",
         help="Fail if ${VAR} placeholders are not set in environment",
     )
+    p.add_argument(
+        "--max-workers",
+        type=int,
+        help="When config is a workflow.yml, run up to N jobs in parallel",
+    )
+    # Workflow compatibility options (when config is a workflow.yml)
+    p.add_argument(
+        "--watch",
+        action="store_true",
+        help="When config is a workflow.yml, evaluate triggers and run if active",
+    )
+    p.add_argument(
+        "--export-cron",
+        action="store_true",
+        help="When config is a workflow.yml, print crontab lines for schedule triggers",
+    )
+    p.add_argument("--state-file", help="State file for --watch (workflow.yml)")
+    p.add_argument(
+        "--run-on-first",
+        action="store_true",
+        help="Trigger a run when no prior state exists (workflow.yml watch)",
+    )
+    p.add_argument(
+        "--watch-interval",
+        type=float,
+        help="When --watch is set, poll every N seconds (default: single poll)",
+    )
+    p.add_argument(
+        "--watch-count",
+        type=int,
+        help="When --watch is set with --watch-interval, stop after N iterations",
+    )
+    # Logging destination: either a file or a directory (defaults to workflow.log)
+    lg = p.add_mutually_exclusive_group()
+    lg.add_argument(
+        "--log-file",
+        dest="log_file",
+        help="Write runner and stage logs to the given file",
+    )
+    lg.add_argument(
+        "--log-dir",
+        dest="log_dir",
+        help="Write logs under this directory as workflow.log",
+    )
+    p.add_argument(
+        "--log-file-mode",
+        choices=["append", "overwrite"],
+        default="append",
+        help="Log file write mode (default: append)",
+    )
 
     def _cmd(ns: argparse.Namespace) -> int:
+        # Best-effort: load environment variables from a local .env if present
+        try:
+            import logging as _logging
+
+            from dotenv import find_dotenv, load_dotenv  # type: ignore
+
+            _ENV_PATH = find_dotenv(usecwd=True)
+            if _ENV_PATH:
+                load_dotenv(_ENV_PATH, override=False)
+                _logging.getLogger(__name__).debug(
+                    "Loaded environment from .env at %s", _ENV_PATH
+                )
+            else:
+                _logging.getLogger(__name__).debug(
+                    "No .env file found; skipping dotenv load."
+                )
+        except Exception:
+            # Ignore if python-dotenv is unavailable; environment vars still work
+            pass
+
         pairs: list[tuple[str, str]] = []
         for item in ns.overrides:
             if "=" not in item:
@@ -548,6 +664,110 @@ def register_cli_run(subparsers: Any) -> None:
             os.environ["ZYRA_STRICT_ENV"] = "1"
             os.environ["DATAVIZHUB_STRICT_ENV"] = "1"
 
+        # Optional file logging for the runner and in-process stages
+        # Resolve log file from --log-file or --log-dir
+        log_target = None
+        if getattr(ns, "log_file", None):
+            log_target = ns.log_file
+        elif getattr(ns, "log_dir", None):
+            from pathlib import Path
+
+            log_target = str(Path(ns.log_dir) / "workflow.log")
+
+        if log_target:
+            try:
+                from pathlib import Path
+
+                mode = "a" if ns.log_file_mode != "overwrite" else "w"
+                pth = Path(log_target)
+                if pth.parent:
+                    pth.parent.mkdir(parents=True, exist_ok=True)
+                fh = logging.FileHandler(pth, mode=mode, encoding="utf-8")
+                fh.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+                root = logging.getLogger()
+                # Avoid adding duplicate file handlers for the same path
+                # Avoid duplicate file handlers: compare resolved paths
+                try:
+                    target = pth.resolve()
+                except Exception:
+                    target = pth
+                exists = False
+                for h in root.handlers:
+                    bf = getattr(h, "baseFilename", None)
+                    if not bf:
+                        continue
+                    try:
+                        from pathlib import Path as _P
+
+                        if _P(bf).resolve() == target:
+                            exists = True
+                            break
+                    except Exception:
+                        # Fall back to string compare if resolve fails
+                        if str(bf) == str(target):
+                            exists = True
+                            break
+                if not exists:
+                    root.addHandler(fh)
+                # Set root level based on env verbosity
+                lvl_map = {
+                    "debug": logging.DEBUG,
+                    "info": logging.INFO,
+                    "quiet": logging.ERROR,
+                }
+                verb = os.environ.get("ZYRA_VERBOSITY", "info").lower()
+                root.setLevel(lvl_map.get(verb, logging.INFO))
+            except Exception:
+                # Non-fatal if log file cannot be configured
+                pass
+
+        # Detect if this is a workflow.yml (has 'jobs' or 'on' sections)
+        try:
+            doc = _load_yaml_or_json_generic(ns.config)
+        except Exception:
+            doc = {}
+        is_workflow = isinstance(doc, dict) and ("jobs" in doc or "on" in doc)
+        if not is_workflow:
+            # Heuristic detection when YAML is unavailable: scan raw text for keys
+            try:
+                txt = Path(ns.config).read_text(encoding="utf-8")
+                if any(
+                    token in txt
+                    for token in ("\njobs:", "\non:", "\r\njobs:", "\r\non:")
+                ):
+                    is_workflow = True
+            except Exception:
+                pass
+        if is_workflow:
+            # Route to workflow runner
+            # Imported here to avoid unnecessary imports for classic pipelines
+            try:  # noqa: WPS501
+                from zyra.workflow import cmd_export_cron as wf_export
+                from zyra.workflow import cmd_run as wf_run
+                from zyra.workflow import cmd_watch as wf_watch
+            except Exception as exc:
+                raise SystemExit(f"Workflow runner unavailable: {exc}") from exc
+            if ns.export_cron:
+                wfns = argparse.Namespace(workflow=ns.config)
+                return wf_export(wfns)
+            if ns.watch:
+                wfns = argparse.Namespace(
+                    workflow=ns.config,
+                    state_file=ns.state_file,
+                    run_on_first=ns.run_on_first,
+                    watch_interval=ns.watch_interval,
+                    watch_count=ns.watch_count,
+                    dry_run=ns.dry_run,
+                )
+                return wf_watch(wfns)
+            wfns = argparse.Namespace(
+                workflow=ns.config,
+                continue_on_error=ns.continue_on_error,
+                max_workers=ns.max_workers,
+                dry_run=ns.dry_run,
+            )
+            return wf_run(wfns)
+        # Default: classic pipeline runner
         return run_pipeline(
             ns.config,
             pairs,

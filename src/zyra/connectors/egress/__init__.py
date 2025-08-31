@@ -40,6 +40,18 @@ def _cmd_local(ns: argparse.Namespace) -> int:
 def _cmd_s3(ns: argparse.Namespace) -> int:
     """Upload stdin or input file to S3 (s3:// or bucket/key)."""
     configure_logging_from_env()
+    # Validate mutually exclusive input sources
+    read_stdin = bool(getattr(ns, "read_stdin", False))
+    current_input = getattr(ns, "input", None)
+    if read_stdin and current_input not in (None, "-"):
+        raise SystemExit(
+            "Options --input and --read-stdin are mutually exclusive; provide exactly one."
+        )
+    # Convenience alias: --read-stdin behaves like -i -
+    if read_stdin:
+        ns.input = "-"
+    if not getattr(ns, "input", None):
+        raise SystemExit("Missing input: specify --input PATH or use --read-stdin")
     data = _read_all(ns.input)
     ok = s3_backend.upload_bytes(data, ns.url if ns.url else ns.bucket, ns.key)
     if not ok:
@@ -72,7 +84,13 @@ def register_cli(dec_subparsers: Any) -> None:
 
     # s3
     p_s3 = dec_subparsers.add_parser("s3", help="Upload to S3")
-    add_input_option(p_s3, required=True)
+    # Input is optional when --read-stdin is provided
+    add_input_option(p_s3, required=False)
+    p_s3.add_argument(
+        "--read-stdin",
+        action="store_true",
+        help="Read object body from stdin (alias for -i -)",
+    )
     grp = p_s3.add_mutually_exclusive_group(required=True)
     grp.add_argument("--url", help="Full URL s3://bucket/key")
     grp.add_argument("--bucket", help="Bucket name")
@@ -97,49 +115,79 @@ def register_cli(dec_subparsers: Any) -> None:
     # vimeo
     def _cmd_vimeo(ns: argparse.Namespace) -> int:
         configure_logging_from_env()
+        import logging
         import sys
 
-        # Upload or replace
-        uri: str
-        if getattr(ns, "replace_uri", None):
-            # Replace existing video file
-            path = ns.input
-            if path == "-":
-                import tempfile
+        # Resolve description from --description or --description-file
+        desc: str | None = getattr(ns, "description", None)
+        if not desc and getattr(ns, "description_file", None):
+            try:
+                from pathlib import Path as _P
 
-                data = _read_all(ns.input)
-                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as tmp:
-                    tmp.write(data)
-                    tmp.flush()
-                    uri = vimeo_backend.update_video(tmp.name, ns.replace_uri)
+                data = _P(ns.description_file).read_text(encoding="utf-8")
+                # Truncate overly long descriptions to a safe size
+                max_len = 4800
+                if len(data) > max_len:
+                    data = data[: max_len - 12] + "\n...[truncated]"
+                desc = data
+            except Exception as exc:
+                logging.warning(f"Failed to read --description-file: {exc}")
+                desc = None
+
+        try:
+            # Upload or replace
+            uri: str
+            if getattr(ns, "replace_uri", None):
+                # Replace existing video file
+                path = ns.input
+                if path == "-":
+                    import tempfile
+
+                    data = _read_all(ns.input)
+                    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as tmp:
+                        tmp.write(data)
+                        tmp.flush()
+                        uri = vimeo_backend.update_video(tmp.name, ns.replace_uri)
+                else:
+                    uri = vimeo_backend.update_video(path, ns.replace_uri)
+                # Optional description update
+                if desc:
+                    try:
+                        vimeo_backend.update_description(uri, desc)
+                        logging.info(
+                            "Updated Vimeo description (chars=%d)", len(desc or "")
+                        )
+                    except Exception as exc:
+                        logging.warning("Vimeo description update failed: %s", str(exc))
             else:
-                uri = vimeo_backend.update_video(path, ns.replace_uri)
-            # Optional description update
-            if getattr(ns, "description", None):
-                from contextlib import suppress
+                # Upload new video
+                path = ns.input
+                if path == "-":
+                    import tempfile
 
-                with suppress(Exception):
-                    vimeo_backend.update_description(uri, ns.description)
-        else:
-            # Upload new video
-            path = ns.input
-            if path == "-":
-                import tempfile
-
-                data = _read_all(ns.input)
-                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as tmp:
-                    tmp.write(data)
-                    tmp.flush()
+                    data = _read_all(ns.input)
+                    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as tmp:
+                        tmp.write(data)
+                        tmp.flush()
+                        uri = vimeo_backend.upload_path(
+                            tmp.name, name=ns.name, description=desc
+                        )
+                else:
                     uri = vimeo_backend.upload_path(
-                        tmp.name, name=ns.name, description=ns.description
+                        path, name=ns.name, description=desc
                     )
-            else:
-                uri = vimeo_backend.upload_path(
-                    path, name=ns.name, description=ns.description
-                )
-        # Emit the resulting URI to stdout so pipelines can capture it
-        sys.stdout.write(str(uri) + "\n")
-        return 0
+            # Emit the resulting URI to stdout so pipelines can capture it
+            sys.stdout.write(str(uri) + "\n")
+            return 0
+        except Exception as exc:
+            msg = (
+                "Vimeo upload failed. Ensure the 'PyVimeo' extra is installed and credentials are set.\n"
+                "Install: poetry install -E connectors (or pip install 'zyra[datatransfer]')\n"
+                "Env: export VIMEO_ACCESS_TOKEN=... (and any required client key/secret).\n"
+                f"Details: {exc}"
+            )
+            logging.error(msg)
+            return 2
 
     p_vimeo = dec_subparsers.add_parser(
         "vimeo", help="Upload or replace a video on Vimeo"
@@ -147,6 +195,11 @@ def register_cli(dec_subparsers: Any) -> None:
     add_input_option(p_vimeo, required=True)
     p_vimeo.add_argument("--name", help="Video title")
     p_vimeo.add_argument("--description", help="Video description")
+    p_vimeo.add_argument(
+        "--description-file",
+        dest="description_file",
+        help="Read description text from a file (UTF-8)",
+    )
     p_vimeo.add_argument(
         "--replace-uri",
         dest="replace_uri",

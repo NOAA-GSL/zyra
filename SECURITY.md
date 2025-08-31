@@ -43,3 +43,18 @@ contained, validated paths (e.g., `os.open` with `O_NOFOLLOW`, `open(mf)` after
 - Do not relax allowlists without revisiting containment and tests.
 - Keep tests for traversal and TTL behavior green.
 
+## Known Vulnerabilities
+
+### Python-Future (`future`) via `ffmpeg-python`
+
+- **Vulnerability**: `future >=0.14.0` automatically imports `test.py` if present in the working directory or in `sys.path`. This can allow **arbitrary code execution** if an attacker can place a malicious `test.py` file.
+- **Impact on Zyra**:  
+  - Zyra does not depend on `future` directly.  
+  - It is pulled in via [`ffmpeg-python`](https://github.com/kkroening/ffmpeg-python).  
+  - The latest available version of `future` (`1.0.0`) remains affected.  
+- **Status**:  
+  - No fixed release of `future` is available.  
+  - An [upstream issue (#784)](https://github.com/kkroening/ffmpeg-python/issues/784) and [PR (#795)](https://github.com/kkroening/ffmpeg-python/pull/795) are open to remove the `future` dependency from `ffmpeg-python`.  
+- **Mitigation**:  
+  - Zyra users should avoid running in directories where untrusted files may exist, especially `test.py`.  
+  - The Dependabot alert is marked as **Risk Tolerated** until an upstream fix is released.  

@@ -376,8 +376,25 @@ def run_cli(stage: str, command: str, args: dict[str, Any]) -> RunResult:
         except Exception as exc:  # pragma: no cover
             print(str(exc), file=sys.stderr)
             code = 1
-        out_b = stdout_cap.getvalue()
-        err_b = stderr_cap.getvalue()
+        # Guard against steps that close sys.stdout/sys.stderr buffers
+        try:
+            out_b = stdout_cap.getvalue()
+        except Exception:
+            import logging as _logging
+
+            _logging.getLogger(__name__).warning(
+                "stdout buffer was closed by command; no bytes captured"
+            )
+            out_b = b""
+        try:
+            err_b = stderr_cap.getvalue()
+        except Exception:
+            import logging as _logging
+
+            _logging.getLogger(__name__).warning(
+                "stderr buffer was closed by command; no bytes captured"
+            )
+            err_b = b""
         return RunResult(
             stdout=out_b.decode("utf-8", errors="ignore"),
             stderr=err_b.decode("utf-8", errors="ignore"),
