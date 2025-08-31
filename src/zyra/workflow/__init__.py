@@ -408,7 +408,10 @@ def cmd_run(ns: argparse.Namespace) -> int:
                         status[name] = "done"
                         continue
                     status[name] = "running"
-                    fut = ex.submit(_run_job_subprocess, jobs[name])
+                    # Run jobs in-process in separate threads to preserve
+                    # stdin/stdout piping semantics expected by tests,
+                    # avoiding environment/path issues in subprocesses.
+                    fut = ex.submit(_run_job, jobs[name])
                     running[fut] = name
 
             submit_ready()
