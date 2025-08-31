@@ -14,6 +14,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl build-essential gfortran make zlib1g-dev libpng-dev libjpeg-dev \
     && rm -rf /var/lib/apt/lists/*
 RUN set -eux; \
+    mkdir -p /out; \
     if [[ "$WITH_WGRIB2" != "source" ]]; then \
       echo "Skipping wgrib2 build (WITH_WGRIB2=$WITH_WGRIB2)"; \
     else \
@@ -23,7 +24,7 @@ RUN set -eux; \
       tar -xvzf "$(basename "$WGRIB2_URL")"; \
       cd grib2; \
       make CC=gcc FC=gfortran USE_AEC=0 USE_OPENJPEG=0 USE_NETCDF3=0 USE_NETCDF4=0; \
-      cp wgrib2/wgrib2 /wgrib2; \
+      cp wgrib2/wgrib2 /out/wgrib2; \
     fi
 
 FROM python:3.11-slim
@@ -45,14 +46,14 @@ RUN apt-get update \
 
 # Optionally install source-built wgrib2 without copying when not needed
 ARG WITH_WGRIB2
-RUN --mount=type=bind,from=wgrib2-builder,source=/wgrib2,target=/tmp/wgrib2,ro \
+RUN --mount=type=bind,from=wgrib2-builder,source=/out,target=/tmp/wgrib2,ro \
     set -eux; \
     if [[ "$WITH_WGRIB2" == "source" ]]; then \
-      if [[ -s /tmp/wgrib2 ]]; then \
-        install -m 0755 /tmp/wgrib2 /usr/local/bin/wgrib2; \
+      if [[ -s /tmp/wgrib2/wgrib2 ]]; then \
+        install -m 0755 /tmp/wgrib2/wgrib2 /usr/local/bin/wgrib2; \
         echo "Installed wgrib2 from source"; \
       else \
-        echo "WITH_WGRIB2=source but /wgrib2 not produced by builder" >&2; \
+        echo "WITH_WGRIB2=source but wgrib2 binary not produced by builder" >&2; \
         exit 1; \
       fi; \
     else \
