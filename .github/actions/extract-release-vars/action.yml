@@ -6,13 +6,10 @@ inputs:
     required: true
 outputs:
   tag:
-    description: Tag name (e.g., v1.2.3)
     value: ${{ steps.vars.outputs.tag }}
   version:
-    description: Version without 'v' prefix (e.g., 1.2.3)
     value: ${{ steps.vars.outputs.version }}
   prerelease:
-    description: 'true' if tag looks like a prerelease (rc/beta/alpha), else 'false'
     value: ${{ steps.vars.outputs.prerelease }}
 runs:
   using: composite
@@ -29,4 +26,3 @@ runs:
         PRERELEASE="false"
         if echo "$TAG" | grep -Eiq '(-rc|-beta|-alpha)'; then PRERELEASE="true"; fi
         echo "prerelease=${PRERELEASE}" >> "$GITHUB_OUTPUT"
-
