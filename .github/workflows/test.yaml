@@ -84,7 +84,9 @@ jobs:
         run: poetry install --no-root --with dev -E api
 
       - name: Run tests with coverage
-        run: poetry run pytest --cov=src --cov-report=xml --cov-report=term-missing
+        run: |
+          poetry run coverage erase
+          poetry run pytest --cov=src --cov-branch --cov-report=xml --cov-report=term-missing
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
