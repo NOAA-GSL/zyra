@@ -10,6 +10,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ARG WGRIB2_URL="https://ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz"
 ARG WGRIB2_SHA256=""
 ARG WITH_WGRIB2=none
+ARG TARGETARCH
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl build-essential gfortran make zlib1g-dev libpng-dev libjpeg-dev \
     && rm -rf /var/lib/apt/lists/*
@@ -17,6 +18,8 @@ RUN set -eux; \
     mkdir -p /out; \
     if [[ "$WITH_WGRIB2" != "source" ]]; then \
       echo "Skipping wgrib2 build (WITH_WGRIB2=$WITH_WGRIB2)"; \
+    elif [[ "${TARGETARCH:-}" != "amd64" ]]; then \
+      echo "Skipping wgrib2 source build on TARGETARCH=${TARGETARCH:-unknown}; will install via apt in final stage"; \
     else \
       test -n "$WGRIB2_URL"; \
       curl -fsSLO "$WGRIB2_URL"; \
@@ -37,18 +40,22 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     LOG_LEVEL=info \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
+ARG TARGETARCH
 # System deps (ffmpeg used by some visualization/processing flows)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates \
     && if [ "$WITH_FFMPEG" = "true" ]; then apt-get install -y --no-install-recommends ffmpeg; fi \
-    && if [ "$WITH_WGRIB2" = "apt" ] || [ "$WITH_WGRIB2" = "true" ]; then apt-get install -y --no-install-recommends wgrib2; fi \
+    && if [ "$WITH_WGRIB2" = "apt" ] || [ "$WITH_WGRIB2" = "true" ] || { [ "$WITH_WGRIB2" = "source" ] && [ "${TARGETARCH}" != "amd64" ]; }; then \
+         echo "Installing wgrib2 via apt (WITH_WGRIB2=$WITH_WGRIB2, TARGETARCH=${TARGETARCH})"; \
+         apt-get install -y --no-install-recommends wgrib2; \
+       fi \
     && rm -rf /var/lib/apt/lists/*
 
 # Optionally install source-built wgrib2 without copying when not needed
 ARG WITH_WGRIB2
 RUN --mount=type=bind,from=wgrib2-builder,source=/out,target=/tmp/wgrib2,ro \
     set -eux; \
-    if [[ "$WITH_WGRIB2" == "source" ]]; then \
+    if [[ "$WITH_WGRIB2" == "source" && "${TARGETARCH}" == "amd64" ]]; then \
       if [[ -s /tmp/wgrib2/wgrib2 ]]; then \
         install -m 0755 /tmp/wgrib2/wgrib2 /usr/local/bin/wgrib2; \
         echo "Installed wgrib2 from source"; \
@@ -57,7 +64,7 @@ RUN --mount=type=bind,from=wgrib2-builder,source=/out,target=/tmp/wgrib2,ro \
         exit 1; \
       fi; \
     else \
-      echo "Skipping source wgrib2 (WITH_WGRIB2=$WITH_WGRIB2)"; \
+      echo "Skipping source wgrib2 install (WITH_WGRIB2=$WITH_WGRIB2, TARGETARCH=${TARGETARCH})"; \
     fi
 
 # Install Zyra from PyPI, pin to release if provided

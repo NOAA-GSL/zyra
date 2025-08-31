@@ -88,7 +88,6 @@ def main(argv: list[str]) -> int:
     retries = int(argv[3]) if len(argv) > 3 else 60
     delay = int(argv[4]) if len(argv) > 4 else 10
 
-    url = f"https://pypi.org/pypi/{package}/json"
     print(f"Waiting for {package} {version} to appear on PyPI...", flush=True)
 
     for _ in range(retries):
