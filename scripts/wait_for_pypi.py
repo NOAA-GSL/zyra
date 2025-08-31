@@ -14,14 +14,26 @@ Exits with code 0 when the version is available, 1 on timeout or error.
 from __future__ import annotations
 
 import json
+import socket
 import sys
 import time
 import urllib.request
+from json import JSONDecodeError
 from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
 
 
 def fetch_json(url: str, timeout: float = 10.0) -> dict[str, Any]:
-    with urllib.request.urlopen(url, timeout=timeout) as r:  # nosec: B310 (trusted URL template)
+    """Fetch JSON from PyPI, enforcing HTTPS and pypi.org host.
+
+    This validation mitigates SSRF risks when the URL is constructed from
+    untrusted input in future refactors.
+    """
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or parsed.netloc.lower() != "pypi.org":
+        raise ValueError(f"Refusing to fetch non-PyPI URL: {url}")
+    with urllib.request.urlopen(url, timeout=timeout) as r:
         return json.load(r)
 
 
@@ -48,8 +60,8 @@ def main(argv: list[str]) -> int:
             if version in releases and releases[version]:
                 print(f"Found {package} {version} on PyPI.")
                 return 0
-        except Exception:
-            # Transient errors are expected; retry.
+        except (URLError, HTTPError, JSONDecodeError, socket.timeout):
+            # Expected transient issues; retry.
             pass
         print("Not yet available; retrying...", flush=True)
         time.sleep(delay)
