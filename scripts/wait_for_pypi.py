@@ -60,9 +60,13 @@ def main(argv: list[str]) -> int:
             if version in releases and releases[version]:
                 print(f"Found {package} {version} on PyPI.")
                 return 0
-        except (URLError, HTTPError, JSONDecodeError, socket.timeout):
-            # Expected transient issues; retry.
-            pass
+        except (URLError, HTTPError, JSONDecodeError, socket.timeout) as exc:
+            # Expected transient issues; log for CI visibility and retry.
+            print(
+                f"Transient error while checking PyPI: {type(exc).__name__}: {exc}",
+                file=sys.stderr,
+                flush=True,
+            )
         print("Not yet available; retrying...", flush=True)
         time.sleep(delay)
 
