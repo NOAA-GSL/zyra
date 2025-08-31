@@ -5,7 +5,16 @@ from pathlib import Path
 
 import pytest
 
-from tests.helpers import project_root
+try:
+    from tests.helpers import project_root
+except Exception:  # pragma: no cover - fallback when tests package not importable
+
+    def project_root(start: Path | None = None) -> Path:
+        here = (start or Path(__file__)).resolve()
+        for anc in [here, *here.parents]:
+            if (anc / "pyproject.toml").exists():
+                return anc
+        return here.parents[-1]
 
 
 @pytest.fixture(scope="session")
