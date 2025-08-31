@@ -9,6 +9,12 @@ This page maps the FastAPI routers to their endpoints, with brief descriptions a
   - `GET /examples` — Interactive examples page (Upload → Run → Download, WS streaming)
   - Auth: Requires API key header when `ZYRA_API_KEY` is set (except `/docs` and `/redoc`)
 
+- `zyra.api.routers.search`
+  - `GET /search` — Perform discovery across sources (local/profile/OGC); JSON output
+  - `GET /search/profiles` — List bundled discovery profiles
+  - `POST /search` — Discovery with JSON body; set `analyze: true` for LLM-assisted summary and picks
+  - Auth: Requires API key header when enabled
+
 - `zyra.api.routers.files`
   - `POST /upload` — Multipart file upload; returns `{file_id, path}`
   - Auth: Requires API key header when enabled
@@ -64,4 +70,3 @@ This page maps the FastAPI routers to their endpoints, with brief descriptions a
 - Uploads: `ZYRA_UPLOAD_DIR`
 - Results: `ZYRA_RESULTS_DIR`, `ZYRA_RESULTS_TTL_SECONDS`, `ZYRA_RESULTS_CLEAN_INTERVAL_SECONDS`
 - Streaming: `ZYRA_USE_REDIS`, `ZYRA_REDIS_URL`, `ZYRA_QUEUE`
-

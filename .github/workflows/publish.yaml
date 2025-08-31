@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+  
   release:
     types: [published]
   # Allow manual runs if needed
@@ -52,8 +53,23 @@ jobs:
           key: poetry-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
           restore-keys: poetry-${{ runner.os }}-
 
-      - name: Ensure tag matches version
+      - name: Determine version
+        id: version
         run: |
+          FORCE_VERSION="${{ github.event.inputs.force_version }}"
+          if [ -n "$FORCE_VERSION" ]; then
+            echo "Using manually provided version: $FORCE_VERSION"
+            echo "version=$FORCE_VERSION" >> $GITHUB_OUTPUT
+          else
+            VERSION="$(poetry version -s)"
+            echo "Detected version from pyproject.toml: $VERSION"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Ensure tag matches version (only for tag builds)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+
           TAG_INPUT="${GITHUB_REF#refs/tags/}"
           # Prefer release tag_name if present
           if [ -n "${{ github.event.release.tag_name }}" ]; then
@@ -62,10 +78,14 @@ jobs:
           TAG="$TAG_INPUT"
           VERSION="v$(poetry version -s)"
           echo "Detected TAG=$TAG, pyproject version=$VERSION"
+
           if [ "$TAG" != "$VERSION" ]; then
             echo "Tag $TAG does not match project version $VERSION"
             exit 1
           fi
+
+      - name: Clean build directories
+        run: rm -rf dist build *.egg-info
 
       - name: Build package
         run: poetry build

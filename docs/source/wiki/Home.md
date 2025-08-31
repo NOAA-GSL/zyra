@@ -21,7 +21,7 @@ It’s designed to make science not just rigorous, but also **accessible, transp
 
 ## Why “Zyra”?
 
-The name Zyra was chosen to symbolize growth, weaving, and flow — small seeds of data can flourish into full workflows, and threads of analysis can be woven into something reproducible and sharable. It’s short, abstract, and flexible, giving the community space to shape its meaning. The name also carries playful associations: in pop culture, Zyra is a plant-themed character in League of Legends, a fitting metaphor for data that grows into insight. And as a backronym, it can stand for Zero-to-Yield Reproducible Analysis (the serious story) or Zany Yet Reproducible Analysis (the fun version) — reminding us that science can be both rigorous and creative.
+The name Zyra was chosen to symbolize growth, weaving, and flow — small seeds of data can flourish into full workflows, and threads of analysis can be woven into something reproducible and sharable. It’s short, abstract, and flexible, giving the community space to shape its meaning. The name also carries playful associations: in pop culture, [Zyra](https://www.leagueoflegends.com/en-us/champions/zyra/) is a plant-themed character in League of Legends, a fitting metaphor for data that grows into insight. And as a backronym, it can stand for Zero-to-Yield Reproducible Analysis (the serious story) or Zany Yet Reproducible Analysis (the fun version) — reminding us that science can be both rigorous and creative.
 
 ---
 
