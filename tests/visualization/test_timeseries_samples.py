@@ -13,7 +13,9 @@ def test_cli_timeseries_samples_csv(tmp_path):
     except Exception as e:
         pytest.skip(f"Visualization deps missing: {e}")
 
-    repo_root = Path(__file__).resolve().parents[2]
+    from tests.helpers import project_root
+
+    repo_root = project_root(Path(__file__))
     csv_path = repo_root / "samples" / "timeseries.csv"
     if not csv_path.exists():
         pytest.skip("samples/timeseries.csv not found")

@@ -138,8 +138,18 @@ async def job_progress_ws(
         q = _register_listener(channel)
         try:
             while True:
+                # Poll for messages with a short timeout to keep the
+                # connection lively in tests and local runs. Configurable via
+                # ZYRA_WS_QUEUE_POLL_TIMEOUT_SECONDS (legacy DATAVIZHUB_*),
+                # defaulting to 5 seconds instead of 60.
                 try:
-                    msg = await asyncio.wait_for(q.get(), timeout=60.0)
+                    from zyra.utils.env import env_int as _env_int
+
+                    to = float(_env_int("WS_QUEUE_POLL_TIMEOUT_SECONDS", 5))
+                except Exception:
+                    to = 5.0
+                try:
+                    msg = await asyncio.wait_for(q.get(), timeout=to)
                 except asyncio.TimeoutError:
                     # keep connection alive
                     await websocket.send_text(json.dumps({"keepalive": True}))
