@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: zyra-workflows
+spec:
+  # Edit the schedule to your needs (UTC)
+  schedule: "5 * * * *" # At minute 5 of every hour
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: zyra
+              image: ghcr.io/noaa-gsl/zyra:latest
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: LOG_LEVEL
+                  value: info
+                - name: DATA_DIR
+                  value: /data
+              command: ["zyra", "run", "/workflows"]
+              volumeMounts:
+                - name: workflows
+                  mountPath: /workflows
+                  readOnly: true
+                - name: data
+                  mountPath: /data
+          volumes:
+            # Provide workflows via ConfigMap or another volume source
+            - name: workflows
+              configMap:
+                name: zyra-workflows
+            # Persist outputs/logs to a PVC
+            - name: data
+              persistentVolumeClaim:
+                claimName: zyra-data-pvc
+

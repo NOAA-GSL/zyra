@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zyra-workflows
+data:
+  # Example workflow files packaged into a ConfigMap.
+  # Replace with your real workflows or generate ConfigMaps via kustomize/helm.
+  hourly-earthquake.yml: |
+    version: 1
+    name: hourly-earthquake
+    triggers:
+      cron: "0 * * * *"  # top of every hour
+    jobs:
+      - id: acquire
+        run: zyra connectors.ingest ftp \
+          --path ftp.example.gov/earthquakes/hourly \
+          --output $DATA_DIR/earthquakes/frames
+      - id: validate
+        needs: [acquire]
+        run: zyra transform metadata \
+          --frames-dir $DATA_DIR/earthquakes/frames \
+          --output $DATA_DIR/earthquakes/frames/metadata.json
+  daily-forecast.yml: |
+    version: 1
+    name: daily-forecast
+    triggers:
+      cron: "5 6 * * *"  # 06:05 UTC daily
+    jobs:
+      - id: compose
+        run: zyra visualize compose-video \
+          --frames $DATA_DIR/forecast/frames \
+          --output $DATA_DIR/forecast/out/daily.mp4
+

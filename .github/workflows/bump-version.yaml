@@ -2,20 +2,47 @@ name: Bump Version on PR from staging to main
 
 on:
   pull_request:
-    types: [opened]
+    types: [opened, reopened, synchronize, ready_for_review]
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: PR head branch to bump (default staging)
+        required: true
+        default: staging
+
+permissions:
+  contents: write
 
 jobs:
   bump-version:
-    if: github.head_ref == 'staging'
+    # Fire for staging->main PRs from same repo, or manual runs
+    if: >-
+      (github.event_name == 'pull_request' &&
+       github.base_ref == 'main' &&
+       github.head_ref == 'staging' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+      || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     steps:
+      - name: Determine branches
+        id: vars
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "head=${{ github.head_ref }}" >> "$GITHUB_OUTPUT"
+            echo "base=${{ github.base_ref }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "head=${{ inputs.branch }}" >> "$GITHUB_OUTPUT"
+            echo "base=main" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: staging
+          ref: ${{ steps.vars.outputs.head }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -36,9 +63,49 @@ jobs:
           restore-keys: |
             poetry-${{ runner.os }}-
 
-      # Optional if needed for plugins/scripts
-      # - name: Install dependencies
-      #   run: poetry install --no-root
+      - name: Fetch base branch
+        run: |
+          git fetch origin "${{ steps.vars.outputs.base }}"
+
+      - name: Determine if version bump is needed
+        id: check
+        run: |
+          python - << 'PY'
+          import os, re, subprocess, sys
+
+          def extract_version_from_toml_text(text: str) -> str:
+              """Parse tool.poetry.version from a TOML string without extra deps.
+
+              Looks for the [tool.poetry] section and returns the first
+              version = "X.Y.Z" key found before the next section.
+              """
+              in_section = False
+              for line in text.splitlines():
+                  if re.match(r"\s*\[tool\.poetry\]\s*$", line):
+                      in_section = True
+                      continue
+                  if in_section and re.match(r"\s*\[.*\]\s*$", line):
+                      break
+                  if in_section:
+                      m = re.match(r"\s*version\s*=\s*['\"]([^'\"]+)['\"]", line)
+                      if m:
+                          return m.group(1)
+              raise RuntimeError("version not found in [tool.poetry] section")
+
+          head_toml = open('pyproject.toml', 'r', encoding='utf-8').read()
+          base_ref = '${{ steps.vars.outputs.base }}'
+          cp = subprocess.run(['git', 'show', f'origin/{base_ref}:pyproject.toml'], check=True, capture_output=True)
+          base_toml = cp.stdout.decode('utf-8')
+
+          head_ver = extract_version_from_toml_text(head_toml)
+          base_ver = extract_version_from_toml_text(base_toml)
+
+          should_bump = (head_ver == base_ver)
+          print(f"Head version: {head_ver}; Base version: {base_ver}; Should bump: {should_bump}")
+          out = open(os.environ['GITHUB_OUTPUT'], 'a')
+          out.write(f"should_bump={'true' if should_bump else 'false'}\n")
+          out.close()
+          PY
 
       - name: Configure Git
         run: |
@@ -46,8 +113,13 @@ jobs:
           git config user.email "github-actions@github.com"
 
       - name: Bump patch version using Poetry
+        if: steps.check.outputs.should_bump == 'true'
         run: |
           poetry version patch
           git add pyproject.toml
           git commit -m "ci: bump version" || echo "No changes to commit"
-          git push origin staging
+          git push origin "${{ steps.vars.outputs.head }}"
+
+      - name: Skip bump (already bumped)
+        if: steps.check.outputs.should_bump != 'true'
+        run: echo "Version already diverged from base; skipping bump."
