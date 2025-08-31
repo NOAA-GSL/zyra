@@ -25,12 +25,10 @@ def _get_client():
         raise RuntimeError(
             "Vimeo credentials missing: set VIMEO_ACCESS_TOKEN or VIMEO_CLIENT_ID/VIMEO_CLIENT_SECRET"
         )
-    # Debug log masked credentials to aid troubleshooting (visible with ZYRA_VERBOSITY=debug)
+    # Do not log credential values. Only log the auth mode for diagnostics.
+    auth_mode = "access_token" if token else "client_id_secret"
     logging.getLogger(__name__).debug(
-        "Vimeo credentials resolved: token=%s client_id=%s client_secret=%s",
-        _mask(token),
-        _mask(key),
-        _mask(secret),
+        "Vimeo credentials resolved via %s (values not logged)", auth_mode
     )
     return vimeo.VimeoClient(token=token, key=key, secret=secret)
 
