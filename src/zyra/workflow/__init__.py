@@ -299,9 +299,15 @@ def _run_job_subprocess(job: Job) -> int:
                 check=False,
             )
             if res.returncode != 0:
-                _log(
-                    f"[job {job.name}] step failed with exit code {int(res.returncode)}"
-                )
+                err = (res.stderr or b"").decode("utf-8", errors="ignore").strip()
+                if err:
+                    _log(
+                        f"[job {job.name}] step failed with exit code {int(res.returncode)}: {err}"
+                    )
+                else:
+                    _log(
+                        f"[job {job.name}] step failed with exit code {int(res.returncode)}"
+                    )
                 return int(res.returncode)
             current = res.stdout or b""
         except Exception:
@@ -465,6 +471,19 @@ def cmd_export_cron(ns: argparse.Namespace) -> int:
             # Use the unified entrypoint (`zyra run <workflow>`) since there is no
             # separate top-level `workflow` CLI group registered.
             print(f"{c} zyra run {ns.workflow}")
+        # Recommend adding logging guidance when none is specified
+        try:
+            import sys as _sys
+            from pathlib import Path as _P
+
+            wf_name = _P(ns.workflow).stem
+            _sys.stderr.write(
+                "# Tip: add logging, for example:\n"
+                f"#   {c} zyra run {ns.workflow} --log-dir /var/log/zyra\n"
+                f"# or redirect output: >> /var/log/zyra/{wf_name}.log 2>&1\n"
+            )
+        except Exception:
+            pass
     else:
         try:
             import sys as _sys
