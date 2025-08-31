@@ -80,7 +80,6 @@ jobs:
         args:
           input: /data/output/${DATASET_ID}.mp4
           replace_uri: ${VIMEO_URI}
-          description_file: /data/images/${DATASET_ID}/metadata/frames-meta.json
 
   update-metadata:
     needs: [validate-frames, upload-vimeo]

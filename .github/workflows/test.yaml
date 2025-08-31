@@ -56,6 +56,11 @@ jobs:
       PYTHONPATH: src
       # Seed stdin for pipeline tests that read from '-' when CI does not pipe input
       DATAVIZHUB_DEFAULT_STDIN: tests/testdata/demo.nc
+      # Verbose logs across all commands to surface subprocess errors in CI
+      ZYRA_VERBOSITY: debug
+      # Force thread-based parallel jobs in CI to avoid platform-specific
+      # subprocess quirks while still validating parallel execution semantics
+      ZYRA_WORKFLOW_PARALLEL_MODE: thread
       
     steps:
       - name: Check out code
@@ -86,7 +91,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           poetry run coverage erase
-          poetry run pytest --cov=src --cov-branch --cov-report=xml --cov-report=term-missing
+          poetry run pytest --cov=src --cov-branch --cov-report=xml --cov-report=term-missing -q
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
