@@ -6,26 +6,35 @@ on:
       - closed
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release (e.g., 1.2.3)
+        required: true
 
 permissions:
   contents: write
 
 jobs:
   release:
-    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'staging'
+    if: (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'staging') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Extract version from pyproject.toml
+      - name: Determine version
         id: get_version
         run: |
-          VERSION=$(grep -Po '(?<=^version = ")[^"]*' pyproject.toml)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION='${{ inputs.version }}'
+          else
+            VERSION=$(grep -Po '^(?=version\s*=)version\s*=\s*"\K[^"]+' pyproject.toml)
+          fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Ensure version bump
+      - name: Ensure version bump (tag must not exist)
         run: |
           if git ls-remote --tags origin | grep -q "refs/tags/v${{ steps.get_version.outputs.version }}$"; then
             echo "❌ Version v${{ steps.get_version.outputs.version }} already exists. Please bump version in pyproject.toml before merging."

@@ -3,6 +3,11 @@ name: Release Images
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Git tag to build (e.g., v1.2.3)
+        required: true
 
 permissions:
   contents: read
@@ -25,11 +30,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Compute ref
+        id: setref
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "ref=refs/tags/${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${{ github.ref }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Extract tag/version
         id: vars
         uses: ./.github/actions/extract-release-vars
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ steps.setref.outputs.ref }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -49,7 +64,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Docker metadata (${{ matrix.name }})
+      - name: Docker metadata (${{ matrix.name }}) (release)
+        if: github.event_name == 'release'
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -59,7 +75,17 @@ jobs:
             type=sha
             type=raw,value=latest,enable=${{ steps.vars.outputs.prerelease == 'false' }}
 
-      - name: Build and push (${{ matrix.name }})
+      - name: Docker metadata (${{ matrix.name }}) (manual)
+        if: github.event_name == 'workflow_dispatch'
+        id: meta_manual
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ matrix.image }}
+          tags: |
+            type=raw,value=${{ inputs.tag }}
+
+      - name: Build and push (${{ matrix.name }}) (release)
+        if: github.event_name == 'release'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -73,6 +99,21 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
+      - name: Build and push (${{ matrix.name }}) (manual)
+        if: github.event_name == 'workflow_dispatch'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            ZYRA_VERSION=${{ steps.vars.outputs.version }}
+          provenance: true
+          sbom: true
+          tags: ${{ steps.meta_manual.outputs.tags }}
+          labels: ${{ steps.meta_manual.outputs.labels }}
+
   scan-images:
     name: Scan images (Trivy)
     runs-on: ubuntu-latest
@@ -81,11 +122,21 @@ jobs:
       matrix:
         image: [zyra-scheduler, zyra]
     steps:
+      - name: Compute ref
+        id: setref
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "ref=refs/tags/${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${{ github.ref }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Extract tag/version
         id: vars
         uses: ./.github/actions/extract-release-vars
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ steps.setref.outputs.ref }}
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
