@@ -416,9 +416,19 @@ def cmd_run(ns: argparse.Namespace) -> int:
                         status[name] = "done"
                         continue
                     status[name] = "running"
-                    # Run each job in a subprocess to avoid global stdout/stderr
-                    # interference across threads and match isolation semantics.
-                    fut = ex.submit(_run_job_subprocess, jobs[name])
+                    # Choose execution mode: subprocess (default) or thread (env override)
+                    try:
+                        from zyra.utils.env import env as _env
+
+                        mode = (
+                            _env("WORKFLOW_PARALLEL_MODE", "subprocess") or "subprocess"
+                        ).lower()
+                    except Exception:
+                        mode = "subprocess"
+                    if mode == "thread":
+                        fut = ex.submit(_run_job, jobs[name])
+                    else:
+                        fut = ex.submit(_run_job_subprocess, jobs[name])
                     running[fut] = name
 
             submit_ready()
