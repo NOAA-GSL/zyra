@@ -76,10 +76,8 @@ def upload_bytes(data: bytes, url_or_bucket: str, key: str | None = None) -> boo
     with tempfile.NamedTemporaryFile(suffix=".bin", delete=True) as tmp:
         tmp.write(data)
         tmp.flush()
-        if extra_args:
-            c.upload_file(tmp.name, bucket, key, ExtraArgs=extra_args)  # type: ignore[arg-type]
-        else:
-            c.upload_file(tmp.name, bucket, key)  # type: ignore[arg-type]
+        kwargs = {"ExtraArgs": extra_args} if extra_args else {}
+        c.upload_file(tmp.name, bucket, key, **kwargs)  # type: ignore[arg-type]
     return True
 
 

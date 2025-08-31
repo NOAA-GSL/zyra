@@ -2,6 +2,8 @@ import textwrap
 from datetime import datetime
 from pathlib import Path
 
+from tests.helpers import project_root
+
 
 def test_watch_schedule_runs_on_match(tmp_path: Path, monkeypatch):
     from zyra.cli import main as cli_main
@@ -34,7 +36,8 @@ def test_watch_schedule_runs_on_match(tmp_path: Path, monkeypatch):
 
     # Ensure outputs under tmp_path and seed stdin
     monkeypatch.chdir(tmp_path)
-    demo_nc = Path(__file__).resolve().parent.parent / "testdata/demo.nc"
+    repo_root = project_root(Path(__file__))
+    demo_nc = repo_root / "tests/testdata/demo.nc"
     monkeypatch.setenv("ZYRA_DEFAULT_STDIN", str(demo_nc))
 
     # Create trigger file referenced by dataset-update and run watch in single-poll mode
