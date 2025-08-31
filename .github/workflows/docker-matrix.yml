@@ -73,4 +73,5 @@ jobs:
 
       - name: Skip build for non-default PR variants
         if: steps.filter.outputs.build != 'true'
-        run: echo "Skipping non-default variant in PR: ${{ matrix.target.name }} WITH_WGRIB2=${{ matrix.target.with_wgrib2 }}"
+        run: |
+          echo "Skipping non-default variant in PR: ${{ matrix.target.name }} WITH_WGRIB2=${{ matrix.target.with_wgrib2 }}"
