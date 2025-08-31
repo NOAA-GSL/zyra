@@ -58,8 +58,7 @@ jobs:
       DATAVIZHUB_DEFAULT_STDIN: tests/testdata/demo.nc
       # Verbose logs across all commands to surface subprocess errors in CI
       ZYRA_VERBOSITY: debug
-      # Use subprocess-based parallel jobs for isolation and to avoid
-      # stdout/stderr cross-thread interference in tests
+      # Use subprocess-based parallel jobs for isolation; capture stderr via -s
       ZYRA_WORKFLOW_PARALLEL_MODE: subprocess
       
     steps:
@@ -88,10 +87,10 @@ jobs:
       - name: Install dependencies with Poetry (dev + API extras)
         run: poetry install --no-root --with dev -E api
 
-      - name: Run tests with coverage
+      - name: Run tests with coverage (no capture)
         run: |
           poetry run coverage erase
-          poetry run pytest --cov=src --cov-branch --cov-report=xml --cov-report=term-missing -q
+          poetry run pytest --cov=src --cov-branch --cov-report=xml --cov-report=term-missing -s
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
