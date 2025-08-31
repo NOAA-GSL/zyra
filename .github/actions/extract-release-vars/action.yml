@@ -1,0 +1,32 @@
+name: Extract release variables
+description: Derive tag, version (without leading 'v'), and prerelease flag from a Git ref
+inputs:
+  ref:
+    description: Git ref (e.g., refs/tags/v1.2.3)
+    required: true
+outputs:
+  tag:
+    description: Tag name (e.g., v1.2.3)
+    value: ${{ steps.vars.outputs.tag }}
+  version:
+    description: Version without 'v' prefix (e.g., 1.2.3)
+    value: ${{ steps.vars.outputs.version }}
+  prerelease:
+    description: 'true' if tag looks like a prerelease (rc/beta/alpha), else 'false'
+    value: ${{ steps.vars.outputs.prerelease }}
+runs:
+  using: composite
+  steps:
+    - id: vars
+      shell: bash
+      run: |
+        set -euo pipefail
+        REF='${{ inputs.ref }}'
+        TAG="${REF#refs/tags/}"
+        echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+        VERSION="${TAG#v}"
+        echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+        PRERELEASE="false"
+        if echo "$TAG" | grep -Eiq '(-rc|-beta|-alpha)'; then PRERELEASE="true"; fi
+        echo "prerelease=${PRERELEASE}" >> "$GITHUB_OUTPUT"
+

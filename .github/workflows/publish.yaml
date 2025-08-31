@@ -4,6 +4,10 @@ on:
   push:
     tags:
       - 'v*'
+  release:
+    types: [published]
+  # Allow manual runs if needed
+  workflow_dispatch:
 
 concurrency:
   group: pypi-publish-${{ github.ref }}
@@ -12,6 +16,8 @@ concurrency:
 jobs:
   publish:
     name: Publish
+    # Run when either: push tag refs/tags/v* OR release tag_name starts with v
+    if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.event.release.tag_name || '', 'v')
     runs-on: ubuntu-latest
 
     environment:
@@ -25,6 +31,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          # For release event, check out the release tag; for tag push, github.ref already points to the tag
+          ref: ${{ github.event.release.tag_name || github.ref }}
           fetch-depth: 0
 
       - name: Set up Python
@@ -46,8 +54,14 @@ jobs:
 
       - name: Ensure tag matches version
         run: |
-          TAG="${GITHUB_REF#refs/tags/}"
+          TAG_INPUT="${GITHUB_REF#refs/tags/}"
+          # Prefer release tag_name if present
+          if [ -n "${{ github.event.release.tag_name }}" ]; then
+            TAG_INPUT="${{ github.event.release.tag_name }}"
+          fi
+          TAG="$TAG_INPUT"
           VERSION="v$(poetry version -s)"
+          echo "Detected TAG=$TAG, pyproject version=$VERSION"
           if [ "$TAG" != "$VERSION" ]; then
             echo "Tag $TAG does not match project version $VERSION"
             exit 1

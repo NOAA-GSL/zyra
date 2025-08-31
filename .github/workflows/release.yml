@@ -5,7 +5,10 @@ on:
     types:
       - closed
     branches:
-      - main
+  - main
+
+permissions:
+  contents: write
 
 jobs:
   release:
