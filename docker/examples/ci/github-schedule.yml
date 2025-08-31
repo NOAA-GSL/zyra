@@ -1,0 +1,28 @@
+name: Scheduled Zyra Workflows
+
+on:
+  schedule:
+    - cron: "5 * * * *"  # At minute 5 of every hour (UTC)
+  workflow_dispatch:
+
+jobs:
+  run-zyra:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/noaa-gsl/zyra:latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare workflows and data
+        run: |
+          mkdir -p /workflows /data
+          # Copy or generate your workflows into /workflows
+          # cp -r path/in/repo/workflows/*.yml /workflows/
+
+      - name: Run Zyra
+        env:
+          LOG_LEVEL: info
+          DATA_DIR: /data
+        run: zyra run /workflows
+

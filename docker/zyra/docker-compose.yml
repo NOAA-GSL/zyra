@@ -1,0 +1,20 @@
+# Example usage for the zyra CLI container.
+# Use `docker compose run --rm zyra <args>` for ad-hoc commands,
+# or override the command to run watch/API modes.
+
+services:
+  zyra:
+    image: ghcr.io/noaa-gsl/zyra:${ZYRA_TAG:-latest}
+    restart: "no"
+    environment:
+      - DATA_DIR=/data
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - TZ=${TZ:-UTC}
+    volumes:
+      - ./workflows:/workflows:ro
+      - ./data:/data
+    # Default shows help; override per-invocation with `docker compose run`.
+    command: ["--help"]
+    # Optional: match host UID/GID to avoid permission issues on bind mounts (Linux)
+    # user: "${UID:-1000}:${GID:-1000}"
+

@@ -15,6 +15,9 @@ ENV USE_NETCDF4 0
 # Set the working directory in the container
 WORKDIR /app
 
+# Use bash with pipefail for safer RUN commands
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 # Install system dependencies, including gfortran, build tools, and libraries required to build wgrib2
 RUN apt-get update && apt-get install -y \
     curl \
@@ -34,13 +37,22 @@ RUN apt-get update && apt-get install -y \
  
 RUN git lfs install
 
+# Allow pinning and verifying the wgrib2 source archive via build args
+ARG WGRIB2_URL="https://ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz"
+ARG WGRIB2_SHA256=""
+
 # Install wgrib2 from source, disable AEC, OpenJPEG, and NetCDF support by passing flags to make
-RUN curl -O https://ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz \
-    && tar -xvzf wgrib2.tgz \
+RUN curl -fsSLO "$WGRIB2_URL" \
+    && if [[ -n "$WGRIB2_SHA256" ]]; then \
+         echo "$WGRIB2_SHA256  $(basename "$WGRIB2_URL")" | sha256sum -c -; \
+       else \
+         echo "Skipping SHA256 verification for $(basename "$WGRIB2_URL") (WGRIB2_SHA256 not set)"; \
+       fi \
+    && tar -xvzf "$(basename "$WGRIB2_URL")" \
     && cd grib2 \
     && make USE_AEC=0 USE_OPENJPEG=0 USE_NETCDF3=0 USE_NETCDF4=0 \
     && cp wgrib2/wgrib2 /usr/local/bin/ \
-    && cd .. && rm -rf grib2 wgrib2.tgz
+    && cd .. && rm -rf grib2 "$(basename "$WGRIB2_URL")"
 
 # Upgrade pip to the latest version
 RUN pip install --upgrade pip

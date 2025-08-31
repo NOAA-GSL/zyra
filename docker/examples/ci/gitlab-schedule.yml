@@ -1,0 +1,14 @@
+stages: [run]
+
+run-zyra:
+  stage: run
+  image: ghcr.io/noaa-gsl/zyra:latest
+  rules:
+    - if: "$CI_PIPELINE_SOURCE == 'schedule'"
+    - when: manual
+  script:
+    - mkdir -p /workflows /data
+    # Copy or generate your workflows into /workflows
+    # - cp -r path/in/repo/workflows/*.yml /workflows/
+    - LOG_LEVEL=info DATA_DIR=/data zyra run /workflows
+

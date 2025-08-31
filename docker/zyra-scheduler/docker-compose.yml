@@ -1,0 +1,31 @@
+# Example usage for the zyra-scheduler container.
+# Bring up with: `docker compose up -d` (Compose V2).
+
+services:
+  zyra-scheduler:
+    image: ghcr.io/noaa-gsl/zyra-scheduler:${ZYRA_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      - DATA_DIR=/data
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - TZ=${TZ:-UTC}
+    volumes:
+      # Mount your workflows (YAML files) here
+      - ./workflows:/workflows:ro
+      # Outputs, logs, and artifacts
+      - ./data:/data
+    # Optional: match host UID/GID to avoid permission issues on bind mounts (Linux)
+    # user: "${UID:-1000}:${GID:-1000}"
+    # Optional healthcheck (simple binary presence check)
+    # healthcheck:
+    #   test: ["CMD", "zyra", "--version"]
+    #   interval: 1m
+    #   timeout: 10s
+    #   retries: 3
+
+    # If you need to pass extra args to `zyra run`, you can override command:
+    # command: ["zyra", "run", "/workflows", "--watch", "--log-level", "debug"]
+
+    # To use a GRIB-enabled image variant (if published), set ZYRA_TAG in .env or CLI:
+    #   ZYRA_TAG=vX.Y.Z-grib
+

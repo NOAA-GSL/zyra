@@ -1,0 +1,46 @@
+name: Build Docker Images (matrix)
+
+on:
+  pull_request:
+  push:
+    branches: [ main, staging ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.target.name }} (WITH_WGRIB2=${{ matrix.target.with_wgrib2 }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - { name: "zyra", file: "docker/zyra/Dockerfile", with_wgrib2: "source" }
+          - { name: "zyra", file: "docker/zyra/Dockerfile", with_wgrib2: "none" }
+          - { name: "zyra-scheduler", file: "docker/zyra-scheduler/Dockerfile", with_wgrib2: "none" }
+          - { name: "zyra-scheduler", file: "docker/zyra-scheduler/Dockerfile", with_wgrib2: "source" }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.target.file }}
+          platforms: linux/amd64
+          push: false
+          provenance: false
+          sbom: false
+          build-args: |
+            WITH_WGRIB2=${{ matrix.target.with_wgrib2 }}
+          tags: test/${{ matrix.target.name }}:${{ matrix.target.with_wgrib2 }}
+
