@@ -77,7 +77,7 @@ class Job:
 def _parse_workflow(doc: dict[str, Any]) -> tuple[list[str], dict[str, Job]]:
     """Extract cron schedules and jobs from a loaded workflow document."""
     schedules: list[str] = []
-    on = doc.get("on") or {}
+    on = _get_on_section(doc)
     if isinstance(on, dict):
         sched = on.get("schedule") or []
         if isinstance(sched, list):
@@ -276,6 +276,18 @@ def _run_job_subprocess(job: Job) -> int:
                 else str(x)
                 for x in (step or [])
             ]  # type: ignore[attr-defined]
+        # Seed stdin for the first step if it expects '-' and no stdin was provided
+        if i == 0 and current is None and "-" in argv:
+            try:
+                from zyra.utils.env import env as _env
+
+                default_stdin_path = _env("DEFAULT_STDIN")
+                if default_stdin_path:
+                    from pathlib import Path as _P
+
+                    current = _P(default_stdin_path).read_bytes()
+            except Exception:
+                pass
         cmd = [_sys.executable, "-m", "zyra.cli", *argv]
         if verb in {"info", "debug"}:
             _log(f"[job {job.name}] step {i+1}/{total}: {' '.join(argv)}")
@@ -448,15 +460,28 @@ def cmd_export_cron(ns: argparse.Namespace) -> int:
     doc = _load_yaml_or_json(ns.workflow)
     schedules, _ = _parse_workflow(doc)
     # Print crontab lines targeting this workflow
-    for c in schedules:
-        print(f"{c} zyra workflow run {ns.workflow}")
+    if schedules:
+        for c in schedules:
+            # Use the unified entrypoint (`zyra run <workflow>`) since there is no
+            # separate top-level `workflow` CLI group registered.
+            print(f"{c} zyra run {ns.workflow}")
+    else:
+        try:
+            import sys as _sys
+
+            print(
+                f"# No schedule triggers found in {ns.workflow} (nothing to export)",
+                file=_sys.stderr,
+            )
+        except Exception:
+            pass
     return 0
 
 
 def _eval_dataset_updates(
     doc: dict[str, Any], state: dict[str, Any], *, run_on_first: bool
 ) -> tuple[bool, dict[str, Any]]:
-    on = doc.get("on") or {}
+    on = _get_on_section(doc)
     items = []
     if isinstance(on, dict):
         du = on.get("dataset-update") or []
@@ -665,3 +690,18 @@ def register_cli(subparsers: Any) -> None:
         help="Trigger a run when no prior state exists",
     )
     wt.set_defaults(func=cmd_watch)
+
+
+def _get_on_section(doc: dict[str, Any]) -> dict[str, Any]:
+    """Return the 'on' section, accounting for YAML 1.1 quirk where 'on' parses as True.
+
+    Some YAML loaders (PyYAML 1.1 semantics) treat the bare key 'on' as a boolean True.
+    Support both forms: doc['on'] and doc[True].
+    """
+    on = doc.get("on")
+    if isinstance(on, dict):
+        return on
+    on_true = doc.get(True)
+    if isinstance(on_true, dict):
+        return on_true
+    return {}

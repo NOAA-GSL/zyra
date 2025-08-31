@@ -56,23 +56,32 @@ def fetch_bytes(
 
 
 def upload_bytes(data: bytes, url_or_bucket: str, key: str | None = None) -> bool:
-    """Upload bytes to an S3 object.
+    """Upload bytes to an S3 object using managed transfer.
 
-    - Uses put_object to avoid intermediate temp files.
-    - Sets ContentType for common types (e.g., application/json for .json keys).
+    - Calls ``upload_file`` for compatibility with existing tests/mocks.
+    - Sets ``ContentType=application/json`` for ``.json`` keys via ExtraArgs.
     """
     if key is None:
         bucket, key = parse_s3_url(url_or_bucket)
     else:
         bucket = url_or_bucket
     c = boto3.client("s3")
-    extra: dict = {}
+    extra_args = None
     try:
         if str(key).lower().endswith(".json"):
-            extra["ContentType"] = "application/json"
+            extra_args = {"ContentType": "application/json"}
     except Exception:
-        pass
-    c.put_object(Bucket=bucket, Key=key, Body=data, **extra)  # type: ignore[arg-type]
+        extra_args = None
+    # Upload from a temp file to satisfy upload_file
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(suffix=".bin", delete=True) as tmp:
+        tmp.write(data)
+        tmp.flush()
+        if extra_args:
+            c.upload_file(tmp.name, bucket, key, ExtraArgs=extra_args)  # type: ignore[arg-type]
+        else:
+            c.upload_file(tmp.name, bucket, key)  # type: ignore[arg-type]
     return True
 
 
