@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.6
 ARG ZYRA_VERSION=latest
 ARG WITH_WGRIB2=source
 ARG ZYRA_EXTRAS="connectors,processing,visualization"
@@ -14,7 +15,6 @@ RUN apt-get update \
 RUN set -eux; \
     if [[ "$WITH_WGRIB2" != "source" ]]; then \
       echo "Skipping wgrib2 build (WITH_WGRIB2=$WITH_WGRIB2)"; \
-      : > /wgrib2; \
     else \
       test -n "$WGRIB2_URL"; \
       curl -fsSLO "$WGRIB2_URL"; \
@@ -41,10 +41,21 @@ RUN apt-get update \
     && if [ "$WITH_WGRIB2" = "apt" ] || [ "$WITH_WGRIB2" = "true" ]; then apt-get install -y --no-install-recommends wgrib2; fi \
     && rm -rf /var/lib/apt/lists/*
 
-# Optionally copy source-built wgrib2
+# Optionally install source-built wgrib2 without copying when not needed
 ARG WITH_WGRIB2
-COPY --from=wgrib2-builder /wgrib2 /usr/local/bin/wgrib2
-RUN if [[ "$WITH_WGRIB2" != "source" ]]; then rm -f /usr/local/bin/wgrib2 || true; fi
+RUN --mount=type=bind,from=wgrib2-builder,source=/wgrib2,target=/tmp/wgrib2,ro \
+    set -eux; \
+    if [[ "$WITH_WGRIB2" == "source" ]]; then \
+      if [[ -s /tmp/wgrib2 ]]; then \
+        install -m 0755 /tmp/wgrib2 /usr/local/bin/wgrib2; \
+        echo "Installed wgrib2 from source"; \
+      else \
+        echo "WITH_WGRIB2=source but /wgrib2 not produced by builder" >&2; \
+        exit 1; \
+      fi; \
+    else \
+      echo "Skipping source wgrib2 (WITH_WGRIB2=$WITH_WGRIB2)"; \
+    fi
 
 # Install Zyra from PyPI (pin if version provided); include extras by default
 ARG ZYRA_VERSION

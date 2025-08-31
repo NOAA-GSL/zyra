@@ -15,7 +15,11 @@ The image does not run the API by default.
 - Build args:
   - `ZYRA_VERSION` (default `latest`): pin Zyra from PyPI
   - `WITH_FFMPEG` (default `true`): install `ffmpeg` via apt
-  - `WITH_WGRIB2` (default `false`): install `wgrib2` via apt
+  - `WITH_WGRIB2` (default `none`): how to include `wgrib2`.
+    - `none` (or `false`): do not include `wgrib2`
+    - `apt` (or `true`): install Debian package `wgrib2`
+    - `source`: build from source in a builder stage (requires BuildKit)
+  - `WGRIB2_URL` and `WGRIB2_SHA256` (with `WITH_WGRIB2=source`): tarball URL and optional checksum
   - `ZYRA_EXTRAS` (default empty): install `zyra[extras]` from PyPI (e.g., `connectors,processing`)
 
 ## Quick start (Docker)
@@ -54,6 +58,27 @@ docker compose up -d
   permissions issues with bind mounts on Linux, you can uncomment the `user:`
   line in `docker-compose.yml` (e.g. `user: "${UID}:${GID}").
 - FFmpeg: Installed by default; disable at build time with `--build-arg WITH_FFMPEG=false` if not needed.
-- GRIB: For pipelines that require `wgrib2`, build with `--build-arg WITH_WGRIB2=true`
-  or use a `-grib` image tag if you publish that variant.
+- GRIB: For pipelines that require `wgrib2`, build with `--build-arg WITH_WGRIB2=apt` (Debian package)
+  or `--build-arg WITH_WGRIB2=source` (BuildKit required). If you publish a variant tag that includes
+  `wgrib2`, you can also reference that tag directly.
 - API: Not started by default; override `command`/`entrypoint` if needed.
+
+## Build examples
+
+```bash
+# Build with wgrib2 from apt
+docker build -f docker/zyra-scheduler/Dockerfile \
+  --build-arg WITH_WGRIB2=apt \
+  -t zyra-scheduler:apt .
+
+# Build with wgrib2 from source
+DOCKER_BUILDKIT=1 docker build -f docker/zyra-scheduler/Dockerfile \
+  --build-arg WITH_WGRIB2=source \
+  --build-arg WGRIB2_URL=https://ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz \
+  -t zyra-scheduler:source .
+
+# Build without wgrib2 (default)
+docker build -f docker/zyra-scheduler/Dockerfile \
+  --build-arg WITH_WGRIB2=none \
+  -t zyra-scheduler:slim .
+```

@@ -53,9 +53,9 @@ You can customize the scheduler image at build time:
 - `WGRIB2_URL` and `WGRIB2_SHA256` (only when `WITH_WGRIB2=source`): tarball URL and optional SHA256 to verify.
 - `ZYRA_EXTRAS` (default empty): install pip extras, e.g. `connectors,processing` to get `zyra[connectors,processing]`.
 
-Examples:
+Examples (enable BuildKit when building from source):
 ```bash
-docker build -f docker/zyra-scheduler/Dockerfile \
+DOCKER_BUILDKIT=1 docker build -f docker/zyra-scheduler/Dockerfile \
   --build-arg ZYRA_VERSION=1.2.3 \
   --build-arg WITH_FFMPEG=false \
   --build-arg WITH_WGRIB2=source \
@@ -65,7 +65,7 @@ docker build -f docker/zyra-scheduler/Dockerfile \
   -t ghcr.io/noaa-gsl/zyra-scheduler:custom .
 ```
 
-The `docker/zyra/Dockerfile` supports the same `WITH_WGRIB2`, `WGRIB2_URL`, and `WGRIB2_SHA256` args. Its default is `WITH_WGRIB2=source`.
+The `docker/zyra/Dockerfile` supports the same `WITH_WGRIB2`, `WGRIB2_URL`, and `WGRIB2_SHA256` args. Its default is `WITH_WGRIB2=source`. When using `WITH_WGRIB2=source`, BuildKit is required.
 
 ## Quick Start
 
