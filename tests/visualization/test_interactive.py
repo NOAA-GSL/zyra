@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ..helpers import project_root
+from tests.helpers import project_root
 
 
 def test_interactive_folium_heatmap_html():

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from ..helpers import project_root
+from tests.helpers import project_root
 
 
 @pytest.fixture(scope="session")
