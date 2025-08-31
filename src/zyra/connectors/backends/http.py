@@ -131,7 +131,9 @@ def get_idx_lines(url: str, *, timeout: int = 60, max_retries: int = 3) -> list[
             r = requests.get(idx_url, timeout=timeout)
             r.raise_for_status()
             return parse_idx_lines(r.content)
-        except Exception as e:  # pragma: no cover - simple retry wrapper
+        except (
+            requests.RequestException
+        ) as e:  # pragma: no cover - simple retry wrapper
             last_exc = e
             attempt += 1
     if last_exc:
@@ -173,5 +175,5 @@ def get_size(url: str, *, timeout: int = 60) -> int | None:
         r.raise_for_status()
         val = r.headers.get("Content-Length")
         return int(val) if val is not None else None
-    except Exception:
+    except (requests.RequestException, ValueError, TypeError):
         return None

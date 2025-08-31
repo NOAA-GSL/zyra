@@ -21,7 +21,7 @@ def to_obj(x: Any) -> Any:
     try:
         if is_dataclass(x):
             return asdict(x)
-    except Exception:
+    except (TypeError, ValueError):
         pass
     d = getattr(x, "__dict__", None)
     if isinstance(d, dict):
@@ -42,7 +42,7 @@ def truncate_text(text: str, max_len: int = 240) -> str:
     """
     try:
         s = str(text)
-    except Exception:
+    except (TypeError, ValueError):
         s = ""
     if max_len is None or max_len <= 0:
         return s

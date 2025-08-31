@@ -13,7 +13,7 @@ from typing import Iterable
 
 import boto3
 from botocore import config as _botocore_config
-from botocore.exceptions import ClientError
+from botocore.exceptions import BotoCoreError, ClientError
 
 from zyra.utils.date_manager import DateManager
 from zyra.utils.grib import (
@@ -66,12 +66,16 @@ def upload_bytes(data: bytes, url_or_bucket: str, key: str | None = None) -> boo
     else:
         bucket = url_or_bucket
     c = boto3.client("s3")
+    # Set Content-Type for JSON keys; avoid broad exception handling
     extra_args = None
-    try:
-        if str(key).lower().endswith(".json"):
-            extra_args = {"ContentType": "application/json"}
-    except Exception:
-        extra_args = None
+    ext_is_json = False
+    if key is not None:
+        try:
+            ext_is_json = str(key).lower().endswith(".json")
+        except (AttributeError, TypeError, ValueError):
+            ext_is_json = False
+    if ext_is_json:
+        extra_args = {"ContentType": "application/json"}
     # Upload from a temp file to satisfy upload_file
     import tempfile
 
@@ -170,7 +174,7 @@ def stat(url_or_bucket: str, key: str | None = None):
             "last_modified": resp.get("LastModified"),
             "etag": resp.get("ETag"),
         }
-    except Exception:
+    except (ClientError, BotoCoreError, ValueError, TypeError):
         return None
 
 
@@ -184,7 +188,7 @@ def get_size(url_or_bucket: str, key: str | None = None) -> int | None:
     try:
         resp = c.head_object(Bucket=bucket, Key=key)  # type: ignore[arg-type]
         return int(resp.get("ContentLength", 0))
-    except Exception:
+    except (ClientError, BotoCoreError, ValueError, TypeError):
         return None
 
 
@@ -212,7 +216,11 @@ def get_idx_lines(
         try:
             data = fetch_bytes(url, unsigned=unsigned)
             return parse_idx_lines(data)
-        except Exception as e:  # pragma: no cover - simple retry wrapper
+        except (
+            ClientError,
+            BotoCoreError,
+            OSError,
+        ) as e:  # pragma: no cover - simple retry wrapper
             last_exc = e
             attempt += 1
     if last_exc:

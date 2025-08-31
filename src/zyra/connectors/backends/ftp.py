@@ -13,7 +13,7 @@ from __future__ import annotations
 import contextlib
 import re
 from datetime import datetime
-from ftplib import FTP
+from ftplib import FTP, all_errors
 from io import BytesIO
 from typing import Iterable
 
@@ -121,7 +121,7 @@ def list_files(
     ftp.cwd(remote_dir)
     try:
         names = ftp.nlst()
-    except Exception:
+    except all_errors:
         names = []
     if pattern:
         rx = re.compile(pattern)
@@ -152,7 +152,7 @@ def exists(url_or_path: str) -> bool:
     try:
         files = ftp.nlst()
         return filename in files
-    except Exception:
+    except all_errors:
         return False
 
 
@@ -172,7 +172,7 @@ def delete(url_or_path: str) -> bool:
     try:
         ftp.delete(filename)
         return True
-    except Exception:
+    except all_errors:
         return False
 
 
@@ -192,7 +192,7 @@ def stat(url_or_path: str):
     try:
         size = ftp.size(filename)
         return {"size": int(size) if size is not None else None}
-    except Exception:
+    except all_errors:
         return None
 
 
@@ -280,7 +280,7 @@ def get_size(url_or_path: str) -> int | None:
     try:
         sz = ftp.size(filename)
         return int(sz) if sz is not None else None
-    except Exception:
+    except all_errors:
         return None
 
 

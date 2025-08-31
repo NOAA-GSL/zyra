@@ -108,9 +108,16 @@ class JSONFileManager:
         Returns ``None`` and logs on error.
         """
         try:
-            return json.loads(Path(path).read_text(encoding="utf-8"))
-        except Exception:
-            logging.error(f"Error reading JSON from file: {path}")
+            text = Path(path).read_text(encoding="utf-8")
+            return json.loads(text)
+        except FileNotFoundError:
+            logging.error(f"File not found: {path}")
+            return None
+        except json.JSONDecodeError:
+            logging.error(f"Invalid JSON in file: {path}")
+            return None
+        except (OSError, UnicodeDecodeError) as exc:
+            logging.error(f"Error reading JSON from file {path}: {exc}")
             return None
 
     def write_json(self, path: str, data) -> None:
@@ -120,8 +127,8 @@ class JSONFileManager:
         """
         try:
             Path(path).write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
-        except Exception:
-            logging.error(f"Error writing JSON to file: {path}")
+        except (OSError, TypeError, ValueError) as exc:
+            logging.error(f"Error writing JSON to file {path}: {exc}")
 
     def update_dataset_times(self, target_id: str, directory: str) -> str:
         """Update start/end times for a dataset using directory image dates.

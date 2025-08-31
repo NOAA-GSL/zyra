@@ -32,7 +32,9 @@ def test_workflow_watch_dataset_update_runs(tmp_path: Path, monkeypatch):
 
     # Ensure outputs under tmp_path
     monkeypatch.chdir(tmp_path)
-    demo_nc = Path(__file__).resolve().parents[2] / "tests/testdata/demo.nc"
+    # Resolve test data relative to the tests/ directory to avoid fragile
+    # assumptions about repository depth. From tests/workflow/ -> tests/testdata/demo.nc
+    demo_nc = Path(__file__).resolve().parent.parent / "testdata/demo.nc"
     assert demo_nc.exists()
     monkeypatch.setenv("ZYRA_DEFAULT_STDIN", str(demo_nc))
 

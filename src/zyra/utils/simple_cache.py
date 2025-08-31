@@ -38,14 +38,15 @@ def get(key: str) -> Any | None:
         p = _key_to_path(base, key)
         if not p.exists():
             return None
-        data = json.loads(p.read_text(encoding="utf-8"))
+        text = p.read_text(encoding="utf-8")
+        data = json.loads(text)
         if float(data.get("expires_at") or 0) < time.time():
             # Expired; best-effort delete
             with suppress(Exception):
                 p.unlink()
             return None
         return data.get("payload")
-    except Exception:
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
         return None
 
 
@@ -62,7 +63,7 @@ def set(key: str, value: Any, ttl_seconds: int) -> None:
         tmp = p.with_suffix(p.suffix + ".tmp")
         tmp.write_text(json.dumps(rec), encoding="utf-8")
         tmp.replace(p)
-    except Exception:
+    except (OSError, ValueError, TypeError):
         # Cache failures must never be fatal
         return
 
