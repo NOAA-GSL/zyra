@@ -749,6 +749,7 @@ def register_cli_run(subparsers: Any) -> None:
                     run_on_first=ns.run_on_first,
                     watch_interval=ns.watch_interval,
                     watch_count=ns.watch_count,
+                    dry_run=ns.dry_run,
                 )
                 return wf_watch(wfns)
             wfns = argparse.Namespace(

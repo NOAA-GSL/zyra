@@ -276,8 +276,9 @@ def _run_job_subprocess(job: Job) -> int:
                 else str(x)
                 for x in (step or [])
             ]  # type: ignore[attr-defined]
-        # Seed stdin for the first step if it expects '-' and no stdin was provided
-        if i == 0 and current is None and "-" in argv:
+        # Seed stdin for the first step when DEFAULT_STDIN is configured and
+        # no stdin was provided. This supports pipelines under parallel execution.
+        if i == 0 and current is None:
             try:
                 from zyra.utils.env import env as _env
 
@@ -588,10 +589,25 @@ def cmd_watch(ns: argparse.Namespace) -> int:
             state_path.parent.mkdir(parents=True, exist_ok=True)
             state_path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
         if should_run_du or should_run_sched:
-            run_ns = argparse.Namespace(workflow=ns.workflow, continue_on_error=False)
+            run_ns = argparse.Namespace(
+                workflow=ns.workflow,
+                continue_on_error=False,
+                dry_run=getattr(ns, "dry_run", False),
+            )
             rc = cmd_run(run_ns)
             if rc != 0:
                 return rc
+        else:
+            # When --dry-run is set, emit a helpful message if no triggers are active
+            if getattr(ns, "dry_run", False):
+                try:
+                    import sys as _sys
+
+                    _sys.stderr.write(
+                        "# No active workflow triggers (dataset-update/schedule) at this time\n"
+                    )
+                except Exception:
+                    pass
         i += 1
         # Single poll: no interval provided
         if interval <= 0:
