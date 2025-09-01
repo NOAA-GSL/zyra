@@ -200,7 +200,7 @@ jobs:
       - name: Trivy scan ${{ matrix.image }}
         uses: aquasecurity/trivy-action@0.20.0
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ steps.vars.outputs.tag }}
+          image-ref: ghcr.io/${{ toLower(github.repository_owner) }}/${{ matrix.image }}:${{ steps.vars.outputs.tag }}
           format: table
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'

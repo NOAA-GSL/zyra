@@ -49,7 +49,7 @@ jobs:
         if: steps.filter.outputs.build == 'true'
         uses: aquasecurity/trivy-action@0.20.0
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ inputs.tag }}
+          image-ref: ghcr.io/${{ toLower(github.repository_owner) }}/${{ matrix.image }}:${{ inputs.tag }}
           format: table
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
@@ -61,4 +61,3 @@ jobs:
         if: steps.filter.outputs.build != 'true'
         run: |
           echo "Skipping ${{ matrix.image }} per selection: ${{ inputs.image }}"
-
