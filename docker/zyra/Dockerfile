@@ -43,11 +43,18 @@ ARG TARGETARCH
 # System deps commonly used by Zyra flows
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates ffmpeg \
+    && if [ "${TARGETARCH}" = "arm64" ]; then \
+         echo "Installing GDAL system libraries for arm64"; \
+         apt-get install -y --no-install-recommends gdal-bin libgdal-dev; \
+       fi \
     && if [ "$WITH_WGRIB2" = "apt" ] || [ "$WITH_WGRIB2" = "true" ] || { [ "$WITH_WGRIB2" = "source" ] && [ "${TARGETARCH}" != "amd64" ]; }; then \
          echo "Installing wgrib2 via apt (WITH_WGRIB2=$WITH_WGRIB2, TARGETARCH=${TARGETARCH})"; \
          apt-get install -y --no-install-recommends wgrib2; \
        fi \
     && rm -rf /var/lib/apt/lists/*
+
+# Help Python GDAL find the system gdal-config when building wheels if needed
+ENV GDAL_CONFIG=/usr/bin/gdal-config
 
 # Optionally install source-built wgrib2 without copying when not needed
 ARG WITH_WGRIB2
