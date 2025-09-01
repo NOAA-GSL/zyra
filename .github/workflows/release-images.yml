@@ -136,7 +136,8 @@ jobs:
           push: true
           build-args: |
             ZYRA_VERSION=${{ steps.vars.outputs.version }}
-            ZYRA_EXTRAS_ARM64=connectors
+            ${{ matrix.name == 'zyra-scheduler' && 'ZYRA_EXTRAS=connectors' || '' }}
+            ${{ matrix.name == 'zyra' && 'ZYRA_EXTRAS_ARM64=connectors' || '' }}
           provenance: true
           sbom: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -152,7 +153,8 @@ jobs:
           push: true
           build-args: |
             ZYRA_VERSION=${{ steps.vars.outputs.version }}
-            ZYRA_EXTRAS_ARM64=${{ inputs.zyra_extras_arm64 }}
+            ${{ matrix.name == 'zyra-scheduler' && 'ZYRA_EXTRAS=connectors' || '' }}
+            ${{ matrix.name == 'zyra' && format('ZYRA_EXTRAS_ARM64={0}', inputs.zyra_extras_arm64) || '' }}
           provenance: true
           sbom: true
           tags: ${{ steps.meta_manual.outputs.tags }}

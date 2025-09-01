@@ -20,7 +20,7 @@ The image does not run the API by default.
     - `apt` (or `true`): install Debian package `wgrib2`
     - `source`: build from source in a builder stage (requires BuildKit)
   - `WGRIB2_URL` and `WGRIB2_SHA256` (with `WITH_WGRIB2=source`): tarball URL and optional checksum
-  - `ZYRA_EXTRAS` (default empty): install `zyra[extras]` from PyPI (e.g., `connectors,processing`)
+- `ZYRA_EXTRAS` (default `connectors`): install `zyra[extras]` from PyPI (e.g., `connectors,processing`)
 
 ## Quick start (Docker)
 

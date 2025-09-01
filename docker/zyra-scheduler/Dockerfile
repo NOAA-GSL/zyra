@@ -2,7 +2,7 @@
 ARG ZYRA_VERSION=latest
 ARG WITH_WGRIB2=none
 ARG WITH_FFMPEG=true
-ARG ZYRA_EXTRAS=""
+ARG ZYRA_EXTRAS="connectors"
 
 # Optional builder for source-built wgrib2 (only built if referenced)
 FROM debian:stable-slim AS wgrib2-builder
