@@ -82,7 +82,8 @@ RUN if [ -z "$ZYRA_VERSION" ] || [ "$ZYRA_VERSION" = "latest" ]; then \
       else \
         pip install --no-cache-dir --no-compile "zyra==${ZYRA_VERSION}"; \
       fi; \
-    fi
+    fi \
+    && pip install --no-cache-dir --upgrade 'setuptools>=78.1.1'
 
 # Create mount points and permissions
 RUN mkdir -p /workflows /data \

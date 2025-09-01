@@ -105,7 +105,8 @@ RUN set -eux; \
       else \
         pip install --no-cache-dir --no-compile "zyra==${ZYRA_VERSION}"; \
       fi; \
-    fi
+    fi \
+    && pip install --no-cache-dir --upgrade 'setuptools>=78.1.1'
 
 # Create mount points and non-root user
 RUN mkdir -p /workflows /data \
