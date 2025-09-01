@@ -177,11 +177,13 @@ jobs:
             echo "ref=${{ github.ref }}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Extract tag/version
+      - name: Extract tag
         id: vars
-        uses: ./.github/actions/extract-release-vars
-        with:
-          ref: ${{ steps.setref.outputs.ref }}
+        shell: bash
+        run: |
+          REF='${{ steps.setref.outputs.ref }}'
+          TAG="${REF#refs/tags/}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
