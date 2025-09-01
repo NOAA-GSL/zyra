@@ -23,6 +23,11 @@ jobs:
       matrix:
         image: [zyra-scheduler, zyra]
     steps:
+      - name: Compute lowercase owner
+        id: owner
+        shell: bash
+        run: |
+          echo "owner_lower=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
       - name: Select images
         id: filter
         shell: bash
@@ -49,7 +54,7 @@ jobs:
         if: steps.filter.outputs.build == 'true'
         uses: aquasecurity/trivy-action@0.20.0
         with:
-          image-ref: ghcr.io/${{ toLower(github.repository_owner) }}/${{ matrix.image }}:${{ inputs.tag }}
+          image-ref: ghcr.io/${{ steps.owner.outputs.owner_lower }}/${{ matrix.image }}:${{ inputs.tag }}
           format: table
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'

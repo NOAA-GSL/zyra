@@ -172,6 +172,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Compute lowercase owner
+        id: owner
+        shell: bash
+        run: |
+          echo "owner_lower=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
       - name: Compute ref
         id: setref
         shell: bash
@@ -200,7 +206,7 @@ jobs:
       - name: Trivy scan ${{ matrix.image }}
         uses: aquasecurity/trivy-action@0.20.0
         with:
-          image-ref: ghcr.io/${{ toLower(github.repository_owner) }}/${{ matrix.image }}:${{ steps.vars.outputs.tag }}
+          image-ref: ghcr.io/${{ steps.owner.outputs.owner_lower }}/${{ matrix.image }}:${{ steps.vars.outputs.tag }}
           format: table
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
