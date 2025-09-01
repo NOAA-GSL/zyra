@@ -44,7 +44,15 @@ ARG TARGETARCH
 # System deps (ffmpeg used by some visualization/processing flows)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates \
-    && if [ "$WITH_FFMPEG" = "true" ]; then apt-get install -y --no-install-recommends ffmpeg; fi \
+    && FF_FLAG="${WITH_FFMPEG,,}"; if [ "$FF_FLAG" = "true" ] || [ "$FF_FLAG" = "1" ] || [ "$FF_FLAG" = "yes" ]; then \
+         echo "Installing ffmpeg (WITH_FFMPEG=$WITH_FFMPEG)"; \
+         apt-get install -y --no-install-recommends ffmpeg; \
+         # Ensure binaries are visible on PATH even in restricted envs
+         if command -v ffmpeg >/dev/null 2>&1; then ln -sf "$(command -v ffmpeg)" /usr/local/bin/ffmpeg; fi; \
+         if command -v ffprobe >/dev/null 2>&1; then ln -sf "$(command -v ffprobe)" /usr/local/bin/ffprobe; fi; \
+       else \
+         echo "Skipping ffmpeg (WITH_FFMPEG=$WITH_FFMPEG)"; \
+       fi \
     && if [ "$WITH_WGRIB2" = "apt" ] || [ "$WITH_WGRIB2" = "true" ] || { [ "$WITH_WGRIB2" = "source" ] && [ "${TARGETARCH}" != "amd64" ]; }; then \
          echo "Installing wgrib2 via apt (WITH_WGRIB2=$WITH_WGRIB2, TARGETARCH=${TARGETARCH})"; \
          apt-get install -y --no-install-recommends wgrib2; \
