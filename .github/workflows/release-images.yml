@@ -149,7 +149,8 @@ jobs:
 
       - name: Skip build (manual selection)
         if: github.event_name == 'workflow_dispatch' && steps.filter.outputs.build != 'true'
-        run: echo "Skipping ${{ matrix.name }} per image selection: ${{ inputs.image }}"
+        run: |
+          echo "Skipping ${{ matrix.name }} per image selection: ${{ inputs.image }}"
 
   scan-images:
     name: Scan images (Trivy)
