@@ -54,9 +54,11 @@ jobs:
 
       - name: Extract tag/version
         id: vars
-        uses: ./.github/actions/extract-release-vars
-        with:
-          ref: ${{ steps.setref.outputs.ref }}
+        shell: bash
+        run: |
+          REF='${{ steps.setref.outputs.ref }}'
+          TAG="${REF#refs/tags/}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Select images for manual run
         if: github.event_name == 'workflow_dispatch'
