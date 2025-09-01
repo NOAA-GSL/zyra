@@ -162,6 +162,9 @@ jobs:
       matrix:
         image: [zyra-scheduler, zyra]
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Compute ref
         id: setref
         shell: bash
