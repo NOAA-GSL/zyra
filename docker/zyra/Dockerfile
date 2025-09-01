@@ -2,6 +2,7 @@
 ARG ZYRA_VERSION=latest
 ARG WITH_WGRIB2=source
 ARG ZYRA_EXTRAS="connectors,processing,visualization"
+ARG ZYRA_EXTRAS_ARM64=""
 
 # Optional builder for source-built wgrib2 (only built if referenced)
 FROM debian:stable-slim AS wgrib2-builder
@@ -44,8 +45,16 @@ ARG TARGETARCH
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates ffmpeg \
     && if [ "${TARGETARCH}" = "arm64" ]; then \
-         echo "Installing GDAL system libraries for arm64"; \
-         apt-get install -y --no-install-recommends gdal-bin libgdal-dev; \
+         echo "Installing native geospatial build deps for arm64 (GDAL/PROJ/GEOS/eccodes)"; \
+         apt-get install -y --no-install-recommends \
+           build-essential \
+           gfortran \
+           pkg-config \
+           gdal-bin libgdal-dev \
+           proj-bin libproj-dev proj-data \
+           libgeos-dev \
+           libeccodes-dev libeccodes-tools \
+           libopenjp2-7; \
        fi \
     && if [ "$WITH_WGRIB2" = "apt" ] || [ "$WITH_WGRIB2" = "true" ] || { [ "$WITH_WGRIB2" = "source" ] && [ "${TARGETARCH}" != "amd64" ]; }; then \
          echo "Installing wgrib2 via apt (WITH_WGRIB2=$WITH_WGRIB2, TARGETARCH=${TARGETARCH})"; \
@@ -54,7 +63,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Help Python GDAL find the system gdal-config when building wheels if needed
-ENV GDAL_CONFIG=/usr/bin/gdal-config
+ENV GDAL_CONFIG=/usr/bin/gdal-config \
+    PROJ_LIB=/usr/share/proj \
+    ECCODES_DIR=/usr
 
 # Optionally install source-built wgrib2 without copying when not needed
 ARG WITH_WGRIB2
@@ -75,15 +86,22 @@ RUN --mount=type=bind,from=wgrib2-builder,source=/out,target=/tmp/wgrib2,ro \
 # Install Zyra from PyPI (pin if version provided); include extras by default
 ARG ZYRA_VERSION
 ARG ZYRA_EXTRAS
-RUN if [ -z "$ZYRA_VERSION" ] || [ "$ZYRA_VERSION" = "latest" ]; then \
-      if [ -n "$ZYRA_EXTRAS" ]; then \
-        pip install --no-cache-dir --no-compile "zyra[${ZYRA_EXTRAS}]"; \
+ARG ZYRA_EXTRAS_ARM64
+RUN set -eux; \
+    EXTRAS="$ZYRA_EXTRAS"; \
+    if [ "${TARGETARCH}" = "arm64" ] && [ -n "${ZYRA_EXTRAS_ARM64}" ]; then \
+      EXTRAS="${ZYRA_EXTRAS_ARM64}"; \
+      echo "Using arm64-specific extras: ${EXTRAS}"; \
+    fi; \
+    if [ -z "$ZYRA_VERSION" ] || [ "$ZYRA_VERSION" = "latest" ]; then \
+      if [ -n "$EXTRAS" ]; then \
+        pip install --no-cache-dir --no-compile "zyra[${EXTRAS}]"; \
       else \
         pip install --no-cache-dir --no-compile zyra; \
       fi; \
     else \
-      if [ -n "$ZYRA_EXTRAS" ]; then \
-        pip install --no-cache-dir --no-compile "zyra[${ZYRA_EXTRAS}]==${ZYRA_VERSION}"; \
+      if [ -n "$EXTRAS" ]; then \
+        pip install --no-cache-dir --no-compile "zyra[${EXTRAS}]==${ZYRA_VERSION}"; \
       else \
         pip install --no-cache-dir --no-compile "zyra==${ZYRA_VERSION}"; \
       fi; \
