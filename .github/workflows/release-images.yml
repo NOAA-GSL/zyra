@@ -123,6 +123,8 @@ jobs:
           images: ${{ matrix.image }}
           tags: |
             type=raw,value=${{ inputs.tag }}
+            # Keep `latest` in sync on manual runs for non-prerelease tags
+            type=raw,value=latest,enable=${{ steps.vars.outputs.prerelease == 'false' }}
 
       - name: Build and push (${{ matrix.name }}) (release)
         if: github.event_name == 'release'

@@ -11,9 +11,23 @@ from __future__ import annotations
 import re
 from typing import Iterable
 
-import boto3
-from botocore import config as _botocore_config
-from botocore.exceptions import BotoCoreError, ClientError
+# Optional dependency: boto3/botocore. Avoid import-time failure so the CLI can
+# still load when S3 features aren't used.
+try:  # pragma: no cover - optional dep import guard
+    import boto3  # type: ignore[import-not-found]
+except ModuleNotFoundError:  # pragma: no cover - optional dep
+    boto3 = None  # type: ignore[assignment]
+
+try:  # pragma: no cover - optional dep import guard
+    from botocore.exceptions import BotoCoreError, ClientError  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover - optional dep
+
+    class BotoCoreError(Exception):  # type: ignore[no-redef]
+        pass
+
+    class ClientError(Exception):  # type: ignore[no-redef]
+        pass
+
 
 from zyra.utils.date_manager import DateManager
 from zyra.utils.grib import (
@@ -23,6 +37,19 @@ from zyra.utils.grib import (
 )
 
 _S3_RE = re.compile(r"^s3://([^/]+)/(.+)$")
+
+
+def _require_boto3() -> None:
+    """Ensure boto3 is available before using S3 helpers.
+
+    Raises a clear error instructing users to install the connectors extra
+    when boto3 (and botocore) are not present.
+    """
+    if boto3 is None:  # pragma: no cover - simple runtime guard
+        raise ModuleNotFoundError(
+            "boto3 is required for S3 features. Install with 'pip install "
+            "\"zyra[connectors]\"' or add 'boto3' to your environment."
+        )
 
 
 def parse_s3_url(url: str) -> tuple[str, str]:
@@ -43,14 +70,21 @@ def fetch_bytes(
         bucket, key = parse_s3_url(url_or_bucket)
     else:
         bucket = url_or_bucket
+    _require_boto3()
     if unsigned:
-        from botocore import UNSIGNED
+        # Import botocore lazily to avoid import-time failure when optional.
+        from botocore import (  # type: ignore
+            UNSIGNED,
+        )
+        from botocore import (
+            config as _botocore_config,
+        )
 
-        c = boto3.client(
+        c = boto3.client(  # type: ignore[union-attr]
             "s3", config=_botocore_config.Config(signature_version=UNSIGNED)
         )
     else:
-        c = boto3.client("s3")
+        c = boto3.client("s3")  # type: ignore[union-attr]
     resp = c.get_object(Bucket=bucket, Key=key)  # type: ignore[arg-type]
     return resp["Body"].read()
 
@@ -65,7 +99,8 @@ def upload_bytes(data: bytes, url_or_bucket: str, key: str | None = None) -> boo
         bucket, key = parse_s3_url(url_or_bucket)
     else:
         bucket = url_or_bucket
-    c = boto3.client("s3")
+    _require_boto3()
+    c = boto3.client("s3")  # type: ignore[union-attr]
     # Set Content-Type for JSON keys
     extra_args = None
     if key is not None and str(key).lower().endswith(".json"):
@@ -101,7 +136,8 @@ def list_files(
         # When bucket not provided via URL, require env/role defaults; prefix may be None
         bucket = prefix_or_url or ""
         prefix = None
-    c = boto3.client("s3")
+    _require_boto3()
+    c = boto3.client("s3")  # type: ignore[union-attr]
     paginator = c.get_paginator("list_objects_v2")
     page_iter = paginator.paginate(Bucket=bucket, Prefix=prefix or "")
     keys: list[str] = []
@@ -130,7 +166,8 @@ def exists(url_or_bucket: str, key: str | None = None) -> bool:
         bucket, key = parse_s3_url(url_or_bucket)
     else:
         bucket = url_or_bucket
-    c = boto3.client("s3")
+    _require_boto3()
+    c = boto3.client("s3")  # type: ignore[union-attr]
     try:
         c.head_object(Bucket=bucket, Key=key)  # type: ignore[arg-type]
         return True
@@ -147,7 +184,8 @@ def delete(url_or_bucket: str, key: str | None = None) -> bool:
         bucket, key = parse_s3_url(url_or_bucket)
     else:
         bucket = url_or_bucket
-    c = boto3.client("s3")
+    _require_boto3()
+    c = boto3.client("s3")  # type: ignore[union-attr]
     c.delete_object(Bucket=bucket, Key=key)  # type: ignore[arg-type]
     return True
 
@@ -158,7 +196,8 @@ def stat(url_or_bucket: str, key: str | None = None):
         bucket, key = parse_s3_url(url_or_bucket)
     else:
         bucket = url_or_bucket
-    c = boto3.client("s3")
+    _require_boto3()
+    c = boto3.client("s3")  # type: ignore[union-attr]
     try:
         resp = c.head_object(Bucket=bucket, Key=key)  # type: ignore[arg-type]
         return {
@@ -230,14 +269,21 @@ def download_byteranges(
         bucket, key = parse_s3_url(url_or_bucket)
     else:
         bucket = url_or_bucket
+    _require_boto3()
     if unsigned:
-        from botocore import UNSIGNED
+        # Import botocore lazily to avoid import-time failure when optional.
+        from botocore import (  # type: ignore
+            UNSIGNED,
+        )
+        from botocore import (
+            config as _botocore_config,
+        )
 
-        c = boto3.client(
+        c = boto3.client(  # type: ignore[union-attr]
             "s3", config=_botocore_config.Config(signature_version=UNSIGNED)
         )
     else:
-        c = boto3.client("s3")
+        c = boto3.client("s3")  # type: ignore[union-attr]
 
     def _ranged(k: str, rng: str) -> bytes:
         resp = c.get_object(Bucket=bucket, Key=k, Range=rng)
