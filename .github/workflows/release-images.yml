@@ -58,7 +58,12 @@ jobs:
         run: |
           REF='${{ steps.setref.outputs.ref }}'
           TAG="${REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          PRERELEASE=false
+          if echo "$TAG" | grep -Eiq '(-rc|-beta|-alpha)'; then PRERELEASE=true; fi
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "prerelease=${PRERELEASE}" >> "$GITHUB_OUTPUT"
 
       - name: Select images for manual run
         if: github.event_name == 'workflow_dispatch'
