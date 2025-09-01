@@ -41,6 +41,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
 ARG TARGETARCH
+# Re-declare build args in this stage so they are visible
+ARG WITH_FFMPEG=true
+ARG WITH_WGRIB2=none
 # System deps (ffmpeg used by some visualization/processing flows)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates \
@@ -60,7 +63,6 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Optionally install source-built wgrib2 without copying when not needed
-ARG WITH_WGRIB2
 RUN --mount=type=bind,from=wgrib2-builder,source=/out,target=/tmp/wgrib2,ro \
     set -eux; \
     if [[ "$WITH_WGRIB2" == "source" && "${TARGETARCH}" == "amd64" ]]; then \
