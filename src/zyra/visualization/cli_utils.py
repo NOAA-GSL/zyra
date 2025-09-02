@@ -82,5 +82,15 @@ def resolve_basemap_ref(
                 return str(p), es
         except Exception:
             pass
+    # Relative resource path under packaged assets (e.g., 'images/earth_vegetation.jpg')
+    if s.startswith("images/"):
+        try:
+            res = importlib_resources.files("zyra.assets").joinpath(s)
+            if getattr(res, "is_file", None) and res.is_file():  # type: ignore[attr-defined]
+                es = contextlib.ExitStack()
+                p = es.enter_context(importlib_resources.as_file(res))
+                return str(p), es
+        except Exception:
+            pass
     # Fallback: treat as filesystem path
     return s, None

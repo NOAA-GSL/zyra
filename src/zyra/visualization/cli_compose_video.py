@@ -2,15 +2,10 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Optional
-
-try:  # Prefer standard library importlib.resources
-    from importlib import resources as importlib_resources
-except Exception:  # pragma: no cover - fallback for very old Python
-    import importlib_resources  # type: ignore
-import contextlib
+from typing import Optional  # noqa: F401  (kept for type hints in signatures)
 
 from zyra.utils.cli_helpers import configure_logging_from_env
+from zyra.visualization.cli_utils import resolve_basemap_ref
 
 
 def handle_compose_video(ns) -> int:
@@ -67,50 +62,7 @@ def handle_compose_video(ns) -> int:
     #   - Absolute/relative filesystem path (unchanged)
     #   - Bare filename present under zyra.assets/images (e.g., "earth_vegetation.jpg")
     #   - Packaged reference: "pkg:package/resource" (e.g., pkg:zyra.assets/images/earth_vegetation.jpg)
-    def _resolve_basemap(
-        ref: Optional[str],
-    ) -> tuple[str | None, contextlib.ExitStack | None]:
-        if not ref:
-            return None, None
-        s = str(ref).strip()
-        # pkg: resolver
-        if s.startswith("pkg:"):
-            es = contextlib.ExitStack()
-            try:
-                # Support both pkg:module/resource and pkg:module:resource
-                spec = s[4:]
-                if ":" in spec and "/" not in spec:
-                    pkg, res = spec.split(":", 1)
-                else:
-                    parts = spec.split("/", 1)
-                    pkg = parts[0]
-                    res = parts[1] if len(parts) > 1 else ""
-                if not res:
-                    return None, None
-                path = importlib_resources.files(pkg).joinpath(res)
-                p = es.enter_context(importlib_resources.as_file(path))
-                return str(p), es
-            except Exception:
-                es.close()
-                return None, None
-        # Bare filename under packaged assets/images
-        if "/" not in s and "\\" not in s:
-            try:
-                res = (
-                    importlib_resources.files("zyra.assets")
-                    .joinpath("images")
-                    .joinpath(s)
-                )
-                if getattr(res, "is_file", None) and res.is_file():  # type: ignore[attr-defined]
-                    es = contextlib.ExitStack()
-                    p = es.enter_context(importlib_resources.as_file(res))
-                    return str(p), es
-            except Exception:
-                pass
-        # Fallback: treat as filesystem path as-is
-        return s, None
-
-    basemap_path, basemap_guard = _resolve_basemap(getattr(ns, "basemap", None))
+    basemap_path, basemap_guard = resolve_basemap_ref(getattr(ns, "basemap", None))
 
     vp = VideoProcessor(
         input_directory=ns.frames,

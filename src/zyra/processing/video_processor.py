@@ -1,8 +1,14 @@
+import contextlib
 import logging
 import shlex
 import subprocess
 from pathlib import Path
 from typing import Any, Optional
+
+try:  # Prefer standard library importlib.resources
+    from importlib import resources as importlib_resources
+except Exception:  # pragma: no cover - fallback for very old Python
+    import importlib_resources  # type: ignore
 
 from zyra.processing.base import DataProcessor
 
@@ -166,26 +172,62 @@ class VideoProcessor(DataProcessor):
             logging.debug(f"Processing files with extension: {file_extension}")
             output_path = self.output_file
             ffmpeg_cmd = "ffmpeg"
-            if self.basemap:
-                ffmpeg_cmd += f" -framerate {fps or self.fps} -loop 1 -i {self.basemap}"
+            # Resolve optional basemap; support pkg:package/resource form in addition to plain paths.
+            basemap_path: str | None = self.basemap
+            basemap_guard: contextlib.ExitStack | None = None
+            if basemap_path and str(basemap_path).startswith("pkg:"):
+                spec = str(basemap_path)[4:]
+                try:
+                    if ":" in spec and "/" not in spec:
+                        pkg, res = spec.split(":", 1)
+                    else:
+                        parts = spec.split("/", 1)
+                        pkg = parts[0]
+                        res = parts[1] if len(parts) > 1 else ""
+                    if res:
+                        basemap_guard = contextlib.ExitStack()
+                        path = importlib_resources.files(pkg).joinpath(res)
+                        p = basemap_guard.enter_context(
+                            importlib_resources.as_file(path)
+                        )
+                        basemap_path = str(p)
+                        logging.debug(
+                            "Resolved basemap '%s' to '%s'", self.basemap, basemap_path
+                        )
+                except Exception:
+                    # Fall back to original value; ffmpeg will likely fail if protocol-like
+                    pass
+            if basemap_path:
+                ffmpeg_cmd += f" -framerate {fps or self.fps} -loop 1 -i {basemap_path}"
             ffmpeg_cmd += (
                 f" -framerate {fps or self.fps} -pattern_type glob -i '{input_pattern}'"
             )
-            if self.basemap:
+            if basemap_path:
                 ffmpeg_cmd += " -filter_complex '[0:v][1:v]overlay=shortest=1'"
             ffmpeg_cmd += f" -r {fps or self.fps} -vcodec libx264 -pix_fmt yuv420p -y {output_path}"
             logging.info(f"Starting video processing using:{ffmpeg_cmd}")
             cmd = shlex.split(ffmpeg_cmd)
-            with subprocess.Popen(
-                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
-            ) as proc:
-                for line in proc.stdout:
-                    logging.debug(line.strip())
-            logging.debug("Video processing complete.")
+            rc = 0
+            try:
+                with subprocess.Popen(
+                    cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+                ) as proc:
+                    for line in proc.stdout:
+                        logging.debug(line.strip())
+                    rc = proc.wait()
+            finally:
+                if basemap_guard is not None:
+                    with contextlib.suppress(Exception):
+                        basemap_guard.close()
+            logging.debug("Video processing complete (rc=%s).", rc)
+            if rc != 0:
+                logging.error("ffmpeg exited with non-zero status: %s", rc)
+                return False
             logging.info(f"Video created at {self.output_file}")
             # Consider success if the expected output file exists
             try:
-                if Path(self.output_file).exists():
+                outp = Path(self.output_file)
+                if outp.exists() and outp.stat().st_size > 0:
                     return True
             except Exception:
                 pass
