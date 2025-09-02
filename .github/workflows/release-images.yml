@@ -68,9 +68,7 @@ jobs:
           VERSION="${TAG#v}"
           PRERELEASE=false
           if echo "$TAG" | grep -Eiq '(-rc|-beta|-alpha)'; then PRERELEASE=true; fi
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "prerelease=${PRERELEASE}" >> "$GITHUB_OUTPUT"
+          { echo "tag=${TAG}"; echo "version=${VERSION}"; echo "prerelease=${PRERELEASE}"; } >> "$GITHUB_OUTPUT"
 
       - name: Select images for manual run
         if: github.event_name == 'workflow_dispatch'
