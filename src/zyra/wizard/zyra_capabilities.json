@@ -465,7 +465,7 @@
         "required": true
       },
       "--var": "Variable name for NetCDF inputs",
-      "--basemap": "Path to background image",
+      "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
         "help": "west east south north",
         "type": "float",
@@ -629,7 +629,7 @@
         "type": "path"
       },
       "--var": "Variable name for NetCDF inputs",
-      "--basemap": "Path to background image",
+      "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
         "help": "west east south north",
         "type": "float",
@@ -871,7 +871,7 @@
       "--vvar": "",
       "--u": "",
       "--v": "",
-      "--basemap": "",
+      "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
         "help": "",
         "type": "float",
@@ -1062,7 +1062,7 @@
         "type": "str",
         "default": "#333333"
       },
-      "--basemap": "",
+      "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
         "help": "",
         "type": "float",
@@ -1212,6 +1212,7 @@
           "--help",
           "--frames",
           "--output",
+          "--glob",
           "--fps",
           "--basemap"
         ]
@@ -1231,12 +1232,13 @@
         "type": "path",
         "required": true
       },
+      "--glob": "Filename glob within frames dir (e.g., '*.png'); defaults to first extension found",
       "--fps": {
         "help": "",
         "type": "int",
         "default": 30
       },
-      "--basemap": ""
+      "--basemap": "Basemap (path, bare image name, or pkg:ref)"
     },
     "positionals": []
   },
@@ -1529,6 +1531,7 @@
           "--input",
           "--name",
           "--description",
+          "--description-file",
           "--replace-uri"
         ]
       }
@@ -1543,6 +1546,7 @@
       },
       "--name": "Video title",
       "--description": "Video description",
+      "--description-file": "Read description text from a file (UTF-8)",
       "--replace-uri": "Replace existing video at this Vimeo URI"
     },
     "positionals": []
@@ -1932,6 +1936,13 @@
           "--verbose",
           "--quiet",
           "--strict-env",
+          "--max-workers",
+          "--watch",
+          "--export-cron",
+          "--state-file",
+          "--run-on-first",
+          "--watch-interval",
+          "--watch-count",
           "--log-file",
           "--log-dir",
           "--log-file-mode"
@@ -1992,6 +2003,34 @@
         "help": "Fail if ${VAR} placeholders are not set in environment",
         "type": "str",
         "default": false
+      },
+      "--max-workers": {
+        "help": "When config is a workflow.yml, run up to N jobs in parallel",
+        "type": "int"
+      },
+      "--watch": {
+        "help": "When config is a workflow.yml, evaluate triggers and run if active",
+        "type": "str",
+        "default": false
+      },
+      "--export-cron": {
+        "help": "When config is a workflow.yml, print crontab lines for schedule triggers",
+        "type": "str",
+        "default": false
+      },
+      "--state-file": "State file for --watch (workflow.yml)",
+      "--run-on-first": {
+        "help": "Trigger a run when no prior state exists (workflow.yml watch)",
+        "type": "str",
+        "default": false
+      },
+      "--watch-interval": {
+        "help": "When --watch is set, poll every N seconds (default: single poll)",
+        "type": "float"
+      },
+      "--watch-count": {
+        "help": "When --watch is set with --watch-interval, stop after N iterations",
+        "type": "int"
       },
       "--log-file": "Write runner and stage logs to the given file",
       "--log-dir": "Write logs under this directory as workflow.log",

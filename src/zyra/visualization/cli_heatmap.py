@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 
 from zyra.utils.cli_helpers import configure_logging_from_env
-from zyra.visualization.cli_utils import features_from_ns
+from zyra.visualization.cli_utils import features_from_ns, resolve_basemap_ref
 
 
 def handle_heatmap(ns) -> int:
@@ -24,7 +24,8 @@ def handle_heatmap(ns) -> int:
         outdir_p.mkdir(parents=True, exist_ok=True)
         outputs = []
         for src in ns.inputs:
-            mgr = HeatmapManager(basemap=ns.basemap, extent=ns.extent)
+            bmap, guard = resolve_basemap_ref(getattr(ns, "basemap", None))
+            mgr = HeatmapManager(basemap=bmap, extent=ns.extent)
             mgr.render(
                 input_path=src,
                 var=ns.var,
@@ -51,12 +52,18 @@ def handle_heatmap(ns) -> int:
             if out:
                 logging.info(out)
                 outputs.append(out)
+            if guard is not None:
+                try:
+                    guard.close()
+                except Exception:
+                    pass
         try:
             print(json.dumps({"outputs": outputs}))
         except Exception:
             pass
         return 0
-    mgr = HeatmapManager(basemap=ns.basemap, extent=ns.extent)
+    bmap, guard = resolve_basemap_ref(getattr(ns, "basemap", None))
+    mgr = HeatmapManager(basemap=bmap, extent=ns.extent)
     features = features_from_ns(ns)
     mgr.render(
         input_path=ns.input,
@@ -81,4 +88,9 @@ def handle_heatmap(ns) -> int:
     out = mgr.save(ns.output)
     if out:
         logging.info(out)
+    if guard is not None:
+        try:
+            guard.close()
+        except Exception:
+            pass
     return 0

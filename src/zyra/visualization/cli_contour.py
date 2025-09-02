@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 
 from zyra.utils.cli_helpers import configure_logging_from_env, parse_levels_arg
-from zyra.visualization.cli_utils import features_from_ns
+from zyra.visualization.cli_utils import features_from_ns, resolve_basemap_ref
 
 
 def handle_contour(ns) -> int:
@@ -26,8 +26,9 @@ def handle_contour(ns) -> int:
         outputs = []
         levels_val = parse_levels_arg(getattr(ns, "levels", 10))
         for src in ns.inputs:
+            bmap, guard = resolve_basemap_ref(getattr(ns, "basemap", None))
             mgr = ContourManager(
-                basemap=ns.basemap,
+                basemap=bmap,
                 extent=ns.extent,
                 filled=getattr(ns, "filled", False),
             )
@@ -58,13 +59,19 @@ def handle_contour(ns) -> int:
             if out:
                 logging.info(out)
                 outputs.append(out)
+            if guard is not None:
+                try:
+                    guard.close()
+                except Exception:
+                    pass
         try:
             print(json.dumps({"outputs": outputs}))
         except Exception:
             pass
         return 0
+    bmap, guard = resolve_basemap_ref(getattr(ns, "basemap", None))
     mgr = ContourManager(
-        basemap=ns.basemap, extent=ns.extent, filled=getattr(ns, "filled", False)
+        basemap=bmap, extent=ns.extent, filled=getattr(ns, "filled", False)
     )
     features = features_from_ns(ns)
     levels_val = parse_levels_arg(getattr(ns, "levels", 10))
@@ -92,4 +99,9 @@ def handle_contour(ns) -> int:
     out = mgr.save(ns.output)
     if out:
         logging.info(out)
+    if guard is not None:
+        try:
+            guard.close()
+        except Exception:
+            pass
     return 0
