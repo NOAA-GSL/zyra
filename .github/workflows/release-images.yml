@@ -41,6 +41,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
 
       - name: Compute ref
         id: setref
@@ -83,6 +86,24 @@ jobs:
       - name: Set up QEMU
         if: github.event_name != 'workflow_dispatch' || steps.filter.outputs.build == 'true'
         uses: docker/setup-qemu-action@v3
+
+      - name: Fetch Git LFS assets (basemaps)
+        if: github.event_name != 'workflow_dispatch' || steps.filter.outputs.build == 'true'
+        shell: bash
+        run: |
+          git lfs install
+          # Fetch and smudge LFS content so packaged assets contain real bytes
+          git lfs fetch --all
+          git lfs checkout || git lfs pull
+          # Fail fast if any LFS pointers remain in packaged images
+          if grep -R -n "^version https://git-lfs" src/zyra/assets/images; then
+            echo "ERROR: LFS pointers detected under src/zyra/assets/images" >&2
+            exit 1
+          fi
+          # Quick sanity: print MIME type of a known basemap if present
+          if command -v file >/dev/null 2>&1 && [ -f src/zyra/assets/images/earth_vegetation.jpg ]; then
+            file -b --mime-type src/zyra/assets/images/earth_vegetation.jpg || true
+          fi
 
       - name: Set up Docker Buildx
         if: github.event_name != 'workflow_dispatch' || steps.filter.outputs.build == 'true'

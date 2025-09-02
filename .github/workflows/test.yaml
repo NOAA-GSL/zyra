@@ -20,6 +20,19 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
+
+      - name: Fetch Git LFS assets (basemaps)
+        run: |
+          git lfs install
+          git lfs fetch --all
+          git lfs checkout || git lfs pull
+          # Do not fail tests if LFS unavailable, but log a warning
+          if grep -R -n "^version https://git-lfs" src/zyra/assets/images; then
+            echo "WARNING: LFS pointers detected under src/zyra/assets/images; some image-dependent tests may be skipped" >&2
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5

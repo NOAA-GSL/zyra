@@ -53,6 +53,18 @@ jobs:
         with:
           ref: v${{ inputs.version }}
           fetch-depth: 0
+          lfs: true
+
+      - name: Fetch Git LFS assets (basemaps)
+        shell: bash
+        run: |
+          git lfs install
+          git lfs fetch --all
+          git lfs checkout || git lfs pull
+          if grep -R -n "^version https://git-lfs" src/zyra/assets/images; then
+            echo "ERROR: LFS pointers detected under src/zyra/assets/images" >&2
+            exit 1
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -100,6 +112,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
+
+      - name: Fetch Git LFS assets (basemaps)
+        shell: bash
+        run: |
+          git lfs install
+          git lfs fetch --all
+          git lfs checkout || git lfs pull
+          if grep -R -n "^version https://git-lfs" src/zyra/assets/images; then
+            echo "ERROR: LFS pointers detected under src/zyra/assets/images" >&2
+            exit 1
+          fi
 
       - name: Wait for PyPI availability
         run: |
@@ -165,4 +191,3 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
           timeout: '10m'
-
