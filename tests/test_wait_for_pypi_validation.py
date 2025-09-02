@@ -57,10 +57,10 @@ def test_main_retries_on_urlerror_and_times_out(monkeypatch):
     """main should retry on transient URLError and exit 1 after retries."""
     mod = _load_wait_module()
 
-    def raising_fetch(_url: str, timeout: float = 10.0):  # noqa: ARG001
+    def raising_simple(_pkg: str, _ver: str, timeout: float = 10.0):  # noqa: ARG001
         raise urllib.error.URLError("network down")
 
-    monkeypatch.setattr(mod, "fetch_json", raising_fetch)
+    monkeypatch.setattr(mod, "is_version_available", raising_simple)
     # retries=1, delay=0 to keep test fast
     rc = mod.main(["wait_for_pypi.py", "zyra", "9.9.9", "1", "0"])
     assert rc == 1
@@ -70,9 +70,35 @@ def test_main_bubbles_unexpected_errors(monkeypatch):
     """main should propagate unexpected exceptions for visibility in CI."""
     mod = _load_wait_module()
 
-    def raising_fetch(_url: str, timeout: float = 10.0):  # noqa: ARG001
+    def raising_fetch(_pkg: str, _ver: str, timeout: float = 10.0):  # noqa: ARG001
         raise RuntimeError("boom")
 
-    monkeypatch.setattr(mod, "fetch_json", raising_fetch)
+    monkeypatch.setattr(mod, "is_version_available", raising_fetch)
     with pytest.raises(RuntimeError):
         mod.main(["wait_for_pypi.py", "zyra", "9.9.9", "1", "0"])
+
+
+def test_is_version_available_checks_simple(monkeypatch):
+    """is_version_available should check the PyPI simple index for the version."""
+    mod = _load_wait_module()
+
+    class Resp:
+        def __init__(self, text: str):
+            self._b = text.encode("utf-8")
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return self._b
+
+    def fake_urlopen(url, timeout=10.0):  # noqa: ARG001
+        assert url.endswith("/simple/zyra/")
+        # Include the normalized filename pattern with version
+        return Resp('<a href="/packages/.../zyra-1.2.3.tar.gz">zyra-1.2.3.tar.gz</a>')
+
+    monkeypatch.setattr(mod.urllib.request, "urlopen", fake_urlopen)
+    assert mod.is_version_available("Zyra", "1.2.3") is True

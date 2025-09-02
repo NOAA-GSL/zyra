@@ -3,6 +3,23 @@ name: Release Images
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Git tag to build (e.g., v1.2.3)
+        required: true
+      image:
+        description: Which image(s) to build
+        required: false
+        default: both
+      zyra_platforms:
+        description: Platforms for zyra (comma-separated)
+        required: false
+        default: linux/amd64,linux/arm64
+      zyra_extras_arm64:
+        description: Extras to use on arm64 for zyra (e.g., connectors or leave empty for full)
+        required: false
+        default: connectors
 
 permissions:
   contents: read
@@ -24,32 +41,94 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
+
+      - name: Compute ref
+        id: setref
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          GITHUB_REF_FULL: ${{ github.ref }}
+        run: |
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            { echo "ref=refs/tags/$INPUT_TAG"; } >> "$GITHUB_OUTPUT"
+          else
+            { echo "ref=$GITHUB_REF_FULL"; } >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Extract tag/version
         id: vars
-        uses: ./.github/actions/extract-release-vars
-        with:
-          ref: ${{ github.ref }}
+        shell: bash
+        run: |
+          REF='${{ steps.setref.outputs.ref }}'
+          TAG="${REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          PRERELEASE=false
+          if echo "$TAG" | grep -Eiq '(-rc|-beta|-alpha)'; then PRERELEASE=true; fi
+          { echo "tag=${TAG}"; echo "version=${VERSION}"; echo "prerelease=${PRERELEASE}"; } >> "$GITHUB_OUTPUT"
+
+      - name: Select images for manual run
+        if: github.event_name == 'workflow_dispatch'
+        id: filter
+        shell: bash
+        run: |
+          sel='${{ inputs.image }}'
+          build=true
+          case "$sel" in
+            both|"") build=true ;;
+            zyra) if [ "${{ matrix.name }}" = "zyra" ]; then build=true; else build=false; fi ;;
+            zyra-scheduler) if [ "${{ matrix.name }}" = "zyra-scheduler" ]; then build=true; else build=false; fi ;;
+            *) echo "Unknown image selection: $sel" >&2; exit 1 ;;
+          esac
+          echo "build=$build" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
+        if: github.event_name != 'workflow_dispatch' || steps.filter.outputs.build == 'true'
         uses: docker/setup-qemu-action@v3
 
+      - name: Fetch Git LFS assets (basemaps)
+        if: github.event_name != 'workflow_dispatch' || steps.filter.outputs.build == 'true'
+        shell: bash
+        run: |
+          git lfs install
+          # Fetch and smudge LFS content so packaged assets contain real bytes
+          git lfs fetch --all
+          git lfs checkout || git lfs pull
+          # Fail fast if any LFS pointers remain in packaged images
+          if grep -R -n "^version https://git-lfs" src/zyra/assets/images; then
+            echo "ERROR: LFS pointers detected under src/zyra/assets/images" >&2
+            exit 1
+          fi
+          # Quick sanity: print MIME type of a known basemap if present
+          if command -v file >/dev/null 2>&1 && [ -f src/zyra/assets/images/earth_vegetation.jpg ]; then
+            file -b --mime-type src/zyra/assets/images/earth_vegetation.jpg || true
+          fi
+
       - name: Set up Docker Buildx
+        if: github.event_name != 'workflow_dispatch' || steps.filter.outputs.build == 'true'
         uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
 
       - name: Wait for PyPI availability
+        if: github.event_name != 'workflow_dispatch' || steps.filter.outputs.build == 'true'
         shell: bash
         run: |
           python3 scripts/wait_for_pypi.py zyra "${{ steps.vars.outputs.version }}"
 
       - name: Log in to GHCR
+        if: github.event_name != 'workflow_dispatch' || steps.filter.outputs.build == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Docker metadata (${{ matrix.name }})
+      - name: Docker metadata (${{ matrix.name }}) (release)
+        if: github.event_name == 'release'
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -59,19 +138,57 @@ jobs:
             type=sha
             type=raw,value=latest,enable=${{ steps.vars.outputs.prerelease == 'false' }}
 
-      - name: Build and push (${{ matrix.name }})
+      - name: Docker metadata (${{ matrix.name }}) (manual)
+        if: github.event_name == 'workflow_dispatch' && steps.filter.outputs.build == 'true'
+        id: meta_manual
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ matrix.image }}
+          tags: |
+            type=raw,value=${{ inputs.tag }}
+            # Keep `latest` in sync on manual runs for non-prerelease tags
+            type=raw,value=latest,enable=${{ steps.vars.outputs.prerelease == 'false' }}
+
+      - name: Build and push (${{ matrix.name }}) (release)
+        if: github.event_name == 'release'
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ${{ matrix.dockerfile }}
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.name == 'zyra' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
           push: true
           build-args: |
             ZYRA_VERSION=${{ steps.vars.outputs.version }}
+            ${{ matrix.name == 'zyra-scheduler' && 'ZYRA_EXTRAS=connectors' || '' }}
+            ${{ matrix.name == 'zyra-scheduler' && 'WITH_FFMPEG=true' || '' }}
+            ${{ matrix.name == 'zyra' && 'ZYRA_EXTRAS_ARM64=connectors' || '' }}
           provenance: true
           sbom: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Build and push (${{ matrix.name }}) (manual)
+        if: github.event_name == 'workflow_dispatch' && steps.filter.outputs.build == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.name == 'zyra' && inputs.zyra_platforms || 'linux/amd64,linux/arm64' }}
+          push: true
+          build-args: |
+            ZYRA_VERSION=${{ steps.vars.outputs.version }}
+            ${{ matrix.name == 'zyra-scheduler' && 'ZYRA_EXTRAS=connectors' || '' }}
+            ${{ matrix.name == 'zyra-scheduler' && 'WITH_FFMPEG=true' || '' }}
+            ${{ matrix.name == 'zyra' && format('ZYRA_EXTRAS_ARM64={0}', inputs.zyra_extras_arm64) || '' }}
+          provenance: true
+          sbom: true
+          tags: ${{ steps.meta_manual.outputs.tags }}
+          labels: ${{ steps.meta_manual.outputs.labels }}
+
+      - name: Skip build (manual selection)
+        if: github.event_name == 'workflow_dispatch' && steps.filter.outputs.build != 'true'
+        run: |
+          echo "Skipping ${{ matrix.name }} per image selection: ${{ inputs.image }}"
 
   scan-images:
     name: Scan images (Trivy)
@@ -81,11 +198,32 @@ jobs:
       matrix:
         image: [zyra-scheduler, zyra]
     steps:
-      - name: Extract tag/version
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute lowercase owner
+        id: owner
+        shell: bash
+        run: |
+          echo "owner_lower=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Compute ref
+        id: setref
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "ref=refs/tags/${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${{ github.ref }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Extract tag
         id: vars
-        uses: ./.github/actions/extract-release-vars
-        with:
-          ref: ${{ github.ref }}
+        shell: bash
+        run: |
+          REF='${{ steps.setref.outputs.ref }}'
+          TAG="${REF#refs/tags/}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -97,7 +235,7 @@ jobs:
       - name: Trivy scan ${{ matrix.image }}
         uses: aquasecurity/trivy-action@0.20.0
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ steps.vars.outputs.tag }}
+          image-ref: ghcr.io/${{ steps.owner.outputs.owner_lower }}/${{ matrix.image }}:${{ steps.vars.outputs.tag }}
           format: table
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'

@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 
 from zyra.utils.cli_helpers import configure_logging_from_env
-from zyra.visualization.cli_utils import features_from_ns
+from zyra.visualization.cli_utils import features_from_ns, resolve_basemap_ref
 
 
 def handle_animate(ns) -> int:
@@ -25,9 +25,10 @@ def handle_animate(ns) -> int:
         for src in ns.inputs:
             base = Path(str(src)).stem
             frames_dir = outdir / base
+            bmap, guard = resolve_basemap_ref(getattr(ns, "basemap", None))
             mgr = AnimateManager(
                 mode=ns.mode,
-                basemap=ns.basemap,
+                basemap=bmap,
                 extent=ns.extent,
                 output_dir=str(frames_dir),
             )
@@ -75,6 +76,11 @@ def handle_animate(ns) -> int:
                     vp.process(fps=ns.fps)
                     vp.save(str(mp4))
                     videos.append(str(mp4))
+            if guard is not None:
+                try:
+                    guard.close()
+                except Exception:
+                    pass
         # Optional: combine grid
         if getattr(ns, "combine_to", None) and videos:
             cols = int(getattr(ns, "grid_cols", 2) or 2)
@@ -98,7 +104,8 @@ def handle_animate(ns) -> int:
             VectorParticlesManager,
         )
 
-        mgr = VectorParticlesManager(basemap=ns.basemap, extent=ns.extent)
+        bmap, guard = resolve_basemap_ref(getattr(ns, "basemap", None))
+        mgr = VectorParticlesManager(basemap=bmap, extent=ns.extent)
         manifest = mgr.render(
             input_path=ns.input,
             uvar=ns.uvar,
@@ -124,6 +131,11 @@ def handle_animate(ns) -> int:
         out = mgr.save(ns.manifest)
         if out:
             logging.info(out)
+        if guard is not None:
+            try:
+                guard.close()
+            except Exception:
+                pass
         if ns.to_video:
             frames_dir = ns.output_dir
             # Validate and normalize output file path
@@ -161,8 +173,9 @@ def handle_animate(ns) -> int:
     from zyra.processing.video_processor import VideoProcessor
     from zyra.visualization.animate_manager import AnimateManager
 
+    bmap, guard = resolve_basemap_ref(getattr(ns, "basemap", None))
     mgr = AnimateManager(
-        mode=ns.mode, basemap=ns.basemap, extent=ns.extent, output_dir=ns.output_dir
+        mode=ns.mode, basemap=bmap, extent=ns.extent, output_dir=ns.output_dir
     )
     features = features_from_ns(ns)
     manifest = mgr.render(
@@ -203,6 +216,11 @@ def handle_animate(ns) -> int:
     out = mgr.save(ns.manifest)
     if out:
         logging.info(out)
+    if guard is not None:
+        try:
+            guard.close()
+        except Exception:
+            pass
     if ns.to_video:
         frames_dir = ns.output_dir
         to_video = str(ns.to_video).strip()

@@ -37,6 +37,31 @@ def fetch_json(url: str, timeout: float = 10.0) -> dict[str, Any]:
         return json.load(r)
 
 
+def pep503_normalize(name: str) -> str:
+    """Normalize a package name per PEP 503 (simple API canonical form)."""
+    import re
+
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def is_version_available(package: str, version: str, timeout: float = 10.0) -> bool:
+    """Check PyPI Simple API for availability of a specific version.
+
+    Uses the PEP 503 simple index HTML, which pip consults when installing.
+    Returns True if any file link appears to contain the version string.
+    """
+    normalized = pep503_normalize(package)
+    simple_url = f"https://pypi.org/simple/{normalized}/"
+    parsed = urlparse(simple_url)
+    if parsed.scheme != "https" or parsed.netloc.lower() != "pypi.org":
+        raise ValueError(f"Refusing to fetch non-PyPI URL: {simple_url}")
+    with urllib.request.urlopen(simple_url, timeout=timeout) as r:
+        html = r.read().decode("utf-8", errors="replace")
+    # Look for filename prefix like '<pkg>-<version>'
+    needle = f"{normalized}-{version}"
+    return needle in html
+
+
 def main(argv: list[str]) -> int:
     """CLI entry for waiting until a PyPI release exists.
 
@@ -63,15 +88,13 @@ def main(argv: list[str]) -> int:
     retries = int(argv[3]) if len(argv) > 3 else 60
     delay = int(argv[4]) if len(argv) > 4 else 10
 
-    url = f"https://pypi.org/pypi/{package}/json"
     print(f"Waiting for {package} {version} to appear on PyPI...", flush=True)
 
     for _ in range(retries):
         try:
-            data = fetch_json(url)
-            releases = data.get("releases", {})
-            if version in releases and releases[version]:
-                print(f"Found {package} {version} on PyPI.")
+            # Check the Simple API used by pip to avoid JSON/simple propagation skew
+            if is_version_available(package, version):
+                print(f"Found {package} {version} on PyPI (simple index).")
                 return 0
         except (URLError, HTTPError, JSONDecodeError, socket.timeout) as exc:
             # Expected transient issues; log for CI visibility and retry.

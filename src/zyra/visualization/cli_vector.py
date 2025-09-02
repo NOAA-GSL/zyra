@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 
 from zyra.utils.cli_helpers import configure_logging_from_env
-from zyra.visualization.cli_utils import features_from_ns
+from zyra.visualization.cli_utils import features_from_ns, resolve_basemap_ref
 
 
 def handle_vector(ns) -> int:
@@ -24,8 +24,9 @@ def handle_vector(ns) -> int:
         features = features_from_ns(ns)
         outputs = []
         for src in ns.inputs:
+            bmap, guard = resolve_basemap_ref(getattr(ns, "basemap", None))
             mgr = VectorFieldManager(
-                basemap=ns.basemap,
+                basemap=bmap,
                 extent=ns.extent,
                 color=getattr(ns, "color", "#333333"),
                 density=getattr(ns, "density", 0.2),
@@ -55,13 +56,19 @@ def handle_vector(ns) -> int:
             if out:
                 logging.info(out)
                 outputs.append(out)
+            if guard is not None:
+                try:
+                    guard.close()
+                except Exception:
+                    pass
         try:
             print(json.dumps({"outputs": outputs}))
         except Exception:
             pass
         return 0
+    bmap, guard = resolve_basemap_ref(getattr(ns, "basemap", None))
     mgr = VectorFieldManager(
-        basemap=ns.basemap,
+        basemap=bmap,
         extent=ns.extent,
         color=getattr(ns, "color", "#333333"),
         density=getattr(ns, "density", 0.2),
@@ -89,4 +96,9 @@ def handle_vector(ns) -> int:
     out = mgr.save(ns.output)
     if out:
         logging.info(out)
+    if guard is not None:
+        try:
+            guard.close()
+        except Exception:
+            pass
     return 0

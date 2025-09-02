@@ -2,6 +2,7 @@
 ARG ZYRA_VERSION=latest
 ARG WITH_WGRIB2=source
 ARG ZYRA_EXTRAS="connectors,processing,visualization"
+ARG ZYRA_EXTRAS_ARM64=""
 
 # Optional builder for source-built wgrib2 (only built if referenced)
 FROM debian:stable-slim AS wgrib2-builder
@@ -9,6 +10,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ARG WGRIB2_URL="https://ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz"
 ARG WGRIB2_SHA256=""
 ARG WITH_WGRIB2=source
+ARG TARGETARCH
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl build-essential gfortran make zlib1g-dev libpng-dev libjpeg-dev \
     && rm -rf /var/lib/apt/lists/*
@@ -16,6 +18,8 @@ RUN set -eux; \
     mkdir -p /out; \
     if [[ "$WITH_WGRIB2" != "source" ]]; then \
       echo "Skipping wgrib2 build (WITH_WGRIB2=$WITH_WGRIB2)"; \
+    elif [[ "${TARGETARCH:-}" != "amd64" ]]; then \
+      echo "Skipping wgrib2 source build on TARGETARCH=${TARGETARCH:-unknown}; will install via apt in final stage"; \
     else \
       test -n "$WGRIB2_URL"; \
       curl -fsSLO "$WGRIB2_URL"; \
@@ -36,17 +40,38 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     LOG_LEVEL=info \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
+ARG TARGETARCH
 # System deps commonly used by Zyra flows
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates ffmpeg \
-    && if [ "$WITH_WGRIB2" = "apt" ] || [ "$WITH_WGRIB2" = "true" ]; then apt-get install -y --no-install-recommends wgrib2; fi \
+    && if [ "${TARGETARCH}" = "arm64" ]; then \
+         echo "Installing native geospatial build deps for arm64 (GDAL/PROJ/GEOS/eccodes)"; \
+         apt-get install -y --no-install-recommends \
+           build-essential \
+           gfortran \
+           pkg-config \
+           gdal-bin libgdal-dev \
+           proj-bin libproj-dev proj-data \
+           libgeos-dev \
+           libeccodes-dev libeccodes-tools \
+           libopenjp2-7; \
+       fi \
+    && if [ "$WITH_WGRIB2" = "apt" ] || [ "$WITH_WGRIB2" = "true" ] || { [ "$WITH_WGRIB2" = "source" ] && [ "${TARGETARCH}" != "amd64" ]; }; then \
+         echo "Installing wgrib2 via apt (WITH_WGRIB2=$WITH_WGRIB2, TARGETARCH=${TARGETARCH})"; \
+         apt-get install -y --no-install-recommends wgrib2; \
+       fi \
     && rm -rf /var/lib/apt/lists/*
+
+# Help Python GDAL find the system gdal-config when building wheels if needed
+ENV GDAL_CONFIG=/usr/bin/gdal-config \
+    PROJ_LIB=/usr/share/proj \
+    ECCODES_DIR=/usr
 
 # Optionally install source-built wgrib2 without copying when not needed
 ARG WITH_WGRIB2
 RUN --mount=type=bind,from=wgrib2-builder,source=/out,target=/tmp/wgrib2,ro \
     set -eux; \
-    if [[ "$WITH_WGRIB2" == "source" ]]; then \
+    if [[ "$WITH_WGRIB2" == "source" && "${TARGETARCH}" == "amd64" ]]; then \
       if [[ -s /tmp/wgrib2/wgrib2 ]]; then \
         install -m 0755 /tmp/wgrib2/wgrib2 /usr/local/bin/wgrib2; \
         echo "Installed wgrib2 from source"; \
@@ -55,25 +80,33 @@ RUN --mount=type=bind,from=wgrib2-builder,source=/out,target=/tmp/wgrib2,ro \
         exit 1; \
       fi; \
     else \
-      echo "Skipping source wgrib2 (WITH_WGRIB2=$WITH_WGRIB2)"; \
+      echo "Skipping source wgrib2 install (WITH_WGRIB2=$WITH_WGRIB2, TARGETARCH=${TARGETARCH})"; \
     fi
 
 # Install Zyra from PyPI (pin if version provided); include extras by default
 ARG ZYRA_VERSION
 ARG ZYRA_EXTRAS
-RUN if [ -z "$ZYRA_VERSION" ] || [ "$ZYRA_VERSION" = "latest" ]; then \
-      if [ -n "$ZYRA_EXTRAS" ]; then \
-        pip install --no-cache-dir --no-compile "zyra[${ZYRA_EXTRAS}]"; \
+ARG ZYRA_EXTRAS_ARM64
+RUN set -eux; \
+    EXTRAS="$ZYRA_EXTRAS"; \
+    if [ "${TARGETARCH}" = "arm64" ] && [ -n "${ZYRA_EXTRAS_ARM64}" ]; then \
+      EXTRAS="${ZYRA_EXTRAS_ARM64}"; \
+      echo "Using arm64-specific extras: ${EXTRAS}"; \
+    fi; \
+    if [ -z "$ZYRA_VERSION" ] || [ "$ZYRA_VERSION" = "latest" ]; then \
+      if [ -n "$EXTRAS" ]; then \
+        pip install --no-cache-dir --no-compile "zyra[${EXTRAS}]"; \
       else \
         pip install --no-cache-dir --no-compile zyra; \
       fi; \
     else \
-      if [ -n "$ZYRA_EXTRAS" ]; then \
-        pip install --no-cache-dir --no-compile "zyra[${ZYRA_EXTRAS}]==${ZYRA_VERSION}"; \
+      if [ -n "$EXTRAS" ]; then \
+        pip install --no-cache-dir --no-compile "zyra[${EXTRAS}]==${ZYRA_VERSION}"; \
       else \
         pip install --no-cache-dir --no-compile "zyra==${ZYRA_VERSION}"; \
       fi; \
-    fi
+    fi \
+    && pip install --no-cache-dir --upgrade 'setuptools>=78.1.1'
 
 # Create mount points and non-root user
 RUN mkdir -p /workflows /data \

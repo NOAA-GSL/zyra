@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Optional  # noqa: F401  (kept for type hints in signatures)
 
 from zyra.utils.cli_helpers import configure_logging_from_env
+from zyra.visualization.cli_utils import resolve_basemap_ref
 
 
 def handle_compose_video(ns) -> int:
@@ -56,17 +58,30 @@ def handle_compose_video(ns) -> int:
         # Defer to VideoProcessor/ffmpeg errors if directory cannot be created
         pass
 
+    # Resolve optional basemap reference. Accept the following forms:
+    #   - Absolute/relative filesystem path (unchanged)
+    #   - Bare filename present under zyra.assets/images (e.g., "earth_vegetation.jpg")
+    #   - Packaged reference: "pkg:package/resource" (e.g., pkg:zyra.assets/images/earth_vegetation.jpg)
+    basemap_path, basemap_guard = resolve_basemap_ref(getattr(ns, "basemap", None))
+
     vp = VideoProcessor(
         input_directory=ns.frames,
         output_file=str(out_path),
-        basemap=getattr(ns, "basemap", None),
+        basemap=basemap_path,
         fps=ns.fps,
         input_glob=getattr(ns, "glob", None),
     )
     if not vp.validate():
         logging.warning("ffmpeg/ffprobe not available; skipping video composition")
         return 0
-    vp.process(fps=ns.fps)
+    try:
+        vp.process(fps=ns.fps)
+    finally:
+        if basemap_guard is not None:
+            try:
+                basemap_guard.close()
+            except Exception:
+                pass
     vp.save(str(out_path))
     logging.info(str(out_path))
     return 0

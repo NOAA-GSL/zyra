@@ -465,7 +465,11 @@ from zyra.visualization import PlotManager, ColormapManager
 # Example data
 data = np.random.rand(180, 360)
 
-# Locate packaged basemap asset
+# Basemap options:
+# - Bare name (CLI resolves from packaged assets): "earth_vegetation.jpg"
+# - Packaged ref: "pkg:zyra.assets/images/earth_vegetation.jpg"
+# - Direct path: "/path/to/basemap.jpg"
+# For Python API usage, resolve to a filesystem path using importlib.resources:
 resource = files("zyra.assets").joinpath("images/earth_vegetation.jpg")
 with as_file(resource) as p:
     basemap_path = str(p)
@@ -501,6 +505,16 @@ poetry run python -m zyra.cli contour \
   --input samples/demo.npy --output contour.png \
   --levels 10 --filled \
   --map-type tile --tile-source Stamen.TerrainBackground
+
+CLI basemap resolution
+
+- All visualize commands accept `--basemap` as:
+  - Bare name from packaged assets/images (e.g., `earth_vegetation.jpg`)
+  - Packaged reference (e.g., `pkg:zyra.assets/images/earth_vegetation.jpg`)
+  - Regular filesystem path
+- Examples:
+  - `zyra visualize compose-video --frames frames/ --output out.mp4 --basemap earth_vegetation.jpg`
+  - `zyra visualize heatmap --input data.nc --var TMP --output out.png --basemap pkg:zyra.assets/images/dark-gray.jpg`
 ```
 
 - Vector quiver over tiles:

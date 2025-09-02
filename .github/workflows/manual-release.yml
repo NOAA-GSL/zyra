@@ -1,0 +1,193 @@
+name: Manual Release (tag + PyPI + images)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release (e.g., 1.2.3)
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  tag-and-release:
+    name: Create tag and GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure tag does not already exist
+        run: |
+          TAG="v${{ inputs.version }}"
+          if git ls-remote --tags origin | grep -q "refs/tags/${TAG}$"; then
+            echo "❌ Tag ${TAG} already exists"
+            exit 1
+          fi
+
+      - name: Create tag and GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ inputs.version }}"
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag "${TAG}"
+          git push origin "${TAG}"
+          gh release create "${TAG}" --title "Release ${TAG}" --notes "Manual release ${TAG}"
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: tag-and-release
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/project/zyra/
+    steps:
+      - name: Checkout at tag
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ inputs.version }}
+          fetch-depth: 0
+          lfs: true
+
+      - name: Fetch Git LFS assets (basemaps)
+        shell: bash
+        run: |
+          git lfs install
+          git lfs fetch --all
+          git lfs checkout || git lfs pull
+          if grep -R -n "^version https://git-lfs" src/zyra/assets/images; then
+            echo "ERROR: LFS pointers detected under src/zyra/assets/images" >&2
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Cache Poetry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: poetry-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: poetry-${{ runner.os }}-
+
+      - name: Clean build directories
+        run: rm -rf -- dist build ./*.egg-info || true
+
+      - name: Build package
+        run: poetry build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+          packages-dir: dist/
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+  build-images:
+    name: Build and push images
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: zyra-scheduler
+            image: ghcr.io/${{ github.repository_owner }}/zyra-scheduler
+            dockerfile: docker/zyra-scheduler/Dockerfile
+          - name: zyra
+            image: ghcr.io/${{ github.repository_owner }}/zyra
+            dockerfile: docker/zyra/Dockerfile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
+
+      - name: Fetch Git LFS assets (basemaps)
+        shell: bash
+        run: |
+          git lfs install
+          git lfs fetch --all
+          git lfs checkout || git lfs pull
+          if grep -R -n "^version https://git-lfs" src/zyra/assets/images; then
+            echo "ERROR: LFS pointers detected under src/zyra/assets/images" >&2
+            exit 1
+          fi
+
+      - name: Wait for PyPI availability
+        run: |
+          python3 scripts/wait_for_pypi.py zyra "${{ inputs.version }}"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata (${{ matrix.name }})
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ matrix.image }}
+          tags: |
+            type=raw,value=v${{ inputs.version }}
+
+      - name: Build and push (${{ matrix.name }})
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            ZYRA_VERSION=${{ inputs.version }}
+          provenance: true
+          sbom: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  scan-images:
+    name: Scan images (Trivy)
+    needs: build-images
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image: [zyra-scheduler, zyra]
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trivy scan ${{ matrix.image }}
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:v${{ inputs.version }}
+          format: table
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+          exit-code: '1'
+          timeout: '10m'

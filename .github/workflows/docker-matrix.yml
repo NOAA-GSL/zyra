@@ -20,7 +20,7 @@ jobs:
   build:
     name: Build ${{ matrix.target.name }} (WITH_WGRIB2=${{ matrix.target.with_wgrib2 }})
     runs-on: ubuntu-latest
-    if: (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || ((matrix.target.name == 'zyra' && matrix.target.with_wgrib2 == 'source') || (matrix.target.name == 'zyra-scheduler' && matrix.target.with_wgrib2 == 'none')))
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     strategy:
       fail-fast: false
       matrix:
@@ -33,14 +33,44 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
+
+      - name: Fetch Git LFS assets (basemaps)
+        shell: bash
+        run: |
+          git lfs install
+          git lfs fetch --all
+          git lfs checkout || git lfs pull
+          if grep -R -n "^version https://git-lfs" src/zyra/assets/images; then
+            echo "ERROR: LFS pointers detected under src/zyra/assets/images" >&2
+            exit 1
+          fi
+
+      - name: Select variants for PRs
+        id: filter
+        shell: bash
+        run: |
+          build=true
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            case "${{ matrix.target.name }}:${{ matrix.target.with_wgrib2 }}" in
+              zyra:source|zyra-scheduler:none) build=true ;;
+              *) build=false ;;
+            esac
+          fi
+          echo "build=$build" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
+        if: steps.filter.outputs.build == 'true'
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
+        if: steps.filter.outputs.build == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Build (no push)
+        if: steps.filter.outputs.build == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -54,3 +84,8 @@ jobs:
           build-args: |
             WITH_WGRIB2=${{ matrix.target.with_wgrib2 }}
           tags: test/${{ matrix.target.name }}:${{ matrix.target.with_wgrib2 }}
+
+      - name: Skip build for non-default PR variants
+        if: steps.filter.outputs.build != 'true'
+        run: |
+          echo "Skipping non-default variant in PR: ${{ matrix.target.name }} WITH_WGRIB2=${{ matrix.target.with_wgrib2 }}"

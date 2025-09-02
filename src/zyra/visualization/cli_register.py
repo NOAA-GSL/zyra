@@ -24,7 +24,10 @@ def register_cli(subparsers: Any) -> None:
     p_hm = subparsers.add_parser("heatmap", help="Visualization: render 2D heatmap")
     p_hm.add_argument("--input", required=True, help="Path to .nc or .npy input")
     p_hm.add_argument("--var", help="Variable name for NetCDF inputs")
-    p_hm.add_argument("--basemap", help="Path to background image")
+    p_hm.add_argument(
+        "--basemap",
+        help="Basemap (path, bare image name, or pkg:ref)",
+    )
     p_hm.add_argument(
         "--extent",
         nargs=4,
@@ -107,7 +110,7 @@ def register_cli(subparsers: Any) -> None:
         help="Directory to write outputs for --inputs",
     )
     p_ct.add_argument("--var", help="Variable name for NetCDF inputs")
-    p_ct.add_argument("--basemap", help="Path to background image")
+    p_ct.add_argument("--basemap", help="Basemap (path, bare image name, or pkg:ref)")
     p_ct.add_argument(
         "--extent",
         nargs=4,
@@ -185,7 +188,7 @@ def register_cli(subparsers: Any) -> None:
     p_vec.add_argument("--vvar")
     p_vec.add_argument("--u")
     p_vec.add_argument("--v")
-    p_vec.add_argument("--basemap")
+    p_vec.add_argument("--basemap", help="Basemap (path, bare image name, or pkg:ref)")
     p_vec.add_argument("--extent", nargs=4, type=float, default=[-180, 180, -90, 90])
     p_vec.add_argument("--width", type=int, default=1024)
     p_vec.add_argument("--height", type=int, default=512)
@@ -226,7 +229,7 @@ def register_cli(subparsers: Any) -> None:
     p_anim.add_argument("--density", type=float, default=0.2)
     p_anim.add_argument("--scale")
     p_anim.add_argument("--color", default="#333333")
-    p_anim.add_argument("--basemap")
+    p_anim.add_argument("--basemap", help="Basemap (path, bare image name, or pkg:ref)")
     p_anim.add_argument("--extent", nargs=4, type=float, default=[-180, 180, -90, 90])
     p_anim.add_argument("--width", type=int, default=1024)
     p_anim.add_argument("--height", type=int, default=512)
@@ -278,7 +281,7 @@ def register_cli(subparsers: Any) -> None:
         help="Filename glob within frames dir (e.g., '*.png'); defaults to first extension found",
     )
     p_cv.add_argument("--fps", type=int, default=30)
-    p_cv.add_argument("--basemap")
+    p_cv.add_argument("--basemap", help="Basemap (path, bare image name, or pkg:ref)")
     p_cv.set_defaults(func=handle_compose_video)
 
     # interactive

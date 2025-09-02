@@ -1,6 +1,9 @@
 # IDE's
 .idea/
 
+# Local data/output (optional; uncomment if used)
+_work/
+
 # Test artifacts
 test.json
 .fleet/
