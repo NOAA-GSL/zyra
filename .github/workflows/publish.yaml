@@ -4,11 +4,15 @@ on:
   push:
     tags:
       - 'v*'
-  
+
   release:
     types: [published]
   # Allow manual runs if needed
   workflow_dispatch:
+    inputs:
+      force_version:
+        description: "Optional: override version to publish"
+        required: false
 
 concurrency:
   group: pypi-publish-${{ github.ref }}
@@ -56,7 +60,7 @@ jobs:
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Cache Poetry
         uses: actions/cache@v4
@@ -67,37 +71,38 @@ jobs:
 
       - name: Determine version
         id: version
+        env:
+          FORCE_VERSION: ${{ inputs.force_version }}
         run: |
-          FORCE_VERSION="${{ github.event.inputs.force_version }}"
           if [ -n "$FORCE_VERSION" ]; then
             echo "Using manually provided version: $FORCE_VERSION"
-            echo "version=$FORCE_VERSION" >> $GITHUB_OUTPUT
+            echo "version=$FORCE_VERSION" >> "$GITHUB_OUTPUT"
           else
             VERSION="$(poetry version -s)"
             echo "Detected version from pyproject.toml: $VERSION"
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Ensure tag matches version (only for tag builds)
         if: startsWith(github.ref, 'refs/tags/')
+        env:
+          REL_TAG: ${{ github.event.release.tag_name }}
+          GITHUB_REF_FULL: ${{ github.ref }}
         run: |
-
-          TAG_INPUT="${GITHUB_REF#refs/tags/}"
-          # Prefer release tag_name if present
-          if [ -n "${{ github.event.release.tag_name }}" ]; then
-            TAG_INPUT="${{ github.event.release.tag_name }}"
+          TAG_INPUT="${GITHUB_REF_FULL#refs/tags/}"
+          if [ -n "$REL_TAG" ]; then
+            TAG_INPUT="$REL_TAG"
           fi
           TAG="$TAG_INPUT"
           VERSION="v$(poetry version -s)"
           echo "Detected TAG=$TAG, pyproject version=$VERSION"
-
           if [ "$TAG" != "$VERSION" ]; then
             echo "Tag $TAG does not match project version $VERSION"
             exit 1
           fi
 
       - name: Clean build directories
-        run: rm -rf dist build *.egg-info
+        run: rm -rf -- dist build ./*.egg-info || true
 
       - name: Build package
         run: poetry build

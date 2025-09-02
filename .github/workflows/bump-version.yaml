@@ -30,13 +30,16 @@ jobs:
       - name: Determine branches
         id: vars
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          INPUT_BRANCH: ${{ inputs.branch }}
         run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "head=${{ github.head_ref }}" >> "$GITHUB_OUTPUT"
-            echo "base=${{ github.base_ref }}" >> "$GITHUB_OUTPUT"
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            { echo "head=$HEAD_REF"; echo "base=$BASE_REF"; } >> "$GITHUB_OUTPUT"
           else
-            echo "head=${{ inputs.branch }}" >> "$GITHUB_OUTPUT"
-            echo "base=main" >> "$GITHUB_OUTPUT"
+            { echo "head=$INPUT_BRANCH"; echo "base=main"; } >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout repository
@@ -64,8 +67,10 @@ jobs:
             poetry-${{ runner.os }}-
 
       - name: Fetch base branch
+        env:
+          BASE: ${{ steps.vars.outputs.base }}
         run: |
-          git fetch origin "${{ steps.vars.outputs.base }}"
+          git fetch origin "$BASE"
 
       - name: Determine if version bump is needed
         id: check

@@ -74,7 +74,7 @@ jobs:
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Cache Poetry
         uses: actions/cache@v4
@@ -84,7 +84,7 @@ jobs:
           restore-keys: poetry-${{ runner.os }}-
 
       - name: Clean build directories
-        run: rm -rf dist build *.egg-info
+        run: rm -rf -- dist build ./*.egg-info || true
 
       - name: Build package
         run: poetry build

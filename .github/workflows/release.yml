@@ -32,7 +32,7 @@ jobs:
           else
             VERSION=$(grep -Po '^(?=version\s*=)version\s*=\s*"\K[^"]+' pyproject.toml)
           fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Ensure version bump (tag must not exist)
         run: |

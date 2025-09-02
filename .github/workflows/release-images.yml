@@ -48,11 +48,15 @@ jobs:
       - name: Compute ref
         id: setref
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          GITHUB_REF_FULL: ${{ github.ref }}
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "ref=refs/tags/${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            { echo "ref=refs/tags/$INPUT_TAG"; } >> "$GITHUB_OUTPUT"
           else
-            echo "ref=${{ github.ref }}" >> "$GITHUB_OUTPUT"
+            { echo "ref=$GITHUB_REF_FULL"; } >> "$GITHUB_OUTPUT"
           fi
 
       - name: Extract tag/version
