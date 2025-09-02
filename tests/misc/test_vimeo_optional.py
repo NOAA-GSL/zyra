@@ -1,14 +1,20 @@
 import importlib
-from unittest.mock import patch
+import sys
+import types
+from unittest.mock import Mock, patch
 
 import pytest
 
 
 @pytest.fixture
 def vimeo_client():
-    """Fixture to mock VimeoClient where used (connectors-based flows will patch when added)."""
-    with patch("vimeo.VimeoClient") as mock_vimeo_client:
-        yield mock_vimeo_client
+    """Provide a dummy ``vimeo`` module with a mock VimeoClient.
+
+    Avoids relying on a local stub or requiring the third-party package.
+    """
+    dummy = types.SimpleNamespace(VimeoClient=Mock(name="VimeoClient"))
+    with patch.dict(sys.modules, {"vimeo": dummy}):
+        yield dummy.VimeoClient
 
 
 def test_vimeo_import_and_patch(vimeo_client):
