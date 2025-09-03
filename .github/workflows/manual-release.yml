@@ -21,15 +21,21 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Ensure tag does not already exist
+      - name: Check if tag exists
+        id: checktag
+        shell: bash
         run: |
           TAG="v${{ inputs.version }}"
           if git ls-remote --tags origin | grep -q "refs/tags/${TAG}$"; then
-            echo "❌ Tag ${TAG} already exists"
-            exit 1
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Tag ${TAG} already exists; will skip creation"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ Tag ${TAG} does not exist; will create it"
           fi
 
       - name: Create tag and GitHub Release
+        if: steps.checktag.outputs.exists != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
