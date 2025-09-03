@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 
 from zyra.utils.cli_helpers import configure_logging_from_env
 from zyra.visualization.cli_utils import features_from_ns
@@ -8,6 +9,12 @@ from zyra.visualization.cli_utils import features_from_ns
 
 def handle_interactive(ns) -> int:
     """Handle ``visualize interactive`` CLI subcommand."""
+    if getattr(ns, "verbose", False):
+        os.environ["ZYRA_VERBOSITY"] = "debug"
+    elif getattr(ns, "quiet", False):
+        os.environ["ZYRA_VERBOSITY"] = "quiet"
+    if getattr(ns, "trace", False):
+        os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
     # Lazy import to reduce startup cost when visualization isn't used
     from zyra.visualization.interactive_manager import InteractiveManager

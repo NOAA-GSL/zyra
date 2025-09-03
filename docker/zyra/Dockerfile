@@ -89,9 +89,26 @@ ARG ZYRA_EXTRAS
 ARG ZYRA_EXTRAS_ARM64
 RUN set -eux; \
     EXTRAS="$ZYRA_EXTRAS"; \
-    if [ "${TARGETARCH}" = "arm64" ] && [ -n "${ZYRA_EXTRAS_ARM64}" ]; then \
-      EXTRAS="${ZYRA_EXTRAS_ARM64}"; \
-      echo "Using arm64-specific extras: ${EXTRAS}"; \
+    if [ "${TARGETARCH}" = "arm64" ]; then \
+      if [ -n "${ZYRA_EXTRAS_ARM64}" ]; then \
+        EXTRAS="${ZYRA_EXTRAS_ARM64}"; \
+        echo "Using arm64-specific extras: ${EXTRAS}"; \
+      else \
+        echo "ARM64: installing zyra without pygrib (use cfgrib/wgrib2)"; \
+        if [ -z "$ZYRA_VERSION" ] || [ "$ZYRA_VERSION" = "latest" ]; then \
+          pip install --no-cache-dir --no-compile zyra; \
+        else \
+          pip install --no-cache-dir --no-compile "zyra==${ZYRA_VERSION}"; \
+        fi; \
+        # Manually install processing/visualization/connectors deps excluding pygrib
+        pip install --no-cache-dir --no-compile \
+          boto3 PyVimeo requests \
+          scipy siphon ffmpeg-python cfgrib netcdf4 xarray rioxarray rasterio \
+          cartopy matplotlib; \
+        # Ensure modern setuptools for C-ext builds
+        pip install --no-cache-dir --upgrade 'setuptools>=78.1.1'; \
+        exit 0; \
+      fi; \
     fi; \
     if [ -z "$ZYRA_VERSION" ] || [ "$ZYRA_VERSION" = "latest" ]; then \
       if [ -n "$EXTRAS" ]; then \

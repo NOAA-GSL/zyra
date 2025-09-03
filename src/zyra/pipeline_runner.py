@@ -361,6 +361,7 @@ def run_pipeline(
     start: int | None = None,
     end: int | None = None,
     only: str | None = None,
+    trace: bool = False,
 ) -> int:
     """Execute a pipeline from YAML/JSON with optional filtering and dry-run.
 
@@ -443,6 +444,17 @@ def run_pipeline(
 
     for idx, st in enumerate(selected):
         argv = _build_argv_for_stage(st)
+        # If tracing, echo the command that will run
+        if trace and not (print_argv or dry_run):
+            try:
+                import logging as _log
+
+                from zyra.utils.cli_helpers import sanitize_for_log
+
+                _log.info("+ cwd='%s'", str(Path.cwd()))
+                _log.info("+ %s", sanitize_for_log(" ".join(["zyra", *argv])))
+            except Exception:
+                pass
         if print_argv or dry_run:
             if print_format == "json":
                 printed_objects.append(
@@ -462,6 +474,9 @@ def run_pipeline(
                 sys.stdout.write(line + "\n")
         if dry_run:
             continue
+        # Propagate shell tracing to in-process stages when requested
+        if trace:
+            os.environ["ZYRA_SHELL_TRACE"] = "1"
         rc, out, _ = _run_cli(argv, current)
         # If the very first stage failed and it appears to require stdin ('-') but none was provided,
         # emit a helpful hint to stderr for CI logs.
@@ -543,6 +558,11 @@ def register_cli_run(subparsers: Any) -> None:
     p.add_argument("--print-argv-format", choices=["text", "json"], default="text")
     p.add_argument(
         "--dry-run", action="store_true", help="Only print argv; do not execute stages"
+    )
+    p.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace: print '+ <command>' and working directory per stage",
     )
     p.add_argument(
         "--continue-on-error",
@@ -778,6 +798,7 @@ def register_cli_run(subparsers: Any) -> None:
             start=ns.start,
             end=ns.end,
             only=ns.only,
+            trace=ns.trace,
         )
 
     p.set_defaults(func=_cmd)

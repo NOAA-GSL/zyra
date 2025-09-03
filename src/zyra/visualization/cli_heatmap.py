@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 
 from zyra.utils.cli_helpers import configure_logging_from_env
@@ -13,6 +14,12 @@ def handle_heatmap(ns) -> int:
     # Lazy import to reduce startup cost when visualization isn't used
     from zyra.visualization.heatmap_manager import HeatmapManager
 
+    if getattr(ns, "verbose", False):
+        os.environ["ZYRA_VERBOSITY"] = "debug"
+    elif getattr(ns, "quiet", False):
+        os.environ["ZYRA_VERBOSITY"] = "quiet"
+    if getattr(ns, "trace", False):
+        os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
     # Batch mode: --inputs with --output-dir
     if getattr(ns, "inputs", None):
@@ -63,6 +70,14 @@ def handle_heatmap(ns) -> int:
             pass
         return 0
     bmap, guard = resolve_basemap_ref(getattr(ns, "basemap", None))
+    if os.environ.get("ZYRA_SHELL_TRACE"):
+        logging.info("+ input='%s'", ns.input)
+        if getattr(ns, "output", None):
+            logging.info("+ output='%s'", ns.output)
+        logging.info("+ extent=%s", " ".join(map(str, ns.extent)))
+        logging.info("+ size=%dx%d dpi=%d", ns.width, ns.height, ns.dpi)
+        if bmap:
+            logging.info("+ basemap='%s'", bmap)
     mgr = HeatmapManager(basemap=bmap, extent=ns.extent)
     features = features_from_ns(ns)
     mgr.render(
