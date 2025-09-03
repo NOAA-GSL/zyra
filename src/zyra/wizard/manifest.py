@@ -182,10 +182,17 @@ def _collect_options(p: argparse.ArgumentParser) -> dict[str, object]:
                 # Additional metadata
                 choices = list(getattr(act, "choices", []) or [])
                 required = bool(getattr(act, "required", False))
-                # Map argparse type to a simple string
+                # Map argparse action/type to a simple string
                 t = getattr(act, "type", None)
-                type_str: str | None = None
-                if is_path:
+                action_name = act.__class__.__name__
+                # Detect boolean flags (store_true/store_false)
+                is_bool_flag = action_name.endswith(
+                    "StoreTrueAction"
+                ) or action_name.endswith("StoreFalseAction")
+                type_str: str | None
+                if is_bool_flag:
+                    type_str = "bool"
+                elif is_path:
                     type_str = "path"
                 elif t is int:
                     type_str = "int"
@@ -237,7 +244,10 @@ def _collect_options(p: argparse.ArgumentParser) -> dict[str, object]:
                     if required:
                         obj["required"] = True
                     if default_val is not None:
-                        obj["default"] = default_val
+                        # Coerce default for bool flags to a true boolean
+                        obj["default"] = (
+                            bool(default_val) if type_str == "bool" else default_val
+                        )
                     if sensitive:
                         obj["sensitive"] = True
                     opts[opt] = obj

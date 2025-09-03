@@ -167,10 +167,12 @@ class VideoProcessor(DataProcessor):
             logging.debug(f"Found {len(files)} files.")
             if input_glob:
                 input_pattern = f"{self.input_directory}/{input_glob}"
+                file_info = f"glob='{input_glob}'"
             else:
                 file_extension = files[0].suffix
                 input_pattern = f"{self.input_directory}/*{file_extension}"
-            logging.debug(f"Processing files with extension: {file_extension}")
+                file_info = f"extension: {file_extension}"
+            logging.debug(f"Processing files with {file_info}")
             trace = os.environ.get("ZYRA_SHELL_TRACE")
             if trace:
                 logging.info("+ frames=%s", str(len(files)))
@@ -211,7 +213,7 @@ class VideoProcessor(DataProcessor):
                             timeout_s = float(
                                 os.environ.get("ZYRA_FFPROBE_TIMEOUT", "3")
                             )
-                        except Exception:
+                        except (ValueError, TypeError):
                             timeout_s = 3.0
                         proc = subprocess.run(
                             [
