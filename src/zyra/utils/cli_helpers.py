@@ -109,7 +109,7 @@ def sanitize_for_log(text: str) -> str:
     s = re.sub(r"(://[^/@:]+:)[^@]+(@)", r"\1***\2", s)
     # Query parameters with sensitive names (case-insensitive)
     s = re.sub(
-        r"(?i)([?&])(token|access_token|signature|sig|x-amz-signature|x-amz-credential|x-amz-security-token|apikey|api_key|key|secret|password)=([^&#\s]+)",
+        r"(?i)([?&])(token|access_token|refresh_token|authorization_code|signature|sig|x-amz-signature|x-amz-credential|x-amz-security-token|apikey|api_key|access_key|client_secret|secret|password)=([^&#\s]+)",
         r"\1\2=***",
         s,
     )

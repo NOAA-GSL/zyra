@@ -275,9 +275,13 @@ def register_cli(acq_subparsers: Any) -> None:
         dest="output_dir",
         help="Directory to write outputs for --inputs",
     )
-    p_http.add_argument("--verbose", action="store_true")
-    p_http.add_argument("--quiet", action="store_true")
-    p_http.add_argument("--trace", action="store_true")
+    p_http.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
+    p_http.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p_http.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
     p_http.set_defaults(func=_cmd_http)
 
     # s3
@@ -314,9 +318,13 @@ def register_cli(acq_subparsers: Any) -> None:
         help="Directory to write outputs for --inputs",
     )
     add_output_option(p_s3)
-    p_s3.add_argument("--verbose", action="store_true")
-    p_s3.add_argument("--quiet", action="store_true")
-    p_s3.add_argument("--trace", action="store_true")
+    p_s3.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
+    p_s3.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p_s3.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
     p_s3.set_defaults(func=_cmd_s3)
 
     # ftp
@@ -351,9 +359,13 @@ def register_cli(acq_subparsers: Any) -> None:
         dest="output_dir",
         help="Directory to write outputs for --inputs",
     )
-    p_ftp.add_argument("--verbose", action="store_true")
-    p_ftp.add_argument("--quiet", action="store_true")
-    p_ftp.add_argument("--trace", action="store_true")
+    p_ftp.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
+    p_ftp.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p_ftp.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
     p_ftp.set_defaults(func=_cmd_ftp)
 
     # vimeo (placeholder)
@@ -362,7 +374,11 @@ def register_cli(acq_subparsers: Any) -> None:
     )
     p_vimeo.add_argument("video_id")
     add_output_option(p_vimeo)
-    p_vimeo.add_argument("--verbose", action="store_true")
-    p_vimeo.add_argument("--quiet", action="store_true")
-    p_vimeo.add_argument("--trace", action="store_true")
+    p_vimeo.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
+    p_vimeo.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p_vimeo.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
     p_vimeo.set_defaults(func=_cmd_vimeo)

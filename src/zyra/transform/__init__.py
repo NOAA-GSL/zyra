@@ -146,9 +146,13 @@ def register_cli(subparsers: Any) -> None:
     from zyra.cli_common import add_output_option
 
     add_output_option(p)
-    p.add_argument("--verbose", action="store_true")
-    p.add_argument("--quiet", action="store_true")
-    p.add_argument("--trace", action="store_true")
+    p.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
+    p.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
     p.set_defaults(func=_cmd_metadata)
 
     # Enrich metadata with dataset_id, vimeo_uri, and updated_at
@@ -244,9 +248,13 @@ def register_cli(subparsers: Any) -> None:
         help="Read Vimeo URI from stdin (first line)",
     )
     add_output_option(p2)
-    p2.add_argument("--verbose", action="store_true")
-    p2.add_argument("--quiet", action="store_true")
-    p2.add_argument("--trace", action="store_true")
+    p2.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
+    p2.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p2.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
     p2.set_defaults(func=_cmd_enrich)
 
     # Enrich a list of dataset items (id,name,description,source,format,uri)
@@ -398,9 +406,13 @@ def register_cli(subparsers: Any) -> None:
         "--max-probe-bytes", type=int, help="Skip probing when larger than this size"
     )
     add_output_option(p3)
-    p3.add_argument("--verbose", action="store_true")
-    p3.add_argument("--quiet", action="store_true")
-    p3.add_argument("--trace", action="store_true")
+    p3.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
+    p3.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p3.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
     p3.set_defaults(func=_cmd_enrich_datasets)
 
     # Update a dataset.json entry's startTime/endTime (and optionally dataLink) by dataset id
@@ -544,7 +556,11 @@ def register_cli(subparsers: Any) -> None:
     )
     p3.set_defaults(set_data_link=True)
     add_output_option(p3)
-    p3.add_argument("--verbose", action="store_true")
-    p3.add_argument("--quiet", action="store_true")
-    p3.add_argument("--trace", action="store_true")
+    p3.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
+    p3.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p3.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
     p3.set_defaults(func=_cmd_update_dataset)

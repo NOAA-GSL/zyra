@@ -184,11 +184,29 @@ def _collect_options(p: argparse.ArgumentParser) -> dict[str, object]:
                 required = bool(getattr(act, "required", False))
                 # Map argparse action/type to a simple string
                 t = getattr(act, "type", None)
-                action_name = act.__class__.__name__
-                # Detect boolean flags (store_true/store_false)
-                is_bool_flag = action_name.endswith(
-                    "StoreTrueAction"
-                ) or action_name.endswith("StoreFalseAction")
+                # Detect boolean flags (store_true/store_false) robustly
+                try:
+                    import argparse as _ap
+
+                    bool_types = tuple(
+                        c
+                        for c in (
+                            getattr(_ap, "_StoreTrueAction", None),
+                            getattr(_ap, "_StoreFalseAction", None),
+                        )
+                        if c is not None
+                    )
+                except Exception:  # pragma: no cover
+                    bool_types = tuple()
+                is_bool_flag = bool(bool_types) and isinstance(act, bool_types)
+                if not is_bool_flag:
+                    # Heuristic fallback
+                    is_bool_flag = (
+                        bool(getattr(act, "option_strings", None))
+                        and getattr(act, "nargs", None) == 0
+                        and getattr(act, "const", None) in (True, False)
+                        and t in (None, bool)
+                    )
                 type_str: str | None
                 if is_bool_flag:
                     type_str = "bool"

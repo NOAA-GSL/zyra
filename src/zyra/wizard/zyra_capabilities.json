@@ -58,17 +58,17 @@
         "type": "path"
       },
       "--verbose": {
-        "help": "",
+        "help": "Verbose logging for this command",
         "type": "bool",
         "default": false
       },
       "--quiet": {
-        "help": "",
+        "help": "Quiet logging for this command",
         "type": "bool",
         "default": false
       },
       "--trace": {
-        "help": "",
+        "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
       }
@@ -153,17 +153,17 @@
         "default": "-"
       },
       "--verbose": {
-        "help": "",
+        "help": "Verbose logging for this command",
         "type": "bool",
         "default": false
       },
       "--quiet": {
-        "help": "",
+        "help": "Quiet logging for this command",
         "type": "bool",
         "default": false
       },
       "--trace": {
-        "help": "",
+        "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
       }
@@ -231,17 +231,17 @@
         "type": "path"
       },
       "--verbose": {
-        "help": "",
+        "help": "Verbose logging for this command",
         "type": "bool",
         "default": false
       },
       "--quiet": {
-        "help": "",
+        "help": "Quiet logging for this command",
         "type": "bool",
         "default": false
       },
       "--trace": {
-        "help": "",
+        "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
       }
@@ -280,17 +280,17 @@
         "default": "-"
       },
       "--verbose": {
-        "help": "",
+        "help": "Verbose logging for this command",
         "type": "bool",
         "default": false
       },
       "--quiet": {
-        "help": "",
+        "help": "Quiet logging for this command",
         "type": "bool",
         "default": false
       },
       "--trace": {
-        "help": "",
+        "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
       }
@@ -347,17 +347,17 @@
         "default": false
       },
       "--verbose": {
-        "help": "",
+        "help": "Verbose logging for this command",
         "type": "bool",
         "default": false
       },
       "--quiet": {
-        "help": "",
+        "help": "Quiet logging for this command",
         "type": "bool",
         "default": false
       },
       "--trace": {
-        "help": "",
+        "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
       }
@@ -416,17 +416,17 @@
         "default": "netcdf"
       },
       "--verbose": {
-        "help": "",
+        "help": "Verbose logging for this command",
         "type": "bool",
         "default": false
       },
       "--quiet": {
-        "help": "",
+        "help": "Quiet logging for this command",
         "type": "bool",
         "default": false
       },
       "--trace": {
-        "help": "",
+        "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
       }
@@ -509,17 +509,17 @@
         "default": false
       },
       "--verbose": {
-        "help": "",
+        "help": "Verbose logging for this command",
         "type": "bool",
         "default": false
       },
       "--quiet": {
-        "help": "",
+        "help": "Quiet logging for this command",
         "type": "bool",
         "default": false
       },
       "--trace": {
-        "help": "",
+        "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
       }
@@ -1666,17 +1666,17 @@
         "required": true
       },
       "--verbose": {
-        "help": "",
+        "help": "Verbose logging for this command",
         "type": "bool",
         "default": false
       },
       "--quiet": {
-        "help": "",
+        "help": "Quiet logging for this command",
         "type": "bool",
         "default": false
       },
       "--trace": {
-        "help": "",
+        "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
       }
@@ -1726,17 +1726,17 @@
       "--bucket": "Bucket name",
       "--key": "Object key (when using --bucket)",
       "--verbose": {
-        "help": "",
+        "help": "Verbose logging for this command",
         "type": "bool",
         "default": false
       },
       "--quiet": {
-        "help": "",
+        "help": "Quiet logging for this command",
         "type": "bool",
         "default": false
       },
       "--trace": {
-        "help": "",
+        "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
       }
@@ -1768,17 +1768,17 @@
         "required": true
       },
       "--verbose": {
-        "help": "",
+        "help": "Verbose logging for this command",
         "type": "bool",
         "default": false
       },
       "--quiet": {
-        "help": "",
+        "help": "Quiet logging for this command",
         "type": "bool",
         "default": false
       },
       "--trace": {
-        "help": "",
+        "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
       }
@@ -1819,17 +1819,17 @@
       },
       "--content-type": "Content-Type header",
       "--verbose": {
-        "help": "",
+        "help": "Verbose logging for this command",
         "type": "bool",
         "default": false
       },
       "--quiet": {
-        "help": "",
+        "help": "Quiet logging for this command",
         "type": "bool",
         "default": false
       },
       "--trace": {
-        "help": "",
+        "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
       }
@@ -1876,17 +1876,17 @@
       "--description-file": "Read description text from a file (UTF-8)",
       "--replace-uri": "Replace existing video at this Vimeo URI",
       "--verbose": {
-        "help": "",
+        "help": "Verbose logging for this command",
         "type": "bool",
         "default": false
       },
       "--quiet": {
-        "help": "",
+        "help": "Quiet logging for this command",
         "type": "bool",
         "default": false
       },
       "--trace": {
-        "help": "",
+        "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
       }
@@ -1934,17 +1934,17 @@
         "default": "-"
       },
       "--verbose": {
-        "help": "",
+        "help": "Verbose logging for this command",
         "type": "bool",
         "default": false
       },
       "--quiet": {
-        "help": "",
+        "help": "Quiet logging for this command",
         "type": "bool",
         "default": false
       },
       "--trace": {
-        "help": "",
+        "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
       }
@@ -1998,17 +1998,17 @@
         "default": "-"
       },
       "--verbose": {
-        "help": "",
+        "help": "Verbose logging for this command",
         "type": "bool",
         "default": false
       },
       "--quiet": {
-        "help": "",
+        "help": "Quiet logging for this command",
         "type": "bool",
         "default": false
       },
       "--trace": {
-        "help": "",
+        "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
       }
@@ -2100,17 +2100,17 @@
         "default": "-"
       },
       "--verbose": {
-        "help": "",
+        "help": "Verbose logging for this command",
         "type": "bool",
         "default": false
       },
       "--quiet": {
-        "help": "",
+        "help": "Quiet logging for this command",
         "type": "bool",
         "default": false
       },
       "--trace": {
-        "help": "",
+        "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
       }
@@ -2180,17 +2180,17 @@
         "default": "-"
       },
       "--verbose": {
-        "help": "",
+        "help": "Verbose logging for this command",
         "type": "bool",
         "default": false
       },
       "--quiet": {
-        "help": "",
+        "help": "Quiet logging for this command",
         "type": "bool",
         "default": false
       },
       "--trace": {
-        "help": "",
+        "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
       }
