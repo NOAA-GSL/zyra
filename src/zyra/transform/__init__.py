@@ -146,8 +146,12 @@ def register_cli(subparsers: Any) -> None:
     from zyra.cli_common import add_output_option
 
     add_output_option(p)
-    p.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
-    p.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
     p.add_argument(
         "--trace",
         action="store_true",
@@ -248,8 +252,12 @@ def register_cli(subparsers: Any) -> None:
         help="Read Vimeo URI from stdin (first line)",
     )
     add_output_option(p2)
-    p2.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
-    p2.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p2.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p2.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
     p2.add_argument(
         "--trace",
         action="store_true",
@@ -406,8 +414,12 @@ def register_cli(subparsers: Any) -> None:
         "--max-probe-bytes", type=int, help="Skip probing when larger than this size"
     )
     add_output_option(p3)
-    p3.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
-    p3.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p3.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p3.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
     p3.add_argument(
         "--trace",
         action="store_true",
@@ -556,8 +568,12 @@ def register_cli(subparsers: Any) -> None:
     )
     p3.set_defaults(set_data_link=True)
     add_output_option(p3)
-    p3.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
-    p3.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p3.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p3.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
     p3.add_argument(
         "--trace",
         action="store_true",

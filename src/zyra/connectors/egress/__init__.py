@@ -122,8 +122,12 @@ def register_cli(dec_subparsers: Any) -> None:
     p_local = dec_subparsers.add_parser("local", help="Write to local file")
     add_input_option(p_local, required=True)
     p_local.add_argument("path", help="Destination file path")
-    p_local.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
-    p_local.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p_local.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_local.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
     p_local.add_argument(
         "--trace",
         action="store_true",
@@ -144,8 +148,12 @@ def register_cli(dec_subparsers: Any) -> None:
     grp.add_argument("--url", help="Full URL s3://bucket/key")
     grp.add_argument("--bucket", help="Bucket name")
     p_s3.add_argument("--key", help="Object key (when using --bucket)")
-    p_s3.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
-    p_s3.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p_s3.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_s3.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
     p_s3.add_argument(
         "--trace",
         action="store_true",
@@ -157,8 +165,12 @@ def register_cli(dec_subparsers: Any) -> None:
     p_ftp = dec_subparsers.add_parser("ftp", help="Upload to FTP")
     add_input_option(p_ftp, required=True)
     p_ftp.add_argument("path", help="ftp://host/path or host/path")
-    p_ftp.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
-    p_ftp.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p_ftp.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_ftp.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
     p_ftp.add_argument(
         "--trace",
         action="store_true",
@@ -173,8 +185,12 @@ def register_cli(dec_subparsers: Any) -> None:
     p_post.add_argument(
         "--content-type", dest="content_type", help="Content-Type header"
     )
-    p_post.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
-    p_post.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p_post.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_post.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
     p_post.add_argument(
         "--trace",
         action="store_true",
@@ -275,8 +291,12 @@ def register_cli(dec_subparsers: Any) -> None:
         dest="replace_uri",
         help="Replace existing video at this Vimeo URI",
     )
-    p_vimeo.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
-    p_vimeo.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p_vimeo.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_vimeo.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
     p_vimeo.add_argument(
         "--trace",
         action="store_true",

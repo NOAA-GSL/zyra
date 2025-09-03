@@ -275,8 +275,12 @@ def register_cli(acq_subparsers: Any) -> None:
         dest="output_dir",
         help="Directory to write outputs for --inputs",
     )
-    p_http.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
-    p_http.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p_http.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_http.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
     p_http.add_argument(
         "--trace",
         action="store_true",
@@ -318,8 +322,12 @@ def register_cli(acq_subparsers: Any) -> None:
         help="Directory to write outputs for --inputs",
     )
     add_output_option(p_s3)
-    p_s3.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
-    p_s3.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p_s3.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_s3.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
     p_s3.add_argument(
         "--trace",
         action="store_true",
@@ -359,8 +367,12 @@ def register_cli(acq_subparsers: Any) -> None:
         dest="output_dir",
         help="Directory to write outputs for --inputs",
     )
-    p_ftp.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
-    p_ftp.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p_ftp.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_ftp.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
     p_ftp.add_argument(
         "--trace",
         action="store_true",
@@ -374,8 +386,12 @@ def register_cli(acq_subparsers: Any) -> None:
     )
     p_vimeo.add_argument("video_id")
     add_output_option(p_vimeo)
-    p_vimeo.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
-    p_vimeo.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p_vimeo.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_vimeo.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
     p_vimeo.add_argument(
         "--trace",
         action="store_true",

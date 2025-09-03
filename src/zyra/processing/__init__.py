@@ -336,8 +336,12 @@ def register_cli(subparsers: Any) -> None:
         action="store_true",
         help="Emit raw (optionally .idx-subset) GRIB2 bytes to stdout",
     )
-    p_dec.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
-    p_dec.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p_dec.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_dec.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
     p_dec.add_argument(
         "--trace",
         action="store_true",
@@ -364,8 +368,12 @@ def register_cli(subparsers: Any) -> None:
         choices=["netcdf", "grib2"],
         help="Output format for --stdout",
     )
-    p_ext.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
-    p_ext.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p_ext.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_ext.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
     p_ext.add_argument(
         "--trace",
         action="store_true",
@@ -405,8 +413,12 @@ def register_cli(subparsers: Any) -> None:
         action="store_true",
         help="Use unsigned S3 access for public buckets",
     )
-    p_conv.add_argument("--verbose", action="store_true", help="Verbose logging for this command")
-    p_conv.add_argument("--quiet", action="store_true", help="Quiet logging for this command")
+    p_conv.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_conv.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
     p_conv.add_argument(
         "--trace",
         action="store_true",
