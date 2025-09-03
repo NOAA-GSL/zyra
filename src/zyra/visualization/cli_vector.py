@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 
 from zyra.utils.cli_helpers import configure_logging_from_env
@@ -13,6 +14,12 @@ def handle_vector(ns) -> int:
     # Lazy import to reduce startup cost when visualization isn't used
     from zyra.visualization.vector_field_manager import VectorFieldManager
 
+    if getattr(ns, "verbose", False):
+        os.environ["ZYRA_VERBOSITY"] = "debug"
+    elif getattr(ns, "quiet", False):
+        os.environ["ZYRA_VERBOSITY"] = "quiet"
+    if getattr(ns, "trace", False):
+        os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
     # Batch mode
     if getattr(ns, "inputs", None):
@@ -67,6 +74,15 @@ def handle_vector(ns) -> int:
             pass
         return 0
     bmap, guard = resolve_basemap_ref(getattr(ns, "basemap", None))
+    if os.environ.get("ZYRA_SHELL_TRACE"):
+        if getattr(ns, "input", None):
+            logging.info("+ input='%s'", ns.input)
+        if getattr(ns, "output", None):
+            logging.info("+ output='%s'", ns.output)
+        logging.info("+ extent=%s", " ".join(map(str, ns.extent)))
+        logging.info("+ size=%dx%d dpi=%d", ns.width, ns.height, ns.dpi)
+        if bmap:
+            logging.info("+ basemap='%s'", bmap)
     mgr = VectorFieldManager(
         basemap=bmap,
         extent=ns.extent,

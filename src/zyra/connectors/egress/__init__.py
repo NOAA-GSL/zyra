@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from typing import Any
 
 from zyra.cli_common import add_input_option
@@ -19,6 +20,12 @@ def _read_all(path_or_dash: str) -> bytes:
 
 def _cmd_local(ns: argparse.Namespace) -> int:
     """Write stdin or input file to a local path (creates parents)."""
+    if getattr(ns, "verbose", False):
+        os.environ["ZYRA_VERBOSITY"] = "debug"
+    elif getattr(ns, "quiet", False):
+        os.environ["ZYRA_VERBOSITY"] = "quiet"
+    if getattr(ns, "trace", False):
+        os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
     from pathlib import Path
 
@@ -33,12 +40,20 @@ def _cmd_local(ns: argparse.Namespace) -> int:
         raise SystemExit(f"Failed to write local file: {exc}") from exc
     import logging
 
+    if os.environ.get("ZYRA_SHELL_TRACE"):
+        logging.info("+ write '%s'", str(dest))
     logging.info(str(dest))
     return 0
 
 
 def _cmd_s3(ns: argparse.Namespace) -> int:
     """Upload stdin or input file to S3 (s3:// or bucket/key)."""
+    if getattr(ns, "verbose", False):
+        os.environ["ZYRA_VERBOSITY"] = "debug"
+    elif getattr(ns, "quiet", False):
+        os.environ["ZYRA_VERBOSITY"] = "quiet"
+    if getattr(ns, "trace", False):
+        os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
     # Validate mutually exclusive input sources
     read_stdin = bool(getattr(ns, "read_stdin", False))
@@ -53,6 +68,15 @@ def _cmd_s3(ns: argparse.Namespace) -> int:
     if not getattr(ns, "input", None):
         raise SystemExit("Missing input: specify --input PATH or use --read-stdin")
     data = _read_all(ns.input)
+    if os.environ.get("ZYRA_SHELL_TRACE"):
+        import logging as _log
+
+        from zyra.utils.cli_helpers import sanitize_for_log
+
+        target = (
+            ns.url if getattr(ns, "url", None) else f"s3://{ns.bucket}/{ns.key or ''}"
+        )
+        _log.info("+ s3 put '%s'", sanitize_for_log(target))
     ok = s3_backend.upload_bytes(data, ns.url if ns.url else ns.bucket, ns.key)
     if not ok:
         raise SystemExit(2)
@@ -61,6 +85,12 @@ def _cmd_s3(ns: argparse.Namespace) -> int:
 
 def _cmd_ftp(ns: argparse.Namespace) -> int:
     """Upload stdin or input file to FTP."""
+    if getattr(ns, "verbose", False):
+        os.environ["ZYRA_VERBOSITY"] = "debug"
+    elif getattr(ns, "quiet", False):
+        os.environ["ZYRA_VERBOSITY"] = "quiet"
+    if getattr(ns, "trace", False):
+        os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
     data = _read_all(ns.input)
     ftp_backend.upload_bytes(data, ns.path)
@@ -69,8 +99,20 @@ def _cmd_ftp(ns: argparse.Namespace) -> int:
 
 def _cmd_post(ns: argparse.Namespace) -> int:
     """HTTP POST stdin or input file to a URL with optional content-type."""
+    if getattr(ns, "verbose", False):
+        os.environ["ZYRA_VERBOSITY"] = "debug"
+    elif getattr(ns, "quiet", False):
+        os.environ["ZYRA_VERBOSITY"] = "quiet"
+    if getattr(ns, "trace", False):
+        os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
     data = _read_all(ns.input)
+    if os.environ.get("ZYRA_SHELL_TRACE"):
+        import logging as _log
+
+        from zyra.utils.cli_helpers import sanitize_for_log
+
+        _log.info("+ http post '%s'", sanitize_for_log(ns.url))
     http_backend.post_bytes(ns.url, data, content_type=ns.content_type)
     return 0
 
@@ -80,6 +122,9 @@ def register_cli(dec_subparsers: Any) -> None:
     p_local = dec_subparsers.add_parser("local", help="Write to local file")
     add_input_option(p_local, required=True)
     p_local.add_argument("path", help="Destination file path")
+    p_local.add_argument("--verbose", action="store_true")
+    p_local.add_argument("--quiet", action="store_true")
+    p_local.add_argument("--trace", action="store_true")
     p_local.set_defaults(func=_cmd_local)
 
     # s3
@@ -95,12 +140,18 @@ def register_cli(dec_subparsers: Any) -> None:
     grp.add_argument("--url", help="Full URL s3://bucket/key")
     grp.add_argument("--bucket", help="Bucket name")
     p_s3.add_argument("--key", help="Object key (when using --bucket)")
+    p_s3.add_argument("--verbose", action="store_true")
+    p_s3.add_argument("--quiet", action="store_true")
+    p_s3.add_argument("--trace", action="store_true")
     p_s3.set_defaults(func=_cmd_s3)
 
     # ftp
     p_ftp = dec_subparsers.add_parser("ftp", help="Upload to FTP")
     add_input_option(p_ftp, required=True)
     p_ftp.add_argument("path", help="ftp://host/path or host/path")
+    p_ftp.add_argument("--verbose", action="store_true")
+    p_ftp.add_argument("--quiet", action="store_true")
+    p_ftp.add_argument("--trace", action="store_true")
     p_ftp.set_defaults(func=_cmd_ftp)
 
     # http post
@@ -110,6 +161,9 @@ def register_cli(dec_subparsers: Any) -> None:
     p_post.add_argument(
         "--content-type", dest="content_type", help="Content-Type header"
     )
+    p_post.add_argument("--verbose", action="store_true")
+    p_post.add_argument("--quiet", action="store_true")
+    p_post.add_argument("--trace", action="store_true")
     p_post.set_defaults(func=_cmd_post)
 
     # vimeo
@@ -205,4 +259,7 @@ def register_cli(dec_subparsers: Any) -> None:
         dest="replace_uri",
         help="Replace existing video at this Vimeo URI",
     )
+    p_vimeo.add_argument("--verbose", action="store_true")
+    p_vimeo.add_argument("--quiet", action="store_true")
+    p_vimeo.add_argument("--trace", action="store_true")
     p_vimeo.set_defaults(func=_cmd_vimeo)

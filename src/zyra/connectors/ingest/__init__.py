@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from typing import Any
 
 from zyra.cli_common import add_output_option
@@ -14,6 +15,12 @@ from zyra.utils.io_utils import open_output
 
 def _cmd_http(ns: argparse.Namespace) -> int:
     """Acquire data over HTTP(S) and write to stdout or file."""
+    if getattr(ns, "verbose", False):
+        os.environ["ZYRA_VERBOSITY"] = "debug"
+    elif getattr(ns, "quiet", False):
+        os.environ["ZYRA_VERBOSITY"] = "quiet"
+    if getattr(ns, "trace", False):
+        os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
     inputs = list(getattr(ns, "inputs", []) or [])
     if getattr(ns, "manifest", None):
@@ -66,6 +73,12 @@ def _cmd_http(ns: argparse.Namespace) -> int:
             with (outdir / name).open("wb") as f:
                 f.write(data)
         return 0
+    if os.environ.get("ZYRA_SHELL_TRACE"):
+        import logging as _log
+
+        from zyra.utils.cli_helpers import sanitize_for_log
+
+        _log.info("+ http get '%s'", sanitize_for_log(ns.url))
     data = http_backend.fetch_bytes(ns.url)
     with open_output(ns.output) as f:
         f.write(data)
@@ -74,6 +87,12 @@ def _cmd_http(ns: argparse.Namespace) -> int:
 
 def _cmd_s3(ns: argparse.Namespace) -> int:
     """Acquire data from S3 (s3:// or bucket/key) and write to stdout or file."""
+    if getattr(ns, "verbose", False):
+        os.environ["ZYRA_VERBOSITY"] = "debug"
+    elif getattr(ns, "quiet", False):
+        os.environ["ZYRA_VERBOSITY"] = "quiet"
+    if getattr(ns, "trace", False):
+        os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
     # Batch via s3:// URLs
     inputs = list(getattr(ns, "inputs", []) or [])
@@ -121,6 +140,12 @@ def _cmd_s3(ns: argparse.Namespace) -> int:
         outdir = Path(ns.output_dir)
         outdir.mkdir(parents=True, exist_ok=True)
         for u in inputs:
+            if os.environ.get("ZYRA_SHELL_TRACE"):
+                import logging as _log
+
+                from zyra.utils.cli_helpers import sanitize_for_log
+
+                _log.info("+ s3 get '%s'", sanitize_for_log(u))
             data = s3_backend.fetch_bytes(u, unsigned=ns.unsigned)
             name = Path(u).name or "object.bin"
             with (outdir / name).open("wb") as f:
@@ -212,6 +237,12 @@ def _cmd_ftp(ns: argparse.Namespace) -> int:
 
 def _cmd_vimeo(ns: argparse.Namespace) -> int:  # pragma: no cover - placeholder
     """Placeholder for Vimeo acquisition; not implemented."""
+    if getattr(ns, "verbose", False):
+        os.environ["ZYRA_VERBOSITY"] = "debug"
+    elif getattr(ns, "quiet", False):
+        os.environ["ZYRA_VERBOSITY"] = "quiet"
+    if getattr(ns, "trace", False):
+        os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
     raise SystemExit("acquire vimeo is not implemented yet")
 
@@ -244,6 +275,9 @@ def register_cli(acq_subparsers: Any) -> None:
         dest="output_dir",
         help="Directory to write outputs for --inputs",
     )
+    p_http.add_argument("--verbose", action="store_true")
+    p_http.add_argument("--quiet", action="store_true")
+    p_http.add_argument("--trace", action="store_true")
     p_http.set_defaults(func=_cmd_http)
 
     # s3
@@ -280,6 +314,9 @@ def register_cli(acq_subparsers: Any) -> None:
         help="Directory to write outputs for --inputs",
     )
     add_output_option(p_s3)
+    p_s3.add_argument("--verbose", action="store_true")
+    p_s3.add_argument("--quiet", action="store_true")
+    p_s3.add_argument("--trace", action="store_true")
     p_s3.set_defaults(func=_cmd_s3)
 
     # ftp
@@ -314,6 +351,9 @@ def register_cli(acq_subparsers: Any) -> None:
         dest="output_dir",
         help="Directory to write outputs for --inputs",
     )
+    p_ftp.add_argument("--verbose", action="store_true")
+    p_ftp.add_argument("--quiet", action="store_true")
+    p_ftp.add_argument("--trace", action="store_true")
     p_ftp.set_defaults(func=_cmd_ftp)
 
     # vimeo (placeholder)
@@ -322,4 +362,7 @@ def register_cli(acq_subparsers: Any) -> None:
     )
     p_vimeo.add_argument("video_id")
     add_output_option(p_vimeo)
+    p_vimeo.add_argument("--verbose", action="store_true")
+    p_vimeo.add_argument("--quiet", action="store_true")
+    p_vimeo.add_argument("--trace", action="store_true")
     p_vimeo.set_defaults(func=_cmd_vimeo)

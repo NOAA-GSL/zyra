@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 from typing import Optional  # noqa: F401  (kept for type hints in signatures)
 
@@ -10,6 +11,13 @@ from zyra.visualization.cli_utils import resolve_basemap_ref
 
 def handle_compose_video(ns) -> int:
     """Handle ``visualize compose-video`` CLI subcommand."""
+    # Map per-command verbosity to env before configuring logging
+    if getattr(ns, "verbose", False):
+        os.environ["ZYRA_VERBOSITY"] = "debug"
+    elif getattr(ns, "quiet", False):
+        os.environ["ZYRA_VERBOSITY"] = "quiet"
+    if getattr(ns, "trace", False):
+        os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
     # Lazy import to avoid pulling ffmpeg dependencies unless needed
     from zyra.processing.video_processor import VideoProcessor
@@ -71,17 +79,30 @@ def handle_compose_video(ns) -> int:
         fps=ns.fps,
         input_glob=getattr(ns, "glob", None),
     )
+    # Emit set -x style trace context
+    if os.environ.get("ZYRA_SHELL_TRACE"):
+        logging.info("+ cwd='%s'", str(Path.cwd()))
+        logging.info("+ frames_dir='%s'", str(frames_dir))
+        if getattr(ns, "glob", None):
+            logging.info("+ glob='%s'", str(ns.glob))
+        if basemap_path:
+            logging.info("+ basemap='%s'", basemap_path)
     if not vp.validate():
         logging.warning("ffmpeg/ffprobe not available; skipping video composition")
         return 0
     try:
-        vp.process(fps=ns.fps)
+        result = vp.process(fps=ns.fps)
     finally:
         if basemap_guard is not None:
             try:
                 basemap_guard.close()
             except Exception:
                 pass
+    if not result:
+        logging.error(
+            "Video composition failed; see debug logs above for ffmpeg output"
+        )
+        return 2
     vp.save(str(out_path))
     logging.info(str(out_path))
     return 0

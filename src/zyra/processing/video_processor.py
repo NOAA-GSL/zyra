@@ -1,5 +1,6 @@
 import contextlib
 import logging
+import os
 import shlex
 import subprocess
 from pathlib import Path
@@ -170,6 +171,10 @@ class VideoProcessor(DataProcessor):
                 file_extension = files[0].suffix
                 input_pattern = f"{self.input_directory}/*{file_extension}"
             logging.debug(f"Processing files with extension: {file_extension}")
+            trace = os.environ.get("ZYRA_SHELL_TRACE")
+            if trace:
+                logging.info("+ frames=%s", str(len(files)))
+                logging.info("+ pattern='%s'", input_pattern)
             output_path = self.output_file
             ffmpeg_cmd = "ffmpeg"
             # Resolve optional basemap; support pkg:package/resource form in addition to plain paths.
@@ -199,13 +204,51 @@ class VideoProcessor(DataProcessor):
                     pass
             if basemap_path:
                 ffmpeg_cmd += f" -framerate {fps or self.fps} -loop 1 -i {basemap_path}"
+                if trace:
+                    try:
+                        # Allow override via env to avoid hangs in CI
+                        try:
+                            timeout_s = float(
+                                os.environ.get("ZYRA_FFPROBE_TIMEOUT", "3")
+                            )
+                        except Exception:
+                            timeout_s = 3.0
+                        proc = subprocess.run(
+                            [
+                                "ffprobe",
+                                "-v",
+                                "error",
+                                "-select_streams",
+                                "v:0",
+                                "-show_entries",
+                                "stream=width,height",
+                                "-of",
+                                "csv=p=0:s=x",
+                                basemap_path,
+                            ],
+                            capture_output=True,
+                            text=True,
+                            timeout=timeout_s,
+                        )
+                        dims = (proc.stdout or "").strip()
+                        if dims:
+                            logging.info("+ basemap='%s' (%s)", basemap_path, dims)
+                        else:
+                            logging.info("+ basemap='%s'", basemap_path)
+                    except Exception:
+                        logging.info("+ basemap='%s'", basemap_path)
             ffmpeg_cmd += (
                 f" -framerate {fps or self.fps} -pattern_type glob -i '{input_pattern}'"
             )
             if basemap_path:
                 ffmpeg_cmd += " -filter_complex '[0:v][1:v]overlay=shortest=1'"
             ffmpeg_cmd += f" -r {fps or self.fps} -vcodec libx264 -pix_fmt yuv420p -y {output_path}"
-            logging.info(f"Starting video processing using:{ffmpeg_cmd}")
+            from zyra.utils.cli_helpers import sanitize_for_log
+
+            if trace:
+                logging.info("+ %s", sanitize_for_log(ffmpeg_cmd))
+            else:
+                logging.info(f"Starting video processing using:{ffmpeg_cmd}")
             cmd = shlex.split(ffmpeg_cmd)
             rc = 0
             try:
@@ -213,7 +256,11 @@ class VideoProcessor(DataProcessor):
                     cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
                 ) as proc:
                     for line in proc.stdout:
-                        logging.debug(line.strip())
+                        msg = line.strip()
+                        if trace:
+                            logging.info(msg)
+                        else:
+                            logging.debug(msg)
                     rc = proc.wait()
             finally:
                 if basemap_guard is not None:

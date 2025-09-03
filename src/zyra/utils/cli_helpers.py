@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import contextlib
+import re
 import tempfile
-from typing import Iterator
+from typing import Iterable, Iterator
 
 from .io_utils import open_input  # re-export
 
@@ -94,3 +95,29 @@ def configure_logging_from_env(default: str = "info") -> None:
             logging.getLogger(name).setLevel(
                 max(level, logging.WARNING) if verb != "debug" else level
             )
+
+
+def sanitize_for_log(text: str) -> str:
+    """Redact secrets in URLs/headers for safe logging.
+
+    - Redacts user:pass in URLs (scheme://user:pass@host)
+    - Redacts common token/secret query params (token, signature, X-Amz-*, apikey, key, secret, password)
+    - Redacts Authorization: Bearer tokens
+    """
+    s = str(text)
+    # user:pass@
+    s = re.sub(r"(://[^/@:]+:)[^@]+(@)", r"\1***\2", s)
+    # Query parameters with sensitive names (case-insensitive)
+    s = re.sub(
+        r"(?i)([?&])(token|access_token|signature|sig|x-amz-signature|x-amz-credential|x-amz-security-token|apikey|api_key|key|secret|password)=([^&#\s]+)",
+        r"\1\2=***",
+        s,
+    )
+    # Authorization headers
+    s = re.sub(r"(?i)(authorization:\s*bearer\s+)[^\s]+", r"\1***", s)
+    return s
+
+
+def sanitize_args(args: Iterable[str]) -> list[str]:
+    """Return a sanitized copy of a command arg vector for logging."""
+    return [sanitize_for_log(a) for a in list(args)]

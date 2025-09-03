@@ -17,7 +17,10 @@
           "--date-format",
           "--inputs",
           "--manifest",
-          "--output-dir"
+          "--output-dir",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -53,6 +56,21 @@
         "help": "Directory to write outputs for --inputs",
         "path_arg": true,
         "type": "path"
+      },
+      "--verbose": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "str",
+        "default": false
       }
     },
     "positionals": [
@@ -86,7 +104,10 @@
           "--inputs",
           "--manifest",
           "--output-dir",
-          "--output"
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -130,6 +151,21 @@
         "path_arg": true,
         "type": "path",
         "default": "-"
+      },
+      "--verbose": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "str",
+        "default": false
       }
     },
     "positionals": []
@@ -153,7 +189,10 @@
           "--date-format",
           "--inputs",
           "--manifest",
-          "--output-dir"
+          "--output-dir",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -190,6 +229,21 @@
         "help": "Directory to write outputs for --inputs",
         "path_arg": true,
         "type": "path"
+      },
+      "--verbose": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "str",
+        "default": false
       }
     },
     "positionals": [
@@ -210,7 +264,10 @@
         "title": "options",
         "options": [
           "--help",
-          "--output"
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -221,6 +278,21 @@
         "path_arg": true,
         "type": "path",
         "default": "-"
+      },
+      "--verbose": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "str",
+        "default": false
       }
     },
     "positionals": [
@@ -244,7 +316,10 @@
           "--backend",
           "--pattern",
           "--unsigned",
-          "--raw"
+          "--raw",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -270,6 +345,21 @@
         "help": "Emit raw (optionally .idx-subset) GRIB2 bytes to stdout",
         "type": "str",
         "default": false
+      },
+      "--verbose": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "str",
+        "default": false
       }
     },
     "positionals": [
@@ -292,7 +382,10 @@
           "--help",
           "--backend",
           "--stdout",
-          "--format"
+          "--format",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -321,6 +414,21 @@
         ],
         "type": "str",
         "default": "netcdf"
+      },
+      "--verbose": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "str",
+        "default": false
       }
     },
     "positionals": [
@@ -354,7 +462,10 @@
           "--backend",
           "--var",
           "--pattern",
-          "--unsigned"
+          "--unsigned",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -394,6 +505,21 @@
       "--pattern": "Regex for .idx-based subsetting when using HTTP/S3",
       "--unsigned": {
         "help": "Use unsigned S3 access for public buckets",
+        "type": "str",
+        "default": false
+      },
+      "--verbose": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
         "type": "str",
         "default": false
       }
@@ -452,7 +578,10 @@
           "--timestamp-loc",
           "--no-coastline",
           "--no-borders",
-          "--no-gridlines"
+          "--no-gridlines",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -567,6 +696,21 @@
         "help": "",
         "type": "str",
         "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "str",
+        "default": false
       }
     },
     "positionals": []
@@ -607,7 +751,10 @@
           "--timestamp-loc",
           "--no-coastline",
           "--no-borders",
-          "--no-gridlines"
+          "--no-gridlines",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -732,6 +879,21 @@
         "help": "",
         "type": "str",
         "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "str",
+        "default": false
       }
     },
     "positionals": []
@@ -756,7 +918,10 @@
           "--style",
           "--width",
           "--height",
-          "--dpi"
+          "--dpi",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -803,6 +968,21 @@
         "help": "",
         "type": "int",
         "default": 96
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "str",
+        "default": false
       }
     },
     "positionals": []
@@ -841,7 +1021,10 @@
           "--features",
           "--no-coastline",
           "--no-borders",
-          "--no-gridlines"
+          "--no-gridlines",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -952,6 +1135,21 @@
         "help": "",
         "type": "str",
         "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "str",
+        "default": false
       }
     },
     "positionals": []
@@ -1009,7 +1207,10 @@
           "--custom-seed",
           "--dt",
           "--steps-per-frame",
-          "--method"
+          "--method",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1197,6 +1398,21 @@
         ],
         "type": "str",
         "default": "RK4-SPH"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "str",
+        "default": false
       }
     },
     "positionals": []
@@ -1214,7 +1430,10 @@
           "--output",
           "--glob",
           "--fps",
-          "--basemap"
+          "--basemap",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1238,7 +1457,22 @@
         "type": "int",
         "default": 30
       },
-      "--basemap": "Basemap (path, bare image name, or pkg:ref)"
+      "--basemap": "Basemap (path, bare image name, or pkg:ref)",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "str",
+        "default": false
+      }
     },
     "positionals": []
   },
@@ -1275,7 +1509,10 @@
           "--scale",
           "--color",
           "--streamlines",
-          "--features"
+          "--features",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1385,7 +1622,22 @@
         "type": "str",
         "default": false
       },
-      "--features": ""
+      "--features": "",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "str",
+        "default": false
+      }
     },
     "positionals": []
   },
@@ -1398,7 +1650,10 @@
         "title": "options",
         "options": [
           "--help",
-          "--input"
+          "--input",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1409,6 +1664,21 @@
         "path_arg": true,
         "type": "path",
         "required": true
+      },
+      "--verbose": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "str",
+        "default": false
       }
     },
     "positionals": [
@@ -1433,7 +1703,10 @@
           "--read-stdin",
           "--url",
           "--bucket",
-          "--key"
+          "--key",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1451,7 +1724,22 @@
       },
       "--url": "Full URL s3://bucket/key",
       "--bucket": "Bucket name",
-      "--key": "Object key (when using --bucket)"
+      "--key": "Object key (when using --bucket)",
+      "--verbose": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "str",
+        "default": false
+      }
     },
     "positionals": []
   },
@@ -1464,7 +1752,10 @@
         "title": "options",
         "options": [
           "--help",
-          "--input"
+          "--input",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1475,6 +1766,21 @@
         "path_arg": true,
         "type": "path",
         "required": true
+      },
+      "--verbose": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "str",
+        "default": false
       }
     },
     "positionals": [
@@ -1496,7 +1802,10 @@
         "options": [
           "--help",
           "--input",
-          "--content-type"
+          "--content-type",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1508,7 +1817,22 @@
         "type": "path",
         "required": true
       },
-      "--content-type": "Content-Type header"
+      "--content-type": "Content-Type header",
+      "--verbose": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "str",
+        "default": false
+      }
     },
     "positionals": [
       {
@@ -1532,7 +1856,10 @@
           "--name",
           "--description",
           "--description-file",
-          "--replace-uri"
+          "--replace-uri",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1547,7 +1874,22 @@
       "--name": "Video title",
       "--description": "Video description",
       "--description-file": "Read description text from a file (UTF-8)",
-      "--replace-uri": "Replace existing video at this Vimeo URI"
+      "--replace-uri": "Replace existing video at this Vimeo URI",
+      "--verbose": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "str",
+        "default": false
+      }
     },
     "positionals": []
   },
@@ -1564,7 +1906,10 @@
           "--pattern",
           "--datetime-format",
           "--period-seconds",
-          "--output"
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1587,6 +1932,21 @@
         "path_arg": true,
         "type": "path",
         "default": "-"
+      },
+      "--verbose": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "str",
+        "default": false
       }
     },
     "positionals": []
@@ -1605,7 +1965,10 @@
           "--dataset-id",
           "--vimeo-uri",
           "--read-vimeo-uri",
-          "--output"
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1633,6 +1996,21 @@
         "path_arg": true,
         "type": "path",
         "default": "-"
+      },
+      "--verbose": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "str",
+        "default": false
       }
     },
     "positionals": []
@@ -1658,7 +2036,10 @@
           "--allow-host",
           "--deny-host",
           "--max-probe-bytes",
-          "--output"
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1717,6 +2098,21 @@
         "path_arg": true,
         "type": "path",
         "default": "-"
+      },
+      "--verbose": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "str",
+        "default": false
       }
     },
     "positionals": []
@@ -1739,7 +2135,10 @@
           "--end",
           "--vimeo-uri",
           "--no-set-data-link",
-          "--output"
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1779,6 +2178,21 @@
         "path_arg": true,
         "type": "path",
         "default": "-"
+      },
+      "--verbose": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "str",
+        "default": false
       }
     },
     "positionals": []
@@ -1929,6 +2343,7 @@
           "--print-argv",
           "--print-argv-format",
           "--dry-run",
+          "--trace",
           "--continue-on-error",
           "--start",
           "--end",
@@ -1972,6 +2387,11 @@
       },
       "--dry-run": {
         "help": "Only print argv; do not execute stages",
+        "type": "str",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace: print '+ <command>' and working directory per stage",
         "type": "str",
         "default": false
       },

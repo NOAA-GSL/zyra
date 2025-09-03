@@ -63,26 +63,46 @@ def register_cli(subparsers: Any) -> None:
     )
 
     def cmd_decode_grib2(args: argparse.Namespace) -> int:
+        # Per-command verbosity/trace mapping
+        import os
+
         from zyra.utils.cli_helpers import configure_logging_from_env
 
+        if getattr(args, "verbose", False):
+            os.environ["ZYRA_VERBOSITY"] = "debug"
+        elif getattr(args, "quiet", False):
+            os.environ["ZYRA_VERBOSITY"] = "quiet"
+        if getattr(args, "trace", False):
+            os.environ["ZYRA_SHELL_TRACE"] = "1"
         configure_logging_from_env()
         from zyra.processing import grib_decode
         from zyra.processing.grib_utils import extract_metadata
 
         data = _read_bytes(args.file_or_url)
+        import logging
+
+        if os.environ.get("ZYRA_SHELL_TRACE"):
+            logging.info("+ input='%s'", args.file_or_url)
+            logging.info("+ backend=%s", args.backend)
         if getattr(args, "raw", False):
             sys.stdout.buffer.write(data)
             return 0
         decoded = grib_decode(data, backend=args.backend)
         meta = extract_metadata(decoded)
-        import logging
-
         logging.info(str(meta))
         return 0
 
     def cmd_extract_variable(args: argparse.Namespace) -> int:
+        import os
+
         from zyra.utils.cli_helpers import configure_logging_from_env
 
+        if getattr(args, "verbose", False):
+            os.environ["ZYRA_VERBOSITY"] = "debug"
+        elif getattr(args, "quiet", False):
+            os.environ["ZYRA_VERBOSITY"] = "quiet"
+        if getattr(args, "trace", False):
+            os.environ["ZYRA_SHELL_TRACE"] = "1"
         configure_logging_from_env()
         import shutil
         import subprocess
@@ -118,6 +138,10 @@ def register_cli(subparsers: Any) -> None:
                             args_list += ["-grib", out_path]
                         else:
                             args_list += ["-netcdf", out_path]
+                        if os.environ.get("ZYRA_SHELL_TRACE"):
+                            import logging as _log
+
+                            _log.info("+ %s", " ".join(args_list))
                         res = subprocess.run(
                             args_list, capture_output=True, text=True, check=False
                         )
@@ -195,8 +219,16 @@ def register_cli(subparsers: Any) -> None:
         return 0
 
     def cmd_convert_format(args: argparse.Namespace) -> int:
+        import os
+
         from zyra.utils.cli_helpers import configure_logging_from_env
 
+        if getattr(args, "verbose", False):
+            os.environ["ZYRA_VERBOSITY"] = "debug"
+        elif getattr(args, "quiet", False):
+            os.environ["ZYRA_VERBOSITY"] = "quiet"
+        if getattr(args, "trace", False):
+            os.environ["ZYRA_SHELL_TRACE"] = "1"
         configure_logging_from_env()
 
         # Multi-input support: --inputs with --output-dir required
@@ -304,6 +336,9 @@ def register_cli(subparsers: Any) -> None:
         action="store_true",
         help="Emit raw (optionally .idx-subset) GRIB2 bytes to stdout",
     )
+    p_dec.add_argument("--verbose", action="store_true")
+    p_dec.add_argument("--quiet", action="store_true")
+    p_dec.add_argument("--trace", action="store_true")
     p_dec.set_defaults(func=cmd_decode_grib2)
 
     p_ext = subparsers.add_parser(
@@ -325,6 +360,9 @@ def register_cli(subparsers: Any) -> None:
         choices=["netcdf", "grib2"],
         help="Output format for --stdout",
     )
+    p_ext.add_argument("--verbose", action="store_true")
+    p_ext.add_argument("--quiet", action="store_true")
+    p_ext.add_argument("--trace", action="store_true")
     p_ext.set_defaults(func=cmd_extract_variable)
 
     p_conv = subparsers.add_parser(
@@ -359,4 +397,7 @@ def register_cli(subparsers: Any) -> None:
         action="store_true",
         help="Use unsigned S3 access for public buckets",
     )
+    p_conv.add_argument("--verbose", action="store_true")
+    p_conv.add_argument("--quiet", action="store_true")
+    p_conv.add_argument("--trace", action="store_true")
     p_conv.set_defaults(func=cmd_convert_format)

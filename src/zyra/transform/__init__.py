@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -95,6 +96,12 @@ def _compute_frames_metadata(
 
 def _cmd_metadata(ns: argparse.Namespace) -> int:
     """CLI: compute frames metadata and write JSON to stdout or a file."""
+    if getattr(ns, "verbose", False):
+        os.environ["ZYRA_VERBOSITY"] = "debug"
+    elif getattr(ns, "quiet", False):
+        os.environ["ZYRA_VERBOSITY"] = "quiet"
+    if getattr(ns, "trace", False):
+        os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
     meta = _compute_frames_metadata(
         ns.frames_dir,
@@ -139,6 +146,9 @@ def register_cli(subparsers: Any) -> None:
     from zyra.cli_common import add_output_option
 
     add_output_option(p)
+    p.add_argument("--verbose", action="store_true")
+    p.add_argument("--quiet", action="store_true")
+    p.add_argument("--trace", action="store_true")
     p.set_defaults(func=_cmd_metadata)
 
     # Enrich metadata with dataset_id, vimeo_uri, and updated_at
@@ -149,6 +159,12 @@ def register_cli(subparsers: Any) -> None:
         ``dataset_id`` and ``vimeo_uri`` (read from arg or stdin), and stamps
         ``updated_at``.
         """
+        if getattr(ns, "verbose", False):
+            os.environ["ZYRA_VERBOSITY"] = "debug"
+        elif getattr(ns, "quiet", False):
+            os.environ["ZYRA_VERBOSITY"] = "quiet"
+        if getattr(ns, "trace", False):
+            os.environ["ZYRA_SHELL_TRACE"] = "1"
         configure_logging_from_env()
         import sys
 
@@ -228,6 +244,9 @@ def register_cli(subparsers: Any) -> None:
         help="Read Vimeo URI from stdin (first line)",
     )
     add_output_option(p2)
+    p2.add_argument("--verbose", action="store_true")
+    p2.add_argument("--quiet", action="store_true")
+    p2.add_argument("--trace", action="store_true")
     p2.set_defaults(func=_cmd_enrich)
 
     # Enrich a list of dataset items (id,name,description,source,format,uri)
@@ -237,6 +256,12 @@ def register_cli(subparsers: Any) -> None:
         Input JSON can be either a list of items or an object with an `items` array.
         Each item should contain: id, name, description, source, format, uri.
         """
+        if getattr(ns, "verbose", False):
+            os.environ["ZYRA_VERBOSITY"] = "debug"
+        elif getattr(ns, "quiet", False):
+            os.environ["ZYRA_VERBOSITY"] = "quiet"
+        if getattr(ns, "trace", False):
+            os.environ["ZYRA_SHELL_TRACE"] = "1"
         configure_logging_from_env()
         from zyra.connectors.discovery import DatasetMetadata
         from zyra.transform.enrich import enrich_items
@@ -373,6 +398,9 @@ def register_cli(subparsers: Any) -> None:
         "--max-probe-bytes", type=int, help="Skip probing when larger than this size"
     )
     add_output_option(p3)
+    p3.add_argument("--verbose", action="store_true")
+    p3.add_argument("--quiet", action="store_true")
+    p3.add_argument("--trace", action="store_true")
     p3.set_defaults(func=_cmd_enrich_datasets)
 
     # Update a dataset.json entry's startTime/endTime (and optionally dataLink) by dataset id
@@ -516,4 +544,7 @@ def register_cli(subparsers: Any) -> None:
     )
     p3.set_defaults(set_data_link=True)
     add_output_option(p3)
+    p3.add_argument("--verbose", action="store_true")
+    p3.add_argument("--quiet", action="store_true")
+    p3.add_argument("--trace", action="store_true")
     p3.set_defaults(func=_cmd_update_dataset)
