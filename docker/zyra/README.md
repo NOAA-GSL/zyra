@@ -11,6 +11,11 @@ base image downstream. For a scheduler-first image, see `docker/zyra-scheduler`.
 - Build args:
   - `ZYRA_VERSION` (default `latest`): pin Zyra from PyPI
   - `ZYRA_EXTRAS` (default `connectors,processing,visualization`): install `zyra[extras]` from PyPI
+  - `ZYRA_EXTRAS_ARM64` (default empty): when building for arm64, override extras.
+    If not set, the image installs Zyra without `pygrib` on arm64 to avoid
+    wheel build failures; GRIB decoding uses `cfgrib`/`wgrib2` instead. Set this
+    to a non-empty extras list (e.g., `connectors,processing,visualization`) to
+    attempt installing `pygrib` on arm64 (requires full eccodes toolchain).
   - `WITH_WGRIB2` (default `source`): include `wgrib2`.
     - `source`: build from source in a builder stage (requires BuildKit)
     - `apt` (or `true`): install Debian package `wgrib2`
@@ -96,3 +101,7 @@ docker run --rm -p 8000:8000 ghcr.io/noaa-gsl/zyra:latest \
 - GRIB: `wgrib2` is included by default via a source build. To slim the image,
   build with `--build-arg WITH_WGRIB2=none` or switch to `apt` via
   `--build-arg WITH_WGRIB2=apt`. Building from source requires Docker BuildKit.
+  On arm64, the default build omits `pygrib` and relies on `cfgrib`/`wgrib2`.
+  To force installing `pygrib` on arm64, pass
+  `--build-arg ZYRA_EXTRAS_ARM64=connectors,processing,visualization` and ensure
+  eccodes and build dependencies are available.

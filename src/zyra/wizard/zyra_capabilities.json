@@ -17,7 +17,10 @@
           "--date-format",
           "--inputs",
           "--manifest",
-          "--output-dir"
+          "--output-dir",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -31,7 +34,7 @@
       },
       "--list": {
         "help": "List links on a directory page",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--pattern": "Regex to filter listed links",
@@ -53,6 +56,21 @@
         "help": "Directory to write outputs for --inputs",
         "path_arg": true,
         "type": "path"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
       }
     },
     "positionals": [
@@ -86,7 +104,10 @@
           "--inputs",
           "--manifest",
           "--output-dir",
-          "--output"
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -97,12 +118,12 @@
       "--key": "Object key (when using --bucket)",
       "--unsigned": {
         "help": "Use unsigned access for public buckets",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--list": {
         "help": "List keys under a prefix",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--pattern": "Regex to filter listed keys",
@@ -130,6 +151,21 @@
         "path_arg": true,
         "type": "path",
         "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
       }
     },
     "positionals": []
@@ -153,7 +189,10 @@
           "--date-format",
           "--inputs",
           "--manifest",
-          "--output-dir"
+          "--output-dir",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -167,7 +206,7 @@
       },
       "--list": {
         "help": "List files in an FTP directory",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--sync-dir": "Sync FTP directory to a local directory",
@@ -190,6 +229,21 @@
         "help": "Directory to write outputs for --inputs",
         "path_arg": true,
         "type": "path"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
       }
     },
     "positionals": [
@@ -210,7 +264,10 @@
         "title": "options",
         "options": [
           "--help",
-          "--output"
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -221,6 +278,21 @@
         "path_arg": true,
         "type": "path",
         "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
       }
     },
     "positionals": [
@@ -244,7 +316,10 @@
           "--backend",
           "--pattern",
           "--unsigned",
-          "--raw"
+          "--raw",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -263,12 +338,27 @@
       "--pattern": "Regex for .idx-based subsetting when using HTTP/S3",
       "--unsigned": {
         "help": "Use unsigned S3 access for public buckets",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--raw": {
         "help": "Emit raw (optionally .idx-subset) GRIB2 bytes to stdout",
-        "type": "str",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
         "default": false
       }
     },
@@ -292,7 +382,10 @@
           "--help",
           "--backend",
           "--stdout",
-          "--format"
+          "--format",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -310,7 +403,7 @@
       },
       "--stdout": {
         "help": "Write selected variable as bytes to stdout",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--format": {
@@ -321,6 +414,21 @@
         ],
         "type": "str",
         "default": "netcdf"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
       }
     },
     "positionals": [
@@ -354,7 +462,10 @@
           "--backend",
           "--var",
           "--pattern",
-          "--unsigned"
+          "--unsigned",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -367,7 +478,7 @@
       },
       "--stdout": {
         "help": "Write binary output to stdout instead of a file",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--inputs": {
@@ -394,7 +505,22 @@
       "--pattern": "Regex for .idx-based subsetting when using HTTP/S3",
       "--unsigned": {
         "help": "Use unsigned S3 access for public buckets",
-        "type": "str",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
         "default": false
       }
     },
@@ -452,7 +578,10 @@
           "--timestamp-loc",
           "--no-coastline",
           "--no-borders",
-          "--no-gridlines"
+          "--no-gridlines",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -513,7 +642,7 @@
       },
       "--colorbar": {
         "help": "",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--label": "",
@@ -539,7 +668,7 @@
       "--crs": "Force input CRS (e.g., EPSG:3857)",
       "--reproject": {
         "help": "Attempt reprojection to EPSG:4326 (limited support)",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--timestamp-loc": {
@@ -555,17 +684,32 @@
       },
       "--no-coastline": {
         "help": "",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--no-borders": {
         "help": "",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--no-gridlines": {
         "help": "",
-        "type": "str",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
         "default": false
       }
     },
@@ -607,7 +751,10 @@
           "--timestamp-loc",
           "--no-coastline",
           "--no-borders",
-          "--no-gridlines"
+          "--no-gridlines",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -668,7 +815,7 @@
       },
       "--filled": {
         "help": "Use filled contours",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--levels": {
@@ -678,7 +825,7 @@
       },
       "--colorbar": {
         "help": "",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--label": "",
@@ -704,7 +851,7 @@
       "--crs": "Force input CRS (e.g., EPSG:3857)",
       "--reproject": {
         "help": "",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--timestamp-loc": {
@@ -720,17 +867,32 @@
       },
       "--no-coastline": {
         "help": "",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--no-borders": {
         "help": "",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--no-gridlines": {
         "help": "",
-        "type": "str",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
         "default": false
       }
     },
@@ -756,7 +918,10 @@
           "--style",
           "--width",
           "--height",
-          "--dpi"
+          "--dpi",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -803,6 +968,21 @@
         "help": "",
         "type": "int",
         "default": 96
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
       }
     },
     "positionals": []
@@ -841,7 +1021,10 @@
           "--features",
           "--no-coastline",
           "--no-borders",
-          "--no-gridlines"
+          "--no-gridlines",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -900,7 +1083,7 @@
       "--crs": "",
       "--reproject": {
         "help": "",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--map-type": {
@@ -934,23 +1117,38 @@
       },
       "--streamlines": {
         "help": "",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--features": "",
       "--no-coastline": {
         "help": "",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--no-borders": {
         "help": "",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--no-gridlines": {
         "help": "",
-        "type": "str",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
         "default": false
       }
     },
@@ -1009,7 +1207,10 @@
           "--custom-seed",
           "--dt",
           "--steps-per-frame",
-          "--method"
+          "--method",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1098,14 +1299,14 @@
       "--vmax": "",
       "--colorbar": {
         "help": "",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--label": "",
       "--units": "",
       "--show-timestamp": {
         "help": "",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--timestamps-csv": "",
@@ -1139,7 +1340,7 @@
       "--crs": "",
       "--reproject": {
         "help": "",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--to-video": "",
@@ -1176,7 +1377,7 @@
       },
       "--custom-seed": {
         "help": "",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--dt": {
@@ -1197,6 +1398,21 @@
         ],
         "type": "str",
         "default": "RK4-SPH"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
       }
     },
     "positionals": []
@@ -1214,7 +1430,10 @@
           "--output",
           "--glob",
           "--fps",
-          "--basemap"
+          "--basemap",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1238,7 +1457,22 @@
         "type": "int",
         "default": 30
       },
-      "--basemap": "Basemap (path, bare image name, or pkg:ref)"
+      "--basemap": "Basemap (path, bare image name, or pkg:ref)",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
     },
     "positionals": []
   },
@@ -1275,7 +1509,10 @@
           "--scale",
           "--color",
           "--streamlines",
-          "--features"
+          "--features",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1314,7 +1551,7 @@
       },
       "--colorbar": {
         "help": "",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--label": "",
@@ -1382,10 +1619,25 @@
       },
       "--streamlines": {
         "help": "",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
-      "--features": ""
+      "--features": "",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
     },
     "positionals": []
   },
@@ -1398,7 +1650,10 @@
         "title": "options",
         "options": [
           "--help",
-          "--input"
+          "--input",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1409,6 +1664,21 @@
         "path_arg": true,
         "type": "path",
         "required": true
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
       }
     },
     "positionals": [
@@ -1433,7 +1703,10 @@
           "--read-stdin",
           "--url",
           "--bucket",
-          "--key"
+          "--key",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1446,12 +1719,27 @@
       },
       "--read-stdin": {
         "help": "Read object body from stdin (alias for -i -)",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--url": "Full URL s3://bucket/key",
       "--bucket": "Bucket name",
-      "--key": "Object key (when using --bucket)"
+      "--key": "Object key (when using --bucket)",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
     },
     "positionals": []
   },
@@ -1464,7 +1752,10 @@
         "title": "options",
         "options": [
           "--help",
-          "--input"
+          "--input",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1475,6 +1766,21 @@
         "path_arg": true,
         "type": "path",
         "required": true
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
       }
     },
     "positionals": [
@@ -1496,7 +1802,10 @@
         "options": [
           "--help",
           "--input",
-          "--content-type"
+          "--content-type",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1508,7 +1817,22 @@
         "type": "path",
         "required": true
       },
-      "--content-type": "Content-Type header"
+      "--content-type": "Content-Type header",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
     },
     "positionals": [
       {
@@ -1532,7 +1856,10 @@
           "--name",
           "--description",
           "--description-file",
-          "--replace-uri"
+          "--replace-uri",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1547,7 +1874,22 @@
       "--name": "Video title",
       "--description": "Video description",
       "--description-file": "Read description text from a file (UTF-8)",
-      "--replace-uri": "Replace existing video at this Vimeo URI"
+      "--replace-uri": "Replace existing video at this Vimeo URI",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
     },
     "positionals": []
   },
@@ -1564,7 +1906,10 @@
           "--pattern",
           "--datetime-format",
           "--period-seconds",
-          "--output"
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1587,6 +1932,21 @@
         "path_arg": true,
         "type": "path",
         "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
       }
     },
     "positionals": []
@@ -1605,7 +1965,10 @@
           "--dataset-id",
           "--vimeo-uri",
           "--read-vimeo-uri",
-          "--output"
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1618,14 +1981,14 @@
       },
       "--read-frames-meta-stdin": {
         "help": "Read frames metadata JSON from stdin",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--dataset-id": "Dataset identifier to embed",
       "--vimeo-uri": "Vimeo video URI to embed in metadata",
       "--read-vimeo-uri": {
         "help": "Read Vimeo URI from stdin (first line)",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--output": {
@@ -1633,6 +1996,21 @@
         "path_arg": true,
         "type": "path",
         "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
       }
     },
     "positionals": []
@@ -1658,7 +2036,10 @@
           "--allow-host",
           "--deny-host",
           "--max-probe-bytes",
-          "--output"
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1698,12 +2079,12 @@
       },
       "--offline": {
         "help": "Disable network during enrichment",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--https-only": {
         "help": "Require HTTPS for remote probing",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--allow-host": "Allow host suffix (repeatable)",
@@ -1717,6 +2098,21 @@
         "path_arg": true,
         "type": "path",
         "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
       }
     },
     "positionals": []
@@ -1739,7 +2135,10 @@
           "--end",
           "--vimeo-uri",
           "--no-set-data-link",
-          "--output"
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
         ]
       }
     ],
@@ -1763,7 +2162,7 @@
       "--meta": "Path to metadata JSON containing start_datetime/end_datetime/vimeo_uri",
       "--read-meta-stdin": {
         "help": "Read metadata JSON from stdin",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--start": "Explicit startTime override (ISO)",
@@ -1771,7 +2170,7 @@
       "--vimeo-uri": "Explicit Vimeo URI (e.g., /videos/12345)",
       "--no-set-data-link": {
         "help": "Do not update dataLink from Vimeo URI",
-        "type": "str",
+        "type": "bool",
         "default": true
       },
       "--output": {
@@ -1779,6 +2178,21 @@
         "path_arg": true,
         "type": "path",
         "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
       }
     },
     "positionals": []
@@ -1839,22 +2253,22 @@
       },
       "--json": {
         "help": "Output in JSON (default)",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--csv": {
         "help": "Output in CSV (columns: source,dataset,description,link)",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--table": {
         "help": "Pretty table output to the terminal",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--verbose": {
         "help": "Print debug info about requests and response shapes",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--param": "Extra query param k=v (repeatable)",
@@ -1876,7 +2290,7 @@
       },
       "--no-openapi": {
         "help": "Skip OpenAPI discovery and use /search",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--endpoint": "Override endpoint path (e.g., /search/items)",
@@ -1884,7 +2298,7 @@
       "--result-key": "Read array from this key when response is an object (e.g., items)",
       "--post": {
         "help": "Use POST /search with JSON body instead of GET",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--json-param": "JSON body field k=v (repeatable)",
@@ -1905,12 +2319,12 @@
       "--sort": "Sort by comma-separated keys (e.g., source,dataset)",
       "--print-openapi": {
         "help": "Print discovered endpoint and query params for each URL",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--suggest-flags": {
         "help": "Suggest simple OpenAPI query params that can be passed via --param",
-        "type": "str",
+        "type": "bool",
         "default": false
       }
     },
@@ -1929,6 +2343,7 @@
           "--print-argv",
           "--print-argv-format",
           "--dry-run",
+          "--trace",
           "--continue-on-error",
           "--start",
           "--end",
@@ -1958,7 +2373,7 @@
       },
       "--print-argv": {
         "help": "Print argv per stage before running",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--print-argv-format": {
@@ -1972,12 +2387,17 @@
       },
       "--dry-run": {
         "help": "Only print argv; do not execute stages",
-        "type": "str",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace: print '+ <command>' and working directory per stage",
+        "type": "bool",
         "default": false
       },
       "--continue-on-error": {
         "help": "Continue executing remaining stages even if one fails",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--start": {
@@ -1991,17 +2411,17 @@
       "--only": "Run only stages matching this alias (acquire/process/visualize/decimate)",
       "--verbose": {
         "help": "Verbose runner output (prints stage headings)",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--quiet": {
         "help": "Suppress runner messages when possible",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--strict-env": {
         "help": "Fail if ${VAR} placeholders are not set in environment",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--max-workers": {
@@ -2010,18 +2430,18 @@
       },
       "--watch": {
         "help": "When config is a workflow.yml, evaluate triggers and run if active",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--export-cron": {
         "help": "When config is a workflow.yml, print crontab lines for schedule triggers",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--state-file": "State file for --watch (workflow.yml)",
       "--run-on-first": {
         "help": "Trigger a run when no prior state exists (workflow.yml watch)",
-        "type": "str",
+        "type": "bool",
         "default": false
       },
       "--watch-interval": {

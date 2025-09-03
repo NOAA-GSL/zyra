@@ -14,11 +14,243 @@ subsetting, and S3 URL parsing.
 """
 
 import argparse
+import json
 import os
+import platform
 import re
+import shutil
+import subprocess
 import sys
+from importlib import metadata as importlib_metadata
 from pathlib import Path
 from typing import Tuple
+
+from zyra import __version__ as ZYRA_VERSION
+
+
+def _print_version_banner(mode: str = "short") -> None:
+    """Print version banner.
+
+    Modes:
+    - short: ASCII logo (when found) + version + repo URL
+    - long: adds runtime diagnostics (tools, libs, env, platform)
+    - json: machine-readable diagnostics only (no logo)
+    """
+    logo_text: str | None = None
+    # Candidate locations in order of preference
+    candidates: list[str] = []
+    env_logo = os.environ.get("ZYRA_ASCII_LOGO")
+    if env_logo:
+        candidates.append(env_logo)
+    # Project-relative (useful in dev checkouts)
+    candidates.append("branding/logos/ascii/logo_ascii_tree_tiny.txt")
+    # Downstream absolute hint (best-effort)
+    candidates.append("/branding/logos/ascii/logo_ascii_tree_tiny.txt")
+    # Packaged asset under zyra.assets/ascii if available
+    try:
+        try:
+            from importlib import resources as importlib_resources  # type: ignore
+        except Exception:  # pragma: no cover
+            import importlib_resources  # type: ignore
+        res = (
+            importlib_resources.files("zyra.assets")
+            .joinpath("ascii")
+            .joinpath("logo_ascii_tree_tiny.txt")
+        )
+        if getattr(res, "is_file", None) and res.is_file():  # type: ignore[attr-defined]
+            with importlib_resources.as_file(res) as p:
+                logo_text = Path(str(p)).read_text(encoding="utf-8", errors="ignore")
+        else:
+            # Fallback: older packaging may place the logo at the root of assets
+            res2 = importlib_resources.files("zyra.assets").joinpath(
+                "logo_ascii_tree_tiny.txt"
+            )
+            if getattr(res2, "is_file", None) and res2.is_file():  # type: ignore[attr-defined]
+                with importlib_resources.as_file(res2) as p:
+                    logo_text = Path(str(p)).read_text(
+                        encoding="utf-8", errors="ignore"
+                    )
+    except Exception:
+        pass
+    if logo_text is None:
+        for c in candidates:
+            try:
+                p = Path(c)
+                if p.exists() and p.is_file():
+                    logo_text = p.read_text(encoding="utf-8", errors="ignore")
+                    break
+            except Exception:
+                pass
+    if mode == "json":
+        print(json.dumps(_collect_version_info(), indent=2, sort_keys=True))
+        return
+    info = _collect_version_info()
+    lines = []
+    if logo_text and mode == "short":
+        lines.append(logo_text.rstrip("\n"))
+    lines.append(f"Zyra {info.get('version', ZYRA_VERSION)}")
+    lines.append("https://github.com/NOAA-GSL/zyra")
+    if mode == "long":
+        lines.append("")
+        lines.append(
+            f"Python: {info['python']['version']} ({info['python']['implementation']})"
+        )
+        lines.append(
+            f"Platform: {info['platform']['system']}/{info['platform']['machine']}"
+        )
+        try:
+            inst = info.get("install", {})
+            lines.append(
+                f"Install: {inst.get('module_path','')}\nExec: {inst.get('executable','')}"
+            )
+        except Exception:
+            pass
+        git = info.get("git") or {}
+        if git.get("commit") or git.get("date"):
+            commit = git.get("commit", "unknown")
+            date = git.get("date", "unknown")
+            lines.append(f"Git: {commit} ({date})")
+        tools = info.get("tools", {})
+        lines.append(
+            f"FFmpeg: {tools.get('ffmpeg','not found')}; FFprobe: {tools.get('ffprobe','not found')}"
+        )
+        lines.append(f"wgrib2: {tools.get('wgrib2','not found')}")
+        libs = info.get("libs", {})
+        # Group core libs concisely
+        core_a = []
+        for k in ["xarray", "netcdf4", "cfgrib", "eccodes", "pygrib"]:
+            v = libs.get(k)
+            core_a.append(f"{k}: {v if v is not None else 'not installed'}")
+        lines.append("; ".join(core_a))
+        geo_a = []
+        for k in ["rasterio", "gdal", "rioxarray", "cartopy", "matplotlib"]:
+            v = libs.get(k)
+            geo_a.append(f"{k}: {v if v is not None else 'not installed'}")
+        lines.append("; ".join(geo_a))
+        env = info.get("env", {})
+        lines.append(
+            f"DATA_DIR: {env.get('DATA_DIR') or ''}; LOG_LEVEL: {env.get('LOG_LEVEL') or ''}"
+        )
+    print("\n".join(lines))
+
+
+def _get_tool_version(cmd: str) -> str | None:
+    exe = shutil.which(cmd)
+    if not exe:
+        return None
+    try:
+        proc = subprocess.run(
+            [exe, "-version"], capture_output=True, text=True, timeout=3
+        )
+    except Exception:
+        return None
+    out = (proc.stdout or proc.stderr or "").strip().splitlines()
+    return out[0] if out else None
+
+
+def _collect_version_info() -> dict:
+    # Basic metadata
+    import sys as _sys
+
+    info: dict = {
+        "version": ZYRA_VERSION,
+        "repo": "https://github.com/NOAA-GSL/zyra",
+        "python": {
+            "version": platform.python_version(),
+            "implementation": platform.python_implementation(),
+        },
+        "platform": {
+            "system": platform.system().lower() or sys.platform,
+            "machine": platform.machine().lower(),
+        },
+        "install": {
+            "module_path": str(Path(__file__).resolve()),
+            "executable": _sys.executable,
+        },
+        "env": {
+            "DATA_DIR": os.environ.get("DATA_DIR"),
+            "LOG_LEVEL": os.environ.get("LOG_LEVEL"),
+        },
+    }
+    # Distribution info (best-effort)
+    try:
+        dist = importlib_metadata.distribution("zyra")
+        info["distribution"] = {
+            "name": dist.metadata.get("Name", "zyra"),
+            "version": dist.version,
+        }
+    except Exception:
+        pass
+    # Git metadata via env (optional)
+    git_commit = os.environ.get("ZYRA_GIT_COMMIT")
+    git_date = os.environ.get("ZYRA_BUILD_DATE")
+    if git_commit or git_date:
+        info["git"] = {"commit": git_commit, "date": git_date}
+    # External tool versions
+    info["tools"] = {
+        "ffmpeg": _get_tool_version("ffmpeg") or "not found",
+        "ffprobe": _get_tool_version("ffprobe") or "not found",
+        "wgrib2": _get_tool_version("wgrib2") or "not found",
+    }
+    # Library versions
+    libs: dict[str, str | None] = {}
+
+    def ver(mod: str, attr: str = "__version__") -> str | None:
+        try:
+            m = __import__(mod, fromlist=["_"])
+            v = getattr(m, attr, None)
+            return str(v) if v is not None else None
+        except Exception:
+            return None
+
+    libs["xarray"] = ver("xarray")
+    libs["netcdf4"] = ver("netCDF4") or ver("netcdf4")
+    libs["cfgrib"] = ver("cfgrib")
+    libs["eccodes"] = ver("eccodes")
+    libs["pygrib"] = ver("pygrib")
+    # Raster/GDAL stack
+    try:
+        import rasterio  # type: ignore
+
+        libs["rasterio"] = getattr(rasterio, "__version__", None)
+        libs["gdal"] = getattr(rasterio, "__gdal_version__", None)
+    except Exception:
+        libs["rasterio"] = None
+        libs["gdal"] = None
+    libs["rioxarray"] = ver("rioxarray")
+    libs["cartopy"] = ver("cartopy")
+    libs["matplotlib"] = ver("matplotlib")
+    info["libs"] = libs
+    # Heuristic extras presence from libs
+    extras: dict[str, bool] = {
+        "connectors": any(
+            (libs.get(k) is not None) for k in ("boto3", "requests", "PyVimeo")
+        ),
+        "processing": any(
+            (libs.get(k) is not None)
+            for k in ("xarray", "netcdf4", "cfgrib", "rasterio", "rioxarray")
+        ),
+        "visualization": any(
+            (libs.get(k) is not None) for k in ("cartopy", "matplotlib")
+        ),
+        "wizard": False,
+        "api": False,
+    }
+    try:
+        import prompt_toolkit  # type: ignore  # noqa: F401
+
+        extras["wizard"] = True
+    except Exception:
+        pass
+    try:
+        import fastapi  # type: ignore  # noqa: F401
+        import uvicorn  # type: ignore  # noqa: F401
+
+        extras["api"] = True
+    except Exception:
+        pass
+    info["extras"] = extras
+    return info
 
 
 def _parse_s3_url(url: str) -> Tuple[str, str]:
@@ -474,6 +706,16 @@ def _viz_wind_cmd(ns: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Pre-scan argv to support --version without requiring a subcommand
+    args_list = argv if argv is not None else sys.argv[1:]
+    if any(a in {"--version", "-V"} for a in args_list):
+        mode = "short"
+        if "--json" in args_list:
+            mode = "json"
+        elif "--long" in args_list:
+            mode = "long"
+        _print_version_banner(mode)
+        return 0
     parser = argparse.ArgumentParser(prog="zyra")
     # Global verbosity controls for all commands
     vgrp = parser.add_mutually_exclusive_group()
@@ -489,7 +731,6 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     # Pre-scan argv to support lazy registration and avoid importing heavy stacks unnecessarily
-    args_list = argv if argv is not None else sys.argv[1:]
     first_non_flag = next((a for a in args_list if not a.startswith("-")), None)
 
     # Always make 'run' available (lightweight)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import subprocess
 from pathlib import Path
 
@@ -10,6 +11,12 @@ from zyra.visualization.cli_utils import features_from_ns, resolve_basemap_ref
 
 def handle_animate(ns) -> int:
     """Handle ``visualize animate`` CLI subcommand."""
+    if getattr(ns, "verbose", False):
+        os.environ["ZYRA_VERBOSITY"] = "debug"
+    elif getattr(ns, "quiet", False):
+        os.environ["ZYRA_VERBOSITY"] = "quiet"
+    if getattr(ns, "trace", False):
+        os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
     # Batch mode for animate: --inputs with --output-dir
     if getattr(ns, "inputs", None):
@@ -73,6 +80,10 @@ def handle_animate(ns) -> int:
                     input_directory=str(frames_dir), output_file=str(mp4), fps=ns.fps
                 )
                 if vp.validate():
+                    if os.environ.get("ZYRA_SHELL_TRACE"):
+                        logging.info(
+                            "+ compose frames='%s' -> '%s'", str(frames_dir), str(mp4)
+                        )
                     vp.process(fps=ns.fps)
                     vp.save(str(mp4))
                     videos.append(str(mp4))
@@ -92,6 +103,10 @@ def handle_animate(ns) -> int:
                     grid_mode=str(getattr(ns, "grid_mode", "grid")),
                     cols=cols,
                 )
+                if os.environ.get("ZYRA_SHELL_TRACE"):
+                    from zyra.utils.cli_helpers import sanitize_for_log
+
+                    logging.info("+ %s", sanitize_for_log(" ".join(cmd)))
                 subprocess.run(cmd, check=False)
                 logging.info(ns.combine_to)
             except Exception as err:
@@ -174,6 +189,15 @@ def handle_animate(ns) -> int:
     from zyra.visualization.animate_manager import AnimateManager
 
     bmap, guard = resolve_basemap_ref(getattr(ns, "basemap", None))
+    if os.environ.get("ZYRA_SHELL_TRACE"):
+        if getattr(ns, "input", None):
+            logging.info("+ input='%s'", ns.input)
+        if getattr(ns, "output_dir", None):
+            logging.info("+ output_dir='%s'", ns.output_dir)
+        logging.info("+ extent=%s", " ".join(map(str, ns.extent)))
+        logging.info("+ size=%dx%d dpi=%d", ns.width, ns.height, ns.dpi)
+        if bmap:
+            logging.info("+ basemap='%s'", bmap)
     mgr = AnimateManager(
         mode=ns.mode, basemap=bmap, extent=ns.extent, output_dir=ns.output_dir
     )

@@ -96,6 +96,18 @@ def register_cli(subparsers: Any) -> None:
     p_hm.add_argument("--no-coastline", action="store_true")
     p_hm.add_argument("--no-borders", action="store_true")
     p_hm.add_argument("--no-gridlines", action="store_true")
+    # Logging and trace controls
+    p_hm.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_hm.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
+    p_hm.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
     p_hm.set_defaults(func=handle_heatmap)
 
     # contour
@@ -158,6 +170,17 @@ def register_cli(subparsers: Any) -> None:
     p_ct.add_argument("--no-coastline", action="store_true")
     p_ct.add_argument("--no-borders", action="store_true")
     p_ct.add_argument("--no-gridlines", action="store_true")
+    p_ct.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_ct.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
+    p_ct.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
     p_ct.set_defaults(func=handle_contour)
 
     # timeseries
@@ -174,6 +197,17 @@ def register_cli(subparsers: Any) -> None:
     p_ts.add_argument("--width", type=int, default=1024)
     p_ts.add_argument("--height", type=int, default=512)
     p_ts.add_argument("--dpi", type=int, default=96)
+    p_ts.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_ts.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
+    p_ts.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
     p_ts.set_defaults(func=handle_timeseries)
 
     # vector
@@ -206,6 +240,17 @@ def register_cli(subparsers: Any) -> None:
     p_vec.add_argument("--no-coastline", action="store_true")
     p_vec.add_argument("--no-borders", action="store_true")
     p_vec.add_argument("--no-gridlines", action="store_true")
+    p_vec.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_vec.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
+    p_vec.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
     p_vec.set_defaults(func=handle_vector)
 
     # animate + compose-video
@@ -269,6 +314,17 @@ def register_cli(subparsers: Any) -> None:
     p_anim.add_argument(
         "--method", default="RK4-SPH", choices=["RK4-SPH", "RK4-Grid"]
     )  # particles
+    p_anim.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_anim.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
+    p_anim.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
     p_anim.set_defaults(func=handle_animate)
 
     p_cv = subparsers.add_parser(
@@ -282,6 +338,17 @@ def register_cli(subparsers: Any) -> None:
     )
     p_cv.add_argument("--fps", type=int, default=30)
     p_cv.add_argument("--basemap", help="Basemap (path, bare image name, or pkg:ref)")
+    p_cv.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_cv.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
+    p_cv.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
     p_cv.set_defaults(func=handle_compose_video)
 
     # interactive
@@ -315,4 +382,15 @@ def register_cli(subparsers: Any) -> None:
     p_int.add_argument("--color", default="#333333")
     p_int.add_argument("--streamlines", action="store_true")
     p_int.add_argument("--features")
+    p_int.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_int.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
+    p_int.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
     p_int.set_defaults(func=handle_interactive)
