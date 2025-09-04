@@ -1,0 +1,86 @@
+name: Retag Images (no rebuild)
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_tag:
+        description: Existing image tag to retag (e.g., v0.1.29 or 0.1.29)
+        required: true
+      to_tag:
+        description: New tag to apply (e.g., latest or v0.1.29)
+        required: false
+        default: latest
+      image:
+        description: Which image(s) to retag (both|zyra|zyra-scheduler)
+        required: false
+        default: both
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  retag:
+    name: Retag ${{ matrix.image }} -> ${{ inputs.to_tag }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image: [zyra-scheduler, zyra]
+    steps:
+      - name: Normalize inputs
+        id: norm
+        shell: bash
+        run: |
+          FROM="${{ inputs.from_tag }}"
+          TO="${{ inputs.to_tag }}"
+          # Normalize: our release images use v-prefixed semver
+          if [[ "$FROM" != v* ]]; then FROM="v$FROM"; fi
+          echo "from=$FROM" >> "$GITHUB_OUTPUT"
+          echo "to=$TO" >> "$GITHUB_OUTPUT"
+
+      - name: Compute lowercase owner
+        id: owner
+        shell: bash
+        run: |
+          echo "owner_lower=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Select images
+        id: filter
+        shell: bash
+        run: |
+          sel='${{ inputs.image }}'
+          keep=true
+          case "$sel" in
+            both|"") keep=true ;;
+            zyra) if [ "${{ matrix.image }}" = "zyra" ]; then keep=true; else keep=false; fi ;;
+            zyra-scheduler) if [ "${{ matrix.image }}" = "zyra-scheduler" ]; then keep=true; else keep=false; fi ;;
+            *) echo "Unknown image selection: $sel" >&2; exit 1 ;;
+          esac
+          echo "keep=$keep" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        if: steps.filter.outputs.keep == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: steps.filter.outputs.keep == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Retag ${{ matrix.image }} (${{ steps.norm.outputs.from }} -> ${{ steps.norm.outputs.to }})
+        if: steps.filter.outputs.keep == 'true'
+        shell: bash
+        run: |
+          SRC="ghcr.io/${{ steps.owner.outputs.owner_lower }}/${{ matrix.image }}:${{ steps.norm.outputs.from }}"
+          DST="ghcr.io/${{ steps.owner.outputs.owner_lower }}/${{ matrix.image }}:${{ steps.norm.outputs.to }}"
+          echo "+ docker buildx imagetools create -t $DST $SRC"
+          docker buildx imagetools create -t "$DST" "$SRC"
+
+      - name: Skip retag (manual selection)
+        if: steps.filter.outputs.keep != 'true'
+        run: |
+          echo "Skipping ${{ matrix.image }} per selection: ${{ inputs.image }}"
+

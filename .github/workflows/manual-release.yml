@@ -156,6 +156,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute prerelease flag
+        id: vars
+        shell: bash
+        run: |
+          VER='${{ inputs.version }}'
+          PRERELEASE=false
+          if echo "$VER" | grep -Eiq '(-rc|-beta|-alpha)'; then PRERELEASE=true; fi
+          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
+
       - name: Docker metadata (${{ matrix.name }})
         id: meta
         uses: docker/metadata-action@v5
@@ -163,6 +172,7 @@ jobs:
           images: ghcr.io/${{ steps.owner.outputs.owner_lower }}/${{ matrix.name }}
           tags: |
             type=raw,value=v${{ inputs.version }}
+            type=raw,value=latest,enable=${{ steps.vars.outputs.prerelease == 'false' }}
 
       - name: Build and push (${{ matrix.name }})
         uses: docker/build-push-action@v6
