@@ -122,6 +122,12 @@ jobs:
           lfs: true
           fetch-depth: 0
 
+      - name: Compute lowercase owner
+        id: owner
+        shell: bash
+        run: |
+          echo "owner_lower=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
       - name: Fetch Git LFS assets (basemaps)
         shell: bash
         run: |
@@ -154,7 +160,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ matrix.image }}
+          images: ghcr.io/${{ steps.owner.outputs.owner_lower }}/${{ matrix.name }}
           tags: |
             type=raw,value=v${{ inputs.version }}
 
@@ -180,6 +186,11 @@ jobs:
       matrix:
         image: [zyra-scheduler, zyra]
     steps:
+      - name: Compute lowercase owner
+        id: owner
+        shell: bash
+        run: |
+          echo "owner_lower=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -190,7 +201,7 @@ jobs:
       - name: Trivy scan ${{ matrix.image }}
         uses: aquasecurity/trivy-action@0.20.0
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:v${{ inputs.version }}
+          image-ref: ghcr.io/${{ steps.owner.outputs.owner_lower }}/${{ matrix.image }}:v${{ inputs.version }}
           format: table
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
