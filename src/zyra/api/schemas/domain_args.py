@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pydantic import BaseModel, model_validator
+from zyra.api.workers.executor import _normalize_args as _normalize_cli_like
 
 
 class AcquireHttpArgs(BaseModel):
@@ -53,6 +54,11 @@ def normalize_and_validate(stage: str, tool: str, args: dict) -> dict:
     Returns a new dict with validated/normalized keys. Unknown tools are not
     validated to preserve backward compatibility.
     """
+    # Apply CLI-style normalization first so aliases are accepted (e.g., output->path)
+    try:
+        args = _normalize_cli_like(stage, tool, dict(args))
+    except Exception:
+        args = dict(args)
     key = (stage, tool)
     model: type[BaseModel] | None = None
     if key == ("acquire", "http"):

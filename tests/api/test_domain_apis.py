@@ -31,7 +31,7 @@ def test_process_domain_invalid_tool(monkeypatch) -> None:
     )
     assert r.status_code == 400
     js = r.json()
-    assert "error" in js.get("detail", {})
+    assert "error" in js and isinstance(js["error"], dict)
 
 
 def test_acquire_transform_invalid_tool(monkeypatch) -> None:
@@ -43,4 +43,4 @@ def test_acquire_transform_invalid_tool(monkeypatch) -> None:
         )
         assert r.status_code == 400
         js = r.json()
-        assert "error" in js.get("detail", {})
+        assert "error" in js and isinstance(js["error"], dict)
