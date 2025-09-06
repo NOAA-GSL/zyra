@@ -23,6 +23,13 @@ jobs:
       matrix:
         image: [zyra-scheduler, zyra]
     steps:
+      - name: Normalize tag input
+        id: tag
+        shell: bash
+        run: |
+          t='${{ inputs.tag }}'
+          if [[ "$t" != v* ]]; then t="v$t"; fi
+          echo "tag=$t" >> "$GITHUB_OUTPUT"
       - name: Compute lowercase owner
         id: owner
         shell: bash
@@ -54,7 +61,7 @@ jobs:
         if: steps.filter.outputs.build == 'true'
         uses: aquasecurity/trivy-action@0.20.0
         with:
-          image-ref: ghcr.io/${{ steps.owner.outputs.owner_lower }}/${{ matrix.image }}:${{ inputs.tag }}
+          image-ref: ghcr.io/${{ steps.owner.outputs.owner_lower }}/${{ matrix.image }}:${{ steps.tag.outputs.tag }}
           format: table
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'

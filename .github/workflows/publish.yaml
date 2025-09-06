@@ -21,8 +21,11 @@ concurrency:
 jobs:
   publish:
     name: Publish
-    # Run when either: push tag refs/tags/v* OR release tag_name starts with v
-    if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.event.release.tag_name || '', 'v')
+    # Run when:
+    #  - push tag refs/tags/v*
+    #  - release event with tag_name starting with v
+    #  - manual workflow_dispatch (uses inputs.force_version if provided)
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v') || startsWith(github.event.release.tag_name || '', 'v')
     runs-on: ubuntu-latest
 
     environment:
