@@ -7,6 +7,9 @@ test.json
 .vscode/
 .history/
 
+#Working Directory
+_work/
+
 # Mac
 .DS_Store
 
