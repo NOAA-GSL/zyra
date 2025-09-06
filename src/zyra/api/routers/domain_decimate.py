@@ -49,7 +49,7 @@ def decimate_run(req: DomainRunRequest, bg: BackgroundTasks) -> DomainRunRespons
             manifest=f"/jobs/{resp.job_id}/manifest",
         )
     return DomainRunResponse(
-        status="ok" if (resp.exit_code or 1) == 0 else "error",
+        status="ok" if (resp.exit_code == 0) else "error",
         result={"argv": getattr(resp, "argv", None)},
         logs=[
             *(
