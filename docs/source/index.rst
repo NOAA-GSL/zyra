@@ -30,6 +30,14 @@ Contents
    :caption: Guides
 
    discovery
+   mcp
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Project Notes
+   :glob:
+
+   notes/*
 
 .. toctree::
    :maxdepth: 2

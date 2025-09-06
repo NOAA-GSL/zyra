@@ -759,6 +759,39 @@ Endpoints:
   - In-memory mode: WebSocket streaming is supported without Redis as a lightweight pub/sub for logs/progress.
   - Messages are JSON lines with keys like `stdout`, `stderr`, `progress`, and a final payload including `exit_code` and `output_file` when available.
 
+### MCP (Model Context Protocol) endpoint
+
+Zyra exposes a minimal MCP-style JSON-RPC endpoint to make tools discoverable and callable by LLM-native clients.
+
+- Endpoint: `POST /mcp` (JSON-RPC 2.0)
+- Methods:
+  - `listTools` → returns the capabilities manifest (similar to `/commands`)
+  - `callTool` → runs a tool via `/cli/run` (sync or async)
+    - Params: `{ stage, command, args?, mode? }`
+    - Result (sync): `{ status, stdout?, stderr?, exit_code? }`
+    - Result (async): `{ status: 'accepted', job_id, poll, download, manifest }`
+  - `statusReport` → `{ status: 'ok', version }`
+- Auth: include `X-API-Key: $ZYRA_API_KEY` if the API key is set.
+- Feature flags:
+  - `ZYRA_ENABLE_MCP` (default `1`): enable/disable the endpoint
+  - `ZYRA_MCP_MAX_BODY_BYTES` (bytes): optional request size limit for `/mcp`
+
+Examples:
+
+```
+curl -sS -H 'Content-Type: application/json' -H "X-API-Key: $ZYRA_API_KEY" \
+  -d '{"jsonrpc":"2.0","method":"statusReport","id":1}' \
+  http://localhost:8000/mcp
+
+curl -sS -H 'Content-Type: application/json' -H "X-API-Key: $ZYRA_API_KEY" \
+  -d '{"jsonrpc":"2.0","method":"listTools","id":2}' \
+  http://localhost:8000/mcp
+
+curl -sS -H 'Content-Type: application/json' -H "X-API-Key: $ZYRA_API_KEY" \
+  -d '{"jsonrpc":"2.0","method":"callTool","params":{"stage":"visualize","command":"heatmap","args":{"input":"samples/demo.npy","output":"/tmp/heatmap.png"},"mode":"sync"},"id":3}' \
+  http://localhost:8000/mcp
+```
+
 Example request:
 ```
 POST /cli/run

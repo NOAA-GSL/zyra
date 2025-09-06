@@ -23,6 +23,7 @@ from zyra.api.routers import cli as cli_router
 from zyra.api.routers import files as files_router
 from zyra.api.routers import jobs as jobs_router
 from zyra.api.routers import manifest as manifest_router
+from zyra.api.routers import mcp as mcp_router
 from zyra.api.routers import search as search_router
 from zyra.api.routers import ws as ws_router
 from zyra.api.security import require_api_key
@@ -87,6 +88,9 @@ def create_app() -> FastAPI:
     app.include_router(manifest_router.router, dependencies=[Depends(require_api_key)])
     app.include_router(search_router.router, dependencies=[Depends(require_api_key)])
     app.include_router(jobs_router.router, dependencies=[Depends(require_api_key)])
+    # MCP adapter (feature gate)
+    if env_bool("ENABLE_MCP", True):
+        app.include_router(mcp_router.router, dependencies=[Depends(require_api_key)])
 
     @app.get("/health", tags=["system"])
     def health() -> dict:
@@ -268,6 +272,24 @@ def create_app() -> FastAPI:
         fmt = request.query_params.get("format")
         accept = request.headers.get("accept", "")
         prefer_html = (fmt == "html") or ("text/html" in accept and fmt != "json")
+        endpoints_list = [
+            "/health",
+            "/ready",
+            "/llm/test",
+            "/commands",
+            "/cli/commands",
+            "/cli/examples",
+            "/cli/run",
+            "/jobs/{job_id}",
+            "/jobs/{job_id}/manifest",
+            "/jobs/{job_id}/download",
+            "/upload",
+            "/examples",
+        ]
+        # Conditionally expose MCP endpoint in discovery list
+        if env_bool("ENABLE_MCP", True):
+            endpoints_list.append("/mcp")
+
         meta = {
             "name": "Zyra API",
             "version": dvh_version,
@@ -277,20 +299,7 @@ def create_app() -> FastAPI:
                 "examples": "/examples",
                 "openapi": "/openapi.json",
             },
-            "endpoints": [
-                "/health",
-                "/ready",
-                "/llm/test",
-                "/commands",
-                "/cli/commands",
-                "/cli/examples",
-                "/cli/run",
-                "/jobs/{job_id}",
-                "/jobs/{job_id}/manifest",
-                "/jobs/{job_id}/download",
-                "/upload",
-                "/examples",
-            ],
+            "endpoints": endpoints_list,
         }
         if not prefer_html:
             return meta
@@ -299,6 +308,12 @@ def create_app() -> FastAPI:
 
         header_name = _html.escape(env("API_KEY_HEADER", "X-API-Key") or "X-API-Key")
         version_text = _html.escape(str(dvh_version))
+        mcp_line = (
+            '<li><a href="/mcp">POST /mcp</a> — MCP (JSON-RPC)</li>'
+            if env_bool("ENABLE_MCP", True)
+            else ""
+        )
+
         html = f"""
         <!doctype html>
         <html lang=\"en\">
@@ -332,6 +347,7 @@ def create_app() -> FastAPI:
               <li><a href=\"/cli/commands\">GET /cli/commands</a> — discovery: stages, commands, args</li>
               <li><a href=\"/cli/examples\">GET /cli/examples</a> — curated examples for /cli/run</li>
               <li>POST /cli/run — see <a href=\"/docs#/%2Fcli%2Frun\">/docs</a></li>
+              {mcp_line}
               <li><a href=\"/search\">GET /search</a> — dataset discovery</li>
               <li><a href=\"/search/profiles\">GET /search/profiles</a> — bundled profiles</li>
               <li>POST /semantic_search — discovery + LLM analysis (see /docs)</li>

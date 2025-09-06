@@ -10,6 +10,7 @@
   "/jobs/{job_id}/download",
   "/jobs/{job_id}/manifest",
   "/llm/test",
+  "/mcp",
   "/ready",
   "/search",
   "/search/profiles",
