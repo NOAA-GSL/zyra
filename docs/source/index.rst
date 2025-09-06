@@ -30,6 +30,7 @@ Contents
    :caption: Guides
 
    discovery
+   domain_apis
    mcp
 
 .. toctree::

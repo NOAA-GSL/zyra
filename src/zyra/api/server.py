@@ -20,6 +20,12 @@ from fastapi.responses import HTMLResponse
 
 from zyra.api import __version__ as dvh_version
 from zyra.api.routers import cli as cli_router
+from zyra.api.routers import domain_acquire as acquire_router
+from zyra.api.routers import domain_assets as assets_router
+from zyra.api.routers import domain_decimate as decimate_router
+from zyra.api.routers import domain_process as process_router
+from zyra.api.routers import domain_transform as transform_router
+from zyra.api.routers import domain_visualize as visualize_router
 from zyra.api.routers import files as files_router
 from zyra.api.routers import jobs as jobs_router
 from zyra.api.routers import manifest as manifest_router
@@ -88,6 +94,13 @@ def create_app() -> FastAPI:
     app.include_router(manifest_router.router, dependencies=[Depends(require_api_key)])
     app.include_router(search_router.router, dependencies=[Depends(require_api_key)])
     app.include_router(jobs_router.router, dependencies=[Depends(require_api_key)])
+    # Domain routers (v1 minimal, delegate to /cli/run)
+    app.include_router(process_router.router, dependencies=[Depends(require_api_key)])
+    app.include_router(visualize_router.router, dependencies=[Depends(require_api_key)])
+    app.include_router(assets_router.router, dependencies=[Depends(require_api_key)])
+    app.include_router(decimate_router.router, dependencies=[Depends(require_api_key)])
+    app.include_router(acquire_router.router, dependencies=[Depends(require_api_key)])
+    app.include_router(transform_router.router, dependencies=[Depends(require_api_key)])
     # MCP adapter (feature gate)
     if env_bool("ENABLE_MCP", True):
         app.include_router(mcp_router.router, dependencies=[Depends(require_api_key)])

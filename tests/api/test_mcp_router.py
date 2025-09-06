@@ -116,7 +116,7 @@ def test_mcp_calltool_async_job_lifecycle(tmp_path, monkeypatch) -> None:
     assert job_id
     # Poll the job until terminal state
     for _ in range(20):
-        s = client.get(f"/jobs/{job_id}")
+        s = client.get(f"/jobs/{job_id}", headers={"X-API-Key": "k"})
         assert s.status_code == 200
         body = s.json()
         if body.get("status") in {"succeeded", "failed", "canceled"}:

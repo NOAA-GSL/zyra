@@ -1,9 +1,12 @@
 [
   "/",
+  "/acquire",
+  "/assets",
   "/cli/commands",
   "/cli/examples",
   "/cli/run",
   "/commands",
+  "/decimate",
   "/enrich",
   "/health",
   "/jobs/{job_id}",
@@ -11,8 +14,11 @@
   "/jobs/{job_id}/manifest",
   "/llm/test",
   "/mcp",
+  "/process",
   "/ready",
   "/search",
   "/search/profiles",
-  "/upload"
+  "/transform",
+  "/upload",
+  "/visualize"
 ]
