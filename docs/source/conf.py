@@ -53,6 +53,12 @@ html_theme = "alabaster"
 if _ils.find_spec("sphinx_rtd_theme") is not None:  # pragma: no cover - docs build env
     html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
+html_css_files = [
+    "css/zyra-theme.css",
+]
+html_js_files = [
+    "js/zyra-theme.js",
+]
 
 # Autosummary/napoleon tweaks for cleaner API pages
 autosummary_generate = True

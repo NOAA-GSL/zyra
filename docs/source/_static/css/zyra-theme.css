@@ -1,0 +1,101 @@
+:root {
+  /* Zyra brand colors (see branding/palette/zyra-palette.gpl) */
+  /* Updated from moodboard analysis */
+  --zyra-navy: #00172D;
+  --zyra-blue: #1A5A69; /* ocean teal/blue */
+  --zyra-sky: #5F9DAE;  /* seafoam/sky */
+  --zyra-teal: #091A1B; /* deep teal */
+  --zyra-teal-accent: #9AB2B1; /* mist */
+  --zyra-green: #2C670C; /* organic leaf green */
+  --zyra-olive: #576216; /* olive accent */
+  --zyra-soil: #50452C;  /* earth/dirt */
+  --zyra-cable-blue: #00529E; /* network cable blue */
+  --zyra-amber: #FFC107; /* keep for warnings/UI */
+  --zyra-red: #F44336;   /* keep for errors */
+  --zyra-neutral-900: #232323;
+  --zyra-neutral-700: #8B8985;
+  --zyra-neutral-600: #A3A29D;
+  --zyra-neutral-400: #D8D7D3;
+  --zyra-neutral-200: #F7F5EE;
+  --zyra-neutral-50: #FEFEFE;
+}
+
+/* Optional: small visual touches for headings/links in docs */
+.wy-nav-top, .rst-content .toctree-wrapper > p.caption, .document h1 {
+  color: var(--zyra-blue);
+}
+
+a {
+  color: var(--zyra-teal-accent);
+}
+
+/* Utility badge class for inline labels */
+.zyra-badge {
+  display: inline-block;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  background: var(--zyra-neutral-200);
+  color: var(--zyra-neutral-900);
+  font-size: 0.85em;
+}
+
+/* Badge color variants */
+.zyra-badge.leaf { background: var(--zyra-green); color: #fff; }
+.zyra-badge.cable { background: var(--zyra-cable-blue); color: #fff; }
+.zyra-badge.olive { background: var(--zyra-olive); color: #fff; }
+.zyra-badge.soil { background: var(--zyra-soil); color: #fff; }
+
+/* Simple demo buttons for docs examples */
+.btn {
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.4rem;
+  border: 1px solid transparent;
+  font-size: 0.95em;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: default;
+}
+.btn + .btn { margin-left: 8px; }
+.btn.primary { background: var(--zyra-cable-blue); color: #fff; }
+.btn.success { background: var(--zyra-green); color: #fff; }
+.btn.dark { background: var(--zyra-navy); color: var(--zyra-neutral-50); }
+.btn.outline {
+  background: transparent;
+  border-color: var(--zyra-blue);
+  color: var(--zyra-blue);
+}
+.btn:hover { filter: brightness(0.92); }
+
+/* Demo theme containers */
+.demo {
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 8px;
+  border: 1px solid var(--zyra-neutral-400);
+}
+.demo.light {
+  background: var(--zyra-neutral-50);
+  color: var(--zyra-neutral-900);
+}
+.demo.dark {
+  background: var(--zyra-navy);
+  color: var(--zyra-neutral-50);
+}
+.demo.dark .btn.outline {
+  border-color: var(--zyra-sky);
+  color: var(--zyra-sky);
+}
+.demo .group { margin-bottom: 8px; }
+
+/* Contrast annotations */
+.contrast { opacity: 0.9; }
+.contrast .result { padding: 0 4px; border-radius: 4px; }
+.contrast .result.pass { background: rgba(76, 175, 80, 0.15); color: #2e7d32; }
+.contrast .result.warn { background: rgba(255, 193, 7, 0.15); color: #8d6e00; }
+.contrast .result.fail { background: rgba(244, 67, 54, 0.15); color: #b71c1c; }
+
+/* Recommendation table */
+.rec-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.rec-table th, .rec-table td { border: 1px solid var(--zyra-neutral-400); padding: 6px 8px; text-align: left; }
+.rec-table th { background: var(--zyra-neutral-200); }
