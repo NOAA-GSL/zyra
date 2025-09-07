@@ -77,13 +77,31 @@ def mcp_rpc(req: JSONRPCRequest, request: Request):
 
     try:
         if method == "listTools":
-            # Provide the capabilities manifest. For MCP v0 minimal, return the raw object.
+            # Provide enriched capabilities: raw manifest + flattened tools list
             refresh = bool(params.get("refresh", False))
-            # Default format is json; accept stage/q later if needed
             result = manifest_svc.list_commands(
                 format="json", stage=None, q=None, refresh=refresh
             )
-            return _rpc_result(req.id, {"manifest": result})
+            cmds = result.get("commands", {}) if isinstance(result, dict) else {}
+            tools: list[dict[str, Any]] = []
+            for full, meta in cmds.items():
+                try:
+                    stage, tool = full.split(" ", 1)
+                except ValueError:
+                    stage, tool = full, full
+                tools.append(
+                    {
+                        "name": full,
+                        "domain": meta.get("domain", stage),
+                        "tool": tool,
+                        "args_schema": meta.get("args_schema"),
+                        "example_args": meta.get("example_args"),
+                        "options": meta.get("options"),
+                        "positionals": meta.get("positionals"),
+                        "description": meta.get("description"),
+                    }
+                )
+            return _rpc_result(req.id, {"manifest": result, "tools": tools})
 
         if method == "statusReport":
             # Lightweight mapping of /health
@@ -171,14 +189,28 @@ def mcp_rpc(req: JSONRPCRequest, request: Request):
                         "manifest": f"/jobs/{resp.job_id}/manifest",
                     },
                 )
-            # Sync execution result
+            # Sync execution result: map failures to JSON-RPC error
+            exit_code = getattr(resp, "exit_code", None)
+            if isinstance(exit_code, int) and exit_code != 0:
+                return _rpc_error(
+                    req.id,
+                    -32000,
+                    "Execution failed",
+                    {
+                        "exit_code": exit_code,
+                        "stderr": getattr(resp, "stderr", None),
+                        "stdout": getattr(resp, "stdout", None),
+                        "stage": stage,
+                        "command": command,
+                    },
+                )
             return _rpc_result(
                 req.id,
                 {
-                    "status": "ok" if (resp.exit_code or 1) == 0 else "error",
+                    "status": "ok",
                     "stdout": getattr(resp, "stdout", None),
                     "stderr": getattr(resp, "stderr", None),
-                    "exit_code": getattr(resp, "exit_code", None),
+                    "exit_code": exit_code,
                 },
             )
 

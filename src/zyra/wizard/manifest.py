@@ -417,7 +417,9 @@ def _traverse(parser: argparse.ArgumentParser, *, prefix: str = "") -> dict[str,
                 "positionals": _collect_positionals(parser),
                 "domain": domain,
                 "args_schema": (
-                    {"required": req, "optional": opt} if req is not None and opt is not None else None
+                    {"required": req, "optional": opt}
+                    if req is not None and opt is not None
+                    else None
                 ),
                 "example_args": examples.get((domain, tool)),
             }

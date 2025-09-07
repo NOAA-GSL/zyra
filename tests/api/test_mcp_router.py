@@ -45,9 +45,14 @@ def test_mcp_list_tools(monkeypatch) -> None:
     assert r.status_code == 200
     body = r.json()
     assert body.get("jsonrpc") == "2.0"
-    manifest = body.get("result", {}).get("manifest")
+    result = body.get("result", {})
+    manifest = result.get("manifest")
     assert isinstance(manifest, dict)
     assert "commands" in manifest
+    tools = result.get("tools")
+    assert isinstance(tools, list) and tools
+    sample = tools[0]
+    assert "domain" in sample and "name" in sample
 
 
 def test_mcp_calltool_local_sync(tmp_path, monkeypatch) -> None:
@@ -147,6 +152,25 @@ def test_mcp_invalid_jsonrpc_version(monkeypatch) -> None:
     assert r.status_code == 200
     js = r.json()
     assert js.get("error", {}).get("code") == -32600
+
+
+def test_mcp_calltool_sync_execution_error(tmp_path, monkeypatch) -> None:
+    client = _client_with_key(monkeypatch)
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "callTool",
+        "params": {
+            "stage": "process",
+            "command": "decode-grib2",
+            "args": {"file_or_url": str(tmp_path / "missing.grib2")},
+            "mode": "sync",
+        },
+        "id": 10,
+    }
+    r = client.post("/mcp", json=payload, headers={"X-API-Key": "k"})
+    assert r.status_code == 200
+    js = r.json()
+    assert "error" in js and js["error"].get("code") == -32000
 
 
 def test_mcp_status_report_has_version(monkeypatch) -> None:
