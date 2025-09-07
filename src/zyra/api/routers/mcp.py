@@ -93,31 +93,9 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
     _t0 = _time.time()
     try:
         if method == "listTools":
-            # Provide enriched capabilities: raw manifest + flattened tools list
+            # Return spec-compatible MCP discovery payload
             refresh = bool(params.get("refresh", False))
-            result = manifest_svc.list_commands(
-                format="json", stage=None, q=None, refresh=refresh
-            )
-            cmds = result.get("commands", {}) if isinstance(result, dict) else {}
-            tools: list[dict[str, Any]] = []
-            for full, meta in cmds.items():
-                try:
-                    stage, tool = full.split(" ", 1)
-                except ValueError:
-                    stage, tool = full, full
-                tools.append(
-                    {
-                        "name": full,
-                        "domain": meta.get("domain", stage),
-                        "tool": tool,
-                        "args_schema": meta.get("args_schema"),
-                        "example_args": meta.get("example_args"),
-                        "options": meta.get("options"),
-                        "positionals": meta.get("positionals"),
-                        "description": meta.get("description"),
-                    }
-                )
-            out = {"manifest": result, "tools": tools}
+            out = _mcp_discovery_payload(refresh=refresh)
             from contextlib import suppress
 
             with suppress(Exception):
@@ -268,6 +246,125 @@ def _sse_format(data: dict) -> bytes:
     import json as _json
 
     return ("data: " + _json.dumps(data) + "\n\n").encode("utf-8")
+
+
+def _json_type(t: str | None) -> str | None:
+    if not t:
+        return None
+    t = t.lower()
+    if t in {"str", "string"}:
+        return "string"
+    if t in {"int", "integer"}:
+        return "integer"
+    if t in {"float", "number"}:
+        return "number"
+    if t in {"bool", "boolean"}:
+        return "boolean"
+    return None
+
+
+def _mcp_discovery_payload(refresh: bool = False) -> dict[str, Any]:
+    """Return a spec-compatible MCP discovery payload.
+
+    Structure:
+    {
+      "mcp_version": "0.1",
+      "name": "zyra",
+      "description": "...",
+      "capabilities": { "commands": [ { name, description, parameters } ] }
+    }
+    """
+    result = manifest_svc.list_commands(
+        format="json", stage=None, q=None, refresh=refresh
+    )
+    cmds = result.get("commands", {}) if isinstance(result, dict) else {}
+    commands: list[dict[str, Any]] = []
+    for full, meta in cmds.items():
+        # Build name as stage.tool (e.g., "process.decode-grib2")
+        try:
+            stage, tool = full.split(" ", 1)
+        except ValueError:
+            stage, tool = full, full
+        name = f"{stage}.{tool}"
+
+        # Build JSON Schema parameters from options + positionals
+        properties: dict[str, Any] = {}
+        required: list[str] = []
+
+        # Positionals: add as required named properties
+        for pos in meta.get("positionals") or []:
+            if not isinstance(pos, dict):
+                continue
+            pname = str(pos.get("name") or "arg").strip()
+            if not pname:
+                continue
+            ptype = _json_type(str(pos.get("type") or ""))
+            schema: dict[str, Any] = {}
+            if ptype:
+                schema["type"] = ptype
+            if pos.get("choices"):
+                schema["enum"] = list(pos.get("choices"))
+            if pos.get("help"):
+                schema["description"] = pos.get("help")
+            properties[pname] = schema or {"type": "string"}
+            if bool(pos.get("required", False)):
+                required.append(pname)
+
+        # Options: prefer long flags ("--flag"), convert to property names
+        opts = meta.get("options") or {}
+        seen: set[str] = set()
+        for flag, o in opts.items():
+            if not isinstance(flag, str) or not flag.startswith("--"):
+                continue
+            prop = flag.lstrip("-").replace("-", "_")
+            if prop in seen:
+                continue
+            seen.add(prop)
+            if not isinstance(o, dict):
+                properties[prop] = {"type": "string"}
+                continue
+            jtype = _json_type(str(o.get("type") or ""))
+            schema: dict[str, Any] = {}
+            if jtype:
+                schema["type"] = jtype
+            if o.get("help"):
+                schema["description"] = o.get("help")
+            # We don't currently track required options; leave optional
+            properties[prop] = schema or {"type": "string"}
+
+        parameters: dict[str, Any] = {
+            "type": "object",
+            "properties": properties,
+        }
+        if required:
+            parameters["required"] = sorted(required)
+
+        commands.append(
+            {
+                "name": name,
+                "description": meta.get("description", f"zyra {full}"),
+                "parameters": parameters,
+            }
+        )
+
+    return {
+        "mcp_version": "0.1",
+        "name": "zyra",
+        "description": "Zyra MCP server for domain-specific data visualization",
+        "capabilities": {"commands": commands},
+    }
+
+
+@router.get("/mcp")
+def mcp_capabilities(refresh: bool = False) -> dict[str, Any]:
+    """HTTP discovery endpoint for MCP clients (Cursor/Claude/VS Code)."""
+    return _mcp_discovery_payload(refresh=refresh)
+
+
+@router.options("/mcp")
+def mcp_capabilities_options(refresh: bool = False) -> dict[str, Any]:
+    """OPTIONS variant returning the same MCP discovery payload."""
+    return _mcp_discovery_payload(refresh=refresh)
 
 
 @router.get("/mcp/progress/{job_id}")

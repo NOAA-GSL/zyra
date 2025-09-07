@@ -46,13 +46,17 @@ def test_mcp_list_tools(monkeypatch) -> None:
     body = r.json()
     assert body.get("jsonrpc") == "2.0"
     result = body.get("result", {})
-    manifest = result.get("manifest")
-    assert isinstance(manifest, dict)
-    assert "commands" in manifest
-    tools = result.get("tools")
-    assert isinstance(tools, list) and tools
-    sample = tools[0]
-    assert "domain" in sample and "name" in sample
+    # MCP discovery shape
+    assert result.get("mcp_version") == "0.1"
+    assert result.get("name") == "zyra"
+    caps = result.get("capabilities")
+    assert isinstance(caps, dict)
+    cmds = caps.get("commands")
+    assert isinstance(cmds, list) and cmds
+    sample = cmds[0]
+    assert "name" in sample and "parameters" in sample
+    assert isinstance(sample["parameters"], dict)
+    assert sample["parameters"].get("type") == "object"
 
 
 def test_mcp_calltool_local_sync(tmp_path, monkeypatch) -> None:
