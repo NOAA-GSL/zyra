@@ -88,9 +88,9 @@ def _extract_arg_schema(
                 "help": help_text,
                 "type": type_name,
                 "default": default,
-                # For optional arguments (those with option strings), argparse
-                # exposes the `.required` attribute to indicate if the option
-                # itself must be provided.
+                # For option flags (arguments with option strings), argparse’s
+                # `.required` indicates a mandatory option (e.g., `--file` must
+                # be provided) versus a truly optional one (e.g., `--verbose`).
                 "required": bool(getattr(act, "required", False)),
             }
             if path_arg:

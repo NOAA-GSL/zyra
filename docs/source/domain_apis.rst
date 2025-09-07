@@ -41,9 +41,9 @@ Response (async)::
   {
     "status": "accepted",
     "job_id": "...",
-    "poll": "/jobs/{id}",
-    "download": "/jobs/{id}/download",
-    "manifest": "/jobs/{id}/manifest"
+    "poll": "/v1/jobs/{id}",
+    "download": "/v1/jobs/{id}/download",
+    "manifest": "/v1/jobs/{id}/manifest"
   }
 
 Auth

@@ -56,7 +56,7 @@ See also: :doc:`wiki/Search-API-and-Profiles`.
 HTTP API
 --------
 
-Endpoint: ``GET /search``
+Endpoint: ``GET /v1/search``
 
 Parameters mirror the CLI flags (``q``, ``limit``, ``profile``, ``catalog_file``,
 ``ogc_wms``, ``ogc_records``, ``include_local``, ``remote_only``). Try the

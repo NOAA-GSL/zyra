@@ -26,9 +26,11 @@ import copy, json, hashlib, sys
 from pathlib import Path
 tmp = Path(sys.argv[1])
 spec = json.loads(tmp.read_text())
-if isinstance(spec.get('info'), dict):
-    spec['info'].pop('version', None)
-s = json.dumps(spec, sort_keys=True, separators=(',', ':'))
+# Work on a deep copy to avoid side effects if spec is reused later.
+spec2 = copy.deepcopy(spec)
+if isinstance(spec2.get('info'), dict):
+    spec2['info'].pop('version', None)
+s = json.dumps(spec2, sort_keys=True, separators=(',', ':'))
 print(hashlib.sha256(s.encode()).hexdigest())
 PY
   fi

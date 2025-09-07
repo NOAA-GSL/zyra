@@ -316,6 +316,11 @@ def create_app() -> FastAPI:
             "llm": {"provider": prov, "model": model_resolved},
         }
 
+    # Versioned aliases for system endpoints
+    app.add_api_route("/v1/health", health, methods=["GET"], tags=["system"])
+    app.add_api_route("/v1/ready", ready, methods=["GET"], tags=["system"])
+    app.add_api_route("/v1/llm/test", llm_test, methods=["GET"], tags=["system"])  # type: ignore[arg-type]
+
     @app.get("/")
     def root(request: Request):
         """Root landing page.

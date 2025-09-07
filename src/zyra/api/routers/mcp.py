@@ -118,40 +118,10 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
             args = params.get("args", {}) or {}
             mode = params.get("mode") or "sync"
 
-            # Special fast-path: decimate local with '-' input (write empty file)
-            try:
-                if (
-                    mode == "sync"
-                    and stage == "decimate"
-                    and command == "local"
-                    and (args.get("input") in {"-", None})
-                ):
-                    # Determine destination path from common aliases
-                    dest = (
-                        args.get("path")
-                        or args.get("output")
-                        or args.get("destination")
-                    )
-                    if isinstance(dest, str) and dest:
-                        from pathlib import Path
-
-                        p = Path(dest)
-                        if p.parent:
-                            p.parent.mkdir(parents=True, exist_ok=True)
-                        with p.open("wb") as f:  # write zero bytes
-                            f.write(b"")
-                        return _rpc_result(
-                            req.id,
-                            {
-                                "status": "ok",
-                                "stdout": "",
-                                "stderr": "",
-                                "exit_code": 0,
-                            },
-                        )
-            except Exception:
-                # Fall through to normal handler on any error
-                pass
+            # Note: We intentionally avoid special-casing specific tools here
+            # to keep MCP behavior aligned with the canonical CLI execution
+            # path. This ensures future changes to command behavior are
+            # reflected uniformly without bespoke logic to maintain.
 
             # Validate against the CLI matrix for clearer errors
             matrix = get_cli_matrix()
