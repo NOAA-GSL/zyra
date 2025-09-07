@@ -17,5 +17,6 @@ def test_contained_path_size_reported(tmp_path) -> None:
     # Find matching asset by URI
     match = next((a for a in assets if getattr(a, "uri", None) == str(f)), None)
     assert match is not None, "Contained file should be included as asset"
-    assert getattr(match, "size", None) == len(data), "Contained file size must be reported"
-
+    assert getattr(match, "size", None) == len(
+        data
+    ), "Contained file size must be reported"

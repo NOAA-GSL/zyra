@@ -23,8 +23,10 @@ def test_infer_assets_media_types(tmp_path) -> None:
         ".jpg": "image/jpeg",
         ".zip": "application/zip",
     }
+    # Use RESULTS_DIR so files are treated as contained (allows full MIME hints)
+    base = Path("/tmp/zyra_results/test_mime")
     for ext, expected in cases.items():
-        f = _touch(tmp_path / f"test{ext}")
+        f = _touch(base / f"test{ext}")
         assets = infer_assets("decimate", "local", {"path": str(f), "input": "-"})
         assert assets, f"No assets inferred for {ext}"
         mt = assets[0].media_type

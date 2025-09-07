@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from zyra.api.models.types import AssetRef
-from zyra.utils.env import env_path
+from zyra.utils.env import env_bool, env_path
 
 # Maximum number of files to include when listing a directory in assets.
 # Keep small to avoid large payloads and accidental data disclosure.
@@ -76,6 +76,13 @@ def infer_assets(stage: str, tool: str, args: dict[str, Any]) -> list[AssetRef]:
     out: list[AssetRef] = []
 
     # Precompute normalized base directories as strings for safe string-based checks
+    # Feature flag: allow disabling probing entirely (size/magic) for assets
+    PROBE = False
+    try:
+        PROBE = bool(env_bool("ASSET_PROBE", True))
+    except Exception:
+        PROBE = True
+
     try:
         _BASES = [
             os.path.normpath(str(env_path("UPLOAD_DIR", "/tmp/zyra_uploads"))),
@@ -87,20 +94,24 @@ def infer_assets(stage: str, tool: str, args: dict[str, Any]) -> list[AssetRef]:
     except Exception:
         _BASES = []
 
-    def _is_contained_str(path_str: str) -> bool:
+    def _contained_base(path_str: str) -> str | None:
+        """Return the containing base dir if path_str is within an allowed base.
+
+        Uses normalized absolute paths and commonpath; returns None when outside.
+        """
         try:
             cand = os.path.normpath(path_str)
             if not Path(cand).is_absolute():
-                return False
+                return None
             for b in _BASES:
                 try:
                     if os.path.commonpath([cand, b]) == b:
-                        return True
+                        return b
                 except Exception:
                     continue
-            return False
+            return None
         except Exception:
-            return False
+            return None
 
     def _asset_ref_for(p: Path, allow_probe: bool) -> AssetRef:
         if allow_probe:
@@ -132,10 +143,12 @@ def infer_assets(stage: str, tool: str, args: dict[str, Any]) -> list[AssetRef]:
     for key in ("output", "to_video"):
         val = args.get(key)
         if isinstance(val, str):
-            contained = _is_contained_str(val)
-            p = Path(val) if contained else None
-            if contained:
-                if p and p.exists():
+            base = _contained_base(val)
+            if base is not None and PROBE:
+                # Re-anchor to the base using a normalized relative path
+                rel = os.path.relpath(os.path.normpath(val), base)
+                p = Path(base) / rel
+                if p.exists():
                     out.append(_asset_ref_for(p, True))
             else:
                 # Include reference without probing existence for uncontained paths
@@ -148,10 +161,11 @@ def infer_assets(stage: str, tool: str, args: dict[str, Any]) -> list[AssetRef]:
     if stage == "decimate" and tool == "local":
         val = args.get("path")
         if isinstance(val, str):
-            contained = _is_contained_str(val)
-            p = Path(val) if contained else None
-            if contained:
-                if p and p.exists():
+            base = _contained_base(val)
+            if base is not None and PROBE:
+                rel = os.path.relpath(os.path.normpath(val), base)
+                p = Path(base) / rel
+                if p.exists():
                     out.append(_asset_ref_for(p, True))
             else:
                 try:
@@ -162,11 +176,14 @@ def infer_assets(stage: str, tool: str, args: dict[str, Any]) -> list[AssetRef]:
     # Output directory (batch/frame outputs)
     od = args.get("output_dir")
     if isinstance(od, str):
-        contained = _is_contained_str(od)
-        d = Path(od) if contained else None
+        base = _contained_base(od)
+        d = None
+        if base is not None and PROBE:
+            rel = os.path.relpath(os.path.normpath(od), base)
+            d = Path(base) / rel
         # If it has a small number of files, list a few for convenience
         try:
-            if contained and d and d.exists():
+            if d and d.exists():
                 files = [p for p in d.iterdir() if p.is_file()]
                 if files:
                     # Include directory as a container + first few files
@@ -179,7 +196,7 @@ def infer_assets(stage: str, tool: str, args: dict[str, Any]) -> list[AssetRef]:
                 # Uncontained directory or missing: include only the directory reference
                 out.append(AssetRef(uri=od, name=Path(od).name))
         except Exception:
-            name = (d.name if d is not None else Path(od).name)
-            uri = (str(d) if d is not None else od)
+            name = d.name if d is not None else Path(od).name
+            uri = str(d) if d is not None else od
             out.append(AssetRef(uri=uri, name=name))
     return out
