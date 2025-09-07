@@ -203,17 +203,21 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
                 log_mcp_call(method, params, _t0, status="ok")
             return out
 
-        # Method not found
-        return _rpc_error(req.id, -32601, f"Method not found: {method}")
+        # Method not found (avoid echoing arbitrary method names verbatim)
+        return _rpc_error(req.id, -32601, "Method not found")
     except HTTPException as he:  # Map FastAPI errors to JSON-RPC error
-        out = _rpc_error(req.id, he.status_code, he.detail if he.detail else str(he))
+        # Do not leak internal exception details to clients
+        code = int(getattr(he, "status_code", 500) or 500)
+        msg = "Invalid request" if 400 <= code < 500 else "Server error"
+        out = _rpc_error(req.id, code, msg)
         from contextlib import suppress
 
         with suppress(Exception):
             log_mcp_call(method, params, _t0, status="error", error_code=he.status_code)
         return out
-    except Exception as e:
-        out = _rpc_error(req.id, -32603, "Internal error", {"message": str(e)})
+    except Exception:
+        # Log internally; return generic error to clients without details
+        out = _rpc_error(req.id, -32603, "Internal error")
         from contextlib import suppress
 
         with suppress(Exception):

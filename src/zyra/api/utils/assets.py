@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import mimetypes
+import os
 from pathlib import Path
 from typing import Any
 
 from zyra.api.models.types import AssetRef
+from zyra.utils.env import env_path
 
 # Maximum number of files to include when listing a directory in assets.
 # Keep small to avoid large payloads and accidental data disclosure.
@@ -55,6 +57,7 @@ def _guess_media_type(path: Path) -> str | None:
 
 
 def _as_ref(p: Path) -> AssetRef:
+    """Deprecated: prefer _asset_ref_for with containment guard."""
     try:
         size = p.stat().st_size if p.exists() and p.is_file() else None
     except Exception:
@@ -71,35 +74,112 @@ def infer_assets(stage: str, tool: str, args: dict[str, Any]) -> list[AssetRef]:
     - Only returns paths that exist at call time; otherwise returns an empty list.
     """
     out: list[AssetRef] = []
+
+    # Precompute normalized base directories as strings for safe string-based checks
+    try:
+        _BASES = [
+            os.path.normpath(str(env_path("UPLOAD_DIR", "/tmp/zyra_uploads"))),
+            os.path.normpath(str(env_path("RESULTS_DIR", "/tmp/zyra_results"))),
+            os.path.normpath(
+                str(os.environ.get("DATAVIZHUB_RESULTS_DIR", "/tmp/datavizhub_results"))
+            ),
+        ]
+    except Exception:
+        _BASES = []
+
+    def _is_contained_str(path_str: str) -> bool:
+        try:
+            cand = os.path.normpath(path_str)
+            if not Path(cand).is_absolute():
+                return False
+            for b in _BASES:
+                try:
+                    if os.path.commonpath([cand, b]) == b:
+                        return True
+                except Exception:
+                    continue
+            return False
+        except Exception:
+            return False
+
+    def _asset_ref_for(p: Path, allow_probe: bool) -> AssetRef:
+        if allow_probe:
+            # Safe stat using descriptor with O_NOFOLLOW to avoid symlink targets
+            size = None
+            try:
+                flags = getattr(os, "O_RDONLY", 0) | getattr(os, "O_NOFOLLOW", 0)
+                fd = os.open(str(p), flags)
+                try:
+                    st = os.fstat(fd)
+                    size = st.st_size
+                finally:
+                    from contextlib import suppress as _s
+
+                    with _s(Exception):
+                        os.close(fd)
+            except Exception:
+                size = None
+            media_type = _guess_media_type(p)
+            return AssetRef(uri=str(p), name=p.name, size=size, media_type=media_type)
+        # Avoid probing size or using python-magic on uncontained paths
+        try:
+            mt, _ = mimetypes.guess_type(str(p))
+        except Exception:
+            mt = None
+        return AssetRef(uri=str(p), name=p.name, media_type=mt)
+
     # Single-file outputs
     for key in ("output", "to_video"):
         val = args.get(key)
         if isinstance(val, str):
-            p = Path(val)
-            if p.exists():
-                out.append(_as_ref(p))
+            contained = _is_contained_str(val)
+            p = Path(val) if contained else None
+            if contained:
+                if p and p.exists():
+                    out.append(_asset_ref_for(p, True))
+            else:
+                # Include reference without probing existence for uncontained paths
+                try:
+                    mt, _ = mimetypes.guess_type(val)
+                except Exception:
+                    mt = None
+                out.append(AssetRef(uri=val, name=Path(val).name, media_type=mt))
     # Decimate local writes to positional 'path'
     if stage == "decimate" and tool == "local":
         val = args.get("path")
         if isinstance(val, str):
-            p = Path(val)
-            if p.exists():
-                out.append(_as_ref(p))
+            contained = _is_contained_str(val)
+            p = Path(val) if contained else None
+            if contained:
+                if p and p.exists():
+                    out.append(_asset_ref_for(p, True))
+            else:
+                try:
+                    mt, _ = mimetypes.guess_type(val)
+                except Exception:
+                    mt = None
+                out.append(AssetRef(uri=val, name=Path(val).name, media_type=mt))
     # Output directory (batch/frame outputs)
     od = args.get("output_dir")
     if isinstance(od, str):
-        d = Path(od)
-        if d.exists():
-            # If it has a small number of files, list a few for convenience
-            try:
+        contained = _is_contained_str(od)
+        d = Path(od) if contained else None
+        # If it has a small number of files, list a few for convenience
+        try:
+            if contained and d and d.exists():
                 files = [p for p in d.iterdir() if p.is_file()]
                 if files:
                     # Include directory as a container + first few files
                     out.append(AssetRef(uri=str(d), name=d.name))
                     for p in files[:MAX_DIRECTORY_FILES_IN_ASSETS]:
-                        out.append(_as_ref(p))
+                        out.append(_asset_ref_for(p, True))
                 else:
                     out.append(AssetRef(uri=str(d), name=d.name))
-            except Exception:
-                out.append(AssetRef(uri=str(d), name=d.name))
+            else:
+                # Uncontained directory or missing: include only the directory reference
+                out.append(AssetRef(uri=od, name=Path(od).name))
+        except Exception:
+            name = (d.name if d is not None else Path(od).name)
+            uri = (str(d) if d is not None else od)
+            out.append(AssetRef(uri=uri, name=name))
     return out
