@@ -77,6 +77,10 @@ def create_app() -> FastAPI:
     async def _map_validation_errors(request: Request, exc: RequestValidationError):
         # For domain endpoints, map Pydantic 422 to our 400 validation_error envelope
         path = request.url.path
+        # Normalize versioned prefixes (/v1, /v2, etc.) for matching
+        import re as _re
+
+        norm = _re.sub(r"^/v\d+", "", path)
         domain_paths = {
             "/acquire",
             "/transform",
@@ -85,7 +89,7 @@ def create_app() -> FastAPI:
             "/decimate",
             "/assets",
         }
-        if path in domain_paths:
+        if norm in domain_paths:
             from zyra.api.utils.errors import domain_error_response
 
             # Preserve error details for debugging

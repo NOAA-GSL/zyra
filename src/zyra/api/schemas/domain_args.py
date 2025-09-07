@@ -187,7 +187,7 @@ def normalize_and_validate(stage: str, tool: str, args: dict) -> dict:
 class VisualizeContourArgs(BaseModel):
     input: str | None = None
     inputs: list[str] | None = None
-    output: str | None = None
+    output: str
     output_dir: str | None = None
     levels: int | str | None = None
     filled: bool | None = None

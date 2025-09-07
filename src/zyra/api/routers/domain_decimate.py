@@ -7,18 +7,12 @@ structured logs with domain/tool/job_id/duration.
 
 from __future__ import annotations
 
-from typing import Annotated, Union
+from typing import Any  # noqa: F401
 
-from fastapi import APIRouter, BackgroundTasks, Body, Request
+from fastapi import APIRouter, BackgroundTasks, Request
 from pydantic import ValidationError
 from zyra.api.models.cli_request import CLIRunRequest
-from zyra.api.models.domain_api import (
-    DecimateFtpRun,
-    DecimateLocalRun,
-    DecimatePostRun,
-    DecimateS3Run,
-    DomainRunResponse,
-)
+from zyra.api.models.domain_api import DomainRunRequest, DomainRunResponse
 from zyra.api.routers.cli import get_cli_matrix, run_cli_endpoint
 from zyra.api.schemas.domain_args import normalize_and_validate
 from zyra.api.utils.assets import infer_assets
@@ -29,10 +23,7 @@ from zyra.utils.env import env_int
 router = APIRouter(tags=["decimate"], prefix="")
 
 
-DecimateRequest = Annotated[
-    Union[DecimateLocalRun, DecimateS3Run, DecimatePostRun, DecimateFtpRun],
-    Body(discriminator="tool"),
-]
+DecimateRequest = DomainRunRequest
 
 
 @router.post("/decimate", response_model=DomainRunResponse)
