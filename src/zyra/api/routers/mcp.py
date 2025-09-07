@@ -47,7 +47,7 @@ def _rpc_result(id_val: Any, result: Any) -> dict[str, Any]:
 
 
 @router.post("/mcp")
-def mcp_rpc(req: JSONRPCRequest, request: Request):
+def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
     """Handle a minimal JSON-RPC 2.0 request for MCP methods.
 
     Methods:
@@ -187,7 +187,7 @@ def mcp_rpc(req: JSONRPCRequest, request: Request):
             req_model = CLIRunRequest(
                 stage=stage, command=command, mode=mode, args=args
             )
-            resp = run_cli_endpoint(req_model, BackgroundTasks())
+            resp = run_cli_endpoint(req_model, bg)
             if getattr(resp, "job_id", None):
                 # Async accepted; provide polling URL to align with progress semantics
                 return _rpc_result(

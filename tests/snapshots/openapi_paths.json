@@ -14,6 +14,7 @@
   "/jobs/{job_id}/manifest",
   "/llm/test",
   "/mcp",
+  "/mcp/progress/{job_id}",
   "/process",
   "/ready",
   "/search",
