@@ -57,8 +57,9 @@ def assets_run(req: DomainRunRequest, bg: BackgroundTasks) -> DomainRunResponse:
             download=f"/jobs/{resp.job_id}/download",
             manifest=f"/jobs/{resp.job_id}/manifest",
         )
+    ok = resp.exit_code == 0
     return DomainRunResponse(
-        status="ok" if (resp.exit_code == 0) else "error",
+        status="ok" if ok else "error",
         result={"argv": getattr(resp, "argv", None)},
         logs=[
             *(
@@ -75,4 +76,13 @@ def assets_run(req: DomainRunRequest, bg: BackgroundTasks) -> DomainRunResponse:
         stdout=getattr(resp, "stdout", None),
         stderr=getattr(resp, "stderr", None),
         exit_code=getattr(resp, "exit_code", None),
+        error=(
+            {
+                "type": "execution_error",
+                "message": (resp.stderr or "Command failed"),
+                "details": {"exit_code": resp.exit_code},
+            }
+            if not ok
+            else None
+        ),
     )

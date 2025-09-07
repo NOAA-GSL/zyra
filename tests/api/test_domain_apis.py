@@ -44,3 +44,104 @@ def test_acquire_transform_invalid_tool(monkeypatch) -> None:
         assert r.status_code == 400
         js = r.json()
         assert "error" in js and isinstance(js["error"], dict)
+
+
+def test_visualize_contour_validation_error(monkeypatch) -> None:
+    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
+    client = TestClient(app)
+    # Missing required args (input/output) should trigger validation_error
+    r = client.post(
+        "/visualize",
+        json={"tool": "contour", "args": {}},
+        headers={"X-API-Key": "k"},
+    )
+    assert r.status_code == 400
+    js = r.json()
+    assert js.get("status") == "error"
+    assert js.get("error", {}).get("type") == "validation_error"
+
+
+def test_decimate_post_validation_error(monkeypatch) -> None:
+    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
+    client = TestClient(app)
+    # Missing url should trigger validation_error
+    r = client.post(
+        "/decimate",
+        json={"tool": "post", "args": {"input": "-"}},
+        headers={"X-API-Key": "k"},
+    )
+    assert r.status_code == 400
+    js = r.json()
+    assert js.get("status") == "error"
+    assert js.get("error", {}).get("type") == "validation_error"
+
+
+def test_process_extract_variable_validation_error(monkeypatch) -> None:
+    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
+    client = TestClient(app)
+    # Missing required 'pattern' should fail validation
+    r = client.post(
+        "/process",
+        json={
+            "tool": "extract-variable",
+            "args": {"file_or_url": "samples/demo.grib2"},
+        },
+        headers={"X-API-Key": "k"},
+    )
+    assert r.status_code == 400
+    js = r.json()
+    assert js.get("status") == "error"
+    assert js.get("error", {}).get("type") == "validation_error"
+
+
+def test_acquire_s3_validation_error(monkeypatch) -> None:
+    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
+    client = TestClient(app)
+    # Missing both url and bucket should fail validation
+    r = client.post(
+        "/acquire",
+        json={"tool": "s3", "args": {}},
+        headers={"X-API-Key": "k"},
+    )
+    assert r.status_code == 400
+    js = r.json()
+    assert js.get("status") == "error"
+    assert js.get("error", {}).get("type") == "validation_error"
+
+
+def test_execution_error_mapping_sync(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
+    client = TestClient(app)
+    # Run a known failing command (missing file) via domain endpoint and
+    # expect status=error with standardized error envelope
+    r = client.post(
+        "/process",
+        json={
+            "tool": "decode-grib2",
+            "args": {"file_or_url": str(tmp_path / "missing.grib2")},
+            "options": {"mode": "sync"},
+        },
+        headers={"X-API-Key": "k"},
+    )
+    assert r.status_code == 200
+    js = r.json()
+    assert js.get("status") == "error"
+    err = js.get("error", {})
+    assert err.get("type") == "execution_error"
+    # exit_code should be present in details
+    assert isinstance(err.get("details", {}).get("exit_code"), int)
+
+
+def test_visualize_animate_validation_error(monkeypatch) -> None:
+    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
+    client = TestClient(app)
+    # Missing output_dir should fail validation
+    r = client.post(
+        "/visualize",
+        json={"tool": "animate", "args": {"input": "samples/demo.npy"}},
+        headers={"X-API-Key": "k"},
+    )
+    assert r.status_code == 400
+    js = r.json()
+    assert js.get("status") == "error"
+    assert js.get("error", {}).get("type") == "validation_error"

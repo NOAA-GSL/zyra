@@ -361,6 +361,53 @@ def _traverse(parser: argparse.ArgumentParser, *, prefix: str = "") -> dict[str,
                         opts.append(long or act.option_strings[0])
                 if opts:
                     groups.append({"title": getattr(grp, "title", ""), "options": opts})
+            # Derive domain/tool and enrich with simple schema hints
+            parts = name.split(" ", 1)
+            domain = parts[0]
+            tool = parts[1] if len(parts) > 1 else parts[0]
+            # Pydantic arg schema hints from API domain models where available
+            try:
+                from zyra.api.schemas.domain_args import (
+                    resolve_model as _resolve_model,  # local import to avoid heavy deps at module import
+                )
+
+                model = _resolve_model(domain, tool)
+                req, opt = None, None
+                if model is not None:
+                    try:
+                        rq: list[str] = []
+                        op: list[str] = []
+                        for fname, finfo in getattr(model, "model_fields", {}).items():
+                            if getattr(finfo, "is_required", lambda: False)():
+                                rq.append(fname)
+                            else:
+                                op.append(fname)
+                        req = sorted(rq)
+                        opt = sorted(op)
+                    except Exception:
+                        req, opt = None, None
+            except Exception:
+                model = None
+                req, opt = None, None
+
+            # Lightweight examples for selected tools
+            examples = {
+                ("visualize", "heatmap"): {
+                    "input": "samples/demo.npy",
+                    "output": "/tmp/heatmap.png",
+                },
+                ("process", "convert-format"): {
+                    "file_or_url": "samples/demo.grib2",
+                    "format": "netcdf",
+                    "stdout": True,
+                },
+                ("decimate", "local"): {"input": "-", "path": "/tmp/out.bin"},
+                ("acquire", "http"): {
+                    "url": "https://example.com/file.bin",
+                    "output": "/tmp/file.bin",
+                },
+            }
+
             manifest[name] = {
                 "description": (parser.description or parser.prog or "").strip(),
                 "doc": (parser.description or "") or "",
@@ -368,6 +415,11 @@ def _traverse(parser: argparse.ArgumentParser, *, prefix: str = "") -> dict[str,
                 "groups": groups,
                 "options": _collect_options(parser),
                 "positionals": _collect_positionals(parser),
+                "domain": domain,
+                "args_schema": (
+                    {"required": req, "optional": opt} if req is not None and opt is not None else None
+                ),
+                "example_args": examples.get((domain, tool)),
             }
         return manifest
 

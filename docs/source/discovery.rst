@@ -83,3 +83,26 @@ For module-level API docs, see:
 - :doc:`api/zyra.connectors.discovery`
 - :doc:`api/zyra.connectors.discovery.ogc`
 - :doc:`api/zyra.connectors.discovery.ogc_records`
+
+Commands Endpoint and Capabilities
+----------------------------------
+
+Zyra exposes a rich commands index for tool discovery:
+
+- ``GET /commands`` — JSON map of tools with metadata.
+- ``GET /commands?format=list|summary`` — list or summary views.
+- ``GET /commands?format=grouped`` — groups tools by domain (acquire/process/visualize/decimate/transform/run).
+
+Each command entry includes:
+
+- ``domain``: the semantic group (e.g., ``visualize``).
+- ``args_schema``: simple required/optional fields derived from Pydantic models (when available).
+- ``example_args``: a brief example body for common tools.
+
+Generate a static capabilities manifest for assistant workflows:
+
+::
+
+  poetry run zyra generate-manifest -o src/zyra/wizard/zyra_capabilities.json
+
+This file mirrors ``/commands`` so assistants can ground suggestions without calling the API.
