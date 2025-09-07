@@ -1,3 +1,13 @@
+"""Observability helpers for API logging.
+
+Provides structured logging functions with best-effort redaction of sensitive
+fields and duration tracking for domain and MCP calls.
+
+Loggers
+- ``zyra.api.domain`` — domain endpoints
+- ``zyra.api.mcp`` — MCP JSON-RPC methods
+"""
+
 from __future__ import annotations
 
 import logging
@@ -48,6 +58,10 @@ def log_domain_call(
     exit_code: int | None,
     started_at: float,
 ) -> None:
+    """Log a domain endpoint invocation with basic fields.
+
+    Records: domain, tool, redacted args, job_id, exit_code, and duration_ms.
+    """
     try:
         dur_ms = int((time.time() - started_at) * 1000)
         payload = {
@@ -72,6 +86,7 @@ def log_mcp_call(
     status: str | None = None,
     error_code: int | None = None,
 ) -> None:
+    """Log an MCP RPC call with method, status, error_code, and duration_ms."""
     try:
         dur_ms = int((time.time() - started_at) * 1000)
         payload = {

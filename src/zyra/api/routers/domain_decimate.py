@@ -1,3 +1,10 @@
+"""Domain API: Decimate.
+
+Exposes ``POST /decimate`` to run egress/export tools using the domain envelope.
+Supports request body-size limiting (``ZYRA_DOMAIN_MAX_BODY_BYTES``) and emits
+structured logs with domain/tool/job_id/duration.
+"""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, BackgroundTasks, Request
@@ -17,6 +24,7 @@ router = APIRouter(tags=["decimate"], prefix="")
 def decimate_run(
     req: DomainRunRequest, bg: BackgroundTasks, request: Request
 ) -> DomainRunResponse:
+    """Run a decimate-domain tool and return a standardized response."""
     try:
         max_bytes = int(env_int("DOMAIN_MAX_BODY_BYTES", 0))
     except Exception:

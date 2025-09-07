@@ -1,3 +1,10 @@
+"""Domain API: Process.
+
+Exposes ``POST /process`` to run processing tools with a domain envelope.
+Includes optional body-size enforcement (``ZYRA_DOMAIN_MAX_BODY_BYTES``) and
+structured logging of calls and durations.
+"""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, BackgroundTasks, Request
@@ -17,6 +24,7 @@ router = APIRouter(tags=["process"], prefix="")
 def process_run(
     req: DomainRunRequest, bg: BackgroundTasks, request: Request
 ) -> DomainRunResponse:
+    """Run a process-domain tool and return a standardized response."""
     # Request size limit
     try:
         max_bytes = int(env_int("DOMAIN_MAX_BODY_BYTES", 0))

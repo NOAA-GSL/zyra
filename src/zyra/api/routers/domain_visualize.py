@@ -1,3 +1,10 @@
+"""Domain API: Visualize.
+
+Exposes ``POST /visualize`` for visualization tools using the domain envelope.
+Enforces an optional body-size cap (``ZYRA_DOMAIN_MAX_BODY_BYTES``) and logs
+structured call information.
+"""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, BackgroundTasks, Request
@@ -17,6 +24,7 @@ router = APIRouter(tags=["visualize"], prefix="")
 def visualize_run(
     req: DomainRunRequest, bg: BackgroundTasks, request: Request
 ) -> DomainRunResponse:
+    """Run a visualize-domain tool and return a standardized response."""
     try:
         max_bytes = int(env_int("DOMAIN_MAX_BODY_BYTES", 0))
     except Exception:

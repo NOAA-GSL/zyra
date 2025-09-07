@@ -1,3 +1,10 @@
+"""Domain API: Transform.
+
+Exposes ``POST /transform`` for lightweight transforms and metadata helpers.
+Includes optional request body-size limits (``ZYRA_DOMAIN_MAX_BODY_BYTES``) and
+structured logging of calls/durations.
+"""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, BackgroundTasks, Request
@@ -17,6 +24,7 @@ router = APIRouter(tags=["transform"], prefix="")
 def transform_run(
     req: DomainRunRequest, bg: BackgroundTasks, request: Request
 ) -> DomainRunResponse:
+    """Run a transform-domain tool and return a standardized response."""
     try:
         max_bytes = int(env_int("DOMAIN_MAX_BODY_BYTES", 0))
     except Exception:

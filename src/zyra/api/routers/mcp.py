@@ -1,12 +1,21 @@
-"""Minimal MCP adapter router.
+"""MCP adapter router.
 
-Implements a small JSON-RPC 2.0 endpoint at POST /mcp with methods:
-- listTools: returns the current capabilities manifest (proxy for GET /commands)
-- callTool: executes a CLI tool via POST /cli/run (sync or async)
-- statusReport: returns a lightweight status mapped from /health
+Exposes a minimal JSON-RPC 2.0 interface and progress streaming for MCP clients:
 
-This is a minimal v0 to enable MCP-style integrations without introducing a
-separate transport. It uses HTTP POST JSON-RPC for simplicity.
+- ``POST /mcp`` (JSON-RPC)
+  - ``listTools``: returns the enriched capabilities manifest and a flattened tools list
+    (includes domain, args_schema, example_args, options, positionals, description).
+  - ``callTool``: dispatches to ``/cli/run`` (sync or async). Sync failures map to
+    JSON-RPC error ``-32000`` with details in ``error.data``.
+  - ``statusReport``: returns ``{ status: 'ok', version }`` mapped from ``/health``.
+
+- ``GET /mcp/progress/{job_id}`` (SSE)
+  - Emits JSON events (``data: {...}\n\n``) with ``job_id``, ``status``, ``exit_code``, ``output_file``
+    until terminal status or ``max_ms`` timeout.
+
+Notes
+- Request body size limits can be enforced via ``ZYRA_MCP_MAX_BODY_BYTES``.
+- Structured logs for MCP calls are emitted via the ``zyra.api.mcp`` logger.
 """
 from __future__ import annotations
 
@@ -48,12 +57,13 @@ def _rpc_result(id_val: Any, result: Any) -> dict[str, Any]:
 
 @router.post("/mcp")
 def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
-    """Handle a minimal JSON-RPC 2.0 request for MCP methods.
+    """Handle a JSON-RPC 2.0 request for MCP methods.
 
     Methods:
-    - listTools: no params needed; optional { refresh: bool }
-    - callTool: { stage: str, command: str, args?: dict, mode?: 'sync'|'async' }
-    - statusReport: no params needed
+    - listTools: optional { refresh: bool } — returns ``result.manifest`` and ``result.tools``.
+    - callTool: { stage: str, command: str, args?: dict, mode?: 'sync'|'async' }.
+      Sync failures return JSON-RPC error ``-32000``.
+    - statusReport: returns MCP-ready service status and version.
     """
     # Optional size limit from env (bytes). When set to >0, enforce via Content-Length.
     try:
@@ -264,7 +274,9 @@ def _sse_format(data: dict) -> bytes:
 def mcp_progress(job_id: str, interval_ms: int = 200, max_ms: int = 10000):
     """Server-Sent Events (SSE) stream of job status for MCP clients.
 
-    Polls /jobs in-process and emits JSON events until a terminal state is reached.
+    Emits JSON events on each tick with ``job_id``, ``status``, ``exit_code``,
+    and ``output_file`` until terminal status (``succeeded``|``failed``|``canceled``)
+    or ``max_ms`` timeout.
     """
 
     async def _gen():

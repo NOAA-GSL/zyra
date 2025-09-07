@@ -1,3 +1,16 @@
+"""Domain API: Acquire.
+
+Exposes ``POST /acquire`` which accepts a domain envelope:
+
+- Request: { tool: str, args: dict, options?: { mode?: 'sync'|'async', sync?: bool } }
+- Response (sync): { status: 'ok'|'error', result?, logs?, stdout?, stderr?, exit_code?, error? }
+- Response (async): { status: 'accepted', job_id, poll, download, manifest }
+
+Notes
+- Enforces an optional body-size cap via ``ZYRA_DOMAIN_MAX_BODY_BYTES``.
+- Emits structured logs via ``zyra.api.domain`` logger.
+"""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, BackgroundTasks, Request
@@ -17,6 +30,12 @@ router = APIRouter(tags=["acquire"], prefix="")
 def acquire_run(
     req: DomainRunRequest, bg: BackgroundTasks, request: Request
 ) -> DomainRunResponse:
+    """Run an acquire-domain tool.
+
+    - Validates the tool name and known argument schema (where available).
+    - Delegates to ``/cli/run`` and returns a standardized domain response.
+    - Returns 413 when request body exceeds ``ZYRA_DOMAIN_MAX_BODY_BYTES``.
+    """
     try:
         max_bytes = int(env_int("DOMAIN_MAX_BODY_BYTES", 0))
     except Exception:
