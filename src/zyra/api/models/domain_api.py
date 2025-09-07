@@ -18,22 +18,7 @@ class DomainRunOptions(BaseModel):
 
 
 class DomainRunRequest(BaseModel):
-    # Pydantic v2 discriminated unions require the discriminator field to be a Literal.
-    # Enumerate all known domain tool names to ensure OpenAPI generation works and
-    # the FastAPI app can start without schema errors.
-    tool: Literal[
-        "heatmap",
-        "contour",
-        "animate",
-        "decode-grib2",
-        "extract-variable",
-        "convert-format",
-        "local",
-        "s3",
-        "post",
-        "http",
-        "ftp",
-    ] = Field(..., description="Tool/command name within the domain")
+    tool: str = Field(..., description="Tool/command name within the domain")
     args: dict[str, Any] = Field(
         default_factory=dict, description="Command arguments as key/value pairs"
     )
