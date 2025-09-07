@@ -64,6 +64,11 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
     - callTool: { stage: str, command: str, args?: dict, mode?: 'sync'|'async' }.
       Sync failures return JSON-RPC error ``-32000``.
     - statusReport: returns MCP-ready service status and version.
+
+    Design:
+    - Avoid tool-specific fast paths; always delegate to the canonical CLI
+      execution path (``/cli/run``) so behavior remains consistent and future
+      changes to commands are reflected uniformly without bespoke logic here.
     """
     # Optional size limit from env (bytes). When set to >0, enforce via Content-Length.
     try:
@@ -117,11 +122,6 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
             command = params.get("command")
             args = params.get("args", {}) or {}
             mode = params.get("mode") or "sync"
-
-            # Note: We intentionally avoid special-casing specific tools here
-            # to keep MCP behavior aligned with the canonical CLI execution
-            # path. This ensures future changes to command behavior are
-            # reflected uniformly without bespoke logic to maintain.
 
             # Validate against the CLI matrix for clearer errors
             matrix = get_cli_matrix()

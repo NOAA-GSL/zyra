@@ -8,12 +8,22 @@ from zyra.api.models.types import AssetRef
 
 
 def _guess_media_type(path: Path) -> str | None:
-    """Best-effort media type detection prioritizing extension hints.
+    """Best-effort media type detection.
 
-    - Uses python-magic when available (not imported here to keep this light).
-    - Falls back to well-known extension mappings, then mimetypes.
+    Order of precedence: python-magic (if available) → well-known extensions → mimetypes → None.
     """
-    # Extension-based hints (lowercased)
+    # 1) Try python-magic if available (best accuracy)
+    try:
+        import magic  # type: ignore
+
+        m = magic.Magic(mime=True)
+        mt = str(m.from_file(str(path)))
+        if mt:
+            return mt
+    except Exception:
+        pass
+
+    # 2) Extension-based hints (lowercased)
     ext = path.suffix.lower()
     ext_map = {
         ".nc": "application/x-netcdf",
@@ -31,6 +41,8 @@ def _guess_media_type(path: Path) -> str | None:
     }
     if ext in ext_map:
         return ext_map[ext]
+
+    # 3) Fallback to mimetypes
     try:
         mt, _ = mimetypes.guess_type(str(path))
         return mt
