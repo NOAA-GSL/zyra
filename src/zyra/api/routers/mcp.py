@@ -13,11 +13,14 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from zyra.api import __version__ as dvh_version
 from zyra.api.models.cli_request import CLIRunRequest
 from zyra.api.routers.cli import get_cli_matrix, run_cli_endpoint
 from zyra.api.services import manifest as manifest_svc
+from zyra.api.utils.obs import log_mcp_call
+from zyra.api.workers import jobs as jobs_backend
 from zyra.utils.env import env_int
 
 router = APIRouter(tags=["mcp"])
@@ -75,6 +78,8 @@ def mcp_rpc(req: JSONRPCRequest, request: Request):
     method = (req.method or "").strip()
     params = req.params or {}
 
+    import time as _time
+    _t0 = _time.time()
     try:
         if method == "listTools":
             # Provide enriched capabilities: raw manifest + flattened tools list
@@ -101,7 +106,11 @@ def mcp_rpc(req: JSONRPCRequest, request: Request):
                         "description": meta.get("description"),
                     }
                 )
-            return _rpc_result(req.id, {"manifest": result, "tools": tools})
+            out = {"manifest": result, "tools": tools}
+            from contextlib import suppress
+            with suppress(Exception):
+                log_mcp_call(method, params, _t0, status="ok")
+            return _rpc_result(req.id, out)
 
         if method == "statusReport":
             # Lightweight mapping of /health
@@ -185,6 +194,7 @@ def mcp_rpc(req: JSONRPCRequest, request: Request):
                         "status": "accepted",
                         "job_id": resp.job_id,
                         "poll": f"/jobs/{resp.job_id}",
+                        "ws": f"/ws/jobs/{resp.job_id}",
                         "download": f"/jobs/{resp.job_id}/download",
                         "manifest": f"/jobs/{resp.job_id}/manifest",
                     },
@@ -192,7 +202,7 @@ def mcp_rpc(req: JSONRPCRequest, request: Request):
             # Sync execution result: map failures to JSON-RPC error
             exit_code = getattr(resp, "exit_code", None)
             if isinstance(exit_code, int) and exit_code != 0:
-                return _rpc_error(
+                out = _rpc_error(
                     req.id,
                     -32000,
                     "Execution failed",
@@ -204,7 +214,11 @@ def mcp_rpc(req: JSONRPCRequest, request: Request):
                         "command": command,
                     },
                 )
-            return _rpc_result(
+                from contextlib import suppress
+                with suppress(Exception):
+                    log_mcp_call(method, params, _t0, status="error", error_code=-32000)
+                return out
+            out = _rpc_result(
                 req.id,
                 {
                     "status": "ok",
@@ -213,10 +227,59 @@ def mcp_rpc(req: JSONRPCRequest, request: Request):
                     "exit_code": exit_code,
                 },
             )
+            from contextlib import suppress
+            with suppress(Exception):
+                log_mcp_call(method, params, _t0, status="ok")
+            return out
 
         # Method not found
         return _rpc_error(req.id, -32601, f"Method not found: {method}")
     except HTTPException as he:  # Map FastAPI errors to JSON-RPC error
-        return _rpc_error(req.id, he.status_code, he.detail if he.detail else str(he))
+        out = _rpc_error(req.id, he.status_code, he.detail if he.detail else str(he))
+        from contextlib import suppress
+        with suppress(Exception):
+            log_mcp_call(method, params, _t0, status="error", error_code=he.status_code)
+        return out
     except Exception as e:
-        return _rpc_error(req.id, -32603, "Internal error", {"message": str(e)})
+        out = _rpc_error(req.id, -32603, "Internal error", {"message": str(e)})
+        from contextlib import suppress
+        with suppress(Exception):
+            log_mcp_call(method, params, _t0, status="error", error_code=-32603)
+        return out
+
+
+def _sse_format(data: dict) -> bytes:
+    import json as _json
+
+    return ("data: " + _json.dumps(data) + "\n\n").encode("utf-8")
+
+
+@router.get("/mcp/progress/{job_id}")
+def mcp_progress(job_id: str, interval_ms: int = 200):
+    """Server-Sent Events (SSE) stream of job status for MCP clients.
+
+    Polls /jobs in-process and emits JSON events until a terminal state is reached.
+    """
+
+    async def _gen():
+        import asyncio as _asyncio
+
+        seen_status = None
+        while True:
+            rec = jobs_backend.get_job(job_id) or {}
+            status = rec.get("status", "unknown")
+            payload = {
+                "job_id": job_id,
+                "status": status,
+                "exit_code": rec.get("exit_code"),
+                "output_file": rec.get("output_file"),
+            }
+            # emit on first event or when status changes
+            if status != seen_status:
+                seen_status = status
+                yield _sse_format(payload)
+            if status in {"succeeded", "failed", "canceled"}:
+                break
+            await _asyncio.sleep(max(0.0, float(interval_ms) / 1000.0))
+
+    return StreamingResponse(_gen(), media_type="text/event-stream")

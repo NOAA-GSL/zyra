@@ -187,6 +187,49 @@ def test_mcp_status_report_has_version(monkeypatch) -> None:
     assert isinstance(res.get("version"), str)
 
 
+def test_mcp_progress_sse(monkeypatch, tmp_path) -> None:
+    client = _client_with_key(monkeypatch)
+    # Submit async job that will fail quickly
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "callTool",
+        "params": {
+            "stage": "process",
+            "command": "decode-grib2",
+            "args": {"file_or_url": str(tmp_path / "missing.grib2")},
+            "mode": "async",
+        },
+        "id": 11,
+    }
+    r = client.post("/mcp", json=payload, headers={"X-API-Key": "k"})
+    assert r.status_code == 200
+    job_id = r.json().get("result", {}).get("job_id")
+    assert job_id
+    # Stream SSE and collect a few events until terminal
+    with client.stream("GET", f"/mcp/progress/{job_id}?interval_ms=50", headers={"X-API-Key": "k"}) as resp:
+        assert resp.status_code == 200
+        buf = b""
+        terminal = False
+        for chunk in resp.iter_bytes():
+            buf += chunk or b""
+            # parse simple 'data: {...}\n\n'
+            while b"\n\n" in buf:
+                seg, buf = buf.split(b"\n\n", 1)
+                if seg.startswith(b"data: "):
+                    import json as _json
+
+                    try:
+                        ev = _json.loads(seg[6:].decode("utf-8"))
+                    except Exception:
+                        continue
+                    if ev.get("status") in {"succeeded", "failed", "canceled"}:
+                        terminal = True
+                        break
+            if terminal:
+                break
+    assert terminal
+
+
 def test_mcp_disabled_hides_route(monkeypatch) -> None:
     # Disable via env flag and build a fresh app
     monkeypatch.setenv("ZYRA_ENABLE_MCP", "0")

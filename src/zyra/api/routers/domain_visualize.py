@@ -1,18 +1,38 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Request
 from pydantic import ValidationError
 from zyra.api.models.cli_request import CLIRunRequest
 from zyra.api.models.domain_api import DomainRunRequest, DomainRunResponse
 from zyra.api.routers.cli import get_cli_matrix, run_cli_endpoint
 from zyra.api.schemas.domain_args import normalize_and_validate
 from zyra.api.utils.errors import domain_error_response
+from zyra.api.utils.obs import log_domain_call
+from zyra.utils.env import env_int
 
 router = APIRouter(tags=["visualize"], prefix="")
 
 
 @router.post("/visualize", response_model=DomainRunResponse)
-def visualize_run(req: DomainRunRequest, bg: BackgroundTasks) -> DomainRunResponse:
+def visualize_run(
+    req: DomainRunRequest, bg: BackgroundTasks, request: Request
+) -> DomainRunResponse:
+    try:
+        max_bytes = int(env_int("DOMAIN_MAX_BODY_BYTES", 0))
+    except Exception:
+        max_bytes = 0
+    if max_bytes:
+        try:
+            cl = int(request.headers.get("content-length") or 0)
+        except Exception:
+            cl = 0
+        if cl and cl > max_bytes:
+            return domain_error_response(
+                status_code=413,
+                err_type="request_too_large",
+                message=f"Request too large: {cl} bytes (limit {max_bytes})",
+                details={"content_length": cl, "limit": max_bytes},
+            )
     matrix = get_cli_matrix()
     stage = "visualize"
     allowed = set(matrix.get(stage, {}).get("commands", []) or [])
@@ -37,6 +57,8 @@ def visualize_run(req: DomainRunRequest, bg: BackgroundTasks) -> DomainRunRespon
             message="Invalid arguments",
             details={"errors": ve.errors()},
         )
+    import time as _time
+    _t0 = _time.time()
     resp = run_cli_endpoint(
         CLIRunRequest(stage=stage, command=req.tool, args=args, mode=mode), bg
     )
@@ -49,7 +71,7 @@ def visualize_run(req: DomainRunRequest, bg: BackgroundTasks) -> DomainRunRespon
             manifest=f"/jobs/{resp.job_id}/manifest",
         )
     ok = resp.exit_code == 0
-    return DomainRunResponse(
+    res = DomainRunResponse(
         status="ok" if ok else "error",
         result={"argv": getattr(resp, "argv", None)},
         logs=[
@@ -77,3 +99,15 @@ def visualize_run(req: DomainRunRequest, bg: BackgroundTasks) -> DomainRunRespon
             else None
         ),
     )
+    from contextlib import suppress
+
+    with suppress(Exception):
+        log_domain_call(
+            stage,
+            req.tool,
+            args,
+            getattr(resp, "job_id", None),
+            getattr(resp, "exit_code", None),
+            _t0,
+        )
+    return res

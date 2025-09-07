@@ -132,6 +132,23 @@ def test_execution_error_mapping_sync(monkeypatch, tmp_path) -> None:
     assert isinstance(err.get("details", {}).get("exit_code"), int)
 
 
+def test_domain_request_size_limit(monkeypatch) -> None:
+    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
+    monkeypatch.setenv("ZYRA_DOMAIN_MAX_BODY_BYTES", "100")
+    client = TestClient(app)
+    # Big pad to exceed limit
+    pad = "x" * 200
+    r = client.post(
+        "/process",
+        json={"tool": "decode-grib2", "args": {"file_or_url": "-", "pad": pad}},
+        headers={"X-API-Key": "k"},
+    )
+    assert r.status_code == 413
+    js = r.json()
+    assert js.get("status") == "error"
+    assert js.get("error", {}).get("type") == "request_too_large"
+
+
 def test_visualize_animate_validation_error(monkeypatch) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
     client = TestClient(app)
