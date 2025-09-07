@@ -53,7 +53,7 @@ def decimate_run(
     if req.tool not in allowed:
         return domain_error_response(
             status_code=400,
-            err_type="invalid_tool",
+            err_type="validation_error",
             message="Invalid tool for decimate domain",
             details={"allowed": sorted(list(allowed))},
         )
