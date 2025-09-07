@@ -60,7 +60,14 @@ def register_cli(subparsers: Any) -> None:
     # Removed duplicate per-command handlers in favor of dedicated modules
 
     # heatmap
-    p_hm = subparsers.add_parser("heatmap", help="Visualization: render 2D heatmap")
+    p_hm = subparsers.add_parser(
+        "heatmap",
+        help="Visualization: render 2D heatmap",
+        description=(
+            "Render a heatmap from a 2D array or NetCDF variable with optional basemap, "
+            "styling, and geospatial extent."
+        ),
+    )
     p_hm.add_argument("--input", required=True, help="Path to .nc or .npy input")
     p_hm.add_argument("--var", help="Variable name for NetCDF inputs")
     p_hm.add_argument("--basemap", help="Path to background image")
@@ -137,7 +144,12 @@ def register_cli(subparsers: Any) -> None:
 
     # contour
     p_ct = subparsers.add_parser(
-        "contour", help="Visualization: render contour/filled contours"
+        "contour",
+        help="Visualization: render contour/filled contours",
+        description=(
+            "Render contour or filled-contour images from a 2D array or NetCDF variable "
+            "with optional basemap and styling."
+        ),
     )
     p_ct.add_argument("--input", help="Path to .nc or .npy input")
     p_ct.add_argument("--inputs", nargs="+", help="Multiple inputs for batch rendering")
@@ -199,7 +211,12 @@ def register_cli(subparsers: Any) -> None:
 
     # timeseries
     p_ts = subparsers.add_parser(
-        "timeseries", help="Visualization: render a time series from CSV or NetCDF"
+        "timeseries",
+        help="Visualization: render a time series from CSV or NetCDF",
+        description=(
+            "Plot a time series to a PNG image from CSV columns or a NetCDF variable, "
+            "with titles and axis labels."
+        ),
     )
     p_ts.add_argument("--input", required=True, help="Path to .csv or .nc input")
     p_ts.add_argument("--x", help="CSV: X column name (e.g., time)")
@@ -219,7 +236,12 @@ def register_cli(subparsers: Any) -> None:
 
     # vector
     p_vector = subparsers.add_parser(
-        "vector", help="Visualization: render vector fields (e.g., wind, currents)"
+        "vector",
+        help="Visualization: render vector fields (e.g., wind, currents)",
+        description=(
+            "Render vector fields from U/V arrays or NetCDF variables as quiver arrows or "
+            "streamlines with optional basemap."
+        ),
     )
     p_vector.add_argument(
         "--input", help="Path to .nc input (alternative to --u/--v .npy)"
@@ -303,7 +325,12 @@ def register_cli(subparsers: Any) -> None:
                 ) from e
 
     p_anim = subparsers.add_parser(
-        "animate", help="Generate PNG frames from a time-varying dataset"
+        "animate",
+        help="Generate PNG frames from a time-varying dataset",
+        description=(
+            "Generate per-frame images over time for heatmap/contour/vector/particles modes, "
+            "and optionally compose frames into MP4."
+        ),
     )
     p_anim.add_argument(
         "--mode",
@@ -463,10 +490,17 @@ def register_cli(subparsers: Any) -> None:
     # compose-video
 
     p_vid = subparsers.add_parser(
-        "compose-video", help="Compose a directory of frames into MP4 (requires ffmpeg)"
+        "compose-video",
+        help="Compose a directory of frames into MP4 (requires ffmpeg)",
+        description=(
+            "Compose a directory of frame images (PNG or JPG) into an MP4 video using FFmpeg. "
+            "Optionally overlay a basemap image beneath frames."
+        ),
     )
     p_vid.add_argument(
-        "--frames", required=True, help="Directory containing frame_*.png files"
+        "--frames",
+        required=True,
+        help="Directory containing frame images (e.g., frame_*.png or .jpg)",
     )
     p_vid.add_argument("-o", "--output", required=True, help="Output MP4 path")
     p_vid.add_argument(
@@ -478,7 +512,12 @@ def register_cli(subparsers: Any) -> None:
     # interactive
 
     p_int = subparsers.add_parser(
-        "interactive", help="Render interactive HTML (folium or plotly)"
+        "interactive",
+        help="Render interactive HTML (folium or plotly)",
+        description=(
+            "Render an interactive map or plot using Folium or Plotly with optional tile layers, "
+            "WMS overlays, and vector/heatmap/contour modes."
+        ),
     )
     p_int.add_argument("--input", required=True, help="Path to .npy/.nc/.csv input")
     p_int.add_argument("--var", help="NetCDF variable name (for .nc inputs)")

@@ -747,7 +747,7 @@ Quick links:
 - Examples page (click-to-run): http://localhost:8000/examples
 
 Endpoints:
-- `POST /cli/run` → `{ stage, command, args, mode }` where `mode` is `sync` or `async`.
+- `POST /v1/cli/run` → `{ stage, command, args, mode }` where `mode` is `sync` or `async`.
 - `GET /jobs/{job_id}` → job status, `stdout`, `stderr`, `exit_code`.
 - `GET /jobs/{job_id}/manifest` → JSON list of produced artifacts (name, path, size, mtime, media_type).
 - `GET /jobs/{job_id}/download` → download job artifact.
@@ -759,9 +759,45 @@ Endpoints:
   - In-memory mode: WebSocket streaming is supported without Redis as a lightweight pub/sub for logs/progress.
   - Messages are JSON lines with keys like `stdout`, `stderr`, `progress`, and a final payload including `exit_code` and `output_file` when available.
 
+### MCP (Model Context Protocol) endpoint
+
+Zyra exposes an MCP-compatible endpoint for tool discovery and invocation by IDE assistants.
+
+- Discovery: `GET /mcp` or `OPTIONS /mcp`
+  - Returns a spec-shaped payload:
+    `{ mcp_version: "0.1", name: "zyra", description, capabilities: { commands: [ { name, description, parameters } ] } }`
+- JSON-RPC: `POST /mcp`
+  - Methods:
+    - `listTools` → same discovery payload as `GET /mcp`
+    - `callTool` → runs a tool via `/cli/run` (sync or async)
+      - Params: `{ stage, command, args?, mode? }`
+      - Result (sync): `{ status, stdout?, stderr?, exit_code? }`
+      - Result (async): `{ status: 'accepted', job_id, poll, download, manifest }`
+    - `statusReport` → `{ status: 'ok', version }`
+- Auth: include `X-API-Key: $ZYRA_API_KEY` if the API key is set.
+- Feature flags:
+  - `ZYRA_ENABLE_MCP` (default `1`): enable/disable the endpoint
+  - `ZYRA_MCP_MAX_BODY_BYTES` (bytes): optional request size limit for `/mcp`
+
+Examples (JSON-RPC):
+
+```
+curl -sS -H 'Content-Type: application/json' -H "X-API-Key: $ZYRA_API_KEY" \
+  -d '{"jsonrpc":"2.0","method":"statusReport","id":1}' \
+  http://localhost:8000/v1/mcp
+
+curl -sS -H 'Content-Type: application/json' -H "X-API-Key: $ZYRA_API_KEY" \
+  -d '{"jsonrpc":"2.0","method":"listTools","id":2}' \
+  http://localhost:8000/v1/mcp
+
+curl -sS -H 'Content-Type: application/json' -H "X-API-Key: $ZYRA_API_KEY" \
+  -d '{"jsonrpc":"2.0","method":"callTool","params":{"stage":"visualize","command":"heatmap","args":{"input":"samples/demo.npy","output":"/tmp/heatmap.png"},"mode":"sync"},"id":3}' \
+  http://localhost:8000/v1/mcp
+```
+
 Example request:
 ```
-POST /cli/run
+POST /v1/cli/run
 {
   "stage": "process",
   "command": "decode-grib2",
@@ -794,15 +830,15 @@ Notes:
 Curl upload → run (async) → WebSocket stream → download:
 ```bash
 # 1) Upload
-FID=$(curl -sF file=@samples/demo.nc http://localhost:8000/upload | jq -r .file_id)
+FID=$(curl -sF file=@samples/demo.nc http://localhost:8000/v1/upload | jq -r .file_id)
 # 2) Run async job
 JOB=$(curl -s -H 'Content-Type: application/json' \
   -d '{"stage":"process","command":"convert-format","mode":"async","args":{"file_or_url":"file_id:'"$FID"'","format":"netcdf","stdout":true}}' \
-  http://localhost:8000/cli/run | jq -r .job_id)
+  http://localhost:8000/v1/cli/run | jq -r .job_id)
 # 3) Stream logs
 npx wscat -c ws://localhost:8000/ws/jobs/$JOB
 # 4) Download result
-curl -OJL http://localhost:8000/jobs/$JOB/download
+curl -OJL http://localhost:8000/v1/jobs/$JOB/download
 ```
 
 Upload → Run integration:
@@ -812,7 +848,7 @@ Upload → Run integration:
 - Example (replace the placeholder with a real `file_id`):
 
 ```
-POST /cli/run
+POST /v1/cli/run
 {
   "stage": "process",
   "command": "convert-format",

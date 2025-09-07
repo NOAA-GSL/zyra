@@ -10,7 +10,7 @@ router = APIRouter(tags=["commands"])
 
 @router.get("/commands")
 def commands(
-    format: str = Query("json", pattern="^(json|list|summary)$"),
+    format: str = Query("json", pattern="^(json|list|summary|grouped)$"),
     command_name: str | None = None,
     details: str | None = Query(None, pattern="^(options|example)$"),
     stage: str | None = Query(
@@ -37,4 +37,27 @@ def commands(
             fuzzy_cutoff=fuzzy_cutoff,
             refresh=refresh,
         )
-    return svc.list_commands(format=format, stage=stage, q=q, refresh=refresh)
+    data = svc.list_commands(format="json", stage=stage, q=q, refresh=refresh)
+    if format == "json":
+        return data
+    if format in {"list", "summary"}:
+        return svc.list_commands(format=format, stage=stage, q=q, refresh=refresh)
+    if format == "grouped":
+        # Group by domain from enriched entries
+        cmds = data.get("commands", {})
+        grouped: dict[str, dict[str, list[str]]] = {}
+        for full, meta in cmds.items():
+            # Treat single-token commands (no spaces) as top-level tools under a
+            # synthetic "root" domain to avoid domain/tool pairs where both are identical.
+            if " " in full:
+                dom = meta.get("domain") or full.split(" ", 1)[0]
+                tool = full.split(" ", 1)[1]
+            else:
+                dom = "root"
+                tool = full
+            grouped.setdefault(dom, {}).setdefault("tools", []).append(tool)
+        return {
+            "domains": {
+                k: {"tools": sorted(v.get("tools", []))} for k, v in grouped.items()
+            }
+        }

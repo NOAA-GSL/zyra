@@ -43,9 +43,9 @@ def test_openapi_contains_jobs_paths() -> None:
     # app.openapi doesn't require httpx
     spec = app.openapi()
     paths = spec.get("paths", {})
-    assert "/jobs/{job_id}" in paths
-    assert "/jobs/{job_id}/manifest" in paths
-    assert "/jobs/{job_id}/download" in paths
+    assert "/v1/jobs/{job_id}" in paths
+    assert "/v1/jobs/{job_id}/manifest" in paths
+    assert "/v1/jobs/{job_id}/download" in paths
 
 
 def test_download_ttl_expired_returns_410(monkeypatch, tmp_path: Path) -> None:
