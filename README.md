@@ -761,22 +761,25 @@ Endpoints:
 
 ### MCP (Model Context Protocol) endpoint
 
-Zyra exposes a minimal MCP-style JSON-RPC endpoint to make tools discoverable and callable by LLM-native clients.
+Zyra exposes an MCP-compatible endpoint for tool discovery and invocation by IDE assistants.
 
-- Endpoint: `POST /mcp` (JSON-RPC 2.0)
-- Methods:
-  - `listTools` → returns the capabilities manifest (similar to `/commands`)
-  - `callTool` → runs a tool via `/cli/run` (sync or async)
-    - Params: `{ stage, command, args?, mode? }`
-    - Result (sync): `{ status, stdout?, stderr?, exit_code? }`
-    - Result (async): `{ status: 'accepted', job_id, poll, download, manifest }`
-  - `statusReport` → `{ status: 'ok', version }`
+- Discovery: `GET /mcp` or `OPTIONS /mcp`
+  - Returns a spec-shaped payload:
+    `{ mcp_version: "0.1", name: "zyra", description, capabilities: { commands: [ { name, description, parameters } ] } }`
+- JSON-RPC: `POST /mcp`
+  - Methods:
+    - `listTools` → same discovery payload as `GET /mcp`
+    - `callTool` → runs a tool via `/cli/run` (sync or async)
+      - Params: `{ stage, command, args?, mode? }`
+      - Result (sync): `{ status, stdout?, stderr?, exit_code? }`
+      - Result (async): `{ status: 'accepted', job_id, poll, download, manifest }`
+    - `statusReport` → `{ status: 'ok', version }`
 - Auth: include `X-API-Key: $ZYRA_API_KEY` if the API key is set.
 - Feature flags:
   - `ZYRA_ENABLE_MCP` (default `1`): enable/disable the endpoint
   - `ZYRA_MCP_MAX_BODY_BYTES` (bytes): optional request size limit for `/mcp`
 
-Examples:
+Examples (JSON-RPC):
 
 ```
 curl -sS -H 'Content-Type: application/json' -H "X-API-Key: $ZYRA_API_KEY" \

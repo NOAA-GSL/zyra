@@ -7,10 +7,17 @@ structured call information.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, Request
+from typing import Annotated, Union
+
+from fastapi import APIRouter, BackgroundTasks, Body, Request
 from pydantic import ValidationError
 from zyra.api.models.cli_request import CLIRunRequest
-from zyra.api.models.domain_api import DomainRunRequest, DomainRunResponse
+from zyra.api.models.domain_api import (
+    DomainRunResponse,
+    VisualizeAnimateRun,
+    VisualizeContourRun,
+    VisualizeHeatmapRun,
+)
 from zyra.api.routers.cli import get_cli_matrix, run_cli_endpoint
 from zyra.api.schemas.domain_args import normalize_and_validate
 from zyra.api.utils.errors import domain_error_response
@@ -20,9 +27,15 @@ from zyra.utils.env import env_int
 router = APIRouter(tags=["visualize"], prefix="")
 
 
+VisualizeRequest = Annotated[
+    Union[VisualizeHeatmapRun, VisualizeContourRun, VisualizeAnimateRun],
+    Body(discriminator="tool"),
+]
+
+
 @router.post("/visualize", response_model=DomainRunResponse)
 def visualize_run(
-    req: DomainRunRequest, bg: BackgroundTasks, request: Request
+    req: VisualizeRequest, bg: BackgroundTasks, request: Request
 ) -> DomainRunResponse:
     """Run a visualize-domain tool and return a standardized response."""
     try:
@@ -57,7 +70,10 @@ def visualize_run(
     else:
         mode = (req.options.mode if req.options else None) or "sync"
     try:
-        args = normalize_and_validate(stage, req.tool, req.args)
+        raw_args = req.args
+        if hasattr(raw_args, "model_dump"):
+            raw_args = raw_args.model_dump(exclude_none=True)  # type: ignore[attr-defined]
+        args = normalize_and_validate(stage, req.tool, raw_args)
     except ValidationError as ve:
         return domain_error_response(
             status_code=400,

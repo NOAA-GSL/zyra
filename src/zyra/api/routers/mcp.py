@@ -329,8 +329,18 @@ def _mcp_discovery_payload(refresh: bool = False) -> dict[str, Any]:
                 schema["type"] = jtype
             if o.get("help"):
                 schema["description"] = o.get("help")
+            if o.get("choices"):
+                from contextlib import suppress as _suppress
+
+                with _suppress(Exception):
+                    schema["enum"] = list(o.get("choices"))
             # We don't currently track required options; leave optional
             properties[prop] = schema or {"type": "string"}
+            from contextlib import suppress as _suppress
+
+            with _suppress(Exception):
+                if bool(o.get("required")):
+                    required.append(prop)
 
         parameters: dict[str, Any] = {
             "type": "object",

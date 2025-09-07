@@ -88,9 +88,12 @@ def _extract_arg_schema(
                 "help": help_text,
                 "type": type_name,
                 "default": default,
+                "required": bool(getattr(act, "required", False)),
             }
             if path_arg:
                 options_meta["path_arg"] = True
+            if choices:
+                options_meta["choices"] = choices
 
             # Export under each flag; prefer longest form (e.g., --long over -l)
             # but keep all keys present for quick lookup

@@ -59,6 +59,30 @@ def test_mcp_list_tools(monkeypatch) -> None:
     assert sample["parameters"].get("type") == "object"
 
 
+def test_mcp_http_discovery_get(monkeypatch) -> None:
+    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
+    c = TestClient(app)
+    r = c.get("/mcp", headers={"X-API-Key": "k"})
+    assert r.status_code == 200
+    js = r.json()
+    assert js.get("mcp_version") == "0.1"
+    assert js.get("name") == "zyra"
+    caps = js.get("capabilities")
+    assert isinstance(caps, dict)
+    cmds = caps.get("commands")
+    assert isinstance(cmds, list) and cmds
+    assert all("name" in x and "parameters" in x for x in cmds)
+
+
+def test_mcp_http_discovery_options(monkeypatch) -> None:
+    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
+    c = TestClient(app)
+    r = c.options("/mcp", headers={"X-API-Key": "k"})
+    assert r.status_code == 200
+    js = r.json()
+    assert js.get("mcp_version") == "0.1"
+
+
 def test_mcp_calltool_local_sync(tmp_path, monkeypatch) -> None:
     client = _client_with_key(monkeypatch)
     out_path = tmp_path / "ok.bin"
