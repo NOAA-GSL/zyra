@@ -2,16 +2,16 @@ Domain APIs (v1)
 ================
 
 Zyra exposes high-level, domain-oriented endpoints that delegate to the
-underlying CLI via ``/cli/run``. These endpoints provide clearer grouping by
+underlying CLI via ``/v1/cli/run``. These endpoints provide clearer grouping by
 intent while retaining full CLI capability.
 
 Endpoints
 ---------
 
-- ``POST /process`` — Orchestration and data processing
-- ``POST /visualize`` — Static images, animations, plots
-- ``POST /decimate`` — Export, write, egress (local path, S3, etc.)
-- ``POST /assets`` — Convenience alias for asset I/O (maps to decimate or acquire)
+- ``POST /v1/process`` — Orchestration and data processing
+- ``POST /v1/visualize`` — Static images, animations, plots
+- ``POST /v1/decimate`` — Export, write, egress (local path, S3, etc.)
+- ``POST /v1/assets`` — Convenience alias for asset I/O (maps to decimate or acquire)
 
 Request/Response Shape
 ----------------------
@@ -63,7 +63,7 @@ Process: convert format (stdout)::
           "args": { "file_or_url": "https://example.com/sample.grib2", "format": "netcdf", "stdout": true },
           "options": { "mode": "sync" }
         }' \\
-    http://localhost:8000/process
+    http://localhost:8000/v1/process
 
 Visualize: heatmap to PNG::
 
@@ -73,13 +73,13 @@ Visualize: heatmap to PNG::
           "args": { "input": "samples/demo.npy", "output": "/tmp/heatmap.png", "width": 800, "height": 400 },
           "options": { "mode": "sync" }
         }' \\
-    http://localhost:8000/visualize
+    http://localhost:8000/v1/visualize
 
 Visualize: contour to PNG (validation error example)::
 
   curl -sS -H 'Content-Type: application/json' -H "X-API-Key: $ZYRA_API_KEY" \
     -d '{ "tool": "contour", "args": { } }' \
-    http://localhost:8000/visualize
+    http://localhost:8000/v1/visualize
 
   # → HTTP 400
   #   { "status": "error", "error": { "type": "validation_error", "message": "Invalid arguments", "details": { ... } } }
@@ -92,7 +92,7 @@ Decimate: write to local::
           "args": { "input": "-", "output": "/tmp/out.bin" },
           "options": { "mode": "sync" }
         }' \\
-    http://localhost:8000/decimate --data-binary @file.bin
+    http://localhost:8000/v1/decimate --data-binary @file.bin
 
 Assets: convenience alias::
 
@@ -102,7 +102,7 @@ Assets: convenience alias::
           "args": { "input": "samples/demo.nc", "url": "s3://bucket/path/demo.nc" },
           "options": { "mode": "sync" }
         }' \\
-    http://localhost:8000/assets
+    http://localhost:8000/v1/assets
 
 Notes
 -----
@@ -127,7 +127,7 @@ Visualize: animate frames (MP4 optional)::
           "args": { "input": "samples/demo.npy", "output_dir": "/tmp/frames", "fps": 24, "to_video": "/tmp/out.mp4" },
           "options": { "sync": true }
         }' \
-    http://localhost:8000/visualize
+    http://localhost:8000/v1/visualize
 
 Decimate: HTTP POST bytes::
 
@@ -137,4 +137,4 @@ Decimate: HTTP POST bytes::
           "args": { "input": "/path/to/file.bin", "url": "https://example.com/ingest", "content_type": "application/octet-stream" },
           "options": { "sync": true }
         }' \
-    http://localhost:8000/decimate
+    http://localhost:8000/v1/decimate

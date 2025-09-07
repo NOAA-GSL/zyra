@@ -19,6 +19,9 @@ def test_decimate_domain_local_sync(tmp_path, monkeypatch) -> None:
     assert js.get("status") == "ok"
     assert js.get("exit_code") in (0, None)
     assert out_path.exists()
+    # Assets should include the written file
+    assets = js.get("assets") or []
+    assert any(a.get("uri") == str(out_path) for a in assets)
 
 
 def test_process_domain_invalid_tool(monkeypatch) -> None:

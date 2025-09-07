@@ -13,12 +13,17 @@ Notes
 
 from __future__ import annotations
 
-from typing import Any  # noqa: F401
+from typing import Annotated, Union
 
-from fastapi import APIRouter, BackgroundTasks, Request
+from fastapi import APIRouter, BackgroundTasks, Body, Request
 from pydantic import ValidationError
 from zyra.api.models.cli_request import CLIRunRequest
-from zyra.api.models.domain_api import DomainRunRequest, DomainRunResponse
+from zyra.api.models.domain_api import (
+    AcquireFtpRun,
+    AcquireHttpRun,
+    AcquireS3Run,
+    DomainRunResponse,
+)
 from zyra.api.routers.cli import get_cli_matrix, run_cli_endpoint
 from zyra.api.schemas.domain_args import normalize_and_validate
 from zyra.api.utils.errors import domain_error_response
@@ -28,7 +33,10 @@ from zyra.utils.env import env_int
 router = APIRouter(tags=["acquire"], prefix="")
 
 
-AcquireRequest = DomainRunRequest
+AcquireRequest = Annotated[
+    Union[AcquireHttpRun, AcquireS3Run, AcquireFtpRun],
+    Body(discriminator="tool"),
+]
 
 
 @router.post("/acquire", response_model=DomainRunResponse)

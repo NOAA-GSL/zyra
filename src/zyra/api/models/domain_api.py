@@ -60,6 +60,26 @@ class VisualizeAnimateRun(DomainRunRequest):
     args: da.VisualizeAnimateArgs  # type: ignore[assignment]
 
 
+class VisualizeTimeSeriesRun(DomainRunRequest):
+    tool: Literal["timeseries"]
+    args: da.VisualizeTimeSeriesArgs  # type: ignore[assignment]
+
+
+class VisualizeVectorRun(DomainRunRequest):
+    tool: Literal["vector"]
+    args: da.VisualizeVectorArgs  # type: ignore[assignment]
+
+
+class VisualizeComposeVideoRun(DomainRunRequest):
+    tool: Literal["compose-video"]
+    args: da.VisualizeComposeVideoArgs  # type: ignore[assignment]
+
+
+class VisualizeInteractiveRun(DomainRunRequest):
+    tool: Literal["interactive"]
+    args: da.VisualizeInteractiveArgs  # type: ignore[assignment]
+
+
 # Process
 class ProcessDecodeGrib2Run(DomainRunRequest):
     tool: Literal["decode-grib2"]
@@ -90,6 +110,11 @@ class DecimateS3Run(DomainRunRequest):
 class DecimatePostRun(DomainRunRequest):
     tool: Literal["post"]
     args: da.DecimatePostArgs  # type: ignore[assignment]
+
+
+class DecimateFtpRun(DomainRunRequest):
+    tool: Literal["ftp"]
+    args: da.DecimateFtpArgs  # type: ignore[assignment]
 
 
 # Acquire

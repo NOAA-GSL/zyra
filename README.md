@@ -747,7 +747,7 @@ Quick links:
 - Examples page (click-to-run): http://localhost:8000/examples
 
 Endpoints:
-- `POST /cli/run` → `{ stage, command, args, mode }` where `mode` is `sync` or `async`.
+- `POST /v1/cli/run` → `{ stage, command, args, mode }` where `mode` is `sync` or `async`.
 - `GET /jobs/{job_id}` → job status, `stdout`, `stderr`, `exit_code`.
 - `GET /jobs/{job_id}/manifest` → JSON list of produced artifacts (name, path, size, mtime, media_type).
 - `GET /jobs/{job_id}/download` → download job artifact.
@@ -784,20 +784,20 @@ Examples (JSON-RPC):
 ```
 curl -sS -H 'Content-Type: application/json' -H "X-API-Key: $ZYRA_API_KEY" \
   -d '{"jsonrpc":"2.0","method":"statusReport","id":1}' \
-  http://localhost:8000/mcp
+  http://localhost:8000/v1/mcp
 
 curl -sS -H 'Content-Type: application/json' -H "X-API-Key: $ZYRA_API_KEY" \
   -d '{"jsonrpc":"2.0","method":"listTools","id":2}' \
-  http://localhost:8000/mcp
+  http://localhost:8000/v1/mcp
 
 curl -sS -H 'Content-Type: application/json' -H "X-API-Key: $ZYRA_API_KEY" \
   -d '{"jsonrpc":"2.0","method":"callTool","params":{"stage":"visualize","command":"heatmap","args":{"input":"samples/demo.npy","output":"/tmp/heatmap.png"},"mode":"sync"},"id":3}' \
-  http://localhost:8000/mcp
+  http://localhost:8000/v1/mcp
 ```
 
 Example request:
 ```
-POST /cli/run
+POST /v1/cli/run
 {
   "stage": "process",
   "command": "decode-grib2",
@@ -830,15 +830,15 @@ Notes:
 Curl upload → run (async) → WebSocket stream → download:
 ```bash
 # 1) Upload
-FID=$(curl -sF file=@samples/demo.nc http://localhost:8000/upload | jq -r .file_id)
+FID=$(curl -sF file=@samples/demo.nc http://localhost:8000/v1/upload | jq -r .file_id)
 # 2) Run async job
 JOB=$(curl -s -H 'Content-Type: application/json' \
   -d '{"stage":"process","command":"convert-format","mode":"async","args":{"file_or_url":"file_id:'"$FID"'","format":"netcdf","stdout":true}}' \
-  http://localhost:8000/cli/run | jq -r .job_id)
+  http://localhost:8000/v1/cli/run | jq -r .job_id)
 # 3) Stream logs
 npx wscat -c ws://localhost:8000/ws/jobs/$JOB
 # 4) Download result
-curl -OJL http://localhost:8000/jobs/$JOB/download
+curl -OJL http://localhost:8000/v1/jobs/$JOB/download
 ```
 
 Upload → Run integration:
@@ -848,7 +848,7 @@ Upload → Run integration:
 - Example (replace the placeholder with a real `file_id`):
 
 ```
-POST /cli/run
+POST /v1/cli/run
 {
   "stage": "process",
   "command": "convert-format",

@@ -47,10 +47,15 @@ def commands(
         cmds = data.get("commands", {})
         grouped: dict[str, dict[str, list[str]]] = {}
         for full, meta in cmds.items():
-            dom = meta.get("domain") or (full.split(" ", 1)[0] if " " in full else full)
-            grouped.setdefault(dom, {}).setdefault("tools", []).append(
-                full.split(" ", 1)[1] if " " in full else full
-            )
+            # Treat single-token commands (no spaces) as top-level tools under a
+            # synthetic "root" domain to avoid domain/tool pairs where both are identical.
+            if " " in full:
+                dom = meta.get("domain") or full.split(" ", 1)[0]
+                tool = full.split(" ", 1)[1]
+            else:
+                dom = "root"
+                tool = full
+            grouped.setdefault(dom, {}).setdefault("tools", []).append(tool)
         return {
             "domains": {
                 k: {"tools": sorted(v.get("tools", []))} for k, v in grouped.items()

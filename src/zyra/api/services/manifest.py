@@ -88,6 +88,9 @@ def _extract_arg_schema(
                 "help": help_text,
                 "type": type_name,
                 "default": default,
+                # For optional arguments (those with option strings), argparse
+                # exposes the `.required` attribute to indicate if the option
+                # itself must be provided.
                 "required": bool(getattr(act, "required", False)),
             }
             if path_arg:
@@ -101,14 +104,27 @@ def _extract_arg_schema(
                 options[fl] = options_meta
             option_names.extend(flags)
         else:
-            # Positional argument
+            # Positional argument: argparse typically does not set `.required`.
+            # Required-ness is determined by `nargs` semantics:
+            #   - '?' or '*' => optional
+            #   - '+' or None/int>0 => required
+            is_required: bool
+            if nargs in ("?", "*"):
+                is_required = False
+            elif nargs == "+":
+                is_required = True
+            elif isinstance(nargs, int):
+                is_required = nargs > 0
+            else:
+                # None (single value) or other non-optional markers
+                is_required = True
+
             positionals.append(
                 {
                     "name": getattr(act, "dest", None),
                     "help": help_text,
                     "type": type_name,
-                    "required": bool(getattr(act, "required", False))
-                    or (nargs not in ("?", "*")),
+                    "required": is_required,
                     "choices": choices,
                 }
             )

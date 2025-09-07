@@ -20,7 +20,8 @@ if command -v jq >/dev/null 2>&1; then
   if command -v sha256sum >/dev/null 2>&1; then
     jq 'del(.info.version)' "$tmpfile" | sha256sum | awk '{print $1}' > "$HASH_TXT"
   else
-    python - << 'PY'
+    # Pass the temporary JSON file as argv[1] to the Python script
+    python - "$tmpfile" << 'PY' > "$HASH_TXT"
 import copy, json, hashlib, sys
 from pathlib import Path
 tmp = Path(sys.argv[1])
@@ -30,7 +31,6 @@ if isinstance(spec.get('info'), dict):
 s = json.dumps(spec, sort_keys=True, separators=(',', ':'))
 print(hashlib.sha256(s.encode()).hexdigest())
 PY
-    "$tmpfile" > "$HASH_TXT"
   fi
 else
   # Fallback without jq: do everything in Python

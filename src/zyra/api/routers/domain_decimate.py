@@ -7,14 +7,21 @@ structured logs with domain/tool/job_id/duration.
 
 from __future__ import annotations
 
-from typing import Any  # noqa: F401
+from typing import Annotated, Union
 
-from fastapi import APIRouter, BackgroundTasks, Request
+from fastapi import APIRouter, BackgroundTasks, Body, Request
 from pydantic import ValidationError
 from zyra.api.models.cli_request import CLIRunRequest
-from zyra.api.models.domain_api import DomainRunRequest, DomainRunResponse
+from zyra.api.models.domain_api import (
+    DecimateFtpRun,
+    DecimateLocalRun,
+    DecimatePostRun,
+    DecimateS3Run,
+    DomainRunResponse,
+)
 from zyra.api.routers.cli import get_cli_matrix, run_cli_endpoint
 from zyra.api.schemas.domain_args import normalize_and_validate
+from zyra.api.utils.assets import infer_assets
 from zyra.api.utils.errors import domain_error_response
 from zyra.api.utils.obs import log_domain_call
 from zyra.utils.env import env_int
@@ -22,7 +29,10 @@ from zyra.utils.env import env_int
 router = APIRouter(tags=["decimate"], prefix="")
 
 
-DecimateRequest = DomainRunRequest
+DecimateRequest = Annotated[
+    Union[DecimateLocalRun, DecimateS3Run, DecimatePostRun, DecimateFtpRun],
+    Body(discriminator="tool"),
+]
 
 
 @router.post("/decimate", response_model=DomainRunResponse)
@@ -88,9 +98,15 @@ def decimate_run(
             manifest=f"/jobs/{resp.job_id}/manifest",
         )
     ok = resp.exit_code == 0
+    assets = []
+    try:
+        assets = infer_assets(stage, req.tool, args)
+    except Exception:
+        assets = []
     res = DomainRunResponse(
         status="ok" if ok else "error",
         result={"argv": getattr(resp, "argv", None)},
+        assets=assets or None,
         logs=[
             *(
                 [{"stream": "stdout", "text": resp.stdout}]

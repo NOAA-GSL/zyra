@@ -364,7 +364,10 @@ def _traverse(parser: argparse.ArgumentParser, *, prefix: str = "") -> dict[str,
             # Derive domain/tool and enrich with simple schema hints
             parts = name.split(" ", 1)
             domain = parts[0]
-            tool = parts[1] if len(parts) > 1 else parts[0]
+            # If there's no space in the name, the "tool" should be the full
+            # name rather than mirroring the domain segment. This avoids
+            # producing domain/tool pairs where both are identical.
+            tool = parts[1] if len(parts) > 1 else name
             # Pydantic arg schema hints from API domain models where available
             try:
                 from zyra.api.schemas.domain_args import (

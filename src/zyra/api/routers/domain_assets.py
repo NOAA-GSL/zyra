@@ -6,6 +6,7 @@ from zyra.api.models.cli_request import CLIRunRequest
 from zyra.api.models.domain_api import DomainRunRequest, DomainRunResponse
 from zyra.api.routers.cli import get_cli_matrix, run_cli_endpoint
 from zyra.api.schemas.domain_args import normalize_and_validate
+from zyra.api.utils.assets import infer_assets
 from zyra.api.utils.errors import domain_error_response
 from zyra.utils.env import env_int
 
@@ -77,9 +78,15 @@ def assets_run(
             manifest=f"/jobs/{resp.job_id}/manifest",
         )
     ok = resp.exit_code == 0
+    assets = []
+    try:
+        assets = infer_assets(stage, req.tool, args)
+    except Exception:
+        assets = []
     return DomainRunResponse(
         status="ok" if ok else "error",
         result={"argv": getattr(resp, "argv", None)},
+        assets=assets or None,
         logs=[
             *(
                 [{"stream": "stdout", "text": resp.stdout}]

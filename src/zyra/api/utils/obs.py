@@ -11,6 +11,7 @@ Loggers
 from __future__ import annotations
 
 import logging
+import re
 import time
 from typing import Any
 
@@ -29,14 +30,18 @@ _SENSITIVE_KEYS = {
     "bearer",
 }
 
+_SENSITIVE_TOKEN_RE = re.compile(
+    r"(?i)\b(?:authorization|password|token|api[_-]?key|access[_-]?key|secret|bearer)\b"
+)
+
 
 def _redact(value: Any) -> Any:
     try:
         if isinstance(value, str):
-            # naive redact for tokens in strings
-            for k in _SENSITIVE_KEYS:
-                if k in value.lower():
-                    return "[REDACTED]"
+            # Redact strings only when a sensitive token appears as a complete
+            # word (avoids false positives like '/api_key_documentation.txt').
+            if _SENSITIVE_TOKEN_RE.search(value):
+                return "[REDACTED]"
             return value
         if isinstance(value, dict):
             return {

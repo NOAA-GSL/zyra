@@ -15,6 +15,8 @@ import time
 from contextlib import asynccontextmanager, suppress
 
 from fastapi import Depends, FastAPI, Request
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
@@ -71,6 +73,35 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title="Zyra API", version=dvh_version, lifespan=lifespan)
 
+    @app.exception_handler(RequestValidationError)
+    async def _map_validation_errors(request: Request, exc: RequestValidationError):
+        # For domain endpoints, map Pydantic 422 to our 400 validation_error envelope
+        path = request.url.path
+        domain_paths = {
+            "/acquire",
+            "/transform",
+            "/process",
+            "/visualize",
+            "/decimate",
+            "/assets",
+        }
+        if path in domain_paths:
+            from zyra.api.utils.errors import domain_error_response
+
+            # Preserve error details for debugging
+            try:
+                details = {"errors": exc.errors()}
+            except Exception:
+                details = None
+            return domain_error_response(
+                status_code=400,
+                err_type="validation_error",
+                message="Invalid arguments",
+                details=details,  # type: ignore[arg-type]
+            )
+        # Fallback to FastAPI's default 422 for non-domain routes
+        return await request_validation_exception_handler(request, exc)
+
     # CORS (env-configurable)
     allow_all = (env("CORS_ALLOW_ALL", "0") or "0").lower() in {
         "1",
@@ -88,22 +119,29 @@ def create_app() -> FastAPI:
             allow_headers=["*"],
         )
 
-    app.include_router(cli_router.router, dependencies=[Depends(require_api_key)])
-    app.include_router(files_router.router, dependencies=[Depends(require_api_key)])
-    app.include_router(ws_router.router)  # auth handled inside via query param
-    app.include_router(manifest_router.router, dependencies=[Depends(require_api_key)])
-    app.include_router(search_router.router, dependencies=[Depends(require_api_key)])
-    app.include_router(jobs_router.router, dependencies=[Depends(require_api_key)])
+    # Include versioned routes (/v1/...) in schema and legacy aliases without schema
+    def _inc(router, *, deps=True):
+        kw = {"dependencies": [Depends(require_api_key)]} if deps else {}
+        app.include_router(router, prefix="/v1", **kw)
+        app.include_router(router, include_in_schema=False, **kw)
+
+    _inc(cli_router.router)
+    _inc(files_router.router)
+    # WS auth handled inside via query param
+    _inc(ws_router.router, deps=False)
+    _inc(manifest_router.router)
+    _inc(search_router.router)
+    _inc(jobs_router.router)
     # Domain routers (v1 minimal, delegate to /cli/run)
-    app.include_router(process_router.router, dependencies=[Depends(require_api_key)])
-    app.include_router(visualize_router.router, dependencies=[Depends(require_api_key)])
-    app.include_router(assets_router.router, dependencies=[Depends(require_api_key)])
-    app.include_router(decimate_router.router, dependencies=[Depends(require_api_key)])
-    app.include_router(acquire_router.router, dependencies=[Depends(require_api_key)])
-    app.include_router(transform_router.router, dependencies=[Depends(require_api_key)])
+    _inc(process_router.router)
+    _inc(visualize_router.router)
+    _inc(assets_router.router)
+    _inc(decimate_router.router)
+    _inc(acquire_router.router)
+    _inc(transform_router.router)
     # MCP adapter (feature gate)
     if env_bool("ENABLE_MCP", True):
-        app.include_router(mcp_router.router, dependencies=[Depends(require_api_key)])
+        _inc(mcp_router.router)
 
     @app.get("/health", tags=["system"])
     def health() -> dict:

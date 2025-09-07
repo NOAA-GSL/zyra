@@ -624,18 +624,49 @@ def _maybe_copy_output(args: dict[str, Any], res: RunResult, job_id: str) -> str
 
 
 def _guess_mime_for_file(path: Path) -> str:
-    """Guess MIME type for a file, using python-magic when available."""
-    # Try python-magic if available, fall back to mimetypes
+    """Guess MIME type for a file.
+
+    Order of precedence: python-magic (if available) → extension map → mimetypes → octet-stream.
+    """
+    # 1) python-magic
     try:
         import magic  # type: ignore
 
         m = magic.Magic(mime=True)
-        return str(m.from_file(str(path))) or "application/octet-stream"
+        mt = str(m.from_file(str(path)))
+        if mt:
+            return mt
     except Exception:
+        pass
+    # 2) Extension mapping for common types
+    ext = path.suffix.lower()
+    ext_map = {
+        ".nc": "application/x-netcdf",
+        ".grib2": "application/grib2",
+        ".grb2": "application/grib2",
+        ".grb": "application/grib",
+        ".tif": "image/tiff",
+        ".tiff": "image/tiff",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".mp4": "video/mp4",
+        ".zip": "application/zip",
+        ".json": "application/json",
+    }
+    if ext in ext_map:
+        return ext_map[ext]
+    # 3) mimetypes fallback
+    try:
         import mimetypes
 
         mt, _ = mimetypes.guess_type(str(path))
-        return mt or "application/octet-stream"
+        if mt:
+            return mt
+    except Exception:
+        pass
+    # 4) safe default
+    return "application/octet-stream"
 
 
 def write_manifest(job_id: str) -> Path | None:
@@ -647,7 +678,6 @@ def write_manifest(job_id: str) -> Path | None:
     try:
         import errno as _errno
         import json
-        import mimetypes
         import os as _os
 
         # Derive contained results directory. Validate and use a sanitized
@@ -724,8 +754,8 @@ def write_manifest(job_id: str) -> Path | None:
                 if getattr(e, "errno", None) == getattr(_errno, "ELOOP", 62):
                     continue
                 continue
-            # Guess media type by filename only to avoid opening the file
-            media_type, _ = mimetypes.guess_type(name)
+            # Guess media type with best-effort helper
+            media_type = _guess_mime_for_file(resolved_p)
             items.append(
                 {
                     "name": name,
