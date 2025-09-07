@@ -6,6 +6,10 @@ from typing import Any
 
 from zyra.api.models.types import AssetRef
 
+# Maximum number of files to include when listing a directory in assets.
+# Keep small to avoid large payloads and accidental data disclosure.
+MAX_DIRECTORY_FILES_IN_ASSETS = 5
+
 
 def _guess_media_type(path: Path) -> str | None:
     """Best-effort media type detection.
@@ -92,7 +96,7 @@ def infer_assets(stage: str, tool: str, args: dict[str, Any]) -> list[AssetRef]:
                 if files:
                     # Include directory as a container + first few files
                     out.append(AssetRef(uri=str(d), name=d.name))
-                    for p in files[:5]:
+                    for p in files[:MAX_DIRECTORY_FILES_IN_ASSETS]:
                         out.append(_as_ref(p))
                 else:
                     out.append(AssetRef(uri=str(d), name=d.name))

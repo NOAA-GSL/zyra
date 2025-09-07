@@ -19,6 +19,8 @@ Notes
 """
 from __future__ import annotations
 
+import logging
+from contextlib import suppress
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
@@ -73,7 +75,14 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
     # Optional size limit from env (bytes). When set to >0, enforce via Content-Length.
     try:
         max_bytes = int(env_int("MCP_MAX_BODY_BYTES", 0))
-    except Exception:
+    except (ValueError, TypeError):
+        max_bytes = 0
+    except Exception as exc:  # pragma: no cover - unexpected config/state
+        # Log unexpected exceptions rather than silently masking all errors
+        with suppress(Exception):
+            logging.getLogger("zyra.api.mcp").warning(
+                "Failed to parse MCP_MAX_BODY_BYTES: %s", exc
+            )
         max_bytes = 0
     if max_bytes and max_bytes > 0:
         try:
