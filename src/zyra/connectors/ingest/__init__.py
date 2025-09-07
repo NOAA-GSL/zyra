@@ -249,7 +249,14 @@ def _cmd_vimeo(ns: argparse.Namespace) -> int:  # pragma: no cover - placeholder
 
 def register_cli(acq_subparsers: Any) -> None:
     # http
-    p_http = acq_subparsers.add_parser("http", help="Fetch via HTTP(S)")
+    p_http = acq_subparsers.add_parser(
+        "http",
+        help="Fetch via HTTP(S)",
+        description=(
+            "Fetch a file via HTTP(S) to a local path. Optionally list/filter directory pages, "
+            "or fetch multiple URLs with --inputs/--manifest."
+        ),
+    )
     p_http.add_argument("url")
     add_output_option(p_http)
     p_http.add_argument(
@@ -289,7 +296,14 @@ def register_cli(acq_subparsers: Any) -> None:
     p_http.set_defaults(func=_cmd_http)
 
     # s3
-    p_s3 = acq_subparsers.add_parser("s3", help="Fetch from S3")
+    p_s3 = acq_subparsers.add_parser(
+        "s3",
+        help="Fetch from S3",
+        description=(
+            "Fetch objects from Amazon S3 via s3:// URL or bucket/key. Supports unsigned access, "
+            "listing prefixes, and batch via --inputs/--manifest."
+        ),
+    )
     # Either a single s3:// URL or bucket+key
     grp = p_s3.add_mutually_exclusive_group(required=True)
     grp.add_argument("--url", help="Full URL s3://bucket/key")
@@ -336,7 +350,13 @@ def register_cli(acq_subparsers: Any) -> None:
     p_s3.set_defaults(func=_cmd_s3)
 
     # ftp
-    p_ftp = acq_subparsers.add_parser("ftp", help="Fetch from FTP")
+    p_ftp = acq_subparsers.add_parser(
+        "ftp",
+        help="Fetch from FTP",
+        description=(
+            "Fetch files via FTP (single path or batch). Optionally list or sync directories to a local folder."
+        ),
+    )
     p_ftp.add_argument("path", help="ftp://host/path or host/path")
     add_output_option(p_ftp)
     p_ftp.add_argument(
@@ -382,7 +402,11 @@ def register_cli(acq_subparsers: Any) -> None:
 
     # vimeo (placeholder)
     p_vimeo = acq_subparsers.add_parser(
-        "vimeo", help="Fetch video by id (not implemented)"
+        "vimeo",
+        help="Fetch video by id (not implemented)",
+        description=(
+            "Placeholder for fetching Vimeo videos by id. Not implemented yet."
+        ),
     )
     p_vimeo.add_argument("video_id")
     add_output_option(p_vimeo)

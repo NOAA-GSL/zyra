@@ -317,7 +317,12 @@ def register_cli(subparsers: Any) -> None:
         return 0
 
     p_dec = subparsers.add_parser(
-        "decode-grib2", help="Decode GRIB2 and print metadata"
+        "decode-grib2",
+        help="Decode GRIB2 and print metadata",
+        description=(
+            "Decode a GRIB2 file or URL using cfgrib/pygrib/wgrib2 and log basic metadata. "
+            "Optionally emit raw bytes (with optional .idx subset) to stdout."
+        ),
     )
     p_dec.add_argument("file_or_url")
     p_dec.add_argument(
@@ -350,7 +355,12 @@ def register_cli(subparsers: Any) -> None:
     p_dec.set_defaults(func=cmd_decode_grib2)
 
     p_ext = subparsers.add_parser(
-        "extract-variable", help="Extract a variable using a regex pattern"
+        "extract-variable",
+        help="Extract a variable using a regex pattern",
+        description=(
+            "Extract a variable from GRIB2 by regex pattern. Output selected variable as NetCDF/GRIB2 "
+            "to stdout when requested, or log the matched variable name."
+        ),
     )
     p_ext.add_argument("file_or_url")
     p_ext.add_argument("pattern")
@@ -382,7 +392,11 @@ def register_cli(subparsers: Any) -> None:
     p_ext.set_defaults(func=cmd_extract_variable)
 
     p_conv = subparsers.add_parser(
-        "convert-format", help="Convert decoded data to a format"
+        "convert-format",
+        help="Convert decoded data to a format",
+        description=(
+            "Convert decoded GRIB2 data to NetCDF or GeoTIFF. Supports single input or batch via --inputs."
+        ),
     )
     p_conv.add_argument(
         "file_or_url", nargs="?", help="Single input when not using --inputs"

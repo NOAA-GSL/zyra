@@ -196,6 +196,8 @@ def _compute_manifest() -> dict[str, Any]:
         for name, parser in parsers.items():
             full = f"{stage} {name}"
             positionals, options = _extract_arg_schema(parser)
+            # Prefer explicit parser description when provided
+            desc = getattr(parser, "description", None) or f"zyra {full}"
             # Arg schema hint from domain models (if available)
             stage_name = stage
             model = resolve_model(stage_name, name)
@@ -218,7 +220,7 @@ def _compute_manifest() -> dict[str, Any]:
                     optional = None
             example = _example_args(stage, name)
             entry = {
-                "description": f"zyra {full}",
+                "description": desc,
                 "doc": "",
                 "epilog": "",
                 "groups": [
@@ -252,8 +254,9 @@ def _compute_manifest() -> dict[str, Any]:
     for name, parser in parsers.items():
         full = name  # e.g., "run"
         positionals, options = _extract_arg_schema(parser)
+        desc = getattr(parser, "description", None) or f"zyra {full}"
         entry = {
-            "description": f"zyra {full}",
+            "description": desc,
             "doc": "",
             "epilog": "",
             "groups": [{"title": "options", "options": sorted(list(options.keys()))}],
