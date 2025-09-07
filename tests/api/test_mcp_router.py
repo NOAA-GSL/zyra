@@ -206,7 +206,9 @@ def test_mcp_progress_sse(monkeypatch, tmp_path) -> None:
     job_id = r.json().get("result", {}).get("job_id")
     assert job_id
     # Stream SSE and collect a few events until terminal
-    with client.stream("GET", f"/mcp/progress/{job_id}?interval_ms=50", headers={"X-API-Key": "k"}) as resp:
+    with client.stream(
+        "GET", f"/mcp/progress/{job_id}?interval_ms=50", headers={"X-API-Key": "k"}
+    ) as resp:
         assert resp.status_code == 200
         buf = b""
         terminal = False

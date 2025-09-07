@@ -79,6 +79,7 @@ def mcp_rpc(req: JSONRPCRequest, request: Request):
     params = req.params or {}
 
     import time as _time
+
     _t0 = _time.time()
     try:
         if method == "listTools":
@@ -108,6 +109,7 @@ def mcp_rpc(req: JSONRPCRequest, request: Request):
                 )
             out = {"manifest": result, "tools": tools}
             from contextlib import suppress
+
             with suppress(Exception):
                 log_mcp_call(method, params, _t0, status="ok")
             return _rpc_result(req.id, out)
@@ -215,6 +217,7 @@ def mcp_rpc(req: JSONRPCRequest, request: Request):
                     },
                 )
                 from contextlib import suppress
+
                 with suppress(Exception):
                     log_mcp_call(method, params, _t0, status="error", error_code=-32000)
                 return out
@@ -228,6 +231,7 @@ def mcp_rpc(req: JSONRPCRequest, request: Request):
                 },
             )
             from contextlib import suppress
+
             with suppress(Exception):
                 log_mcp_call(method, params, _t0, status="ok")
             return out
@@ -237,12 +241,14 @@ def mcp_rpc(req: JSONRPCRequest, request: Request):
     except HTTPException as he:  # Map FastAPI errors to JSON-RPC error
         out = _rpc_error(req.id, he.status_code, he.detail if he.detail else str(he))
         from contextlib import suppress
+
         with suppress(Exception):
             log_mcp_call(method, params, _t0, status="error", error_code=he.status_code)
         return out
     except Exception as e:
         out = _rpc_error(req.id, -32603, "Internal error", {"message": str(e)})
         from contextlib import suppress
+
         with suppress(Exception):
             log_mcp_call(method, params, _t0, status="error", error_code=-32603)
         return out
@@ -255,7 +261,7 @@ def _sse_format(data: dict) -> bytes:
 
 
 @router.get("/mcp/progress/{job_id}")
-def mcp_progress(job_id: str, interval_ms: int = 200):
+def mcp_progress(job_id: str, interval_ms: int = 200, max_ms: int = 10000):
     """Server-Sent Events (SSE) stream of job status for MCP clients.
 
     Polls /jobs in-process and emits JSON events until a terminal state is reached.
@@ -263,8 +269,9 @@ def mcp_progress(job_id: str, interval_ms: int = 200):
 
     async def _gen():
         import asyncio as _asyncio
+        import time as _time
 
-        seen_status = None
+        deadline = _time.time() + max(0.0, float(max_ms) / 1000.0)
         while True:
             rec = jobs_backend.get_job(job_id) or {}
             status = rec.get("status", "unknown")
@@ -274,11 +281,11 @@ def mcp_progress(job_id: str, interval_ms: int = 200):
                 "exit_code": rec.get("exit_code"),
                 "output_file": rec.get("output_file"),
             }
-            # emit on first event or when status changes
-            if status != seen_status:
-                seen_status = status
-                yield _sse_format(payload)
+            # Always emit an event to avoid client hangs
+            yield _sse_format(payload)
             if status in {"succeeded", "failed", "canceled"}:
+                break
+            if _time.time() >= deadline:
                 break
             await _asyncio.sleep(max(0.0, float(interval_ms) / 1000.0))
 

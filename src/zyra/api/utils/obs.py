@@ -29,7 +29,10 @@ def _redact(value: Any) -> Any:
                     return "[REDACTED]"
             return value
         if isinstance(value, dict):
-            return {k: ("[REDACTED]" if k.lower() in _SENSITIVE_KEYS else _redact(v)) for k, v in value.items()}
+            return {
+                k: ("[REDACTED]" if k.lower() in _SENSITIVE_KEYS else _redact(v))
+                for k, v in value.items()
+            }
         if isinstance(value, list):
             return [_redact(v) for v in value]
         return value
@@ -37,7 +40,14 @@ def _redact(value: Any) -> Any:
         return value
 
 
-def log_domain_call(domain: str, tool: str, args: dict[str, Any], job_id: str | None, exit_code: int | None, started_at: float) -> None:
+def log_domain_call(
+    domain: str,
+    tool: str,
+    args: dict[str, Any],
+    job_id: str | None,
+    exit_code: int | None,
+    started_at: float,
+) -> None:
     try:
         dur_ms = int((time.time() - started_at) * 1000)
         payload = {
@@ -55,7 +65,13 @@ def log_domain_call(domain: str, tool: str, args: dict[str, Any], job_id: str | 
         pass
 
 
-def log_mcp_call(method: str, params: dict[str, Any] | None, started_at: float, status: str | None = None, error_code: int | None = None) -> None:
+def log_mcp_call(
+    method: str,
+    params: dict[str, Any] | None,
+    started_at: float,
+    status: str | None = None,
+    error_code: int | None = None,
+) -> None:
     try:
         dur_ms = int((time.time() - started_at) * 1000)
         payload = {
@@ -69,4 +85,3 @@ def log_mcp_call(method: str, params: dict[str, Any] | None, started_at: float, 
         _MCP_LOG.info("%s", payload)
     except Exception:
         pass
-

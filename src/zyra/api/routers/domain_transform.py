@@ -55,6 +55,7 @@ def transform_run(
             details={"errors": ve.errors()},
         )
     import time as _time
+
     _t0 = _time.time()
     resp = run_cli_endpoint(
         CLIRunRequest(stage=stage, command=req.tool, args=args, mode=mode), bg
