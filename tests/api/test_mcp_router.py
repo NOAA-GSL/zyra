@@ -334,10 +334,10 @@ def test_mcp_ws_initialize_and_notify(monkeypatch) -> None:
     with client.websocket_connect("/v1/ws/mcp?api_key=k") as ws:
         init = {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
         ws.send_json(init)
-        msg1 = ws.receive_json(timeout=1)
+        msg1 = ws.receive_json()
         assert msg1.get("id") == 1 and "result" in msg1
         # Next frame should be notifications/initialized
-        msg2 = ws.receive_json(timeout=1)
+        msg2 = ws.receive_json()
         assert msg2.get("method") == "notifications/initialized"
 
 
@@ -347,10 +347,10 @@ def test_mcp_ws_tools_list_after_initialize(monkeypatch) -> None:
     client = TestClient(create_app())
     with client.websocket_connect("/v1/ws/mcp?api_key=k") as ws:
         ws.send_json({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
-        _ = ws.receive_json(timeout=1)  # init result
-        _ = ws.receive_json(timeout=1)  # notifications/initialized
+        _ = ws.receive_json()  # init result
+        _ = ws.receive_json()  # notifications/initialized
         ws.send_json({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
-        msg = ws.receive_json(timeout=2)
+        msg = ws.receive_json()
         tools = (msg or {}).get("result", {}).get("tools")
         assert isinstance(tools, list) and tools
 
@@ -391,8 +391,8 @@ def test_mcp_ws_tools_call_async_progress(monkeypatch, tmp_path) -> None:
     with client.websocket_connect("/v1/ws/mcp?api_key=k") as ws:
         # Initialize
         ws.send_json({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
-        _ = ws.receive_json(timeout=1)  # init result
-        _ = ws.receive_json(timeout=1)  # notifications/initialized
+        _ = ws.receive_json()  # init result
+        _ = ws.receive_json()  # notifications/initialized
 
         # Kick off an async call that should fail quickly (missing file), just to exercise progress
         missing = str(tmp_path / "missing.grib2")
@@ -408,14 +408,14 @@ def test_mcp_ws_tools_call_async_progress(monkeypatch, tmp_path) -> None:
                 },
             }
         )
-        resp = ws.receive_json(timeout=2)
+        resp = ws.receive_json()
         job_id = (resp or {}).get("result", {}).get("job_id")
         assert job_id, f"expected accepted job_id, got {resp}"
 
         progress_seen = False
         terminal = False
         for _ in range(40):
-            msg = ws.receive_json(timeout=2)
+            msg = ws.receive_json()
             if (msg or {}).get("method") == "notifications/progress":
                 params = (msg or {}).get("params", {})
                 if params.get("job_id") == job_id:

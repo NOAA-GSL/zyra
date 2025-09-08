@@ -217,6 +217,7 @@ markers = [
     "cli: marks tests that invoke the CLI",
     "pipeline: marks tests that run the pipeline runner",
     "redis: marks tests that require a running Redis",
+    "mcp_ws: marks MCP WebSocket tests (force in-memory mode)",
 ]
 
 [tool.coverage.run]
