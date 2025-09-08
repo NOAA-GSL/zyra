@@ -258,7 +258,9 @@ def test_mcp_progress_sse(monkeypatch, tmp_path) -> None:
 
 
 def test_mcp_initialize_handshake(monkeypatch) -> None:
-    client = _client_with_key(monkeypatch)
+    # Build a fresh app to ensure the latest MCP methods are mounted
+    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
+    client = TestClient(create_app())
     r = client.post(
         "/v1/mcp",
         json={"jsonrpc": "2.0", "method": "initialize", "id": 12},
@@ -276,7 +278,9 @@ def test_mcp_initialize_handshake(monkeypatch) -> None:
 
 
 def test_mcp_tools_list_namespaced(monkeypatch) -> None:
-    client = _client_with_key(monkeypatch)
+    # Build a fresh app to ensure the latest MCP methods are mounted
+    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
+    client = TestClient(create_app())
     r = client.post(
         "/v1/mcp",
         json={"jsonrpc": "2.0", "method": "tools/list", "id": 13, "params": {}},
@@ -292,7 +296,9 @@ def test_mcp_tools_list_namespaced(monkeypatch) -> None:
 
 
 def test_mcp_tools_call_namespaced_sync(tmp_path, monkeypatch) -> None:
-    client = _client_with_key(monkeypatch)
+    # Build a fresh app to ensure the latest MCP methods are mounted
+    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
+    client = TestClient(create_app())
     out_path = tmp_path / "ok2.bin"
     payload = {
         "jsonrpc": "2.0",
