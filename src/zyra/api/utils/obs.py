@@ -59,7 +59,9 @@ def _redact_strict() -> bool:
     Set via environment variable `ZYRA_REDACT_STRICT` (truthy values: 1/true/yes).
     """
     try:
-        return env_bool("REDACT_STRICT", False)
+        # Use the documented, namespaced variable for consistency with repo
+        # conventions (ZYRA_*).
+        return env_bool("ZYRA_REDACT_STRICT", False)
     except Exception:
         return False
 

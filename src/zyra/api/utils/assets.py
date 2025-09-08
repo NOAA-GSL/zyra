@@ -58,6 +58,15 @@ def _guess_media_type(path: Path) -> str | None:
         return None
 
 
+def guess_media_type(path: Path) -> str | None:
+    """Public MIME type detection helper.
+
+    Wrapper around the internal implementation to provide a stable API for
+    other modules. Prefer this over importing the underscore-prefixed helper.
+    """
+    return _guess_media_type(path)
+
+
 def _as_ref(p: Path) -> AssetRef:
     """Deprecated: prefer _asset_ref_for with containment guard."""
     try:

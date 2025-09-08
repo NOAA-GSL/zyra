@@ -624,11 +624,15 @@ def _maybe_copy_output(args: dict[str, Any], res: RunResult, job_id: str) -> str
 
 
 def _guess_mime_for_file(path: Path) -> str:
-    """Guess MIME type for a file using shared utility for consistency."""
-    try:
-        from zyra.api.utils.assets import _guess_media_type
+    """Guess MIME type for a file using shared utility for consistency.
 
-        mt = _guess_media_type(path)
+    Uses the public `guess_media_type` helper to avoid coupling to private
+    internals of the assets module.
+    """
+    try:
+        from zyra.api.utils.assets import guess_media_type
+
+        mt = guess_media_type(path)
         return mt or "application/octet-stream"
     except Exception:
         # Fallback safe default on unexpected errors

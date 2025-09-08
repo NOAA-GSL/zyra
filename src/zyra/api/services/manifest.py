@@ -62,7 +62,9 @@ def _extract_arg_schema(
         flags = list(getattr(act, "option_strings", []) or [])
         help_text = getattr(act, "help", None)
         default = getattr(act, "default", None)
-        nargs = getattr(act, "nargs", None)
+        # Capture but do not use here; positional `nargs` is handled by the
+        # shared collector to avoid duplicated semantics.
+        _nargs = getattr(act, "nargs", None)
         choices = list(getattr(act, "choices", []) or []) or None
         tp = getattr(act, "type", None)
         # Derive type name and bool store actions
@@ -104,27 +106,31 @@ def _extract_arg_schema(
                 options[fl] = options_meta
             option_names.extend(flags)
         else:
-            # Positional argument: argparse typically does not set `.required`.
-            # Required-ness is determined by `nargs` semantics:
-            #   - '?' or '*' => optional
-            #   - '+' or None/int>0 => required
-            is_required: bool
-            if nargs in ("?", "*"):
-                is_required = False
-            elif nargs == "+":
-                is_required = True
-            elif isinstance(nargs, int):
-                is_required = nargs > 0
-            else:
-                # None (single value) or other non-optional markers
-                is_required = True
+            # Defer positional handling; we will reuse the shared collector
+            # to ensure consistent `nargs` semantics across the project.
+            continue
 
+    # Reuse the Wizard's positional collector to avoid duplicated `nargs` logic.
+    # Falls back to a minimal local extraction if import is unavailable.
+    try:
+        from zyra.wizard.manifest import _collect_positionals as _wiz_collect
+
+        positionals = _wiz_collect(p)  # type: ignore[assignment]
+    except Exception:
+        # Minimal fallback: include dest/help/type without required inference
+        positionals = []
+        for act in getattr(p, "_actions", []):
+            if getattr(act, "option_strings", None):
+                continue
+            help_text = getattr(act, "help", None)
+            choices = list(getattr(act, "choices", []) or []) or None
+            tp = getattr(act, "type", None)
+            type_name = _type_name(tp)
             positionals.append(
                 {
                     "name": getattr(act, "dest", None),
                     "help": help_text,
                     "type": type_name,
-                    "required": is_required,
                     "choices": choices,
                 }
             )
