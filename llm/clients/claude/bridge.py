@@ -1,16 +1,59 @@
 from __future__ import annotations
 
 import json
+import os
+import platform
 import sys
 from datetime import datetime
 from pathlib import Path
 
 import requests
 
-Zyra_MCP_URL = "http://localhost:8000/mcp"
+Zyra_MCP_URL = os.environ.get("ZYRA_MCP_URL", "http://localhost:8000/mcp")
 
-# Log file path inside Claude's log dir
-LOG_DIR = Path(r"C:\Users\eric.j.hackathorn.NEAD.000\AppData\Roaming\Claude\logs")
+
+def _resolve_log_dir() -> Path:
+    """Return a platform-appropriate Claude log directory.
+
+    Resolution order (first available wins):
+    - Env override: `CLAUDE_LOG_DIR` or `ZYRA_CLAUDE_LOG_DIR`
+    - Windows: `%APPDATA%/Claude/logs`
+    - macOS: `~/Library/Logs/Claude` (fallback: `~/Library/Application Support/Claude/logs`)
+    - Linux/other: `$XDG_STATE_HOME/Claude/logs` → `$XDG_CACHE_HOME/Claude/logs` →
+      `~/.local/state/Claude/logs` → `~/.config/Claude/logs`
+    """
+    for key in ("CLAUDE_LOG_DIR", "ZYRA_CLAUDE_LOG_DIR"):
+        val = os.environ.get(key)
+        if val:
+            return Path(val).expanduser()
+
+    system = platform.system().lower()
+    if system.startswith("win"):
+        appdata = os.environ.get("APPDATA")
+        if appdata:
+            return Path(appdata) / "Claude" / "logs"
+        return Path.home() / "AppData" / "Roaming" / "Claude" / "logs"
+
+    if system == "darwin":
+        p = Path.home() / "Library" / "Logs" / "Claude"
+        if p.exists() or p.parent.exists():
+            return p
+        return Path.home() / "Library" / "Application Support" / "Claude" / "logs"
+
+    xdg_state = os.environ.get("XDG_STATE_HOME")
+    if xdg_state:
+        return Path(xdg_state) / "Claude" / "logs"
+    xdg_cache = os.environ.get("XDG_CACHE_HOME")
+    if xdg_cache:
+        return Path(xdg_cache) / "Claude" / "logs"
+    home = Path.home()
+    if (home / ".local").exists():
+        return home / ".local" / "state" / "Claude" / "logs"
+    return home / ".config" / "Claude" / "logs"
+
+
+# Log file path inside Claude's log dir (configurable)
+LOG_DIR = _resolve_log_dir()
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 LOG_FILE = LOG_DIR / "zyra_bridge.log"
 

@@ -250,14 +250,13 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
         with suppress(Exception):
             log_mcp_call(method, params, _t0, status="error", error_code=he.status_code)
         return out
-    except Exception as exc:
-        # Log internally; return generic error to clients with minimal detail for diagnostics
-        out = _rpc_error(
-            req.id,
-            -32603,
-            "Internal error",
-            {"message": str(exc.__class__.__name__) + ": " + str(exc)},
-        )
+    except Exception:
+        # Log full exception internally; return a generic error to clients
+        with suppress(Exception):
+            logging.getLogger("zyra.api.mcp").exception(
+                "Unhandled MCP exception for method %s", method
+            )
+        out = _rpc_error(req.id, -32603, "Internal error")
         with suppress(Exception):
             log_mcp_call(method, params, _t0, status="error", error_code=-32603)
         return out
