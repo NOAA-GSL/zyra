@@ -15,18 +15,20 @@ def test_mcp_requires_api_key(monkeypatch) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
     client = TestClient(app)
     # Missing header
-    r = client.post("/mcp", json={"jsonrpc": "2.0", "method": "statusReport", "id": 1})
+    r = client.post(
+        "/v1/mcp", json={"jsonrpc": "2.0", "method": "statusReport", "id": 1}
+    )
     assert r.status_code == 401
     # Wrong header
     r = client.post(
-        "/mcp",
+        "/v1/mcp",
         json={"jsonrpc": "2.0", "method": "statusReport", "id": 1},
         headers={"X-API-Key": "wrong"},
     )
     assert r.status_code == 401
     # Correct header
     r = client.post(
-        "/mcp",
+        "/v1/mcp",
         json={"jsonrpc": "2.0", "method": "statusReport", "id": 1},
         headers={"X-API-Key": "k"},
     )
@@ -38,7 +40,7 @@ def test_mcp_requires_api_key(monkeypatch) -> None:
 def test_mcp_list_tools(monkeypatch) -> None:
     client = _client_with_key(monkeypatch)
     r = client.post(
-        "/mcp",
+        "/v1/mcp",
         json={"jsonrpc": "2.0", "method": "listTools", "id": 1},
         headers={"X-API-Key": "k"},
     )
@@ -97,7 +99,7 @@ def test_mcp_calltool_local_sync(tmp_path, monkeypatch) -> None:
         },
         "id": 1,
     }
-    r = client.post("/mcp", json=payload, headers={"X-API-Key": "k"})
+    r = client.post("/v1/mcp", json=payload, headers={"X-API-Key": "k"})
     assert r.status_code == 200
     js = r.json()
     res = js.get("result", {})
@@ -109,7 +111,7 @@ def test_mcp_calltool_local_sync(tmp_path, monkeypatch) -> None:
 def test_mcp_calltool_invalid_params(monkeypatch) -> None:
     client = _client_with_key(monkeypatch)
     r = client.post(
-        "/mcp",
+        "/v1/mcp",
         json={
             "jsonrpc": "2.0",
             "method": "callTool",
@@ -140,7 +142,7 @@ def test_mcp_calltool_async_job_lifecycle(tmp_path, monkeypatch) -> None:
         },
         "id": 3,
     }
-    r = client.post("/mcp", json=payload, headers={"X-API-Key": "k"})
+    r = client.post("/v1/mcp", json=payload, headers={"X-API-Key": "k"})
     assert r.status_code == 200
     js = r.json()
     res = js.get("result", {})
@@ -149,7 +151,7 @@ def test_mcp_calltool_async_job_lifecycle(tmp_path, monkeypatch) -> None:
     assert job_id
     # Poll the job until terminal state
     for _ in range(20):
-        s = client.get(f"/jobs/{job_id}", headers={"X-API-Key": "k"})
+        s = client.get(f"/v1/jobs/{job_id}", headers={"X-API-Key": "k"})
         assert s.status_code == 200
         body = s.json()
         if body.get("status") in {"succeeded", "failed", "canceled"}:
@@ -161,7 +163,7 @@ def test_mcp_calltool_async_job_lifecycle(tmp_path, monkeypatch) -> None:
 def test_mcp_method_not_found(monkeypatch) -> None:
     client = _client_with_key(monkeypatch)
     r = client.post(
-        "/mcp",
+        "/v1/mcp",
         json={"jsonrpc": "2.0", "method": "nope", "id": 4},
         headers={"X-API-Key": "k"},
     )
@@ -173,7 +175,7 @@ def test_mcp_method_not_found(monkeypatch) -> None:
 def test_mcp_invalid_jsonrpc_version(monkeypatch) -> None:
     client = _client_with_key(monkeypatch)
     r = client.post(
-        "/mcp",
+        "/v1/mcp",
         json={"jsonrpc": "1.0", "method": "statusReport", "id": 5},
         headers={"X-API-Key": "k"},
     )
@@ -195,7 +197,7 @@ def test_mcp_calltool_sync_execution_error(tmp_path, monkeypatch) -> None:
         },
         "id": 10,
     }
-    r = client.post("/mcp", json=payload, headers={"X-API-Key": "k"})
+    r = client.post("/v1/mcp", json=payload, headers={"X-API-Key": "k"})
     assert r.status_code == 200
     js = r.json()
     assert "error" in js and js["error"].get("code") == -32000
@@ -204,7 +206,7 @@ def test_mcp_calltool_sync_execution_error(tmp_path, monkeypatch) -> None:
 def test_mcp_status_report_has_version(monkeypatch) -> None:
     client = _client_with_key(monkeypatch)
     r = client.post(
-        "/mcp",
+        "/v1/mcp",
         json={"jsonrpc": "2.0", "method": "statusReport", "id": 6},
         headers={"X-API-Key": "k"},
     )
@@ -229,13 +231,13 @@ def test_mcp_progress_sse(monkeypatch, tmp_path) -> None:
         },
         "id": 11,
     }
-    r = client.post("/mcp", json=payload, headers={"X-API-Key": "k"})
+    r = client.post("/v1/mcp", json=payload, headers={"X-API-Key": "k"})
     assert r.status_code == 200
     job_id = r.json().get("result", {}).get("job_id")
     assert job_id
     # Stream SSE and collect a few events until terminal
     with client.stream(
-        "GET", f"/mcp/progress/{job_id}?interval_ms=50", headers={"X-API-Key": "k"}
+        "GET", f"/v1/mcp/progress/{job_id}?interval_ms=50", headers={"X-API-Key": "k"}
     ) as resp:
         assert resp.status_code == 200
         buf = b""

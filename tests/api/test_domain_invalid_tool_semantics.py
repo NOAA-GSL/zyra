@@ -11,7 +11,7 @@ def _client(monkeypatch) -> TestClient:
 
 def test_invalid_tool_still_returns_400(monkeypatch) -> None:
     client = _client(monkeypatch)
-    for path in ("/process", "/acquire", "/visualize", "/decimate"):
+    for path in ("/v1/process", "/v1/acquire", "/v1/visualize", "/v1/decimate"):
         r = client.post(
             path, json={"tool": "nope", "args": {}}, headers={"X-API-Key": "k"}
         )

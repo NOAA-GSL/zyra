@@ -13,7 +13,7 @@ def test_decimate_domain_local_sync(tmp_path, monkeypatch) -> None:
         "args": {"input": "-", "output": str(out_path)},
         "options": {"mode": "sync"},
     }
-    r = client.post("/decimate", json=body, headers={"X-API-Key": "k"})
+    r = client.post("/v1/decimate", json=body, headers={"X-API-Key": "k"})
     assert r.status_code == 200
     js = r.json()
     assert js.get("status") == "ok"
@@ -28,7 +28,7 @@ def test_process_domain_invalid_tool(monkeypatch) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
     client = TestClient(app)
     r = client.post(
-        "/process",
+        "/v1/process",
         json={"tool": "nope", "args": {}},
         headers={"X-API-Key": "k"},
     )
@@ -40,7 +40,7 @@ def test_process_domain_invalid_tool(monkeypatch) -> None:
 def test_acquire_transform_invalid_tool(monkeypatch) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
     client = TestClient(app)
-    for path in ("/acquire", "/transform"):
+    for path in ("/v1/acquire", "/v1/transform"):
         r = client.post(
             path, json={"tool": "nope", "args": {}}, headers={"X-API-Key": "k"}
         )
@@ -54,7 +54,7 @@ def test_visualize_contour_validation_error(monkeypatch) -> None:
     client = TestClient(app)
     # Missing required args (input/output) should trigger validation_error
     r = client.post(
-        "/visualize",
+        "/v1/visualize",
         json={"tool": "contour", "args": {}},
         headers={"X-API-Key": "k"},
     )
@@ -69,7 +69,7 @@ def test_decimate_post_validation_error(monkeypatch) -> None:
     client = TestClient(app)
     # Missing url should trigger validation_error
     r = client.post(
-        "/decimate",
+        "/v1/decimate",
         json={"tool": "post", "args": {"input": "-"}},
         headers={"X-API-Key": "k"},
     )
@@ -84,7 +84,7 @@ def test_process_extract_variable_validation_error(monkeypatch) -> None:
     client = TestClient(app)
     # Missing required 'pattern' should fail validation
     r = client.post(
-        "/process",
+        "/v1/process",
         json={
             "tool": "extract-variable",
             "args": {"file_or_url": "samples/demo.grib2"},
@@ -102,7 +102,7 @@ def test_acquire_s3_validation_error(monkeypatch) -> None:
     client = TestClient(app)
     # Missing both url and bucket should fail validation
     r = client.post(
-        "/acquire",
+        "/v1/acquire",
         json={"tool": "s3", "args": {}},
         headers={"X-API-Key": "k"},
     )
@@ -118,7 +118,7 @@ def test_execution_error_mapping_sync(monkeypatch, tmp_path) -> None:
     # Run a known failing command (missing file) via domain endpoint and
     # expect status=error with standardized error envelope
     r = client.post(
-        "/process",
+        "/v1/process",
         json={
             "tool": "decode-grib2",
             "args": {"file_or_url": str(tmp_path / "missing.grib2")},

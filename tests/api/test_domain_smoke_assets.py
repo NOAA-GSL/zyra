@@ -16,7 +16,7 @@ def test_assets_in_visualize_batch_dir(monkeypatch, tmp_path) -> None:
     outdir = tmp_path / "frames"
     outdir.mkdir(parents=True, exist_ok=True)
     r = client.post(
-        "/visualize",
+        "/v1/visualize",
         json={
             "tool": "animate",
             "args": {"input": "samples/demo.npy", "output_dir": str(outdir)},

@@ -20,7 +20,7 @@ def test_domain_visualize_heatmap_happy(tmp_path, monkeypatch) -> None:
     client = TestClient(app)
     out = tmp_path / "heat.png"
     r = client.post(
-        "/visualize",
+        "/v1/visualize",
         json={
             "tool": "heatmap",
             "args": {

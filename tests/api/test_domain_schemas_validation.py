@@ -13,7 +13,7 @@ def test_visualize_vector_density_validation(monkeypatch) -> None:
     client = _client(monkeypatch)
     # density must be in (0,1]
     r = client.post(
-        "/visualize",
+        "/v1/visualize",
         json={
             "tool": "vector",
             "args": {
@@ -35,7 +35,7 @@ def test_visualize_compose_video_requires_frames(monkeypatch) -> None:
     client = _client(monkeypatch)
     # Missing required 'frames' should trigger validation_error
     r = client.post(
-        "/visualize",
+        "/v1/visualize",
         json={
             "tool": "compose-video",
             "args": {"output": "/tmp/out.mp4"},
@@ -51,7 +51,7 @@ def test_acquire_http_requires_source(monkeypatch) -> None:
     client = _client(monkeypatch)
     # No url/inputs/manifest/list should fail early via schema
     r = client.post(
-        "/acquire",
+        "/v1/acquire",
         json={"tool": "http", "args": {}},
         headers={"X-API-Key": "k"},
     )
@@ -64,7 +64,7 @@ def test_decimate_ftp_requires_path(monkeypatch) -> None:
     client = _client(monkeypatch)
     # Missing 'path' should fail validation in schema
     r = client.post(
-        "/decimate",
+        "/v1/decimate",
         json={"tool": "ftp", "args": {"input": "-"}},
         headers={"X-API-Key": "k"},
     )

@@ -21,21 +21,21 @@ def test_async_decimate_local_manifest(monkeypatch, tmp_path) -> None:
         "mode": "async",
         "args": {"input": "-", "path": str(out)},
     }
-    r = client.post("/cli/run", json=payload, headers={"X-API-Key": "k"})
+    r = client.post("/v1/cli/run", json=payload, headers={"X-API-Key": "k"})
     assert r.status_code == 200
     js = r.json()
     job_id = js.get("job_id")
     assert job_id
     # Poll job status until terminal
     for _ in range(30):
-        s = client.get(f"/jobs/{job_id}", headers={"X-API-Key": "k"})
+        s = client.get(f"/v1/jobs/{job_id}", headers={"X-API-Key": "k"})
         assert s.status_code == 200
         body = s.json()
         if body.get("status") in {"succeeded", "failed", "canceled"}:
             break
         time.sleep(0.1)
     # Manifest should exist and include artifact entries
-    m = client.get(f"/jobs/{job_id}/manifest", headers={"X-API-Key": "k"})
+    m = client.get(f"/v1/jobs/{job_id}/manifest", headers={"X-API-Key": "k"})
     assert m.status_code == 200
     manifest = m.json()
     arts = manifest.get("artifacts") or []

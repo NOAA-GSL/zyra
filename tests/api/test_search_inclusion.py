@@ -32,7 +32,7 @@ def test_get_search_includes_local_when_no_remote(monkeypatch):
     _FakeLocal.calls = 0
 
     client = TestClient(app)
-    r = client.get("/search", params={"q": "temperature", "limit": 2})
+    r = client.get("/v1/search", params={"q": "temperature", "limit": 2})
     assert r.status_code == 200
     data = r.json()
     assert any(d.get("id") == "sentinel-id" for d in data)
@@ -58,7 +58,7 @@ def test_get_search_excludes_local_when_remote_only(monkeypatch):
 
     client = TestClient(app)
     r = client.get(
-        "/search", params={"q": "temperature", "limit": 2, "remote_only": True}
+        "/v1/search", params={"q": "temperature", "limit": 2, "remote_only": True}
     )
     assert r.status_code == 200
     assert called["n"] == 0
@@ -84,12 +84,14 @@ def test_post_search_include_local_toggle(monkeypatch):
 
     # Default include_local False, no remote → still included (policy prefers local)
     calls["n"] = 0
-    r = client.post("/search", json={"query": "wind", "limit": 1})
+    r = client.post("/v1/search", json={"query": "wind", "limit": 1})
     assert r.status_code == 200
     assert calls["n"] == 1
 
     # Force remote_only True → exclude local
     calls["n"] = 0
-    r = client.post("/search", json={"query": "wind", "limit": 1, "remote_only": True})
+    r = client.post(
+        "/v1/search", json={"query": "wind", "limit": 1, "remote_only": True}
+    )
     assert r.status_code == 200
     assert calls["n"] == 0
