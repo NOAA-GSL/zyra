@@ -483,6 +483,22 @@ async def mcp_ws(
                                 _forward_progress(job_channel, str(resp.job_id))
                             )
                         )
+                        # Start the job in in-memory mode. BackgroundTasks is
+                        # only executed for HTTP responses, so explicitly
+                        # launch the job coroutine here for WS flows.
+                        if not mcp_router.jobs_backend.is_redis_enabled():
+                            # Run synchronous start_job in a thread to avoid blocking the event loop
+                            progress_tasks.append(
+                                asyncio.create_task(
+                                    asyncio.to_thread(
+                                        mcp_router.jobs_backend.start_job,
+                                        str(resp.job_id),
+                                        str(stage),
+                                        str(command),
+                                        dict(args or {}),
+                                    )
+                                )
+                            )
                     else:
                         exit_code = getattr(resp, "exit_code", None)
                         if isinstance(exit_code, int) and exit_code != 0:

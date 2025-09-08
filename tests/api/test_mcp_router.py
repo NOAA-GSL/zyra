@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 from zyra.api.server import app, create_app
 
@@ -326,28 +327,30 @@ def test_mcp_tools_call_namespaced_sync(tmp_path, monkeypatch) -> None:
         assert out_path.exists()
 
 
+@pytest.mark.mcp_ws
 def test_mcp_ws_initialize_and_notify(monkeypatch) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
     client = TestClient(create_app())
     with client.websocket_connect("/v1/ws/mcp?api_key=k") as ws:
         init = {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
         ws.send_json(init)
-        msg1 = ws.receive_json()
+        msg1 = ws.receive_json(timeout=1)
         assert msg1.get("id") == 1 and "result" in msg1
         # Next frame should be notifications/initialized
-        msg2 = ws.receive_json()
+        msg2 = ws.receive_json(timeout=1)
         assert msg2.get("method") == "notifications/initialized"
 
 
+@pytest.mark.mcp_ws
 def test_mcp_ws_tools_list_after_initialize(monkeypatch) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
     client = TestClient(create_app())
     with client.websocket_connect("/v1/ws/mcp?api_key=k") as ws:
         ws.send_json({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
-        _ = ws.receive_json()  # init result
-        _ = ws.receive_json()  # notifications/initialized
+        _ = ws.receive_json(timeout=1)  # init result
+        _ = ws.receive_json(timeout=1)  # notifications/initialized
         ws.send_json({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
-        msg = ws.receive_json()
+        msg = ws.receive_json(timeout=2)
         tools = (msg or {}).get("result", {}).get("tools")
         assert isinstance(tools, list) and tools
 
@@ -381,14 +384,15 @@ def test_mcp_initialize_then_tools_list(monkeypatch) -> None:
     assert isinstance(tools, list) and tools, f"tools/list response: {r2.json()}"
 
 
+@pytest.mark.mcp_ws
 def test_mcp_ws_tools_call_async_progress(monkeypatch, tmp_path) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
     client = TestClient(create_app())
     with client.websocket_connect("/v1/ws/mcp?api_key=k") as ws:
         # Initialize
         ws.send_json({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
-        _ = ws.receive_json()  # init result
-        _ = ws.receive_json()  # notifications/initialized
+        _ = ws.receive_json(timeout=1)  # init result
+        _ = ws.receive_json(timeout=1)  # notifications/initialized
 
         # Kick off an async call that should fail quickly (missing file), just to exercise progress
         missing = str(tmp_path / "missing.grib2")
@@ -404,14 +408,14 @@ def test_mcp_ws_tools_call_async_progress(monkeypatch, tmp_path) -> None:
                 },
             }
         )
-        resp = ws.receive_json()
+        resp = ws.receive_json(timeout=2)
         job_id = (resp or {}).get("result", {}).get("job_id")
         assert job_id, f"expected accepted job_id, got {resp}"
 
         progress_seen = False
         terminal = False
         for _ in range(40):
-            msg = ws.receive_json()
+            msg = ws.receive_json(timeout=2)
             if (msg or {}).get("method") == "notifications/progress":
                 params = (msg or {}).get("params", {})
                 if params.get("job_id") == job_id:

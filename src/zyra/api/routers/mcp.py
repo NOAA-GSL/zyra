@@ -464,16 +464,26 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
             resp = run_cli_endpoint(req_model, bg)
             if getattr(resp, "job_id", None):
                 # Async accepted; provide polling URL to align with progress semantics
-                return _ok(
-                    {
-                        "status": "accepted",
-                        "job_id": resp.job_id,
-                        "poll": f"/jobs/{resp.job_id}",
-                        "ws": f"/ws/jobs/{resp.job_id}",
-                        "download": f"/jobs/{resp.job_id}/download",
-                        "manifest": f"/jobs/{resp.job_id}/manifest",
-                    }
-                )
+                payload = {
+                    "status": "accepted",
+                    "job_id": resp.job_id,
+                    "poll": f"/jobs/{resp.job_id}",
+                    "ws": f"/ws/jobs/{resp.job_id}",
+                    "download": f"/jobs/{resp.job_id}/download",
+                    "manifest": f"/jobs/{resp.job_id}/manifest",
+                }
+                # Include a small text content hint for MCP UIs
+                with suppress(Exception):
+                    payload["content"] = [
+                        {
+                            "type": "text",
+                            "text": (
+                                f"Job accepted: {resp.job_id}. "
+                                f"Poll {payload['poll']} or subscribe {payload['ws']}."
+                            ),
+                        }
+                    ]
+                return _ok(payload)
             # Sync execution result: map failures to JSON-RPC error
             exit_code = getattr(resp, "exit_code", None)
             if isinstance(exit_code, int) and exit_code != 0:
@@ -491,12 +501,31 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
                 with suppress(Exception):
                     log_mcp_call(method, params, _t0, status="error", error_code=-32000)
                 return out
+
+            # Build MCP-friendly text content so IDE clients surface results
+            def _content_from_stdio(
+                _out: str | None, _err: str | None
+            ) -> list[dict[str, str]]:
+                try:
+                    text = (_out or "").strip()
+                    if not text and _err:
+                        text = "stderr:\n" + _err.strip()
+                    # Truncate overly long content to keep frames reasonable
+                    if len(text) > 8000:
+                        text = text[:8000] + "\n… (truncated)"
+                    return [{"type": "text", "text": text}] if text else []
+                except Exception:
+                    return []
+
             out = _ok(
                 {
                     "status": "ok",
                     "stdout": getattr(resp, "stdout", None),
                     "stderr": getattr(resp, "stderr", None),
                     "exit_code": exit_code,
+                    "content": _content_from_stdio(
+                        getattr(resp, "stdout", None), getattr(resp, "stderr", None)
+                    ),
                 }
             )
             with suppress(Exception):

@@ -67,6 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHONPATH: src
+      ZYRA_USE_REDIS: 0
       # Seed stdin for pipeline tests that read from '-' when CI does not pipe input
       DATAVIZHUB_DEFAULT_STDIN: tests/testdata/demo.nc
       # Verbose logs across all commands to surface subprocess errors in CI
@@ -110,6 +111,7 @@ jobs:
           # is covered by other tests. We'll re-enable once we've isolated the
           # environment-specific behavior in a dedicated CI job.
           poetry run pytest --cov=src --cov-branch --cov-report=xml --cov-report=term-missing -s \
+            --timeout=5 --timeout-method=thread --durations=25 \
             --ignore tests/workflow/test_parallel_dag.py
 
       - name: Upload coverage report
