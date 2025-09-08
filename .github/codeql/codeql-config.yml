@@ -20,9 +20,13 @@ query-filters:
         - src/zyra/api/routers/jobs.py
         - src/zyra/api/workers/executor.py
         - src/zyra/api/routers/search.py
+        # Asset inference uses validated, re-anchored paths under allowlisted bases
+        # and O_NOFOLLOW; suppress false positives for this vetted module.
+        - src/zyra/api/utils/assets.py
   - exclude:
       id: py/uncontrolled-data-in-path-expression
       paths:
         - src/zyra/api/routers/jobs.py
         - src/zyra/api/workers/executor.py
         - src/zyra/api/routers/search.py
+        - src/zyra/api/utils/assets.py

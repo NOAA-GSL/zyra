@@ -119,7 +119,13 @@ def _cmd_post(ns: argparse.Namespace) -> int:
 
 def register_cli(dec_subparsers: Any) -> None:
     # local
-    p_local = dec_subparsers.add_parser("local", help="Write to local file")
+    p_local = dec_subparsers.add_parser(
+        "local",
+        help="Write to local file",
+        description=(
+            "Write stdin or an input file to a local destination path, creating parent directories as needed."
+        ),
+    )
     add_input_option(p_local, required=True)
     p_local.add_argument("path", help="Destination file path")
     p_local.add_argument(
@@ -136,7 +142,13 @@ def register_cli(dec_subparsers: Any) -> None:
     p_local.set_defaults(func=_cmd_local)
 
     # s3
-    p_s3 = dec_subparsers.add_parser("s3", help="Upload to S3")
+    p_s3 = dec_subparsers.add_parser(
+        "s3",
+        help="Upload to S3",
+        description=(
+            "Upload stdin or an input file to Amazon S3, specified by s3:// URL or bucket/key."
+        ),
+    )
     # Input is optional when --read-stdin is provided
     add_input_option(p_s3, required=False)
     p_s3.add_argument(
@@ -162,7 +174,11 @@ def register_cli(dec_subparsers: Any) -> None:
     p_s3.set_defaults(func=_cmd_s3)
 
     # ftp
-    p_ftp = dec_subparsers.add_parser("ftp", help="Upload to FTP")
+    p_ftp = dec_subparsers.add_parser(
+        "ftp",
+        help="Upload to FTP",
+        description=("Upload stdin or an input file to an FTP destination path."),
+    )
     add_input_option(p_ftp, required=True)
     p_ftp.add_argument("path", help="ftp://host/path or host/path")
     p_ftp.add_argument(
@@ -179,7 +195,13 @@ def register_cli(dec_subparsers: Any) -> None:
     p_ftp.set_defaults(func=_cmd_ftp)
 
     # http post
-    p_post = dec_subparsers.add_parser("post", help="POST to HTTP endpoint")
+    p_post = dec_subparsers.add_parser(
+        "post",
+        help="POST to HTTP endpoint",
+        description=(
+            "HTTP POST stdin or an input file to a URL with optional content-type."
+        ),
+    )
     add_input_option(p_post, required=True)
     p_post.add_argument("url")
     p_post.add_argument(
@@ -276,7 +298,11 @@ def register_cli(dec_subparsers: Any) -> None:
             return 2
 
     p_vimeo = dec_subparsers.add_parser(
-        "vimeo", help="Upload or replace a video on Vimeo"
+        "vimeo",
+        help="Upload or replace a video on Vimeo",
+        description=(
+            "Upload a new video to Vimeo or replace an existing video by URI. Optionally set title and description."
+        ),
     )
     add_input_option(p_vimeo, required=True)
     p_vimeo.add_argument("--name", help="Video title")

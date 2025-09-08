@@ -127,7 +127,13 @@ def _cmd_metadata(ns: argparse.Namespace) -> int:
 
 def register_cli(subparsers: Any) -> None:
     """Register transform subcommands (metadata, enrich-metadata, enrich-datasets, update-dataset-json)."""
-    p = subparsers.add_parser("metadata", help="Compute frames metadata as JSON")
+    p = subparsers.add_parser(
+        "metadata",
+        help="Compute frames metadata as JSON",
+        description=(
+            "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence."
+        ),
+    )
     p.add_argument(
         "--frames-dir",
         required=True,
@@ -226,7 +232,11 @@ def register_cli(subparsers: Any) -> None:
         return 0
 
     p2 = subparsers.add_parser(
-        "enrich-metadata", help="Enrich frames metadata with dataset id and Vimeo URI"
+        "enrich-metadata",
+        help="Enrich frames metadata with dataset id and Vimeo URI",
+        description=(
+            "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin."
+        ),
     )
     # Source of base frames metadata: file or stdin
     srcgrp = p2.add_mutually_exclusive_group(required=True)
@@ -544,6 +554,9 @@ def register_cli(subparsers: Any) -> None:
     p3 = subparsers.add_parser(
         "update-dataset-json",
         help="Update start/end (and dataLink) for a dataset id in dataset.json",
+        description=(
+            "Update a dataset.json entry by id using metadata (start/end and Vimeo URI) from a file, stdin, or args."
+        ),
     )
     srcgrp = p3.add_mutually_exclusive_group(required=True)
     srcgrp.add_argument("--input-url", help="HTTP(S) or s3:// URL of dataset.json")

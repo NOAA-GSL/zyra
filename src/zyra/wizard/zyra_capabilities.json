@@ -1,7 +1,7 @@
 {
   "acquire http": {
-    "description": "zyra acquire http",
-    "doc": "",
+    "description": "Fetch a file via HTTP(S) to a local path. Optionally list/filter directory pages, or fetch multiple URLs with --inputs/--manifest.",
+    "doc": "Fetch a file via HTTP(S) to a local path. Optionally list/filter directory pages, or fetch multiple URLs with --inputs/--manifest.",
     "epilog": "",
     "groups": [
       {
@@ -80,11 +80,32 @@
         "type": "str",
         "required": true
       }
-    ]
+    ],
+    "domain": "acquire",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "date_format",
+        "inputs",
+        "list_mode",
+        "manifest",
+        "output",
+        "output_dir",
+        "pattern",
+        "since",
+        "since_period",
+        "until",
+        "url"
+      ]
+    },
+    "example_args": {
+      "url": "https://example.com/file.bin",
+      "output": "/tmp/file.bin"
+    }
   },
   "acquire s3": {
-    "description": "zyra acquire s3",
-    "doc": "",
+    "description": "Fetch objects from Amazon S3 via s3:// URL or bucket/key. Supports unsigned access, listing prefixes, and batch via --inputs/--manifest.",
+    "doc": "Fetch objects from Amazon S3 via s3:// URL or bucket/key. Supports unsigned access, listing prefixes, and batch via --inputs/--manifest.",
     "epilog": "",
     "groups": [
       {
@@ -168,11 +189,32 @@
         "default": false
       }
     },
-    "positionals": []
+    "positionals": [],
+    "domain": "acquire",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "bucket",
+        "date_format",
+        "inputs",
+        "key",
+        "list_mode",
+        "manifest",
+        "output",
+        "output_dir",
+        "pattern",
+        "since",
+        "since_period",
+        "unsigned",
+        "until",
+        "url"
+      ]
+    },
+    "example_args": null
   },
   "acquire ftp": {
-    "description": "zyra acquire ftp",
-    "doc": "",
+    "description": "Fetch files via FTP (single path or batch). Optionally list or sync directories to a local folder.",
+    "doc": "Fetch files via FTP (single path or batch). Optionally list or sync directories to a local folder.",
     "epilog": "",
     "groups": [
       {
@@ -253,11 +295,29 @@
         "type": "str",
         "required": true
       }
-    ]
+    ],
+    "domain": "acquire",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "date_format",
+        "inputs",
+        "list_mode",
+        "manifest",
+        "output",
+        "output_dir",
+        "path",
+        "pattern",
+        "since",
+        "since_period",
+        "until"
+      ]
+    },
+    "example_args": null
   },
   "acquire vimeo": {
-    "description": "zyra acquire vimeo",
-    "doc": "",
+    "description": "Placeholder for fetching Vimeo videos by id. Not implemented yet.",
+    "doc": "Placeholder for fetching Vimeo videos by id. Not implemented yet.",
     "epilog": "",
     "groups": [
       {
@@ -302,11 +362,14 @@
         "type": "str",
         "required": true
       }
-    ]
+    ],
+    "domain": "acquire",
+    "args_schema": null,
+    "example_args": null
   },
   "process decode-grib2": {
-    "description": "zyra process decode-grib2",
-    "doc": "",
+    "description": "Decode a GRIB2 file or URL using cfgrib/pygrib/wgrib2 and log basic metadata. Optionally emit raw bytes (with optional .idx subset) to stdout.",
+    "doc": "Decode a GRIB2 file or URL using cfgrib/pygrib/wgrib2 and log basic metadata. Optionally emit raw bytes (with optional .idx subset) to stdout.",
     "epilog": "",
     "groups": [
       {
@@ -369,11 +432,24 @@
         "type": "str",
         "required": true
       }
-    ]
+    ],
+    "domain": "process",
+    "args_schema": {
+      "required": [
+        "file_or_url"
+      ],
+      "optional": [
+        "backend",
+        "pattern",
+        "raw",
+        "unsigned"
+      ]
+    },
+    "example_args": null
   },
   "process extract-variable": {
-    "description": "zyra process extract-variable",
-    "doc": "",
+    "description": "Extract a variable from GRIB2 by regex pattern. Output selected variable as NetCDF/GRIB2 to stdout when requested, or log the matched variable name.",
+    "doc": "Extract a variable from GRIB2 by regex pattern. Output selected variable as NetCDF/GRIB2 to stdout when requested, or log the matched variable name.",
     "epilog": "",
     "groups": [
       {
@@ -444,11 +520,24 @@
         "type": "str",
         "required": true
       }
-    ]
+    ],
+    "domain": "process",
+    "args_schema": {
+      "required": [
+        "file_or_url",
+        "pattern"
+      ],
+      "optional": [
+        "backend",
+        "format",
+        "stdout"
+      ]
+    },
+    "example_args": null
   },
   "process convert-format": {
-    "description": "zyra process convert-format",
-    "doc": "",
+    "description": "Convert decoded GRIB2 data to NetCDF or GeoTIFF. Supports single input or batch via --inputs.",
+    "doc": "Convert decoded GRIB2 data to NetCDF or GeoTIFF. Supports single input or batch via --inputs.",
     "epilog": "",
     "groups": [
       {
@@ -542,7 +631,29 @@
           "geotiff"
         ]
       }
-    ]
+    ],
+    "domain": "process",
+    "args_schema": {
+      "required": [
+        "format"
+      ],
+      "optional": [
+        "backend",
+        "file_or_url",
+        "inputs",
+        "output",
+        "output_dir",
+        "pattern",
+        "stdout",
+        "unsigned",
+        "var"
+      ]
+    },
+    "example_args": {
+      "file_or_url": "samples/demo.grib2",
+      "format": "netcdf",
+      "stdout": true
+    }
   },
   "visualize heatmap": {
     "description": "zyra visualize heatmap",
@@ -713,7 +824,38 @@
         "default": false
       }
     },
-    "positionals": []
+    "positionals": [],
+    "domain": "visualize",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "basemap",
+        "cmap",
+        "colorbar",
+        "crs",
+        "dpi",
+        "extent",
+        "height",
+        "input",
+        "inputs",
+        "label",
+        "map_type",
+        "output",
+        "output_dir",
+        "reproject",
+        "tile_source",
+        "tile_zoom",
+        "timestamp",
+        "units",
+        "var",
+        "width",
+        "xarray_engine"
+      ]
+    },
+    "example_args": {
+      "input": "samples/demo.npy",
+      "output": "/tmp/heatmap.png"
+    }
   },
   "visualize contour": {
     "description": "zyra visualize contour",
@@ -896,7 +1038,20 @@
         "default": false
       }
     },
-    "positionals": []
+    "positionals": [],
+    "domain": "visualize",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "filled",
+        "input",
+        "inputs",
+        "levels",
+        "output",
+        "output_dir"
+      ]
+    },
+    "example_args": null
   },
   "visualize timeseries": {
     "description": "zyra visualize timeseries",
@@ -985,7 +1140,27 @@
         "default": false
       }
     },
-    "positionals": []
+    "positionals": [],
+    "domain": "visualize",
+    "args_schema": {
+      "required": [
+        "input",
+        "output"
+      ],
+      "optional": [
+        "dpi",
+        "height",
+        "style",
+        "title",
+        "var",
+        "width",
+        "x",
+        "xlabel",
+        "y",
+        "ylabel"
+      ]
+    },
+    "example_args": null
   },
   "visualize vector": {
     "description": "zyra visualize vector",
@@ -1152,7 +1327,37 @@
         "default": false
       }
     },
-    "positionals": []
+    "positionals": [],
+    "domain": "visualize",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "basemap",
+        "color",
+        "crs",
+        "density",
+        "dpi",
+        "extent",
+        "height",
+        "input",
+        "inputs",
+        "map_type",
+        "output",
+        "output_dir",
+        "reproject",
+        "scale",
+        "streamlines",
+        "tile_source",
+        "tile_zoom",
+        "u",
+        "uvar",
+        "v",
+        "vvar",
+        "width",
+        "xarray_engine"
+      ]
+    },
+    "example_args": null
   },
   "visualize animate": {
     "description": "zyra visualize animate",
@@ -1415,7 +1620,34 @@
         "default": false
       }
     },
-    "positionals": []
+    "positionals": [],
+    "domain": "visualize",
+    "args_schema": {
+      "required": [
+        "output_dir"
+      ],
+      "optional": [
+        "basemap",
+        "cmap",
+        "dpi",
+        "extent",
+        "fps",
+        "height",
+        "input",
+        "inputs",
+        "levels",
+        "mode",
+        "to_video",
+        "u",
+        "uvar",
+        "v",
+        "vmax",
+        "vmin",
+        "vvar",
+        "width"
+      ]
+    },
+    "example_args": null
   },
   "visualize compose-video": {
     "description": "zyra visualize compose-video",
@@ -1474,7 +1706,19 @@
         "default": false
       }
     },
-    "positionals": []
+    "positionals": [],
+    "domain": "visualize",
+    "args_schema": {
+      "required": [
+        "frames",
+        "output"
+      ],
+      "optional": [
+        "basemap",
+        "fps"
+      ]
+    },
+    "example_args": null
   },
   "visualize interactive": {
     "description": "zyra visualize interactive",
@@ -1639,11 +1883,58 @@
         "default": false
       }
     },
-    "positionals": []
+    "positionals": [],
+    "domain": "visualize",
+    "args_schema": {
+      "required": [
+        "input",
+        "output"
+      ],
+      "optional": [
+        "attribution",
+        "cmap",
+        "color",
+        "colorbar",
+        "crs",
+        "density",
+        "engine",
+        "extent",
+        "features",
+        "height",
+        "label",
+        "layer_control",
+        "mode",
+        "no_borders",
+        "no_coastline",
+        "no_gridlines",
+        "period",
+        "reproject",
+        "scale",
+        "streamlines",
+        "tiles",
+        "time_column",
+        "timestamp",
+        "timestamp_loc",
+        "transition_ms",
+        "u",
+        "units",
+        "uvar",
+        "v",
+        "var",
+        "vvar",
+        "width",
+        "wms_format",
+        "wms_layers",
+        "wms_transparent",
+        "wms_url",
+        "zoom"
+      ]
+    },
+    "example_args": null
   },
   "decimate local": {
-    "description": "zyra decimate local",
-    "doc": "",
+    "description": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
+    "doc": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
     "epilog": "",
     "groups": [
       {
@@ -1688,11 +1979,23 @@
         "type": "str",
         "required": true
       }
-    ]
+    ],
+    "domain": "decimate",
+    "args_schema": {
+      "required": [
+        "input",
+        "path"
+      ],
+      "optional": []
+    },
+    "example_args": {
+      "input": "-",
+      "path": "/tmp/out.bin"
+    }
   },
   "decimate s3": {
-    "description": "zyra decimate s3",
-    "doc": "",
+    "description": "Upload stdin or an input file to Amazon S3, specified by s3:// URL or bucket/key.",
+    "doc": "Upload stdin or an input file to Amazon S3, specified by s3:// URL or bucket/key.",
     "epilog": "",
     "groups": [
       {
@@ -1741,11 +2044,23 @@
         "default": false
       }
     },
-    "positionals": []
+    "positionals": [],
+    "domain": "decimate",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "bucket",
+        "content_type",
+        "input",
+        "key",
+        "url"
+      ]
+    },
+    "example_args": null
   },
   "decimate ftp": {
-    "description": "zyra decimate ftp",
-    "doc": "",
+    "description": "Upload stdin or an input file to an FTP destination path.",
+    "doc": "Upload stdin or an input file to an FTP destination path.",
     "epilog": "",
     "groups": [
       {
@@ -1790,11 +2105,20 @@
         "type": "str",
         "required": true
       }
-    ]
+    ],
+    "domain": "decimate",
+    "args_schema": {
+      "required": [
+        "input",
+        "path"
+      ],
+      "optional": []
+    },
+    "example_args": null
   },
   "decimate post": {
-    "description": "zyra decimate post",
-    "doc": "",
+    "description": "HTTP POST stdin or an input file to a URL with optional content-type.",
+    "doc": "HTTP POST stdin or an input file to a URL with optional content-type.",
     "epilog": "",
     "groups": [
       {
@@ -1841,11 +2165,22 @@
         "type": "str",
         "required": true
       }
-    ]
+    ],
+    "domain": "decimate",
+    "args_schema": {
+      "required": [
+        "input",
+        "url"
+      ],
+      "optional": [
+        "content_type"
+      ]
+    },
+    "example_args": null
   },
   "decimate vimeo": {
-    "description": "zyra decimate vimeo",
-    "doc": "",
+    "description": "Upload a new video to Vimeo or replace an existing video by URI. Optionally set title and description.",
+    "doc": "Upload a new video to Vimeo or replace an existing video by URI. Optionally set title and description.",
     "epilog": "",
     "groups": [
       {
@@ -1891,11 +2226,14 @@
         "default": false
       }
     },
-    "positionals": []
+    "positionals": [],
+    "domain": "decimate",
+    "args_schema": null,
+    "example_args": null
   },
   "transform metadata": {
-    "description": "zyra transform metadata",
-    "doc": "",
+    "description": "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence.",
+    "doc": "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence.",
     "epilog": "",
     "groups": [
       {
@@ -1949,11 +2287,14 @@
         "default": false
       }
     },
-    "positionals": []
+    "positionals": [],
+    "domain": "transform",
+    "args_schema": null,
+    "example_args": null
   },
   "transform enrich-metadata": {
-    "description": "zyra transform enrich-metadata",
-    "doc": "",
+    "description": "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin.",
+    "doc": "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin.",
     "epilog": "",
     "groups": [
       {
@@ -2013,7 +2354,10 @@
         "default": false
       }
     },
-    "positionals": []
+    "positionals": [],
+    "domain": "transform",
+    "args_schema": null,
+    "example_args": null
   },
   "transform enrich-datasets": {
     "description": "zyra transform enrich-datasets",
@@ -2115,11 +2459,14 @@
         "default": false
       }
     },
-    "positionals": []
+    "positionals": [],
+    "domain": "transform",
+    "args_schema": null,
+    "example_args": null
   },
   "transform update-dataset-json": {
-    "description": "zyra transform update-dataset-json",
-    "doc": "",
+    "description": "Update a dataset.json entry by id using metadata (start/end and Vimeo URI) from a file, stdin, or args.",
+    "doc": "Update a dataset.json entry by id using metadata (start/end and Vimeo URI) from a file, stdin, or args.",
     "epilog": "",
     "groups": [
       {
@@ -2195,7 +2542,10 @@
         "default": false
       }
     },
-    "positionals": []
+    "positionals": [],
+    "domain": "transform",
+    "args_schema": null,
+    "example_args": null
   },
   "search api": {
     "description": "zyra search api",
@@ -2328,7 +2678,10 @@
         "default": false
       }
     },
-    "positionals": []
+    "positionals": [],
+    "domain": "search",
+    "args_schema": null,
+    "example_args": null
   },
   "run": {
     "description": "zyra run",
@@ -2471,6 +2824,9 @@
         "type": "str",
         "required": true
       }
-    ]
+    ],
+    "domain": "run",
+    "args_schema": null,
+    "example_args": null
   }
 }

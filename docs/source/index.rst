@@ -30,6 +30,15 @@ Contents
    :caption: Guides
 
    discovery
+   domain_apis
+   mcp
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Project Notes
+   :glob:
+
+   notes/*
 
 .. toctree::
    :maxdepth: 2

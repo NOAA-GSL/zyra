@@ -5,6 +5,7 @@ import difflib
 import time
 from typing import Any
 
+from zyra.api.schemas.domain_args import resolve_model
 from zyra.utils.env import env_int
 
 # Percentage-to-decimal divisor constant (e.g., 50 -> 0.5)
@@ -61,7 +62,9 @@ def _extract_arg_schema(
         flags = list(getattr(act, "option_strings", []) or [])
         help_text = getattr(act, "help", None)
         default = getattr(act, "default", None)
-        nargs = getattr(act, "nargs", None)
+        # Capture but do not use here; positional `nargs` is handled by the
+        # shared collector to avoid duplicated semantics.
+        _nargs = getattr(act, "nargs", None)
         choices = list(getattr(act, "choices", []) or []) or None
         tp = getattr(act, "type", None)
         # Derive type name and bool store actions
@@ -87,9 +90,15 @@ def _extract_arg_schema(
                 "help": help_text,
                 "type": type_name,
                 "default": default,
+                # For option flags (arguments with option strings), argparse’s
+                # `.required` indicates a mandatory option (e.g., `--file` must
+                # be provided) versus a truly optional one (e.g., `--verbose`).
+                "required": bool(getattr(act, "required", False)),
             }
             if path_arg:
                 options_meta["path_arg"] = True
+            if choices:
+                options_meta["choices"] = choices
 
             # Export under each flag; prefer longest form (e.g., --long over -l)
             # but keep all keys present for quick lookup
@@ -97,14 +106,31 @@ def _extract_arg_schema(
                 options[fl] = options_meta
             option_names.extend(flags)
         else:
-            # Positional argument
+            # Defer positional handling; we will reuse the shared collector
+            # to ensure consistent `nargs` semantics across the project.
+            continue
+
+    # Reuse the Wizard's positional collector to avoid duplicated `nargs` logic.
+    # Falls back to a minimal local extraction if import is unavailable.
+    try:
+        from zyra.wizard.manifest import _collect_positionals as _wiz_collect
+
+        positionals = _wiz_collect(p)  # type: ignore[assignment]
+    except Exception:
+        # Minimal fallback: include dest/help/type without required inference
+        positionals = []
+        for act in getattr(p, "_actions", []):
+            if getattr(act, "option_strings", None):
+                continue
+            help_text = getattr(act, "help", None)
+            choices = list(getattr(act, "choices", []) or []) or None
+            tp = getattr(act, "type", None)
+            type_name = _type_name(tp)
             positionals.append(
                 {
                     "name": getattr(act, "dest", None),
                     "help": help_text,
                     "type": type_name,
-                    "required": bool(getattr(act, "required", False))
-                    or (nargs not in ("?", "*")),
                     "choices": choices,
                 }
             )
@@ -129,13 +155,97 @@ def _compute_manifest() -> dict[str, Any]:
 
     manifest: dict[str, Any] = {}
 
+    def _example_args(stage: str, tool: str) -> dict[str, Any] | None:
+        ex: dict[tuple[str, str], dict[str, Any]] = {
+            ("visualize", "heatmap"): {
+                "input": "samples/demo.npy",
+                "output": "/tmp/heatmap.png",
+                "width": 800,
+                "height": 400,
+            },
+            ("visualize", "contour"): {
+                "input": "samples/demo.npy",
+                "output": "/tmp/contour.png",
+                "levels": 10,
+                "filled": True,
+            },
+            ("visualize", "animate"): {
+                "input": "samples/demo.npy",
+                "output_dir": "/tmp/frames",
+                "fps": 24,
+                "to_video": "/tmp/out.mp4",
+            },
+            ("process", "convert-format"): {
+                "file_or_url": "samples/demo.grib2",
+                "format": "netcdf",
+                "stdout": True,
+            },
+            ("process", "decode-grib2"): {
+                "file_or_url": "samples/demo.grib2",
+                "pattern": "TMP",
+            },
+            ("process", "extract-variable"): {
+                "file_or_url": "samples/demo.grib2",
+                "pattern": "TMP",
+            },
+            ("decimate", "local"): {
+                "input": "-",
+                "path": "/tmp/out.bin",
+            },
+            ("decimate", "post"): {
+                "input": "-",
+                "url": "https://example.com/ingest",
+                "content_type": "application/octet-stream",
+            },
+            ("decimate", "s3"): {
+                "input": "-",
+                "url": "s3://bucket/path/out.bin",
+            },
+            ("acquire", "http"): {
+                "url": "https://example.com/file.bin",
+                "output": "/tmp/file.bin",
+            },
+            ("acquire", "s3"): {
+                "url": "s3://bucket/key",
+                "output": "/tmp/file.bin",
+            },
+            ("acquire", "ftp"): {
+                "path": "ftp://host/path/file.bin",
+                "output": "/tmp/file.bin",
+            },
+        }
+        return ex.get((stage, tool))
+
     def add_stage(stage: str, register_fn) -> None:
         parsers = _parsers_from_register(register_fn)
         for name, parser in parsers.items():
             full = f"{stage} {name}"
             positionals, options = _extract_arg_schema(parser)
+            # Prefer explicit parser description when provided
+            desc = getattr(parser, "description", None) or f"zyra {full}"
+            # Arg schema hint from domain models (if available)
+            stage_name = stage
+            model = resolve_model(stage_name, name)
+            required: list[str] | None = None
+            optional: list[str] | None = None
+            if model is not None:
+                try:
+                    req: list[str] = []
+                    opt: list[str] = []
+                    for fname, finfo in getattr(model, "model_fields", {}).items():
+                        # Pydantic v2: finfo.is_required()
+                        if getattr(finfo, "is_required", lambda: False)():
+                            req.append(fname)
+                        else:
+                            opt.append(fname)
+                    required = sorted(req)
+                    optional = sorted(opt)
+                except Exception:
+                    required = None
+                    optional = None
+            example = _example_args(stage, name)
             entry = {
-                "description": f"zyra {full}",
+                "description": desc,
                 "doc": "",
                 "epilog": "",
                 "groups": [
@@ -143,6 +253,13 @@ def _compute_manifest() -> dict[str, Any]:
                 ],
                 "options": options,
                 "positionals": positionals,
+                "domain": stage_name,
+                "args_schema": (
+                    {"required": required, "optional": optional}
+                    if required is not None and optional is not None
+                    else None
+                ),
+                "example_args": example,
             }
             manifest[full] = entry
 
@@ -162,8 +279,9 @@ def _compute_manifest() -> dict[str, Any]:
     for name, parser in parsers.items():
         full = name  # e.g., "run"
         positionals, options = _extract_arg_schema(parser)
+        desc = getattr(parser, "description", None) or f"zyra {full}"
         entry = {
-            "description": f"zyra {full}",
+            "description": desc,
             "doc": "",
             "epilog": "",
             "groups": [{"title": "options", "options": sorted(list(options.keys()))}],
