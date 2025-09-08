@@ -270,7 +270,9 @@ def test_mcp_initialize_handshake(monkeypatch) -> None:
     assert r.status_code == 200
     js = r.json()
     res = js.get("result", {})
-    assert isinstance(res.get("protocolVersion"), str) and res.get("protocolVersion"), f"initialize response: {js}"
+    assert isinstance(res.get("protocolVersion"), str) and res.get(
+        "protocolVersion"
+    ), f"initialize response: {js}"
     si = res.get("serverInfo", {})
     assert si.get("name") == "zyra"
     assert isinstance(si.get("version"), str)

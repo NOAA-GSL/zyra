@@ -252,7 +252,12 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
         return out
     except Exception as exc:
         # Log internally; return generic error to clients with minimal detail for diagnostics
-        out = _rpc_error(req.id, -32603, "Internal error", {"message": str(exc.__class__.__name__) + ": " + str(exc)})
+        out = _rpc_error(
+            req.id,
+            -32603,
+            "Internal error",
+            {"message": str(exc.__class__.__name__) + ": " + str(exc)},
+        )
         with suppress(Exception):
             log_mcp_call(method, params, _t0, status="error", error_code=-32603)
         return out
