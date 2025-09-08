@@ -328,6 +328,7 @@ def test_mcp_tools_call_namespaced_sync(tmp_path, monkeypatch) -> None:
 
 
 @pytest.mark.mcp_ws
+@pytest.mark.timeout(10)
 def test_mcp_ws_initialize_and_notify(monkeypatch) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
     client = TestClient(create_app())
@@ -342,6 +343,7 @@ def test_mcp_ws_initialize_and_notify(monkeypatch) -> None:
 
 
 @pytest.mark.mcp_ws
+@pytest.mark.timeout(10)
 def test_mcp_ws_tools_list_after_initialize(monkeypatch) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
     client = TestClient(create_app())
@@ -385,6 +387,7 @@ def test_mcp_initialize_then_tools_list(monkeypatch) -> None:
 
 
 @pytest.mark.mcp_ws
+@pytest.mark.timeout(10)
 def test_mcp_ws_tools_call_async_progress(monkeypatch, tmp_path) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
     client = TestClient(create_app())
