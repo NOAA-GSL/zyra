@@ -65,10 +65,12 @@ def test_http_ws_e2e_with_api_key(monkeypatch) -> None:
     d = client.get(f"/v1/jobs/{job_id}/download", headers={"X-API-Key": "k"})
     assert d.status_code == 200
 
-    # Negative path: missing key should yield 401
-    r3 = client.get("/v1/cli/commands")
+    # Negative path: missing key should yield 401. Use a fresh client to avoid
+    # any lingering WS state in the test client event loop.
+    client2 = TestClient(app)
+    r3 = client2.get("/v1/cli/commands")
     assert r3.status_code == 401
     # WS unauthorized closes immediately (handshake raises on enter)
     with pytest.raises(Exception):
-        with client.websocket_connect(f"/v1/ws/jobs/{job_id}?stream=progress"):
+        with client2.websocket_connect(f"/v1/ws/jobs/{job_id}?stream=progress"):
             pass
