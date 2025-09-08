@@ -260,6 +260,7 @@ def test_mcp_progress_sse(monkeypatch, tmp_path) -> None:
 def test_mcp_initialize_handshake(monkeypatch) -> None:
     # Build a fresh app to ensure the latest MCP methods are mounted
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
+    monkeypatch.setenv("ZYRA_ENABLE_MCP", "1")
     client = TestClient(create_app())
     r = client.post(
         "/v1/mcp",
@@ -280,6 +281,7 @@ def test_mcp_initialize_handshake(monkeypatch) -> None:
 def test_mcp_tools_list_namespaced(monkeypatch) -> None:
     # Build a fresh app to ensure the latest MCP methods are mounted
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
+    monkeypatch.setenv("ZYRA_ENABLE_MCP", "1")
     client = TestClient(create_app())
     r = client.post(
         "/v1/mcp",
@@ -298,6 +300,7 @@ def test_mcp_tools_list_namespaced(monkeypatch) -> None:
 def test_mcp_tools_call_namespaced_sync(tmp_path, monkeypatch) -> None:
     # Build a fresh app to ensure the latest MCP methods are mounted
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
+    monkeypatch.setenv("ZYRA_ENABLE_MCP", "1")
     client = TestClient(create_app())
     out_path = tmp_path / "ok2.bin"
     payload = {
