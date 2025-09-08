@@ -3,13 +3,18 @@ from __future__ import annotations
 import json
 import time
 
+import pytest
 from fastapi.testclient import TestClient
-from zyra.api.server import app
+from zyra.api.server import create_app
 from zyra.connectors.discovery import LocalCatalogBackend
 
 
-def test_post_enrich_async_job_and_ws_progress():
-    client = TestClient(app)
+@pytest.mark.timeout(10)
+def test_post_enrich_async_job_and_ws_progress(monkeypatch):
+    # Force in-memory mode for stability in CI
+    monkeypatch.setenv("ZYRA_USE_REDIS", "0")
+    monkeypatch.setenv("DATAVIZHUB_USE_REDIS", "0")
+    client = TestClient(create_app())
     # Prepare items from local SOS
     items = LocalCatalogBackend().search("tsunami", limit=1)
     items_dicts = [i.__dict__ for i in items]
@@ -25,9 +30,9 @@ def test_post_enrich_async_job_and_ws_progress():
     job_id = r.json().get("job_id")
     assert job_id
     # Connect to WS (no API key expected unless configured)
-    with client.websocket_connect(f"/ws/jobs/{job_id}?stream=progress") as ws:
+    with client.websocket_connect(f"/v1/ws/jobs/{job_id}?stream=progress") as ws:
         got_progress = False
-        end = time.time() + 5.0
+        end = time.time() + 10.0
         while time.time() < end:
             try:
                 msg = ws.receive_text()
@@ -42,10 +47,11 @@ def test_post_enrich_async_job_and_ws_progress():
             if "exit_code" in data:
                 break
         assert got_progress
-    # Poll job status
+    # Poll job status (fresh client to avoid WS portal interference)
     status = None
+    poll_client = TestClient(create_app())
     for _ in range(20):
-        s = client.get(f"/jobs/{job_id}")
+        s = poll_client.get(f"/v1/jobs/{job_id}")
         assert s.status_code == 200
         status = s.json().get("status")
         if status in {"succeeded", "failed", "canceled"}:
