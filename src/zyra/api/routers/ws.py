@@ -405,6 +405,13 @@ async def mcp_ws(
                             "download": f"/jobs/{resp.job_id}/download",
                             "manifest": f"/jobs/{resp.job_id}/manifest",
                         }
+                        # Send the accepted response immediately so clients
+                        # receive it before any progress notifications
+                        if not is_notification:
+                            out_msg = {"jsonrpc": "2.0", "id": req_id, "result": result}
+                            await websocket.send_text(json.dumps(out_msg))
+                        with contextlib.suppress(Exception):
+                            log_mcp_call(method, params, t0, status="ok")
                         # Start progress forwarder for this job_id on MCP WS
                         job_channel = f"jobs.{resp.job_id}.progress"
 
@@ -499,6 +506,8 @@ async def mcp_ws(
                                     )
                                 )
                             )
+                        # For accepted flow, we already sent the result; move to next message
+                        continue
                     else:
                         exit_code = getattr(resp, "exit_code", None)
                         if isinstance(exit_code, int) and exit_code != 0:
@@ -549,7 +558,7 @@ async def mcp_ws(
                         )
                     continue
 
-                # Send result if not a notification
+                # Send result if not a notification (accepted already sent above)
                 if not is_notification:
                     out = {"jsonrpc": "2.0", "id": req_id, "result": result}
                     await websocket.send_text(json.dumps(out))
