@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import mimetypes
 import os
 from pathlib import Path
@@ -113,23 +114,33 @@ def infer_assets(stage: str, tool: str, args: dict[str, Any]) -> list[AssetRef]:
         except Exception:
             return None
 
-    def _asset_ref_for(p: Path, allow_probe: bool) -> AssetRef:
-        if allow_probe:
-            # Safe stat using descriptor with O_NOFOLLOW to avoid symlink targets
-            size = None
-            try:
-                flags = getattr(os, "O_RDONLY", 0) | getattr(os, "O_NOFOLLOW", 0)
-                fd = os.open(str(p), flags)
-                try:
-                    st = os.fstat(fd)
-                    size = st.st_size
-                finally:
-                    from contextlib import suppress as _s
 
-                    with _s(Exception):
-                        os.close(fd)
-            except Exception:
-                size = None
+def _asset_ref_for(p: Path, allow_probe: bool, base: str | None = None) -> AssetRef:
+    if allow_probe:
+        # Safe stat using descriptor with O_NOFOLLOW to avoid symlink targets
+        size = None
+        try:
+            # Optional: verify the final path remains contained under the expected base
+            if base is not None:
+                with contextlib.suppress(Exception):
+                    if os.path.commonpath([str(p), base]) != base:
+                        # Fallback to reference without probing if containment is violated
+                        mt, _ = mimetypes.guess_type(str(p))
+                        return AssetRef(uri=str(p), name=p.name, media_type=mt)
+            flags = getattr(os, "O_RDONLY", 0) | getattr(os, "O_NOFOLLOW", 0)
+            # lgtm [py/path-injection] — path `p` is re-anchored under an allowlisted base and
+            # validated via commonpath; O_NOFOLLOW prevents symlink traversal.
+            fd = os.open(str(p), flags)
+            try:
+                st = os.fstat(fd)
+                size = st.st_size
+            finally:
+                from contextlib import suppress as _s
+
+                with _s(Exception):
+                    os.close(fd)
+        except Exception:
+            size = None
             media_type = _guess_media_type(p)
             return AssetRef(uri=str(p), name=p.name, size=size, media_type=media_type)
         # Avoid probing size or using python-magic on uncontained paths
@@ -148,8 +159,8 @@ def infer_assets(stage: str, tool: str, args: dict[str, Any]) -> list[AssetRef]:
                 # Re-anchor to the base using a normalized relative path
                 rel = os.path.relpath(os.path.normpath(val), base)
                 p = Path(base) / rel
-                if p.exists():
-                    out.append(_asset_ref_for(p, True))
+                # Attempt safe probing; underlying helper handles missing files
+                out.append(_asset_ref_for(p, True, base))
             else:
                 # Include reference without probing existence for uncontained paths
                 try:
@@ -165,8 +176,7 @@ def infer_assets(stage: str, tool: str, args: dict[str, Any]) -> list[AssetRef]:
             if base is not None and PROBE:
                 rel = os.path.relpath(os.path.normpath(val), base)
                 p = Path(base) / rel
-                if p.exists():
-                    out.append(_asset_ref_for(p, True))
+                out.append(_asset_ref_for(p, True, base))
             else:
                 try:
                     mt, _ = mimetypes.guess_type(val)
@@ -182,21 +192,19 @@ def infer_assets(stage: str, tool: str, args: dict[str, Any]) -> list[AssetRef]:
             rel = os.path.relpath(os.path.normpath(od), base)
             d = Path(base) / rel
         # If it has a small number of files, list a few for convenience
-        try:
-            if d and d.exists():
+        if d is not None:
+            try:
                 files = [p for p in d.iterdir() if p.is_file()]
                 if files:
-                    # Include directory as a container + first few files
                     out.append(AssetRef(uri=str(d), name=d.name))
                     for p in files[:MAX_DIRECTORY_FILES_IN_ASSETS]:
-                        out.append(_asset_ref_for(p, True))
+                        out.append(_asset_ref_for(p, True, base))
                 else:
                     out.append(AssetRef(uri=str(d), name=d.name))
-            else:
-                # Uncontained directory or missing: include only the directory reference
-                out.append(AssetRef(uri=od, name=Path(od).name))
-        except Exception:
-            name = d.name if d is not None else Path(od).name
-            uri = str(d) if d is not None else od
-            out.append(AssetRef(uri=uri, name=name))
+            except Exception:
+                # Directory missing or unreadable; include reference only
+                out.append(AssetRef(uri=str(d), name=d.name))
+        else:
+            # Uncontained directory: include only reference
+            out.append(AssetRef(uri=od, name=Path(od).name))
     return out

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "zyra": {
+      "type": "http",
+      "url": "http://localhost:8000/v1/mcp",
+      "headers": {
+        "X-API-Key": "${env:ZYRA_API_KEY}"
+      }
+    }
+  }
+}
+
