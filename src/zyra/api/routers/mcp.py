@@ -116,8 +116,6 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
             # Alias of namespaced tools/list
             refresh = bool(params.get("refresh", False))
             tools = _mcp_tools_list(refresh=refresh)
-            from contextlib import suppress
-
             with suppress(Exception):
                 log_mcp_call(method, params, _t0, status="ok")
             return _rpc_result(req.id, {"tools": tools})
@@ -226,8 +224,6 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
                         "command": command,
                     },
                 )
-                from contextlib import suppress
-
                 with suppress(Exception):
                     log_mcp_call(method, params, _t0, status="error", error_code=-32000)
                 return out
@@ -240,8 +236,6 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
                     "exit_code": exit_code,
                 },
             )
-            from contextlib import suppress
-
             with suppress(Exception):
                 log_mcp_call(method, params, _t0, status="ok")
             return out
@@ -253,16 +247,12 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
         code = int(getattr(he, "status_code", 500) or 500)
         msg = "Invalid request" if 400 <= code < 500 else "Server error"
         out = _rpc_error(req.id, code, msg)
-        from contextlib import suppress
-
         with suppress(Exception):
             log_mcp_call(method, params, _t0, status="error", error_code=he.status_code)
         return out
-    except Exception:
-        # Log internally; return generic error to clients without details
-        out = _rpc_error(req.id, -32603, "Internal error")
-        from contextlib import suppress
-
+    except Exception as exc:
+        # Log internally; return generic error to clients with minimal detail for diagnostics
+        out = _rpc_error(req.id, -32603, "Internal error", {"message": str(exc.__class__.__name__) + ": " + str(exc)})
         with suppress(Exception):
             log_mcp_call(method, params, _t0, status="error", error_code=-32603)
         return out

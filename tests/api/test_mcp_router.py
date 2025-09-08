@@ -270,7 +270,7 @@ def test_mcp_initialize_handshake(monkeypatch) -> None:
     assert r.status_code == 200
     js = r.json()
     res = js.get("result", {})
-    assert isinstance(res.get("protocolVersion"), str) and res.get("protocolVersion")
+    assert isinstance(res.get("protocolVersion"), str) and res.get("protocolVersion"), f"initialize response: {js}"
     si = res.get("serverInfo", {})
     assert si.get("name") == "zyra"
     assert isinstance(si.get("version"), str)
@@ -291,7 +291,7 @@ def test_mcp_tools_list_namespaced(monkeypatch) -> None:
     assert r.status_code == 200
     js = r.json()
     tools = js.get("result", {}).get("tools")
-    assert isinstance(tools, list) and tools
+    assert isinstance(tools, list) and tools, f"tools/list response: {js}"
     t0 = tools[0]
     assert "name" in t0 and "inputSchema" in t0
     assert isinstance(t0["inputSchema"], dict)
