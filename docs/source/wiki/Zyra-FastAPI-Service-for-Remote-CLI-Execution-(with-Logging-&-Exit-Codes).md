@@ -29,7 +29,7 @@ src/zyra/api/
 ## 2. FastAPI Endpoints
 
 ### 2.1 Run CLI Command (Sync or Async)
-**POST /cli/run**  
+**POST /v1/cli/run**  
 Request:
 ```json
 {
@@ -59,11 +59,11 @@ Response (async):
 > **Enhancement**: All responses now include `exit_code` (for sync runs) or will include it when async job is complete.
 
 ### 2.2 Upload Data
-**POST /upload** (multipart form)  
+**POST /v1/upload** (multipart form)  
 - Accepts file upload, stores in `/tmp/zyra_uploads/`, returns `file_id`.
 
 ### 2.3 Download Results
-**GET /jobs/{job_id}/download**  
+**GET /v1/jobs/{job_id}/download**  
 - Returns output file from completed job.
 
 ### 2.4 WebSocket Progress
@@ -71,8 +71,8 @@ Response (async):
 - Streams logs/progress in real time.
 
 ### 2.5 Job Management
-- **GET /jobs/{job_id}** → status, `stdout`, `stderr`, and `exit_code`.
-- **DELETE /jobs/{job_id}** → cancel a job.
+- **GET /v1/jobs/{job_id}** → status, `stdout`, `stderr`, and `exit_code`.
+- **DELETE /v1/jobs/{job_id}** → cancel a job.
 
 ---
 

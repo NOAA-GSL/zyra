@@ -3,15 +3,15 @@ This page maps the FastAPI routers to their endpoints, with brief descriptions a
 ## Routers Overview
 
 - `zyra.api.routers.cli`
-  - `GET /cli/commands` — Discovery: stages, commands, and argument schemas (with examples)
-  - `GET /cli/examples` — Curated example request bodies and pipelines
-  - `POST /cli/run` — Execute a CLI command (sync or async)
+  - `GET /v1/cli/commands` — Discovery: stages, commands, and argument schemas (with examples)
+  - `GET /v1/cli/examples` — Curated example request bodies and pipelines
+  - `POST /v1/cli/run` — Execute a CLI command (sync or async)
   - `GET /examples` — Interactive examples page (Upload → Run → Download, WS streaming)
   - Auth: Requires API key header when `ZYRA_API_KEY` is set (except `/docs` and `/redoc`)
 
 - `zyra.api.routers.search`
-  - `GET /search` — Perform discovery across sources (local/profile/OGC); JSON output
-  - `GET /search/profiles` — List bundled discovery profiles
+  - `GET /v1/search` — Perform discovery across sources (local/profile/OGC); JSON output
+  - `GET /v1/search/profiles` — List bundled discovery profiles
   - `POST /search` — Discovery with JSON body; set `analyze: true` for LLM-assisted summary and picks
   - Auth: Requires API key header when enabled
 
