@@ -54,16 +54,18 @@ def test_http_ws_e2e_with_api_key(monkeypatch) -> None:
                 break
         assert got_progress
 
-    # 4) Poll status and download
-    for _ in range(10):
-        s = client.get(f"/v1/jobs/{job_id}", headers={"X-API-Key": "k"})
+    # 4) Poll status and download — use a fresh client to avoid WS queue interference
+    time.sleep(0.05)
+    poll_client = TestClient(create_app())
+    for _ in range(20):
+        s = poll_client.get(f"/v1/jobs/{job_id}", headers={"X-API-Key": "k"})
         assert s.status_code == 200
         st = s.json()["status"]
         if st in {"succeeded", "failed", "canceled"}:
             break
         time.sleep(0.2)
     assert st == "succeeded"
-    d = client.get(f"/v1/jobs/{job_id}/download", headers={"X-API-Key": "k"})
+    d = poll_client.get(f"/v1/jobs/{job_id}/download", headers={"X-API-Key": "k"})
     assert d.status_code == 200
 
     # Negative path: missing key should yield 401. Use a fresh client to avoid
