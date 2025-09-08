@@ -111,7 +111,7 @@ jobs:
           # is covered by other tests. We'll re-enable once we've isolated the
           # environment-specific behavior in a dedicated CI job.
           poetry run pytest --cov=src --cov-branch --cov-report=xml --cov-report=term-missing -s \
-            --durations=25 \
+            --timeout=5 --timeout-method=thread --durations=25 \
             --ignore tests/workflow/test_parallel_dag.py
 
       - name: Upload coverage report
