@@ -3,6 +3,9 @@
 Exposes a minimal JSON-RPC 2.0 interface and progress streaming for MCP clients:
 
 - ``POST /mcp`` (JSON-RPC)
+  - ``initialize``: MCP handshake; returns protocol version, server info, capabilities.
+  - ``tools/list``: returns tools with JSON Schema input definitions.
+  - ``tools/call``: invokes a tool by ``name`` with ``arguments``.
   - ``listTools``: returns the enriched capabilities manifest and a flattened tools list
     (includes domain, args_schema, example_args, options, positionals, description).
   - ``callTool``: dispatches to ``/cli/run`` (sync or async). Sync failures map to
@@ -36,6 +39,9 @@ from zyra.utils.env import env_int
 
 router = APIRouter(tags=["mcp"])
 
+# MCP protocol version advertised by initialize() per MCP spec
+PROTOCOL_VERSION = "2025-06-18"
+
 
 class JSONRPCRequest(BaseModel):
     jsonrpc: str = "2.0"
@@ -62,7 +68,7 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
     """Handle a JSON-RPC 2.0 request for MCP methods.
 
     Methods:
-    - listTools: optional { refresh: bool } — returns ``result.manifest`` and ``result.tools``.
+    - listTools: optional { refresh: bool } — ALIAS of ``tools/list`` returning ``{ tools: [...] }``.
     - callTool: { stage: str, command: str, args?: dict, mode?: 'sync'|'async' }.
       Sync failures return JSON-RPC error ``-32000``.
     - statusReport: returns MCP-ready service status and version.
@@ -107,16 +113,27 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
     _t0 = _time.time()
     try:
         if method == "listTools":
-            # Return spec-compatible MCP discovery payload
+            # Alias of namespaced tools/list
             refresh = bool(params.get("refresh", False))
-            out = _mcp_discovery_payload(refresh=refresh)
+            tools = _mcp_tools_list(refresh=refresh)
             from contextlib import suppress
 
             with suppress(Exception):
                 log_mcp_call(method, params, _t0, status="ok")
-            return _rpc_result(req.id, out)
+            return _rpc_result(req.id, {"tools": tools})
 
-        if method == "statusReport":
+        # MCP initialize handshake
+        if method == "initialize":
+            result = {
+                "protocolVersion": PROTOCOL_VERSION,
+                "serverInfo": {"name": "zyra", "version": dvh_version},
+                "capabilities": {"tools": True},
+            }
+            with suppress(Exception):
+                log_mcp_call(method, params, _t0, status="ok")
+            return _rpc_result(req.id, result)
+
+        if method in {"statusReport", "status/report"}:
             # Lightweight mapping of /health
             return _rpc_result(
                 req.id,
@@ -126,11 +143,37 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
                 },
             )
 
-        if method == "callTool":
+        # MCP tools/list (namespaced)
+        if method == "tools/list":
+            refresh = bool(params.get("refresh", False))
+            tools = _mcp_tools_list(refresh=refresh)
+            with suppress(Exception):
+                log_mcp_call(method, params, _t0, status="ok")
+            return _rpc_result(req.id, {"tools": tools})
+
+        if method in {"callTool", "tools/call"}:
+            # Accept both legacy shape (stage/command/args) and MCP shape (name/arguments)
+            name = params.get("name")
+            arguments = params.get("arguments", {}) or {}
             stage = params.get("stage")
             command = params.get("command")
             args = params.get("args", {}) or {}
             mode = params.get("mode") or "sync"
+
+            if name and (not stage or not command):
+                # Parse name like "stage.tool" or "stage tool"
+                n = str(name)
+                if "." in n:
+                    stage, command = n.split(".", 1)
+                elif " " in n:
+                    stage, command = n.split(" ", 1)
+                elif ":" in n:
+                    stage, command = n.split(":", 1)
+                else:
+                    stage, command = n, n
+                # Prefer MCP 'arguments' over legacy 'args' if provided
+                if arguments:
+                    args = arguments
 
             # Validate against the CLI matrix for clearer errors
             matrix = get_cli_matrix()
@@ -346,6 +389,90 @@ def _mcp_discovery_payload(refresh: bool = False) -> dict[str, Any]:
         "description": "Zyra MCP server for domain-specific data visualization",
         "capabilities": {"commands": commands},
     }
+
+
+def _mcp_tools_list(refresh: bool = False) -> list[dict[str, Any]]:
+    """Return tools in MCP namespaced shape.
+
+    Each tool item: { name, description, inputSchema }
+    """
+    result = manifest_svc.list_commands(
+        format="json", stage=None, q=None, refresh=refresh
+    )
+    cmds = result.get("commands", {}) if isinstance(result, dict) else {}
+    tools: list[dict[str, Any]] = []
+    for full, meta in cmds.items():
+        try:
+            stage, tool = full.split(" ", 1)
+        except ValueError:
+            stage, tool = full, full
+        name = f"{stage}.{tool}"
+
+        # Build JSON Schema parameters from options + positionals
+        properties: dict[str, Any] = {}
+        required: list[str] = []
+
+        for pos in meta.get("positionals") or []:
+            if not isinstance(pos, dict):
+                continue
+            pname = str(pos.get("name") or "arg").strip()
+            if not pname:
+                continue
+            ptype = _json_type(str(pos.get("type") or ""))
+            schema: dict[str, Any] = {}
+            if ptype:
+                schema["type"] = ptype
+            if pos.get("choices"):
+                schema["enum"] = list(pos.get("choices"))
+            if pos.get("help"):
+                schema["description"] = pos.get("help")
+            properties[pname] = schema or {"type": "string"}
+            if bool(pos.get("required", False)):
+                required.append(pname)
+
+        opts = meta.get("options") or {}
+        seen: set[str] = set()
+        for flag, o in opts.items():
+            if not isinstance(flag, str) or not flag.startswith("--"):
+                continue
+            prop = flag.lstrip("-").replace("-", "_")
+            if prop in seen:
+                continue
+            seen.add(prop)
+            if not isinstance(o, dict):
+                properties[prop] = {"type": "string"}
+                continue
+            jtype = _json_type(str(o.get("type") or ""))
+            schema: dict[str, Any] = {}
+            if jtype:
+                schema["type"] = jtype
+            if o.get("help"):
+                schema["description"] = o.get("help")
+            if o.get("choices"):
+                from contextlib import suppress as _suppress
+
+                with _suppress(Exception):
+                    schema["enum"] = list(o.get("choices"))
+            properties[prop] = schema or {"type": "string"}
+            from contextlib import suppress as _suppress
+
+            with _suppress(Exception):
+                if bool(o.get("required")):
+                    required.append(prop)
+
+        input_schema: dict[str, Any] = {"type": "object", "properties": properties}
+        if required:
+            input_schema["required"] = sorted(required)
+
+        tools.append(
+            {
+                "name": name,
+                "description": meta.get("description", f"zyra {full}"),
+                "inputSchema": input_schema,
+            }
+        )
+
+    return tools
 
 
 @router.get("/mcp")

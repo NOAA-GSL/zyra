@@ -3,6 +3,24 @@ Zyra Documentation
 
 Welcome to the Zyra documentation.
 
+Featured Presentation
+---------------------
+
+.. raw:: html
+
+   <div style="position:relative;padding-top:56.25%;margin-bottom:1rem;border:0;">
+     <iframe src="https://docs.google.com/presentation/d/e/2PACX-1vQkyPFLXOviuJfWFoesFn4UbL08OQ0dg7ydWJlpVghsrrXc9_s4WE1qhGxT4Br1Vx5wVjd-yZCrlzaR/pubembed?start=false&loop=true&delayms=30000"
+             title="Zyra Overview Slides"
+             style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+             allowfullscreen="true"
+             mozallowfullscreen="true"
+             webkitallowfullscreen="true"></iframe>
+   </div>
+
+.. note::
+   Having trouble viewing the embed? Open the slides directly:
+   https://docs.google.com/presentation/d/e/2PACX-1vQkyPFLXOviuJfWFoesFn4UbL08OQ0dg7ydWJlpVghsrrXc9_s4WE1qhGxT4Br1Vx5wVjd-yZCrlzaR/pub?start=false&loop=true&delayms=30000
+
 Contents
 --------
 

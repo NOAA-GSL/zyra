@@ -26,12 +26,16 @@ Discovery
 JSON-RPC Methods (``POST /v1/mcp``)
 ---------------------------------
 
-- ``listTools``: returns the same discovery payload as ``GET /mcp``
-- ``callTool``: runs a CLI tool via the existing ``/cli/run`` pathway
-  - Params: ``{ stage: str, command: str, args?: object, mode?: 'sync'|'async' }``
+- ``initialize``: MCP handshake.
+  - Result: ``{ protocolVersion: '2025-06-18', serverInfo: { name, version }, capabilities: { tools: true } }``
+- ``tools/list``: returns ``{ tools: [ { name, description, inputSchema } ] }``
+- ``tools/call``: invokes a tool by namespaced name (e.g., ``process.decode-grib2``)
+  - Params (MCP shape): ``{ name: str, arguments?: object, mode?: 'sync'|'async' }``
+  - Params (legacy alias ``callTool``): ``{ stage: str, command: str, args?: object, mode?: 'sync'|'async' }``
   - Result (sync): ``{ status: 'ok', stdout?, stderr?, exit_code? }``
   - Result (async): ``{ status: 'accepted', job_id, poll, ws, download, manifest }``
-- ``statusReport``: returns a minimal status object with version
+- ``listTools``: alias of ``tools/list`` (returns the same shape)
+- ``statusReport`` (alias: ``status/report``): minimal status with version
 
 Authentication
 --------------
@@ -55,10 +59,14 @@ Curl status report::
     -d '{"jsonrpc":"2.0","method":"statusReport","id":1}' \
     http://127.0.0.1:8000/v1/mcp
 
-List tools::
+Initialize and list tools::
 
   curl -sS -H 'Content-Type: application/json' -H 'X-API-Key: $ZYRA_API_KEY' \
-    -d '{"jsonrpc":"2.0","method":"listTools","id":2}' \
+    -d '{"jsonrpc":"2.0","method":"initialize","id":2}' \
+    http://127.0.0.1:8000/v1/mcp
+
+  curl -sS -H 'Content-Type: application/json' -H 'X-API-Key: $ZYRA_API_KEY' \
+    -d '{"jsonrpc":"2.0","method":"tools/list","id":3}' \
     http://127.0.0.1:8000/v1/mcp
 
 Call a tool (sync)::
@@ -125,20 +133,24 @@ Status:
     -d '{"jsonrpc":"2.0","method":"statusReport","id":1}' \
     http://127.0.0.1:8000/v1/mcp | jq .
 
-List tools:
+Initialize and list tools:
 
 .. code-block:: bash
 
   curl -sS -H 'Content-Type: application/json' -H "X-API-Key: $ZYRA_API_KEY" \
-    -d '{"jsonrpc":"2.0","method":"listTools","id":2}' \
+    -d '{"jsonrpc":"2.0","method":"initialize","id":2}' \
     http://127.0.0.1:8000/v1/mcp | jq .
 
-Call a tool (sync):
+  curl -sS -H 'Content-Type: application/json' -H "X-API-Key: $ZYRA_API_KEY" \
+    -d '{"jsonrpc":"2.0","method":"tools/list","id":3}' \
+    http://127.0.0.1:8000/v1/mcp | jq .
+
+Call a tool (sync) via ``tools/call``:
 
 .. code-block:: bash
 
   curl -sS -H 'Content-Type: application/json' -H "X-API-Key: $ZYRA_API_KEY" \
-    -d '{"jsonrpc":"2.0","method":"callTool","params":{"stage":"visualize","command":"heatmap","args":{"input":"samples/demo.npy","output":"/tmp/heatmap.png"},"mode":"sync"},"id":3}' \
+    -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"visualize.heatmap","arguments":{"input":"samples/demo.npy","output":"/tmp/heatmap.png"},"mode":"sync"},"id":4}' \
     http://127.0.0.1:8000/v1/mcp | jq .
 
 Observe progress (async):

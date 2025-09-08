@@ -1,8 +1,9 @@
-# zyra container (CLI runtime)
+# zyra container (API by default)
 
-A general-purpose container image that provides the Zyra CLI without starting
-any long-running process by default. Use it for CI, ad-hoc local runs, or as a
-base image downstream. For a scheduler-first image, see `docker/zyra-scheduler`.
+A general-purpose container image that now defaults to serving the Zyra API
+(MCP-ready) via uvicorn. Use it to run the API quickly, or override the
+entrypoint to use the Zyra CLI for CI/ad-hoc runs. For a scheduler-first image,
+see `docker/zyra-scheduler`.
 
 ## Image
 
@@ -10,12 +11,8 @@ base image downstream. For a scheduler-first image, see `docker/zyra-scheduler`.
 - Tags: `vX.Y.Z`, `latest` (non-prerelease), and `sha-…`
 - Build args:
   - `ZYRA_VERSION` (default `latest`): pin Zyra from PyPI
-  - `ZYRA_EXTRAS` (default `connectors,processing,visualization`): install `zyra[extras]` from PyPI
-  - `ZYRA_EXTRAS_ARM64` (default empty): when building for arm64, override extras.
-    If not set, the image installs Zyra without `pygrib` on arm64 to avoid
-    wheel build failures; GRIB decoding uses `cfgrib`/`wgrib2` instead. Set this
-    to a non-empty extras list (e.g., `connectors,processing,visualization`) to
-    attempt installing `pygrib` on arm64 (requires full eccodes toolchain).
+  - `ZYRA_EXTRAS` (default `connectors,processing,visualization,api`): install `zyra[extras]` from PyPI (includes API deps)
+  - `ZYRA_EXTRAS_ARM64` (default `connectors,processing,visualization,api`): extras for arm64 builds
   - `WITH_WGRIB2` (default `source`): include `wgrib2`.
     - `source`: build from source in a builder stage (requires BuildKit)
     - `apt` (or `true`): install Debian package `wgrib2`
@@ -34,13 +31,16 @@ base image downstream. For a scheduler-first image, see `docker/zyra-scheduler`.
 ## Quick start
 
 ```bash
-# Show CLI help
-docker run --rm ghcr.io/noaa-gsl/zyra:latest --help
+# Run API (default)
+docker run --rm -p 8000:8000 ghcr.io/noaa-gsl/zyra:latest
+
+# Use CLI instead of API (override entrypoint)
+docker run --rm --entrypoint zyra ghcr.io/noaa-gsl/zyra:latest --help
 
 # Run workflows from a mounted directory (watch mode)
 mkdir -p workflows data
 
-docker run --rm \
+docker run --rm --entrypoint zyra \
   -v "$(pwd)/workflows:/workflows:ro" \
   -v "$(pwd)/data:/data" \
   ghcr.io/noaa-gsl/zyra:latest run /workflows --watch
@@ -74,24 +74,20 @@ mkdir -p ../../workflows ../../data
 # Create a local .env from the template (optional)
 cp -n .env.example .env || true
 
-# Show help using compose defaults
+# Show CLI help using compose overrides
 docker compose run --rm zyra
 
-# Run watch mode
+# Run watch mode (CLI)
 docker compose run --rm zyra run /workflows --watch
 
-# Start API server (expose port as needed)
-docker compose run --rm -p 8000:8000 zyra api serve --host 0.0.0.0 --port 8000
+# Start API server (service) via `docker compose up` with a separate service, or:
+# Direct API (no CLI override): `docker run -p 8000:8000 ghcr.io/noaa-gsl/zyra:latest`
 ```
 
-## Optional: API server
+## API server (default)
 
-The CLI image does not run the API by default, but you can start it manually:
-
-```bash
-docker run --rm -p 8000:8000 ghcr.io/noaa-gsl/zyra:latest \
-  api serve --host 0.0.0.0 --port 8000
-```
+The image serves the API by default on port 8000. Override the entrypoint to
+use the CLI for CI or ad-hoc runs (see examples above).
 
 ## Notes
 

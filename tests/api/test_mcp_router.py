@@ -48,17 +48,12 @@ def test_mcp_list_tools(monkeypatch) -> None:
     body = r.json()
     assert body.get("jsonrpc") == "2.0"
     result = body.get("result", {})
-    # MCP discovery shape
-    assert result.get("mcp_version") == "0.1"
-    assert result.get("name") == "zyra"
-    caps = result.get("capabilities")
-    assert isinstance(caps, dict)
-    cmds = caps.get("commands")
-    assert isinstance(cmds, list) and cmds
-    sample = cmds[0]
-    assert "name" in sample and "parameters" in sample
-    assert isinstance(sample["parameters"], dict)
-    assert sample["parameters"].get("type") == "object"
+    # Now returns namespaced tools list shape
+    tools = result.get("tools")
+    assert isinstance(tools, list) and tools
+    sample = tools[0]
+    assert "name" in sample and "inputSchema" in sample
+    assert isinstance(sample["inputSchema"], dict)
 
 
 def test_mcp_http_discovery_get(monkeypatch) -> None:
@@ -260,6 +255,94 @@ def test_mcp_progress_sse(monkeypatch, tmp_path) -> None:
             if terminal:
                 break
     assert terminal
+
+
+def test_mcp_initialize_handshake(monkeypatch) -> None:
+    client = _client_with_key(monkeypatch)
+    r = client.post(
+        "/v1/mcp",
+        json={"jsonrpc": "2.0", "method": "initialize", "id": 12},
+        headers={"X-API-Key": "k"},
+    )
+    assert r.status_code == 200
+    js = r.json()
+    res = js.get("result", {})
+    assert isinstance(res.get("protocolVersion"), str) and res.get("protocolVersion")
+    si = res.get("serverInfo", {})
+    assert si.get("name") == "zyra"
+    assert isinstance(si.get("version"), str)
+    caps = res.get("capabilities", {})
+    assert caps.get("tools") is True
+
+
+def test_mcp_tools_list_namespaced(monkeypatch) -> None:
+    client = _client_with_key(monkeypatch)
+    r = client.post(
+        "/v1/mcp",
+        json={"jsonrpc": "2.0", "method": "tools/list", "id": 13, "params": {}},
+        headers={"X-API-Key": "k"},
+    )
+    assert r.status_code == 200
+    js = r.json()
+    tools = js.get("result", {}).get("tools")
+    assert isinstance(tools, list) and tools
+    t0 = tools[0]
+    assert "name" in t0 and "inputSchema" in t0
+    assert isinstance(t0["inputSchema"], dict)
+
+
+def test_mcp_tools_call_namespaced_sync(tmp_path, monkeypatch) -> None:
+    client = _client_with_key(monkeypatch)
+    out_path = tmp_path / "ok2.bin"
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+            "name": "decimate.local",
+            "arguments": {"input": "-", "output": str(out_path)},
+            "mode": "sync",
+        },
+        "id": 14,
+    }
+    r = client.post("/v1/mcp", json=payload, headers={"X-API-Key": "k"})
+    assert r.status_code == 200
+    js = r.json()
+    res = js.get("result", {})
+    assert res.get("status") in {"ok", "accepted"}
+    if res.get("status") == "ok":
+        assert out_path.exists()
+
+
+def test_mcp_tools_call_namespaced_async_job_lifecycle(tmp_path, monkeypatch) -> None:
+    import time
+
+    client = _client_with_key(monkeypatch)
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+            "name": "process.decode-grib2",
+            "arguments": {"file_or_url": str(tmp_path / "missing.grib2")},
+            "mode": "async",
+        },
+        "id": 15,
+    }
+    r = client.post("/v1/mcp", json=payload, headers={"X-API-Key": "k"})
+    assert r.status_code == 200
+    js = r.json()
+    res = js.get("result", {})
+    assert res.get("status") == "accepted"
+    job_id = res.get("job_id")
+    assert job_id
+    # Poll the job until terminal state
+    for _ in range(20):
+        s = client.get(f"/v1/jobs/{job_id}", headers={"X-API-Key": "k"})
+        assert s.status_code == 200
+        body = s.json()
+        if body.get("status") in {"succeeded", "failed", "canceled"}:
+            assert "exit_code" in body
+            break
+        time.sleep(0.2)
 
 
 def test_mcp_disabled_hides_route(monkeypatch) -> None:
