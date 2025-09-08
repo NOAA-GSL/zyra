@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import mimetypes
 import os
+import stat
 from pathlib import Path
 from typing import Any
 
@@ -184,6 +185,20 @@ def _asset_ref_for(p: Path, allow_probe: bool, base: str | None = None) -> Asset
                 with contextlib.suppress(Exception):
                     if os.path.commonpath([str(p), base]) != base:
                         # Fallback to reference without probing if containment is violated
+                        mt = _guess_media_type(p)
+                        return AssetRef(uri=str(p), name=p.name, media_type=mt)
+                    # Reject probing if any parent directory is a symlink
+                    rel = os.path.relpath(str(p), base)
+                    cur = Path(base)
+                    for part in Path(rel).parts[:-1]:  # exclude final filename
+                        cur = cur / part
+                        st = os.lstat(str(cur))
+                        if stat.S_ISLNK(st.st_mode):
+                            mt = _guess_media_type(p)
+                            return AssetRef(uri=str(p), name=p.name, media_type=mt)
+                    # Re-validate containment with a resolved path (guards symlink escapes)
+                    resolved = Path(str(p)).resolve(strict=False)
+                    if os.path.commonpath([str(resolved), base]) != base:
                         mt = _guess_media_type(p)
                         return AssetRef(uri=str(p), name=p.name, media_type=mt)
             flags = getattr(os, "O_RDONLY", 0) | getattr(os, "O_NOFOLLOW", 0)
