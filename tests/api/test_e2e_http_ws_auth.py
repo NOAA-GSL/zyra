@@ -9,7 +9,6 @@ from fastapi.testclient import TestClient
 from zyra.api.server import app
 
 
-@pytest.mark.anyio
 def test_http_ws_e2e_with_api_key(monkeypatch) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
     client = TestClient(app)
