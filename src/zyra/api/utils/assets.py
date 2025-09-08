@@ -114,42 +114,6 @@ def infer_assets(stage: str, tool: str, args: dict[str, Any]) -> list[AssetRef]:
         except Exception:
             return None
 
-
-def _asset_ref_for(p: Path, allow_probe: bool, base: str | None = None) -> AssetRef:
-    if allow_probe:
-        # Safe stat using descriptor with O_NOFOLLOW to avoid symlink targets
-        size = None
-        try:
-            # Optional: verify the final path remains contained under the expected base
-            if base is not None:
-                with contextlib.suppress(Exception):
-                    if os.path.commonpath([str(p), base]) != base:
-                        # Fallback to reference without probing if containment is violated
-                        mt, _ = mimetypes.guess_type(str(p))
-                        return AssetRef(uri=str(p), name=p.name, media_type=mt)
-            flags = getattr(os, "O_RDONLY", 0) | getattr(os, "O_NOFOLLOW", 0)
-            # lgtm [py/path-injection] — path `p` is re-anchored under an allowlisted base and
-            # validated via commonpath; O_NOFOLLOW prevents symlink traversal.
-            fd = os.open(str(p), flags)
-            try:
-                st = os.fstat(fd)
-                size = st.st_size
-            finally:
-                from contextlib import suppress as _s
-
-                with _s(Exception):
-                    os.close(fd)
-        except Exception:
-            size = None
-            media_type = _guess_media_type(p)
-            return AssetRef(uri=str(p), name=p.name, size=size, media_type=media_type)
-        # Avoid probing size or using python-magic on uncontained paths
-        try:
-            mt, _ = mimetypes.guess_type(str(p))
-        except Exception:
-            mt = None
-        return AssetRef(uri=str(p), name=p.name, media_type=mt)
-
     # Single-file outputs
     for key in ("output", "to_video"):
         val = args.get(key)
@@ -208,3 +172,39 @@ def _asset_ref_for(p: Path, allow_probe: bool, base: str | None = None) -> Asset
             # Uncontained directory: include only reference
             out.append(AssetRef(uri=od, name=Path(od).name))
     return out
+
+
+def _asset_ref_for(p: Path, allow_probe: bool, base: str | None = None) -> AssetRef:
+    if allow_probe:
+        # Safe stat using descriptor with O_NOFOLLOW to avoid symlink targets
+        size = None
+        try:
+            # Optional: verify the final path remains contained under the expected base
+            if base is not None:
+                with contextlib.suppress(Exception):
+                    if os.path.commonpath([str(p), base]) != base:
+                        # Fallback to reference without probing if containment is violated
+                        mt = _guess_media_type(p)
+                        return AssetRef(uri=str(p), name=p.name, media_type=mt)
+            flags = getattr(os, "O_RDONLY", 0) | getattr(os, "O_NOFOLLOW", 0)
+            # lgtm [py/path-injection] — path `p` is re-anchored under an allowlisted base and
+            # validated via commonpath; O_NOFOLLOW prevents symlink traversal.
+            fd = os.open(str(p), flags)
+            try:
+                st = os.fstat(fd)
+                size = st.st_size
+            finally:
+                from contextlib import suppress as _s
+
+                with _s(Exception):
+                    os.close(fd)
+        except Exception:
+            size = None
+            media_type = _guess_media_type(p)
+            return AssetRef(uri=str(p), name=p.name, size=size, media_type=media_type)
+        # Successful probe; include size and best-effort media type
+        media_type = _guess_media_type(p)
+        return AssetRef(uri=str(p), name=p.name, size=size, media_type=media_type)
+    # No probing requested; return reference with best-effort media type only
+    media_type = _guess_media_type(p)
+    return AssetRef(uri=str(p), name=p.name, media_type=media_type)
