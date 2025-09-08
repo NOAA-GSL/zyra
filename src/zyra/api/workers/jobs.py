@@ -517,6 +517,19 @@ def start_job(job_id: str, stage: str, command: str, args: dict[str, Any]) -> No
     old_out, old_err = sys.stdout, sys.stderr
     sys.stdout, sys.stderr = out_buf, err_buf
     code = 0
+    # Ensure a stable working directory for job execution
+    old_cwd = Path.cwd()
+    try:
+        from zyra.utils.env import env as _env
+
+        base_dir = _env("DATA_DIR") or "_work"
+    except Exception:
+        base_dir = "_work"
+    try:
+        Path(base_dir).mkdir(parents=True, exist_ok=True)
+        os.chdir(base_dir)
+    except Exception:
+        pass
     try:
         try:
             from zyra.cli import main as cli_main
@@ -531,6 +544,8 @@ def start_job(job_id: str, stage: str, command: str, args: dict[str, Any]) -> No
             code = 1
     finally:
         sys.stdout, sys.stderr = old_out, old_err
+        with contextlib.suppress(Exception):
+            os.chdir(old_cwd)
     rec["stdout"] = out_buf.getvalue()
     rec["stderr"] = err_buf.getvalue()
     rec["exit_code"] = code

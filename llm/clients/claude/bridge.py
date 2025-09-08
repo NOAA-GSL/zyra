@@ -71,6 +71,8 @@ def main():
             continue
         try:
             request = json.loads(line)
+            method = request.get("method")
+            is_notification = ("id" not in request) or (request.get("id") is None)
         except json.JSONDecodeError:
             log_message("ERROR", {"raw": line, "msg": "Invalid JSON"})
             continue
@@ -90,9 +92,31 @@ def main():
 
         log_message("RESPONSE", result)
 
-        # Return to Claude
-        sys.stdout.write(json.dumps(result) + "\n")
-        sys.stdout.flush()
+        # Return to Claude (primary response) unless this was a notification
+        if not is_notification:
+            sys.stdout.write(json.dumps(result) + "\n")
+            sys.stdout.flush()
+
+        # MCP spec: after initialize, server should send notifications/initialized.
+        # Since Zyra's transport is HTTP (stateless), emit the notification here in the bridge
+        # so Claude sees the expected handshake event and keeps the session open.
+        try:
+            if (
+                method == "initialize"
+                and isinstance(result, dict)
+                and "error" not in result
+            ):
+                notify = {
+                    "jsonrpc": "2.0",
+                    "method": "notifications/initialized",
+                    "params": {},
+                }
+                log_message("NOTIFY", notify)
+                sys.stdout.write(json.dumps(notify) + "\n")
+                sys.stdout.flush()
+        except Exception:
+            # Do not disrupt the session if notification emission fails
+            pass
 
 
 if __name__ == "__main__":

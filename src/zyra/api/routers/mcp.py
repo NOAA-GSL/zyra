@@ -26,12 +26,14 @@ import logging
 from contextlib import suppress
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from zyra.api import __version__ as dvh_version
 from zyra.api.models.cli_request import CLIRunRequest
 from zyra.api.routers.cli import get_cli_matrix, run_cli_endpoint
+from zyra.api.routers.search import post_search as _post_search
+from zyra.api.routers.search import search as _get_search
 from zyra.api.services import manifest as manifest_svc
 from zyra.api.utils.obs import log_mcp_call
 from zyra.api.workers import jobs as jobs_backend
@@ -111,6 +113,22 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
     import time as _time
 
     _t0 = _time.time()
+
+    # Helpers to respect JSON-RPC notifications (no response when id is None)
+    def _ok(payload: Any) -> Any:
+        return (
+            Response(status_code=204)
+            if req.id is None
+            else _rpc_result(req.id, payload)
+        )
+
+    def _err(code: int, message: str, data: Any | None = None) -> Any:
+        return (
+            Response(status_code=204)
+            if req.id is None
+            else _rpc_error(req.id, code, message, data)
+        )
+
     try:
         if method == "listTools":
             # Alias of namespaced tools/list
@@ -118,28 +136,25 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
             tools = _mcp_tools_list(refresh=refresh)
             with suppress(Exception):
                 log_mcp_call(method, params, _t0, status="ok")
-            return _rpc_result(req.id, {"tools": tools})
+            return _ok({"tools": tools})
 
         # MCP initialize handshake
         if method == "initialize":
+            # Per MCP spec, capabilities should be structured (not bare booleans).
+            # Advertise tools with listChanged support, allowing clients to
+            # subscribe to changes in tool listings.
             result = {
                 "protocolVersion": PROTOCOL_VERSION,
                 "serverInfo": {"name": "zyra", "version": dvh_version},
-                "capabilities": {"tools": True},
+                "capabilities": {"tools": {"listChanged": True}},
             }
             with suppress(Exception):
                 log_mcp_call(method, params, _t0, status="ok")
-            return _rpc_result(req.id, result)
+            return _ok(result)
 
         if method in {"statusReport", "status/report"}:
             # Lightweight mapping of /health
-            return _rpc_result(
-                req.id,
-                {
-                    "status": "ok",
-                    "version": dvh_version,
-                },
-            )
+            return _ok({"status": "ok", "version": dvh_version})
 
         # MCP tools/list (namespaced)
         if method == "tools/list":
@@ -147,7 +162,24 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
             tools = _mcp_tools_list(refresh=refresh)
             with suppress(Exception):
                 log_mcp_call(method, params, _t0, status="ok")
-            return _rpc_result(req.id, {"tools": tools})
+            return _ok({"tools": tools})
+
+        # MCP prompts and resources (minimal stubs for compliance)
+        if method == "prompts/list":
+            with suppress(Exception):
+                log_mcp_call(method, params, _t0, status="ok")
+            return _ok({"prompts": []})
+
+        if method == "resources/list":
+            with suppress(Exception):
+                log_mcp_call(method, params, _t0, status="ok")
+            return _ok({"resources": []})
+
+        if method == "resources/subscribe":
+            # Accept and acknowledge subscription; no live events yet
+            with suppress(Exception):
+                log_mcp_call(method, params, _t0, status="ok")
+            return _ok({"ok": True})
 
         if method in {"callTool", "tools/call"}:
             # Accept both legacy shape (stage/command/args) and MCP shape (name/arguments)
@@ -158,6 +190,231 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
             args = params.get("args", {}) or {}
             mode = params.get("mode") or "sync"
 
+            # Allow a couple of graceful aliases observed in some clients
+            try:
+                nm = str(name or "").strip().lower()
+                if nm in {"zsearch-queryrequest", "zsearch_queryrequest"}:
+                    name = "search-query"
+                elif nm in {"zsearch-semanticrequest", "zsearch_semanticrequest"}:
+                    name = "search-semantic"
+            except Exception:
+                pass
+
+            # MCP-only tools: search-query and search-semantic
+            if name in {"search-query", "search-semantic"}:
+                q = arguments.get("query") or args.get("query")
+                if not isinstance(q, str) or not q.strip():
+                    return _err(-32602, "Invalid params: missing 'query'")
+                try:
+                    limit = int(arguments.get("limit", args.get("limit", 10)))
+                except Exception:
+                    limit = 10
+                profile = arguments.get("profile", args.get("profile"))
+                profile_file = arguments.get("profile_file", args.get("profile_file"))
+                include_local = bool(
+                    arguments.get("include_local", args.get("include_local", False))
+                )
+                remote_only = bool(
+                    arguments.get("remote_only", args.get("remote_only", False))
+                )
+                ogc_wms = arguments.get("ogc_wms", args.get("ogc_wms"))
+                ogc_records = arguments.get("ogc_records", args.get("ogc_records"))
+                offline = bool(arguments.get("offline", args.get("offline", False)))
+                https_only = bool(
+                    arguments.get("https_only", args.get("https_only", False))
+                )
+                # Optional: include a compact markdown table in text content
+                want_table = bool(arguments.get("table", args.get("table", False)))
+                if name == "search-query":
+                    try:
+                        items = _get_search(
+                            q=q,
+                            limit=limit,
+                            catalog_file=None,
+                            profile=str(profile) if profile else None,
+                            profile_file=str(profile_file) if profile_file else None,
+                            ogc_wms=str(ogc_wms) if ogc_wms else None,
+                            ogc_records=str(ogc_records) if ogc_records else None,
+                            remote_only=bool(remote_only),
+                            include_local=bool(include_local),
+                            enrich=None,
+                            enrich_timeout=3.0,
+                            enrich_workers=4,
+                            cache_ttl=86400,
+                            offline=bool(offline),
+                            https_only=bool(https_only),
+                            allow_hosts=None,
+                            deny_hosts=None,
+                            max_probe_bytes=None,
+                        )
+                        # Return MCP-friendly content so IDE clients display results
+                        try:
+                            n = len(items) if isinstance(items, list) else 0
+                            lines: list[str] = [
+                                f"Search query '{q}' returned {n} item(s).",
+                            ]
+                            if isinstance(items, list) and items:
+                                for it in items[: min(10, limit)]:
+                                    if not isinstance(it, dict):
+                                        continue
+                                    title = str(
+                                        it.get("title")
+                                        or it.get("name")
+                                        or it.get("id")
+                                        or "Untitled"
+                                    )
+                                    url = (
+                                        it.get("url")
+                                        or it.get("href")
+                                        or it.get("link")
+                                        or it.get("uri")
+                                    )
+                                    if url:
+                                        lines.append(f"- {title} — {url}")
+                                    else:
+                                        lines.append(f"- {title}")
+                            # Optional markdown table for nicer rendering
+                            if want_table and isinstance(items, list) and items:
+                                rows: list[str] = [
+                                    "",
+                                    "| Name | Link |",
+                                    "| --- | --- |",
+                                ]
+                                for it in items[: min(10, limit)]:
+                                    if not isinstance(it, dict):
+                                        continue
+                                    title = str(
+                                        it.get("title")
+                                        or it.get("name")
+                                        or it.get("id")
+                                        or "Untitled"
+                                    ).replace("|", " ")
+                                    url = (
+                                        it.get("url")
+                                        or it.get("href")
+                                        or it.get("link")
+                                        or it.get("uri")
+                                        or ""
+                                    )
+                                    rows.append(f"| {title} | {url} |")
+                                lines.extend(rows)
+                            summary = "\n".join(lines)
+                        except Exception:
+                            summary = f"Search query '{q}' returned results."
+
+                        payload = {
+                            # Text-only content for broad MCP client compatibility
+                            "content": [{"type": "text", "text": summary}],
+                            # Preserve machine-readable items for clients that use result fields
+                            "items": items,
+                        }
+                        return _ok(payload)
+                    except HTTPException as he:
+                        return _err(
+                            int(getattr(he, "status_code", 400) or 400),
+                            "Invalid request",
+                        )
+                    except Exception:
+                        return _err(-32603, "Internal error")
+                else:
+                    # search-semantic: leverage POST /search with analyze=true
+                    try:
+                        body = {"query": q, "limit": limit, "analyze": True}
+                        if profile:
+                            body["profile"] = str(profile)
+                        if profile_file:
+                            body["profile_file"] = str(profile_file)
+                        if include_local:
+                            body["include_local"] = True
+                        if remote_only:
+                            body["remote_only"] = True
+                        if ogc_wms:
+                            body["ogc_wms"] = str(ogc_wms)
+                        if ogc_records:
+                            body["ogc_records"] = str(ogc_records)
+                        if offline:
+                            body["offline"] = True
+                        if https_only:
+                            body["https_only"] = True
+                        res = _post_search(body)
+
+                        # Wrap in MCP text content for IDE visibility (avoid unsupported types)
+                        try:
+                            items = res.get("items") if isinstance(res, dict) else None
+                            n = len(items) if isinstance(items, list) else None
+                            lines: list[str] = [
+                                f"Semantic search for '{q}' returned {n if n is not None else 'some'} item(s).",
+                            ]
+                            if isinstance(items, list) and items:
+                                for it in items[: min(10, limit)]:
+                                    if not isinstance(it, dict):
+                                        continue
+                                    title = str(
+                                        it.get("title")
+                                        or it.get("name")
+                                        or it.get("id")
+                                        or "Untitled"
+                                    )
+                                    url = (
+                                        it.get("url")
+                                        or it.get("href")
+                                        or it.get("link")
+                                        or it.get("uri")
+                                    )
+                                    if url:
+                                        lines.append(f"- {title} — {url}")
+                                    else:
+                                        lines.append(f"- {title}")
+                            # Optional markdown table for nicer rendering
+                            if want_table and isinstance(items, list) and items:
+                                rows: list[str] = [
+                                    "",
+                                    "| Name | Link |",
+                                    "| --- | --- |",
+                                ]
+                                for it in items[: min(10, limit)]:
+                                    if not isinstance(it, dict):
+                                        continue
+                                    title = str(
+                                        it.get("title")
+                                        or it.get("name")
+                                        or it.get("id")
+                                        or "Untitled"
+                                    ).replace("|", " ")
+                                    url = (
+                                        it.get("url")
+                                        or it.get("href")
+                                        or it.get("link")
+                                        or it.get("uri")
+                                        or ""
+                                    )
+                                    rows.append(f"| {title} | {url} |")
+                                lines.extend(rows)
+                            summary = "\n".join(lines)
+                        except Exception:
+                            summary = f"Semantic search for '{q}' returned results."
+
+                        payload: dict[str, Any] = {
+                            # Text-only content for compatibility
+                            "content": [{"type": "text", "text": summary}],
+                        }
+                        if isinstance(res, dict):
+                            # Include original fields for compatibility
+                            for k, v in res.items():
+                                if k == "content":
+                                    continue
+                                payload[k] = v
+                        else:
+                            payload["data"] = res
+                        return _ok(payload)
+                    except HTTPException as he:
+                        return _err(
+                            int(getattr(he, "status_code", 400) or 400),
+                            "Invalid request",
+                        )
+                    except Exception:
+                        return _err(-32603, "Internal error")
+
             if name and (not stage or not command):
                 # Parse name like "stage.tool" or "stage tool"
                 n = str(name)
@@ -167,6 +424,15 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
                     stage, command = n.split(" ", 1)
                 elif ":" in n:
                     stage, command = n.split(":", 1)
+                elif "-" in n:
+                    # Try split on first dash only when the prefix matches a known stage
+                    try:
+                        matrix = get_cli_matrix()
+                        prefix, rest = n.split("-", 1)
+                        if prefix in matrix:
+                            stage, command = prefix, rest
+                    except Exception:
+                        pass
                 else:
                     stage, command = n, n
                 # Prefer MCP 'arguments' over legacy 'args' if provided
@@ -198,8 +464,7 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
             resp = run_cli_endpoint(req_model, bg)
             if getattr(resp, "job_id", None):
                 # Async accepted; provide polling URL to align with progress semantics
-                return _rpc_result(
-                    req.id,
+                return _ok(
                     {
                         "status": "accepted",
                         "job_id": resp.job_id,
@@ -207,13 +472,12 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
                         "ws": f"/ws/jobs/{resp.job_id}",
                         "download": f"/jobs/{resp.job_id}/download",
                         "manifest": f"/jobs/{resp.job_id}/manifest",
-                    },
+                    }
                 )
             # Sync execution result: map failures to JSON-RPC error
             exit_code = getattr(resp, "exit_code", None)
             if isinstance(exit_code, int) and exit_code != 0:
-                out = _rpc_error(
-                    req.id,
+                out = _err(
                     -32000,
                     "Execution failed",
                     {
@@ -227,26 +491,25 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
                 with suppress(Exception):
                     log_mcp_call(method, params, _t0, status="error", error_code=-32000)
                 return out
-            out = _rpc_result(
-                req.id,
+            out = _ok(
                 {
                     "status": "ok",
                     "stdout": getattr(resp, "stdout", None),
                     "stderr": getattr(resp, "stderr", None),
                     "exit_code": exit_code,
-                },
+                }
             )
             with suppress(Exception):
                 log_mcp_call(method, params, _t0, status="ok")
             return out
 
         # Method not found (avoid echoing arbitrary method names verbatim)
-        return _rpc_error(req.id, -32601, "Method not found")
+        return _err(-32601, "Method not found")
     except HTTPException as he:  # Map FastAPI errors to JSON-RPC error
         # Do not leak internal exception details to clients
         code = int(getattr(he, "status_code", 500) or 500)
         msg = "Invalid request" if 400 <= code < 500 else "Server error"
-        out = _rpc_error(req.id, code, msg)
+        out = _err(code, msg)
         with suppress(Exception):
             log_mcp_call(method, params, _t0, status="error", error_code=he.status_code)
         return out
@@ -256,7 +519,7 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
             logging.getLogger("zyra.api.mcp").exception(
                 "Unhandled MCP exception for method %s", method
             )
-        out = _rpc_error(req.id, -32603, "Internal error")
+        out = _err(-32603, "Internal error")
         with suppress(Exception):
             log_mcp_call(method, params, _t0, status="error", error_code=-32603)
         return out
@@ -283,6 +546,68 @@ def _json_type(t: str | None) -> str | None:
     return None
 
 
+def _search_args_schema() -> dict[str, Any]:
+    """Return JSON Schema for MCP search tool arguments.
+
+    Includes standard query/limit plus profile and filtering flags supported by
+    the handlers in tools/call for search-query and search-semantic.
+    """
+    return {
+        "type": "object",
+        "properties": {
+            "query": {"type": "string", "description": "Search query"},
+            "limit": {
+                "type": "integer",
+                "description": "Max results",
+                "minimum": 1,
+                "maximum": 100,
+            },
+            # Presentation
+            "table": {
+                "type": "boolean",
+                "description": "Include a compact markdown table in text content",
+            },
+            # Profiles and configuration
+            "profile": {
+                "type": "string",
+                "description": "Search profile name (e.g., 'default')",
+            },
+            "profile_file": {
+                "type": "string",
+                "description": "Path to a profile JSON file",
+            },
+            # Source selection
+            "include_local": {
+                "type": "boolean",
+                "description": "Include local catalog assets",
+            },
+            "remote_only": {
+                "type": "boolean",
+                "description": "Restrict to remote results only",
+            },
+            # Protocol filters
+            "ogc_wms": {
+                "type": "string",
+                "description": "Restrict to, or prioritize, a specific OGC WMS endpoint",
+            },
+            "ogc_records": {
+                "type": "string",
+                "description": "Restrict to, or prioritize, a specific OGC Records endpoint",
+            },
+            # Network and security
+            "offline": {
+                "type": "boolean",
+                "description": "Avoid network requests (use cache/local only)",
+            },
+            "https_only": {
+                "type": "boolean",
+                "description": "Filter results to HTTPS URLs only",
+            },
+        },
+        "required": ["query"],
+    }
+
+
 def _mcp_discovery_payload(refresh: bool = False) -> dict[str, Any]:
     """Return a spec-compatible MCP discovery payload.
 
@@ -305,7 +630,8 @@ def _mcp_discovery_payload(refresh: bool = False) -> dict[str, Any]:
             stage, tool = full.split(" ", 1)
         except ValueError:
             stage, tool = full, full
-        name = f"{stage}.{tool}"
+        # Normalize name for MCP clients (dashes, not dots)
+        name = f"{stage}-{tool}"
 
         # Build JSON Schema parameters from options + positionals
         properties: dict[str, Any] = {}
@@ -377,6 +703,23 @@ def _mcp_discovery_payload(refresh: bool = False) -> dict[str, Any]:
             }
         )
 
+    # Append MCP-only helpers (search)
+    search_schema = _search_args_schema()
+    commands.append(
+        {
+            "name": "search-query",
+            "description": "Search datasets (standard query)",
+            "parameters": search_schema,
+        }
+    )
+    commands.append(
+        {
+            "name": "search-semantic",
+            "description": "Semantic search (LLM-assisted planning)",
+            "parameters": search_schema,
+        }
+    )
+
     return {
         "mcp_version": "0.1",
         "name": "zyra",
@@ -400,7 +743,9 @@ def _mcp_tools_list(refresh: bool = False) -> list[dict[str, Any]]:
             stage, tool = full.split(" ", 1)
         except ValueError:
             stage, tool = full, full
-        name = f"{stage}.{tool}"
+        # Normalize tool name to MCP-friendly pattern: replace dots with dashes
+        # Example: "process.decode-grib2" -> "process-decode-grib2"
+        name = f"{stage}-{tool}"
 
         # Build JSON Schema parameters from options + positionals
         properties: dict[str, Any] = {}
@@ -465,6 +810,23 @@ def _mcp_tools_list(refresh: bool = False) -> list[dict[str, Any]]:
                 "inputSchema": input_schema,
             }
         )
+
+    # Append MCP-only search tools
+    basic_search_schema = _search_args_schema()
+    tools.append(
+        {
+            "name": "search-query",
+            "description": "Search datasets (standard query)",
+            "inputSchema": basic_search_schema,
+        }
+    )
+    tools.append(
+        {
+            "name": "search-semantic",
+            "description": "Semantic search (LLM-assisted planning)",
+            "inputSchema": basic_search_schema,
+        }
+    )
 
     return tools
 

@@ -362,6 +362,24 @@ def run_cli(stage: str, command: str, args: dict[str, Any]) -> RunResult:
     stdout_cap = _StdCapture()
     stderr_cap = _StdCapture()
     old_out, old_err = sys.stdout, sys.stderr
+    # Establish a stable working directory for relative outputs
+    old_cwd = Path.cwd()
+    try:
+        from zyra.utils.env import env as _env
+
+        base_dir = _env("DATA_DIR") or "_work"
+    except Exception:
+        base_dir = "_work"
+    try:
+        work_dir = Path(base_dir)
+        work_dir.mkdir(parents=True, exist_ok=True)
+        os.chdir(work_dir)
+    except Exception:
+        # Best effort: keep current cwd if we fail to chdir
+        from contextlib import suppress as _suppress
+
+        with _suppress(Exception):
+            pass
     sys.stdout, sys.stderr = stdout_cap, stderr_cap
     try:
         code = 0
@@ -406,6 +424,11 @@ def run_cli(stage: str, command: str, args: dict[str, Any]) -> RunResult:
     finally:
         # Restore stdio
         sys.stdout, sys.stderr = old_out, old_err
+        # Restore working directory
+        from contextlib import suppress as _suppress
+
+        with _suppress(Exception):
+            os.chdir(old_cwd)
 
 
 # In-memory job store (simple, non-persistent)
