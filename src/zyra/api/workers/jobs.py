@@ -520,12 +520,14 @@ def start_job(job_id: str, stage: str, command: str, args: dict[str, Any]) -> No
     code = 0
     # Ensure a stable working directory for job execution
     old_cwd = Path.cwd()
+    # Default defensively; override from env if available
+    base_dir = "_work"
     try:
         from zyra.utils.env import env as _env
 
-        base_dir = _env("DATA_DIR") or "_work"
+        base_dir = _env("DATA_DIR") or base_dir
     except Exception:
-        base_dir = "_work"
+        pass
     try:
         Path(base_dir).mkdir(parents=True, exist_ok=True)
         os.chdir(base_dir)

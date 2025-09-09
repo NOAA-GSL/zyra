@@ -364,12 +364,14 @@ def run_cli(stage: str, command: str, args: dict[str, Any]) -> RunResult:
     old_out, old_err = sys.stdout, sys.stderr
     # Establish a stable working directory for relative outputs
     old_cwd = Path.cwd()
+    # Default defensively; override from env if available
+    base_dir = "_work"
     try:
         from zyra.utils.env import env as _env
 
-        base_dir = _env("DATA_DIR") or "_work"
+        base_dir = _env("DATA_DIR") or base_dir
     except Exception:
-        base_dir = "_work"
+        pass
     try:
         work_dir = Path(base_dir)
         work_dir.mkdir(parents=True, exist_ok=True)

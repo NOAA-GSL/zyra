@@ -129,11 +129,10 @@ async def mcp_ws(
     from zyra.utils.env import env
 
     expected = env("API_KEY")
-    # Determine client IP for throttle
+    # Determine client IP for throttle (best-effort)
+    client_ip = None
     with contextlib.suppress(Exception):
         client_ip = getattr(getattr(websocket, "client", None), "host", None)
-    if "client_ip" not in locals():
-        client_ip = None
     # Require key at handshake if configured
     if expected and not api_key:
         try:
@@ -625,11 +624,10 @@ async def job_progress_ws(
     from zyra.utils.env import env
 
     expected = env("API_KEY")
-    # Determine client IP for basic throttling of failed attempts
+    # Determine client IP for basic throttling of failed attempts (best-effort)
+    client_ip = None
     with contextlib.suppress(Exception):
         client_ip = getattr(getattr(websocket, "client", None), "host", None)
-    if "client_ip" not in locals():
-        client_ip = None
     # Authn: reject missing key at handshake; accept then close for wrong key
     if expected and not api_key:
         # Apply small delay to slow brute-force attempts
