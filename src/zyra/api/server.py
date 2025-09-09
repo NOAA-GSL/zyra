@@ -368,11 +368,13 @@ def create_app() -> FastAPI:
 
         header_name = _html.escape(env("API_KEY_HEADER", "X-API-Key") or "X-API-Key")
         version_text = _html.escape(str(dvh_version))
-        mcp_line = (
-            '<li><a href="/mcp">POST /mcp</a> — MCP (JSON-RPC)</li>'
-            if env_bool("ENABLE_MCP", True)
-            else ""
-        )
+        mcp_line = ""
+        if env_bool("ENABLE_MCP", True):
+            mcp_line = (
+                '<li><a href="/mcp">GET /mcp</a> — MCP discovery</li>'
+                '<li>POST /mcp — MCP JSON-RPC (see <a href="/docs#/%2Fmcp">/docs</a>)</li>'
+                '<li><a href="/ws/mcp">WS /ws/mcp</a> — MCP WebSocket</li>'
+            )
 
         html = f"""
         <!doctype html>

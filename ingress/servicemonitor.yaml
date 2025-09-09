@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: zyra-api
+  namespace: zyra
+  labels:
+    app: zyra-api
+    # Adjust this label to match your Prometheus Operator selector (e.g., kube-prometheus-stack uses `release`)
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames:
+      - zyra
+  selector:
+    matchLabels:
+      app: zyra-api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scheme: http
+

@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zyra-api
+  namespace: zyra
+  labels:
+    app: zyra-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zyra-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  template:
+    metadata:
+      labels:
+        app: zyra-api
+    spec:
+      containers:
+        - name: zyra
+          image: ghcr.io/noaa-gsl/zyra:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: zyra-api-config
+          env:
+            - name: ZYRA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zyra-api-secrets
+                  key: ZYRA_API_KEY
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /v1/ready
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /v1/health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+          resources:
+            limits:
+              cpu: '1'
+              memory: 128Mi
+            requests:
+              cpu: '1'
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /data
+              name: zyra-data
+      dnsPolicy: ClusterFirst
+      imagePullSecrets:
+        - name: ghcr
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: zyra-data
+          persistentVolumeClaim:
+            claimName: zyra-data-pvc

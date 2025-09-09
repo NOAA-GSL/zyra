@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zyra-api-config
+  namespace: zyra
+  labels:
+    app: zyra-api
+data:
+  # Core runtime
+  LOG_LEVEL: "info"
+  DATA_DIR: "/data"
+  # Enable MCP JSON-RPC endpoint
+  ZYRA_ENABLE_MCP: "1"
+  # Optional: tune results cleanup/TTL (seconds)
+  # RESULTS_TTL_SECONDS: "86400"
+  # RESULTS_CLEAN_INTERVAL_SECONDS: "3600"
+

@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1.6
 ARG ZYRA_VERSION=latest
 ARG WITH_WGRIB2=source
-ARG ZYRA_EXTRAS="connectors,processing,visualization"
-ARG ZYRA_EXTRAS_ARM64=""
+ARG ZYRA_EXTRAS="connectors,processing,visualization,api"
+ARG ZYRA_EXTRAS_ARM64="connectors,processing,visualization,api"
 
 # Optional builder for source-built wgrib2 (only built if referenced)
 FROM debian:stable-slim AS wgrib2-builder
@@ -139,5 +139,7 @@ USER appuser
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD zyra --version >/dev/null 2>&1 || exit 1
 
-# General-purpose CLI entrypoint; do not auto-start scheduler or API
-ENTRYPOINT ["zyra"]
+# Default to running the API server (MCP-ready)
+EXPOSE 8000
+ENTRYPOINT ["python", "-m", "uvicorn", "zyra.api.server:app"]
+CMD ["--host", "0.0.0.0", "--port", "8000"]
