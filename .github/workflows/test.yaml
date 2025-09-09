@@ -56,8 +56,13 @@ jobs:
           restore-keys: |
             poetry-${{ runner.os }}-
 
+      - name: Show workspace (pre-install debug)
+        run: |
+          pwd
+          ls -la
+          test -f pyproject.toml && echo "pyproject found" || echo "pyproject missing"
       - name: Install dev dependencies
-        run: poetry install --no-root --with dev
+        run: poetry -C "$GITHUB_WORKSPACE" install --no-root --with dev
 
       - name: Ruff format check
         run: poetry run ruff format --check .
@@ -105,10 +110,15 @@ jobs:
           restore-keys: |
             poetry-${{ runner.os }}-
 
+      - name: Show workspace (pre-install debug)
+        run: |
+          pwd
+          ls -la
+          test -f pyproject.toml && echo "pyproject found" || echo "pyproject missing"
       - name: Install dependencies with Poetry (dev + API extras)
-        run: poetry install --no-root --with dev -E api
+        run: poetry -C "$GITHUB_WORKSPACE" install --no-root --with dev -E api
 
-      - name: Show workspace root (debug)
+      - name: Show workspace root (post-install debug)
         run: |
           pwd
           ls -la
