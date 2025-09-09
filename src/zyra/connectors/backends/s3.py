@@ -62,10 +62,15 @@ def parse_s3_url(url: str) -> tuple[str, str]:
     (e.g., ``s3://bucket`` or ``s3://bucket/``).
     """
     m = _S3_RE.match(url)
-    if not m or not m.group(2):
+    if not m:
         raise ValueError("Invalid s3 URL. Expected s3://bucket/key")
-    bucket = m.group(1)
-    key = m.group(2)
+    # Be defensive about capture groups: compute from groups() to avoid
+    # assumptions if the regex changes.
+    g = m.groups()
+    if len(g) < 2 or not g[1]:
+        raise ValueError("Invalid s3 URL. Expected s3://bucket/key")
+    bucket = g[0]
+    key = g[1]
     return bucket, key
 
 
@@ -79,9 +84,12 @@ def parse_s3_url_optional_key(url: str) -> tuple[str, str | None]:
     m = _S3_RE.match(url)
     if not m:
         raise ValueError("Invalid s3 URL. Expected s3://bucket[/key]")
-    bucket = m.group(1)
-    key = m.group(2)
-    return bucket, (key if key is not None else None)
+    g = m.groups()
+    bucket = g[0] if g else None
+    key = g[1] if len(g) > 1 else None
+    if not bucket:
+        raise ValueError("Invalid s3 URL. Expected s3://bucket[/key]")
+    return bucket, key
 
 
 def fetch_bytes(

@@ -376,9 +376,10 @@ def run_cli(stage: str, command: str, args: dict[str, Any]) -> RunResult:
         os.chdir(work_dir)
     except Exception as e:
         # Best effort: keep current cwd if we fail to chdir; log for visibility
+        # Use base_dir here since work_dir may not be defined if Path(base_dir) failed
         logging.getLogger(__name__).warning(
             "Failed to change working directory to %s; staying in %s: %s",
-            work_dir,
+            base_dir,
             old_cwd,
             e,
         )

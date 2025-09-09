@@ -41,6 +41,73 @@ def _ws_should_send(text: str, allowed: set[str] | None) -> bool:
     return any(k in data for k in allowed)
 
 
+async def _forward_progress_to_ws(
+    websocket: WebSocket, channel: str, job_id: str
+) -> None:
+    """Forward job progress messages on a channel to the MCP WebSocket.
+
+    - Supports both in-memory queue and Redis pub/sub backends.
+    - Formats messages as JSON-RPC notifications: notifications/progress.
+    - Swallows background errors to avoid crashing the WS handler.
+    """
+    try:
+        if not mcp_router.jobs_backend.is_redis_enabled():
+            q = mcp_router.jobs_backend._register_listener(channel)
+            try:
+                while True:
+                    msg = await q.get()
+                    try:
+                        data = json.loads(msg)
+                    except Exception:
+                        continue
+                    notify = {
+                        "jsonrpc": "2.0",
+                        "method": "notifications/progress",
+                        "params": {"job_id": job_id, **data},
+                    }
+                    await websocket.send_text(json.dumps(notify))
+            finally:
+                mcp_router.jobs_backend._unregister_listener(channel, q)
+        else:
+            import redis.asyncio as aioredis  # type: ignore
+
+            r = aioredis.from_url(mcp_router.jobs_backend.redis_url())
+            try:
+                pubsub = r.pubsub()
+                await pubsub.subscribe(channel)
+                async for message in pubsub.listen():
+                    if (message or {}).get("type") != "message":
+                        continue
+                    raw = message.get("data")
+                    text = None
+                    if isinstance(raw, (bytes, bytearray)):
+                        text = raw.decode("utf-8", errors="ignore")
+                    elif isinstance(raw, str):
+                        text = raw
+                    if not text:
+                        continue
+                    try:
+                        data = json.loads(text)
+                    except Exception:
+                        continue
+                    notify = {
+                        "jsonrpc": "2.0",
+                        "method": "notifications/progress",
+                        "params": {"job_id": job_id, **data},
+                    }
+                    await websocket.send_text(json.dumps(notify))
+            finally:
+                with contextlib.suppress(Exception):
+                    await pubsub.unsubscribe(channel)
+                    await pubsub.close()
+                    await r.close()
+    except WebSocketDisconnect:
+        return
+    except Exception:
+        # Swallow background errors; connection may be gone
+        return
+
+
 @router.websocket("/ws/mcp")
 async def mcp_ws(
     websocket: WebSocket,
@@ -180,12 +247,12 @@ async def mcp_ws(
                     mode = params.get("mode") or "sync"
                     # MCP-only search tools
                     if name in {"search-query", "search-semantic"}:
+                        # Accept query from either MCP-shaped "arguments",
+                        # legacy flat params, or optional nested args dict.
                         q = (
                             arguments.get("query")
                             or params.get("query")
                             or args.get("query")
-                            if "args" in locals()
-                            else None
                         )
                         if not isinstance(q, str) or not q.strip():
                             if not is_notification:
@@ -414,80 +481,11 @@ async def mcp_ws(
                             log_mcp_call(method, params, t0, status="ok")
                         # Start progress forwarder for this job_id on MCP WS
                         job_channel = f"jobs.{resp.job_id}.progress"
-
-                        async def _forward_progress(channel: str, job_id: str):
-                            try:
-                                if not mcp_router.jobs_backend.is_redis_enabled():
-                                    q = mcp_router.jobs_backend._register_listener(
-                                        channel
-                                    )
-                                    try:
-                                        while True:
-                                            msg = await q.get()
-                                            try:
-                                                data = json.loads(msg)
-                                            except Exception:
-                                                continue
-                                            notify = {
-                                                "jsonrpc": "2.0",
-                                                "method": "notifications/progress",
-                                                "params": {"job_id": job_id, **data},
-                                            }
-                                            await websocket.send_text(
-                                                json.dumps(notify)
-                                            )
-                                    finally:
-                                        mcp_router.jobs_backend._unregister_listener(
-                                            channel, q
-                                        )
-                                else:
-                                    import redis.asyncio as aioredis  # type: ignore
-
-                                    r = aioredis.from_url(
-                                        mcp_router.jobs_backend.redis_url()
-                                    )
-                                    try:
-                                        pubsub = r.pubsub()
-                                        await pubsub.subscribe(channel)
-                                        async for message in pubsub.listen():
-                                            if (message or {}).get("type") != "message":
-                                                continue
-                                            raw = message.get("data")
-                                            text = None
-                                            if isinstance(raw, (bytes, bytearray)):
-                                                text = raw.decode(
-                                                    "utf-8", errors="ignore"
-                                                )
-                                            elif isinstance(raw, str):
-                                                text = raw
-                                            if not text:
-                                                continue
-                                            try:
-                                                data = json.loads(text)
-                                            except Exception:
-                                                continue
-                                            notify = {
-                                                "jsonrpc": "2.0",
-                                                "method": "notifications/progress",
-                                                "params": {"job_id": job_id, **data},
-                                            }
-                                            await websocket.send_text(
-                                                json.dumps(notify)
-                                            )
-                                    finally:
-                                        with contextlib.suppress(Exception):
-                                            await pubsub.unsubscribe(channel)
-                                            await pubsub.close()
-                                            await r.close()
-                            except WebSocketDisconnect:
-                                return
-                            except Exception:
-                                # Swallow background errors; connection may be gone
-                                return
-
                         progress_tasks.append(
                             asyncio.create_task(
-                                _forward_progress(job_channel, str(resp.job_id))
+                                _forward_progress_to_ws(
+                                    websocket, job_channel, str(resp.job_id)
+                                )
                             )
                         )
                         # Start the job in in-memory mode. BackgroundTasks is
