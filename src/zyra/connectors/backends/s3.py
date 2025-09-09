@@ -54,13 +54,27 @@ def _require_boto3() -> None:
         )
 
 
-def parse_s3_url(url: str) -> tuple[str, str | None]:
-    """Parse an S3 URL into (bucket, key).
+def parse_s3_url(url: str) -> tuple[str, str]:
+    """Parse an S3 URL into ``(bucket, key)`` with a required key.
+
+    Backward compatible with earlier versions that always returned a non-empty
+    key. Raises ``ValueError`` if the URL does not include a key
+    (e.g., ``s3://bucket`` or ``s3://bucket/``).
+    """
+    m = _S3_RE.match(url)
+    if not m or not m.group(2):
+        raise ValueError("Invalid s3 URL. Expected s3://bucket/key")
+    bucket = m.group(1)
+    key = m.group(2)
+    return bucket, key
+
+
+def parse_s3_url_optional_key(url: str) -> tuple[str, str | None]:
+    """Parse an S3 URL into ``(bucket, key_or_none)``.
 
     - Returns ``(bucket, None)`` when the URL points to the bucket root (e.g.,
-      ``s3://bucket`` or ``s3://bucket/``). This is valid for list operations.
-    - For object operations (get/head/delete), callers must validate that a
-      non-empty key is provided and raise a clear error otherwise.
+      ``s3://bucket`` or ``s3://bucket/``). Useful for list/prefix operations.
+    - For object operations, prefer ``parse_s3_url`` which requires a key.
     """
     m = _S3_RE.match(url)
     if not m:
@@ -146,7 +160,7 @@ def list_files(
     date filtering via ``since``/``until`` with ``date_format``.
     """
     if prefix_or_url and prefix_or_url.startswith("s3://"):
-        bucket, prefix = parse_s3_url(prefix_or_url)
+        bucket, prefix = parse_s3_url_optional_key(prefix_or_url)
     else:
         # When bucket not provided via URL, require env/role defaults; prefix may be None
         bucket = prefix_or_url or ""

@@ -374,12 +374,14 @@ def run_cli(stage: str, command: str, args: dict[str, Any]) -> RunResult:
         work_dir = Path(base_dir)
         work_dir.mkdir(parents=True, exist_ok=True)
         os.chdir(work_dir)
-    except Exception:
-        # Best effort: keep current cwd if we fail to chdir
-        from contextlib import suppress as _suppress
-
-        with _suppress(Exception):
-            pass
+    except Exception as e:
+        # Best effort: keep current cwd if we fail to chdir; log for visibility
+        logging.getLogger(__name__).warning(
+            "Failed to change working directory to %s; staying in %s: %s",
+            work_dir,
+            old_cwd,
+            e,
+        )
     sys.stdout, sys.stderr = stdout_cap, stderr_cap
     try:
         code = 0

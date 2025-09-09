@@ -92,6 +92,9 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
                 "Failed to parse MCP_MAX_BODY_BYTES: %s", exc
             )
         max_bytes = 0
+    # Cache id early to avoid implicit outer-scope dependencies in helpers
+    id_val = req.id
+
     if max_bytes and max_bytes > 0:
         try:
             cl = int(request.headers.get("content-length") or 0)
@@ -99,13 +102,13 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
             cl = 0
         if cl and cl > max_bytes:
             return _rpc_error(
-                req.id,
+                id_val,
                 -32001,
                 f"Request too large: {cl} bytes (limit {max_bytes})",
             )
 
     if req.jsonrpc != "2.0":  # Basic protocol check
-        return _rpc_error(req.id, -32600, "Invalid Request: jsonrpc must be '2.0'")
+        return _rpc_error(id_val, -32600, "Invalid Request: jsonrpc must be '2.0'")
 
     method = (req.method or "").strip()
     params = req.params or {}
@@ -114,19 +117,20 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
 
     _t0 = _time.time()
 
-    # Helpers to respect JSON-RPC notifications (no response when id is None)
+    # Helpers to respect JSON-RPC notifications (no response when id is None).
+    # Explicitly capture id_val (not the req model) to limit implicit deps.
     def _ok(payload: Any) -> Any:
         return (
             Response(status_code=204)
-            if req.id is None
-            else _rpc_result(req.id, payload)
+            if id_val is None
+            else _rpc_result(id_val, payload)
         )
 
     def _err(code: int, message: str, data: Any | None = None) -> Any:
         return (
             Response(status_code=204)
-            if req.id is None
-            else _rpc_error(req.id, code, message, data)
+            if id_val is None
+            else _rpc_error(id_val, code, message, data)
         )
 
     try:
