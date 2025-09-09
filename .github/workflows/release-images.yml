@@ -17,9 +17,9 @@ on:
         required: false
         default: linux/amd64,linux/arm64
       zyra_extras_arm64:
-        description: Extras to use on arm64 for zyra (include 'api' to enable server default)
+        description: Extras to use on arm64 for zyra (omit 'processing' to skip pygrib; keep 'api' to run the server)
         required: false
-        default: connectors,processing,visualization,api
+        default: connectors,visualization,api
 
 permissions:
   contents: read
