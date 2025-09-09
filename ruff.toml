@@ -1,0 +1,39 @@
+# For a list of available rules, see: https://docs.astral.sh/ruff/rules/
+select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "UP", # pyupgrade
+    "I", # isort
+    "PTH", # flake8-use-pathlib
+    "PT", # flake8-pytest-style
+    "B", # bugbear
+    "SIM", # flake8-simplify
+]
+
+ignore = [
+    "E501", # Supress line-too-long warnings: trust the formatter's judgement on this one.
+    "W505", # Supress line-too-long warnings: trust the formatter's judgement on this one.
+]
+
+[per-file-ignores]
+# Tests: relax pytest-style and pathlib/style constraints
+"tests/**/*.py" = [
+    "PT",
+    "PTH",
+    "SIM105",
+    "SIM115",
+    "SIM117",
+    "B011",
+    "B017",
+    "F841",
+]
+# Visualization modules: relax modernization and minor style requirements
+"src/zyra/visualization/**/*.py" = [
+    "UP007",
+    "SIM105",
+    "PTH123",
+    "F841",
+]
+# Optional ImageManager re-export
+"src/zyra/utils/__init__.py" = ["F401"]

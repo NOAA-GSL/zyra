@@ -61,8 +61,21 @@ jobs:
           pwd
           ls -la
           test -f pyproject.toml && echo "pyproject found" || echo "pyproject missing"
+      - name: Detect project directory
+        id: detect
+        run: |
+          set -euo pipefail
+          # Find the first pyproject.toml in the workspace
+          FILE=$(git ls-files "**/pyproject.toml" | head -n1 || true)
+          if [ -z "${FILE}" ]; then
+            echo "No pyproject.toml found in repository" >&2
+            exit 1
+          fi
+          DIR=$(dirname "$FILE")
+          echo "Project directory: $DIR"
+          echo "proj_dir=$DIR" >> "$GITHUB_OUTPUT"
       - name: Install dev dependencies
-        run: poetry -C "$GITHUB_WORKSPACE" install --no-root --with dev
+        run: poetry -C "${{ steps.detect.outputs.proj_dir }}" install --no-root --with dev
 
       - name: Ruff format check
         run: poetry run ruff format --check .
@@ -115,8 +128,20 @@ jobs:
           pwd
           ls -la
           test -f pyproject.toml && echo "pyproject found" || echo "pyproject missing"
+      - name: Detect project directory
+        id: detect
+        run: |
+          set -euo pipefail
+          FILE=$(git ls-files "**/pyproject.toml" | head -n1 || true)
+          if [ -z "${FILE}" ]; then
+            echo "No pyproject.toml found in repository" >&2
+            exit 1
+          fi
+          DIR=$(dirname "$FILE")
+          echo "Project directory: $DIR"
+          echo "proj_dir=$DIR" >> "$GITHUB_OUTPUT"
       - name: Install dependencies with Poetry (dev + API extras)
-        run: poetry -C "$GITHUB_WORKSPACE" install --no-root --with dev -E api
+        run: poetry -C "${{ steps.detect.outputs.proj_dir }}" install --no-root --with dev -E api
 
       - name: Show workspace root (post-install debug)
         run: |
