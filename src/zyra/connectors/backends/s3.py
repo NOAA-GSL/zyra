@@ -86,7 +86,8 @@ def parse_s3_url_optional_key(url: str) -> tuple[str, str | None]:
     if not m:
         raise ValueError("Invalid s3 URL. Expected s3://bucket[/key]")
     g = m.groups()
-    bucket = g[0] if g else None
+    # Regex ensures at least the bucket group is present when matched
+    bucket = g[0]
     key = g[1] if len(g) > 1 else None
     if not bucket:
         raise ValueError("Invalid s3 URL. Expected s3://bucket[/key]")
