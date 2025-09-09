@@ -36,7 +36,9 @@ from zyra.utils.grib import (
     parse_idx_lines,
 )
 
-_S3_RE = re.compile(r"^s3://([^/]+)/(.+)$")
+# Accept bucket-only (for listing) or bucket+key URLs.
+# Examples: s3://my-bucket, s3://my-bucket/, s3://my-bucket/path/to/object
+_S3_RE = re.compile(r"^s3://([^/]+)(?:/(.*))?$")
 
 
 def _require_boto3() -> None:
@@ -53,10 +55,43 @@ def _require_boto3() -> None:
 
 
 def parse_s3_url(url: str) -> tuple[str, str]:
+    """Parse an S3 URL into ``(bucket, key)`` with a required key.
+
+    Backward compatible with earlier versions that always returned a non-empty
+    key. Raises ``ValueError`` if the URL does not include a key
+    (e.g., ``s3://bucket`` or ``s3://bucket/``).
+    """
     m = _S3_RE.match(url)
     if not m:
         raise ValueError("Invalid s3 URL. Expected s3://bucket/key")
-    return m.group(1), m.group(2)
+    # Be defensive about capture groups: compute from groups() to avoid
+    # assumptions if the regex changes.
+    g = m.groups()
+    # Require a non-empty, non-whitespace key for strict object operations
+    if len(g) < 2 or not (g[1] and str(g[1]).strip()):
+        raise ValueError("Invalid s3 URL. Expected s3://bucket/key")
+    bucket = g[0]
+    key = g[1]
+    return bucket, key
+
+
+def parse_s3_url_optional_key(url: str) -> tuple[str, str | None]:
+    """Parse an S3 URL into ``(bucket, key_or_none)``.
+
+    - Returns ``(bucket, None)`` when the URL points to the bucket root (e.g.,
+      ``s3://bucket`` or ``s3://bucket/``). Useful for list/prefix operations.
+    - For object operations, prefer ``parse_s3_url`` which requires a key.
+    """
+    m = _S3_RE.match(url)
+    if not m:
+        raise ValueError("Invalid s3 URL. Expected s3://bucket[/key]")
+    g = m.groups()
+    # Regex ensures at least the bucket group is present when matched
+    bucket = g[0]
+    key = g[1] if len(g) > 1 else None
+    if not bucket:
+        raise ValueError("Invalid s3 URL. Expected s3://bucket[/key]")
+    return bucket, key
 
 
 def fetch_bytes(
@@ -70,6 +105,8 @@ def fetch_bytes(
         bucket, key = parse_s3_url(url_or_bucket)
     else:
         bucket = url_or_bucket
+    if not key:
+        raise ValueError("Missing key in s3 URL (expected s3://bucket/key)")
     _require_boto3()
     if unsigned:
         # Import botocore lazily to avoid import-time failure when optional.
@@ -99,6 +136,8 @@ def upload_bytes(data: bytes, url_or_bucket: str, key: str | None = None) -> boo
         bucket, key = parse_s3_url(url_or_bucket)
     else:
         bucket = url_or_bucket
+    if not key:
+        raise ValueError("Missing key in s3 URL (expected s3://bucket/key)")
     _require_boto3()
     c = boto3.client("s3")  # type: ignore[union-attr]
     # Set Content-Type for JSON keys
@@ -131,7 +170,7 @@ def list_files(
     date filtering via ``since``/``until`` with ``date_format``.
     """
     if prefix_or_url and prefix_or_url.startswith("s3://"):
-        bucket, prefix = parse_s3_url(prefix_or_url)
+        bucket, prefix = parse_s3_url_optional_key(prefix_or_url)
     else:
         # When bucket not provided via URL, require env/role defaults; prefix may be None
         bucket = prefix_or_url or ""
@@ -166,6 +205,8 @@ def exists(url_or_bucket: str, key: str | None = None) -> bool:
         bucket, key = parse_s3_url(url_or_bucket)
     else:
         bucket = url_or_bucket
+    if not key:
+        raise ValueError("Missing key in s3 URL (expected s3://bucket/key)")
     _require_boto3()
     c = boto3.client("s3")  # type: ignore[union-attr]
     try:
@@ -184,6 +225,8 @@ def delete(url_or_bucket: str, key: str | None = None) -> bool:
         bucket, key = parse_s3_url(url_or_bucket)
     else:
         bucket = url_or_bucket
+    if not key:
+        raise ValueError("Missing key in s3 URL (expected s3://bucket/key)")
     _require_boto3()
     c = boto3.client("s3")  # type: ignore[union-attr]
     c.delete_object(Bucket=bucket, Key=key)  # type: ignore[arg-type]
@@ -196,6 +239,8 @@ def stat(url_or_bucket: str, key: str | None = None):
         bucket, key = parse_s3_url(url_or_bucket)
     else:
         bucket = url_or_bucket
+    if not key:
+        raise ValueError("Missing key in s3 URL (expected s3://bucket/key)")
     _require_boto3()
     c = boto3.client("s3")  # type: ignore[union-attr]
     try:
@@ -215,6 +260,8 @@ def get_size(url_or_bucket: str, key: str | None = None) -> int | None:
         bucket, key = parse_s3_url(url_or_bucket)
     else:
         bucket = url_or_bucket
+    if not key:
+        raise ValueError("Missing key in s3 URL (expected s3://bucket/key)")
     c = boto3.client("s3")
     try:
         resp = c.head_object(Bucket=bucket, Key=key)  # type: ignore[arg-type]

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zyra-data-pvc
+  namespace: zyra
+  labels:
+    app: zyra-api
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  # storageClassName: <your-storage-class>  # Uncomment and set if your cluster doesn't have a default StorageClass
+

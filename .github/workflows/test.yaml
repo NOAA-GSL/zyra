@@ -17,6 +17,9 @@ jobs:
     name: Lint (ruff)
     continue-on-error: true
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -53,8 +56,25 @@ jobs:
           restore-keys: |
             poetry-${{ runner.os }}-
 
+      - name: Show workspace (pre-install debug)
+        run: |
+          pwd
+          ls -la
+          test -f pyproject.toml && echo "pyproject found" || echo "pyproject missing"
       - name: Install dev dependencies
-        run: poetry install --no-root --with dev
+        run: |
+          set -euo pipefail
+          if [ -f pyproject.toml ]; then
+            DIR="."
+          else
+            DIR=$(dirname "$(find "$GITHUB_WORKSPACE" -name pyproject.toml -print -quit || true)")
+          fi
+          if [ -z "$DIR" ] || [ ! -f "$DIR/pyproject.toml" ]; then
+            echo "No pyproject.toml found in repository" >&2
+            exit 1
+          fi
+          echo "Using project directory: $DIR"
+          poetry -C "$DIR" install --no-root --with dev
 
       - name: Ruff format check
         run: poetry run ruff format --check .
@@ -65,8 +85,13 @@ jobs:
   test:
     name: Test with Coverage
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
     env:
       PYTHONPATH: src
+      ZYRA_USE_REDIS: 0
+      AUTH_FAIL_DELAY_MS: 0
       # Seed stdin for pipeline tests that read from '-' when CI does not pipe input
       DATAVIZHUB_DEFAULT_STDIN: tests/testdata/demo.nc
       # Verbose logs across all commands to surface subprocess errors in CI
@@ -97,8 +122,30 @@ jobs:
           restore-keys: |
             poetry-${{ runner.os }}-
 
+      - name: Show workspace (pre-install debug)
+        run: |
+          pwd
+          ls -la
+          test -f pyproject.toml && echo "pyproject found" || echo "pyproject missing"
       - name: Install dependencies with Poetry (dev + API extras)
-        run: poetry install --no-root --with dev -E api
+        run: |
+          set -euo pipefail
+          if [ -f pyproject.toml ]; then
+            DIR="."
+          else
+            DIR=$(dirname "$(find "$GITHUB_WORKSPACE" -name pyproject.toml -print -quit || true)")
+          fi
+          if [ -z "$DIR" ] || [ ! -f "$DIR/pyproject.toml" ]; then
+            echo "No pyproject.toml found in repository" >&2
+            exit 1
+          fi
+          echo "Using project directory: $DIR"
+          poetry -C "$DIR" install --no-root --with dev -E api
+
+      - name: Show workspace root (post-install debug)
+        run: |
+          pwd
+          ls -la
 
       - name: Run tests with coverage (no capture)
         run: |
@@ -110,6 +157,7 @@ jobs:
           # is covered by other tests. We'll re-enable once we've isolated the
           # environment-specific behavior in a dedicated CI job.
           poetry run pytest --cov=src --cov-branch --cov-report=xml --cov-report=term-missing -s \
+            --timeout=5 --timeout-method=thread --durations=25 \
             --ignore tests/workflow/test_parallel_dag.py
 
       - name: Upload coverage report

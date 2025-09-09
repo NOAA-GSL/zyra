@@ -1041,13 +1041,14 @@
     "positionals": [],
     "domain": "visualize",
     "args_schema": {
-      "required": [],
+      "required": [
+        "output"
+      ],
       "optional": [
         "filled",
         "input",
         "inputs",
         "levels",
-        "output",
         "output_dir"
       ]
     },
