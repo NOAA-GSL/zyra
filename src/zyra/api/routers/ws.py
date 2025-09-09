@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import json
 import secrets
+from typing import Any
 
 from fastapi import (
     APIRouter,
@@ -42,7 +43,7 @@ def _ws_should_send(text: str, allowed: set[str] | None) -> bool:
 
 
 async def _forward_progress_to_ws(
-    websocket: WebSocket, channel: str, job_id: str
+    websocket: WebSocket, channel: str, job_id: str, jobs_backend: Any | None = None
 ) -> None:
     """Forward job progress messages on a channel to the MCP WebSocket.
 
@@ -50,9 +51,13 @@ async def _forward_progress_to_ws(
     - Formats messages as JSON-RPC notifications: notifications/progress.
     - Swallows background errors to avoid crashing the WS handler.
     """
+    # Allow dependency injection of the jobs backend to reduce coupling and
+    # improve testability. Default to the shared backend if not provided.
+    if jobs_backend is None:
+        jobs_backend = mcp_router.jobs_backend
     try:
-        if not mcp_router.jobs_backend.is_redis_enabled():
-            q = mcp_router.jobs_backend._register_listener(channel)
+        if not jobs_backend.is_redis_enabled():
+            q = jobs_backend._register_listener(channel)
             try:
                 while True:
                     msg = await q.get()
@@ -67,11 +72,11 @@ async def _forward_progress_to_ws(
                     }
                     await websocket.send_text(json.dumps(notify))
             finally:
-                mcp_router.jobs_backend._unregister_listener(channel, q)
+                jobs_backend._unregister_listener(channel, q)
         else:
             import redis.asyncio as aioredis  # type: ignore
 
-            r = aioredis.from_url(mcp_router.jobs_backend.redis_url())
+            r = aioredis.from_url(jobs_backend.redis_url())
             try:
                 pubsub = r.pubsub()
                 await pubsub.subscribe(channel)
@@ -481,22 +486,27 @@ async def mcp_ws(
                             log_mcp_call(method, params, t0, status="ok")
                         # Start progress forwarder for this job_id on MCP WS
                         job_channel = f"jobs.{resp.job_id}.progress"
+                        # Resolve jobs backend once for DI/testability
+                        jb = mcp_router.jobs_backend
                         progress_tasks.append(
                             asyncio.create_task(
                                 _forward_progress_to_ws(
-                                    websocket, job_channel, str(resp.job_id)
+                                    websocket,
+                                    job_channel,
+                                    str(resp.job_id),
+                                    jobs_backend=jb,
                                 )
                             )
                         )
                         # Start the job in in-memory mode. BackgroundTasks is
                         # only executed for HTTP responses, so explicitly
                         # launch the job coroutine here for WS flows.
-                        if not mcp_router.jobs_backend.is_redis_enabled():
+                        if not jb.is_redis_enabled():
                             # Run synchronous start_job in a thread to avoid blocking the event loop
                             progress_tasks.append(
                                 asyncio.create_task(
                                     asyncio.to_thread(
-                                        mcp_router.jobs_backend.start_job,
+                                        jb.start_job,
                                         str(resp.job_id),
                                         str(stage),
                                         str(command),

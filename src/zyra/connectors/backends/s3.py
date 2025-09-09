@@ -67,7 +67,8 @@ def parse_s3_url(url: str) -> tuple[str, str]:
     # Be defensive about capture groups: compute from groups() to avoid
     # assumptions if the regex changes.
     g = m.groups()
-    if len(g) < 2 or not g[1]:
+    # Require a non-empty, non-whitespace key for strict object operations
+    if len(g) < 2 or not (g[1] and str(g[1]).strip()):
         raise ValueError("Invalid s3 URL. Expected s3://bucket/key")
     bucket = g[0]
     key = g[1]

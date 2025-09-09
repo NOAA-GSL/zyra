@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import io
 import json
+import logging
 import os
 import re
 import shutil
@@ -528,8 +529,13 @@ def start_job(job_id: str, stage: str, command: str, args: dict[str, Any]) -> No
     try:
         Path(base_dir).mkdir(parents=True, exist_ok=True)
         os.chdir(base_dir)
-    except Exception:
-        pass
+    except Exception as e:
+        logging.getLogger(__name__).warning(
+            "start_job: failed to prepare work dir %s; staying in %s: %s",
+            base_dir,
+            old_cwd,
+            e,
+        )
     try:
         try:
             from zyra.cli import main as cli_main
@@ -593,7 +599,12 @@ def start_job(job_id: str, stage: str, command: str, args: dict[str, Any]) -> No
         # Write manifest listing all artifacts
         with contextlib.suppress(Exception):
             write_manifest(job_id)
-    except Exception:
+    except Exception as e:
+        logging.getLogger(__name__).warning(
+            "start_job: failed to persist output artifacts for job %s: %s",
+            job_id,
+            e,
+        )
         rec["output_file"] = None
     payload = {
         "stdout": rec["stdout"],
