@@ -812,6 +812,20 @@ def main(argv: list[str] | None = None) -> int:
         )
         dis_sub = p_disseminate.add_subparsers(dest="disseminate_cmd", required=True)
         _egress_mod.register_cli(dis_sub)
+        # Legacy alias top-level: decimate → disseminate
+        p_dec_alias = sub.add_parser("decimate", help=argparse.SUPPRESS)
+        dec_alias_sub = p_dec_alias.add_subparsers(dest="disseminate_cmd", required=True)
+        _egress_mod.register_cli(dec_alias_sub)
+    elif first_non_flag == "decimate":
+        # Legacy top-level alias retained for back-compat
+        from zyra.connectors import egress as _egress_mod
+
+        p_dec = sub.add_parser(
+            "decimate",
+            help="[deprecated] Write/egress data (use 'disseminate' or 'export')",
+        )
+        dec_sub = p_dec.add_subparsers(dest="decimate_cmd", required=True)
+        _egress_mod.register_cli(dec_sub)
         # Alias top-level: disseminate/export → decimate
         p_disseminate = sub.add_parser("disseminate", help=argparse.SUPPRESS)
         dis_sub = p_disseminate.add_subparsers(dest="decimate_cmd", required=True)
@@ -949,7 +963,9 @@ def main(argv: list[str] | None = None) -> int:
         exp_sub = p_export.add_subparsers(dest="disseminate_cmd", required=True)
         _egress_mod.register_cli(exp_sub)
         p_dec_alias = sub.add_parser("decimate", help=argparse.SUPPRESS)
-        dec_alias_sub = p_dec_alias.add_subparsers(dest="disseminate_cmd", required=True)
+        dec_alias_sub = p_dec_alias.add_subparsers(
+            dest="disseminate_cmd", required=True
+        )
         _egress_mod.register_cli(dec_alias_sub)
 
         p_tr = sub.add_parser("transform", help="Transform helpers (metadata, etc.)")
