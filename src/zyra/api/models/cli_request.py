@@ -6,7 +6,23 @@ from pydantic import BaseModel, Field
 
 
 class CLIRunRequest(BaseModel):
-    stage: Literal["acquire", "process", "visualize", "decimate", "run"]
+    stage: Literal[
+        "acquire",
+        "import",
+        "process",
+        "transform",
+        "visualize",
+        "render",
+        "decimate",
+        "disseminate",
+        "export",
+        "simulate",
+        "decide",
+        "optimize",
+        "narrate",
+        "verify",
+        "run",
+    ]
     command: str = Field(..., description="Subcommand within the selected stage")
     args: dict[str, Any] = Field(
         default_factory=dict, description="Command arguments as key/value pairs"

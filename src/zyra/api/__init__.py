@@ -1,4 +1,4 @@
-"""FastAPI service exposing the 4-stage Zyra CLI.
+"""FastAPI service exposing the Zyra CLI (8-stage hierarchy).
 
 This package provides a lightweight web API to run CLI commands in-process
 with captured stdout/stderr and exit codes, optionally as background jobs.

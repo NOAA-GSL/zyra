@@ -24,9 +24,13 @@ from zyra.api import __version__ as dvh_version
 from zyra.api.routers import cli as cli_router
 from zyra.api.routers import domain_acquire as acquire_router
 from zyra.api.routers import domain_assets as assets_router
-from zyra.api.routers import domain_decimate as decimate_router
+from zyra.api.routers import domain_decide as decide_router
+from zyra.api.routers import domain_disseminate as disseminate_router
+from zyra.api.routers import domain_narrate as narrate_router
 from zyra.api.routers import domain_process as process_router
+from zyra.api.routers import domain_simulate as simulate_router
 from zyra.api.routers import domain_transform as transform_router
+from zyra.api.routers import domain_verify as verify_router
 from zyra.api.routers import domain_visualize as visualize_router
 from zyra.api.routers import files as files_router
 from zyra.api.routers import jobs as jobs_router
@@ -83,10 +87,19 @@ def create_app() -> FastAPI:
         norm = _re.sub(r"^/v\d+", "", path)
         domain_paths = {
             "/acquire",
+            "/import",
             "/transform",
             "/process",
             "/visualize",
+            "/render",
             "/decimate",
+            "/export",
+            "/disseminate",
+            "/decide",
+            "/optimize",
+            "/simulate",
+            "/narrate",
+            "/verify",
             "/assets",
         }
         if norm in domain_paths:
@@ -140,8 +153,12 @@ def create_app() -> FastAPI:
     _inc(process_router.router)
     _inc(visualize_router.router)
     _inc(assets_router.router)
-    _inc(decimate_router.router)
+    _inc(disseminate_router.router)
     _inc(acquire_router.router)
+    _inc(decide_router.router)
+    _inc(simulate_router.router)
+    _inc(narrate_router.router)
+    _inc(verify_router.router)
     _inc(transform_router.router)
     # MCP adapter (feature gate)
     if env_bool("ENABLE_MCP", True):
@@ -418,6 +435,8 @@ def create_app() -> FastAPI:
               <li><a href=\"/jobs/{{job_id}}/download\">GET /jobs/{{job_id}}/download</a> — download</li>
               <li>POST /upload — multipart upload (try in <a href=\"/docs#/%2Fupload\">/docs</a>)</li>
             </ul>
+            <h2>Nomenclature</h2>
+            <p class=\"muted\">Egress is now referred to as <code>export</code>/<code>disseminate</code>. The legacy name <code>decimate</code> remains supported across CLI, API, and MCP, but is deprecated.</p>
             <h2>Auth</h2>
             <p class=\"muted\">If <code>ZYRA_API_KEY</code> (or legacy <code>DATAVIZHUB_API_KEY</code>) is set, include <code>{header_name}</code> in requests. WebSockets use <code>?api_key=</code>.</p>
           </body>

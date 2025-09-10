@@ -84,8 +84,12 @@ def _extract_parser_schema(p: argparse.ArgumentParser) -> list[dict[str, Any]]:
 def _compute_cli_matrix() -> dict[str, Any]:
     import zyra.connectors.egress as egress
     import zyra.connectors.ingest as ingest
+    import zyra.decide as decide
+    import zyra.narrate as narrate
     import zyra.processing as processing
+    import zyra.simulate as simulate
     import zyra.transform as transform
+    import zyra.verify as verify
     import zyra.visualization as visualization
 
     def parsers_from_register(register_fn) -> dict[str, argparse.ArgumentParser]:
@@ -167,20 +171,50 @@ def _compute_cli_matrix() -> dict[str, Any]:
                 m["example"] = example
         return schema_list
 
-    for stage, reg in (
-        ("acquire", ingest.register_cli),
-        ("process", processing.register_cli),
-        ("visualize", visualization.register_cli),
-        ("decimate", egress.register_cli),
-        ("transform", transform.register_cli),
-    ):
-        parsers = parsers_from_register(reg)
+    # Canonical groups
+    canonical_groups: list[tuple[str, dict[str, argparse.ArgumentParser]] | tuple[str, Any]] = []
+    # acquire
+    canonical_groups.append(("acquire", parsers_from_register(ingest.register_cli)))
+    # process: combine processing + transform under one group
+    try:
+        parser = argparse.ArgumentParser(prog="zyra")
+        sub = parser.add_subparsers(dest="sub")
+        processing.register_cli(sub)
+        transform.register_cli(sub)
+        parsers: dict[str, argparse.ArgumentParser] = dict(getattr(sub, "choices", {}))  # type: ignore[attr-defined]
+    except Exception:
+        parsers = parsers_from_register(processing.register_cli)
+    canonical_groups.append(("process", parsers))
+    # visualize
+    canonical_groups.append(("visualize", parsers_from_register(visualization.register_cli)))
+    # decimate (canonical for export/disseminate)
+    canonical_groups.append(("decimate", parsers_from_register(egress.register_cli)))
+    # new groups
+    canonical_groups.append(("simulate", parsers_from_register(simulate.register_cli)))
+    canonical_groups.append(("decide", parsers_from_register(decide.register_cli)))
+    canonical_groups.append(("narrate", parsers_from_register(narrate.register_cli)))
+    canonical_groups.append(("verify", parsers_from_register(verify.register_cli)))
+
+    for stage, parsers in canonical_groups:
         cmds = sorted(list(parsers.keys()))
         schema = {
             name: _with_examples(stage, name, _extract_parser_schema(parsers[name]))
             for name in cmds
         }
         result[stage] = {"commands": cmds, "schema": schema}
+
+    # Alias groups: map to canonical parsers
+    def _alias(from_stage: str, to_stage: str) -> None:
+        if to_stage not in result:
+            return
+        result[from_stage] = result[to_stage]
+
+    _alias("import", "acquire")
+    _alias("render", "visualize")
+    _alias("export", "decimate")
+    _alias("disseminate", "decimate")
+    _alias("transform", "process")  # legacy alias
+    _alias("optimize", "decide")
 
     # Top-level 'run'
     from zyra.pipeline_runner import register_cli_run as _register_run
@@ -311,13 +345,13 @@ def list_cli_examples() -> dict[str, Any]:
         }
     )
 
-    # 5) Decimate: upload a local file to S3 (one-off)
+    # 5) Export: upload a local file to S3 (one-off)
     examples.append(
         {
             "name": "decimate_to_s3",
-            "description": "Upload a local file to S3 using the decimate s3 command.",
+            "description": "Upload a local file to S3 using the export/disseminate s3 command.",
             "request": {
-                "stage": "decimate",
+                "stage": "export",
                 "command": "s3",
                 "mode": "sync",
                 "args": {
@@ -471,7 +505,7 @@ def list_cli_examples() -> dict[str, Any]:
                                 },
                             },
                         },
-                        "Decimate to S3": {
+                        "Export to S3": {
                             "summary": "Upload a local file to S3",
                             "value": {
                                 "stage": "decimate",

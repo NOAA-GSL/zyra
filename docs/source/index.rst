@@ -48,6 +48,7 @@ Contents
    :caption: Guides
 
    discovery
+   stages_overview
    domain_apis
    mcp
 

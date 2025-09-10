@@ -5,4 +5,21 @@ repos:
       - id: ruff-format
       - id: ruff
         args: ["--fix", "--exit-non-zero-on-fix"]
-
+  - repo: local
+    hooks:
+      - id: zyra-generate-manifest
+        name: Regenerate Zyra CLI capabilities manifest
+        entry: poetry run zyra generate-manifest
+        language: system
+        pass_filenames: false
+        stages: [commit]
+        files: ^src/zyra/(cli\.py|wizard/manifest\.py|api/services/manifest\.py|visualization/cli_register\.py|processing/__init__\.py|transform/__init__\.py|connectors/(ingest|egress|discovery)/__init__\.py)$
+  - repo: local
+    hooks:
+      - id: zyra-update-openapi-snapshots
+        name: Update OpenAPI snapshot (paths + SHA256)
+        entry: bash scripts/update_openapi_snapshot.sh
+        language: system
+        pass_filenames: false
+        stages: [commit]
+        files: ^(src/zyra/api/(routers/.+|server\.py|models/.+|schemas/.+)\.py|scripts/(dump_openapi\.py|update_openapi_snapshot\.sh))$
