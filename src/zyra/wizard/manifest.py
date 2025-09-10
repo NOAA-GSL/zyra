@@ -133,27 +133,27 @@ def _safe_register_all(sub: argparse._SubParsersAction) -> None:
         import_path="zyra.visualization.cli_register",
     )
 
-    # decimate
-    _safe_add_group(
-        sub,
-        name="decimate",
-        help_text="Write/egress data to destinations",
-        dest="decimate_cmd",
-        import_path="zyra.connectors.egress",
-    )
-    # aliases: disseminate/export → decimate
+    # disseminate (canonical egress) + aliases
     _safe_add_group(
         sub,
         name="disseminate",
-        help_text="Write/egress data to destinations (alias)",
-        dest="decimate_cmd",
+        help_text="Write/egress data to destinations",
+        dest="disseminate_cmd",
         import_path="zyra.connectors.egress",
     )
+    # aliases: export/decimate → disseminate
     _safe_add_group(
         sub,
         name="export",
         help_text="Write/egress data to destinations (alias)",
-        dest="decimate_cmd",
+        dest="disseminate_cmd",
+        import_path="zyra.connectors.egress",
+    )
+    _safe_add_group(
+        sub,
+        name="decimate",
+        help_text="Write/egress data to destinations (legacy alias)",
+        dest="disseminate_cmd",
         import_path="zyra.connectors.egress",
     )
 
@@ -166,28 +166,7 @@ def _safe_register_all(sub: argparse._SubParsersAction) -> None:
         import_path="zyra.transform",
     )
 
-    # new skeleton groups
-    _safe_add_group(
-        sub,
-        name="simulate",
-        help_text="Simulate under uncertainty (skeleton)",
-        dest="simulate_cmd",
-        import_path="zyra.simulate",
-    )
-    _safe_add_group(
-        sub,
-        name="decide",
-        help_text="Decision/optimization (skeleton)",
-        dest="decide_cmd",
-        import_path="zyra.decide",
-    )
-    _safe_add_group(
-        sub,
-        name="narrate",
-        help_text="Narrate/report (skeleton)",
-        dest="narrate_cmd",
-        import_path="zyra.narrate",
-    )
+    # skeleton groups and aliases registered below (with verify + optimize alias)
 
     # search (single command)
     _safe_add_single(

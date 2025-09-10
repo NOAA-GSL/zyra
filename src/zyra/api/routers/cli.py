@@ -191,8 +191,8 @@ def _compute_cli_matrix() -> dict[str, Any]:
     canonical_groups.append(
         ("visualize", parsers_from_register(visualization.register_cli))
     )
-    # decimate (canonical for export/disseminate)
-    canonical_groups.append(("decimate", parsers_from_register(egress.register_cli)))
+    # disseminate (canonical for export/decimate)
+    canonical_groups.append(("disseminate", parsers_from_register(egress.register_cli)))
     # new groups
     canonical_groups.append(("simulate", parsers_from_register(simulate.register_cli)))
     canonical_groups.append(("decide", parsers_from_register(decide.register_cli)))
@@ -215,8 +215,8 @@ def _compute_cli_matrix() -> dict[str, Any]:
 
     _alias("import", "acquire")
     _alias("render", "visualize")
-    _alias("export", "decimate")
-    _alias("disseminate", "decimate")
+    _alias("export", "disseminate")
+    _alias("decimate", "disseminate")
     _alias("transform", "process")  # legacy alias
     _alias("optimize", "decide")
 

@@ -3684,305 +3684,6 @@
     "args_schema": null,
     "example_args": null
   },
-  "decimate local": {
-    "description": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
-    "doc": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
-    "epilog": "",
-    "groups": [
-      {
-        "title": "options",
-        "options": [
-          "--help",
-          "--input",
-          "--verbose",
-          "--quiet",
-          "--trace"
-        ]
-      }
-    ],
-    "options": {
-      "--help": "show this help message and exit",
-      "--input": {
-        "help": "Input path or '-' for stdin",
-        "path_arg": true,
-        "type": "path",
-        "required": true
-      },
-      "--verbose": {
-        "help": "Verbose logging for this command",
-        "type": "bool",
-        "default": false
-      },
-      "--quiet": {
-        "help": "Quiet logging for this command",
-        "type": "bool",
-        "default": false
-      },
-      "--trace": {
-        "help": "Shell-style trace of key steps and external commands",
-        "type": "bool",
-        "default": false
-      }
-    },
-    "positionals": [
-      {
-        "name": "path",
-        "help": "Destination file path",
-        "type": "str",
-        "required": true
-      }
-    ],
-    "domain": "decimate",
-    "args_schema": {
-      "required": [
-        "input",
-        "path"
-      ],
-      "optional": []
-    },
-    "example_args": {
-      "input": "-",
-      "path": "/tmp/out.bin"
-    }
-  },
-  "decimate s3": {
-    "description": "Upload stdin or an input file to Amazon S3, specified by s3:// URL or bucket/key.",
-    "doc": "Upload stdin or an input file to Amazon S3, specified by s3:// URL or bucket/key.",
-    "epilog": "",
-    "groups": [
-      {
-        "title": "options",
-        "options": [
-          "--help",
-          "--input",
-          "--read-stdin",
-          "--url",
-          "--bucket",
-          "--key",
-          "--verbose",
-          "--quiet",
-          "--trace"
-        ]
-      }
-    ],
-    "options": {
-      "--help": "show this help message and exit",
-      "--input": {
-        "help": "Input path or '-' for stdin",
-        "path_arg": true,
-        "type": "path"
-      },
-      "--read-stdin": {
-        "help": "Read object body from stdin (alias for -i -)",
-        "type": "bool",
-        "default": false
-      },
-      "--url": "Full URL s3://bucket/key",
-      "--bucket": "Bucket name",
-      "--key": "Object key (when using --bucket)",
-      "--verbose": {
-        "help": "Verbose logging for this command",
-        "type": "bool",
-        "default": false
-      },
-      "--quiet": {
-        "help": "Quiet logging for this command",
-        "type": "bool",
-        "default": false
-      },
-      "--trace": {
-        "help": "Shell-style trace of key steps and external commands",
-        "type": "bool",
-        "default": false
-      }
-    },
-    "positionals": [],
-    "domain": "decimate",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "bucket",
-        "content_type",
-        "input",
-        "key",
-        "url"
-      ]
-    },
-    "example_args": null
-  },
-  "decimate ftp": {
-    "description": "Upload stdin or an input file to an FTP destination path.",
-    "doc": "Upload stdin or an input file to an FTP destination path.",
-    "epilog": "",
-    "groups": [
-      {
-        "title": "options",
-        "options": [
-          "--help",
-          "--input",
-          "--verbose",
-          "--quiet",
-          "--trace"
-        ]
-      }
-    ],
-    "options": {
-      "--help": "show this help message and exit",
-      "--input": {
-        "help": "Input path or '-' for stdin",
-        "path_arg": true,
-        "type": "path",
-        "required": true
-      },
-      "--verbose": {
-        "help": "Verbose logging for this command",
-        "type": "bool",
-        "default": false
-      },
-      "--quiet": {
-        "help": "Quiet logging for this command",
-        "type": "bool",
-        "default": false
-      },
-      "--trace": {
-        "help": "Shell-style trace of key steps and external commands",
-        "type": "bool",
-        "default": false
-      }
-    },
-    "positionals": [
-      {
-        "name": "path",
-        "help": "ftp://host/path or host/path",
-        "type": "str",
-        "required": true
-      }
-    ],
-    "domain": "decimate",
-    "args_schema": {
-      "required": [
-        "input",
-        "path"
-      ],
-      "optional": []
-    },
-    "example_args": null
-  },
-  "decimate post": {
-    "description": "HTTP POST stdin or an input file to a URL with optional content-type.",
-    "doc": "HTTP POST stdin or an input file to a URL with optional content-type.",
-    "epilog": "",
-    "groups": [
-      {
-        "title": "options",
-        "options": [
-          "--help",
-          "--input",
-          "--content-type",
-          "--verbose",
-          "--quiet",
-          "--trace"
-        ]
-      }
-    ],
-    "options": {
-      "--help": "show this help message and exit",
-      "--input": {
-        "help": "Input path or '-' for stdin",
-        "path_arg": true,
-        "type": "path",
-        "required": true
-      },
-      "--content-type": "Content-Type header",
-      "--verbose": {
-        "help": "Verbose logging for this command",
-        "type": "bool",
-        "default": false
-      },
-      "--quiet": {
-        "help": "Quiet logging for this command",
-        "type": "bool",
-        "default": false
-      },
-      "--trace": {
-        "help": "Shell-style trace of key steps and external commands",
-        "type": "bool",
-        "default": false
-      }
-    },
-    "positionals": [
-      {
-        "name": "url",
-        "help": "",
-        "type": "str",
-        "required": true
-      }
-    ],
-    "domain": "decimate",
-    "args_schema": {
-      "required": [
-        "input",
-        "url"
-      ],
-      "optional": [
-        "content_type"
-      ]
-    },
-    "example_args": null
-  },
-  "decimate vimeo": {
-    "description": "Upload a new video to Vimeo or replace an existing video by URI. Optionally set title and description.",
-    "doc": "Upload a new video to Vimeo or replace an existing video by URI. Optionally set title and description.",
-    "epilog": "",
-    "groups": [
-      {
-        "title": "options",
-        "options": [
-          "--help",
-          "--input",
-          "--name",
-          "--description",
-          "--description-file",
-          "--replace-uri",
-          "--verbose",
-          "--quiet",
-          "--trace"
-        ]
-      }
-    ],
-    "options": {
-      "--help": "show this help message and exit",
-      "--input": {
-        "help": "Input path or '-' for stdin",
-        "path_arg": true,
-        "type": "path",
-        "required": true
-      },
-      "--name": "Video title",
-      "--description": "Video description",
-      "--description-file": "Read description text from a file (UTF-8)",
-      "--replace-uri": "Replace existing video at this Vimeo URI",
-      "--verbose": {
-        "help": "Verbose logging for this command",
-        "type": "bool",
-        "default": false
-      },
-      "--quiet": {
-        "help": "Quiet logging for this command",
-        "type": "bool",
-        "default": false
-      },
-      "--trace": {
-        "help": "Shell-style trace of key steps and external commands",
-        "type": "bool",
-        "default": false
-      }
-    },
-    "positionals": [],
-    "domain": "decimate",
-    "args_schema": null,
-    "example_args": null
-  },
   "disseminate local": {
     "description": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
     "doc": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
@@ -4517,6 +4218,305 @@
     "args_schema": null,
     "example_args": null
   },
+  "decimate local": {
+    "description": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
+    "doc": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "path",
+        "help": "Destination file path",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "decimate",
+    "args_schema": {
+      "required": [
+        "input",
+        "path"
+      ],
+      "optional": []
+    },
+    "example_args": {
+      "input": "-",
+      "path": "/tmp/out.bin"
+    }
+  },
+  "decimate s3": {
+    "description": "Upload stdin or an input file to Amazon S3, specified by s3:// URL or bucket/key.",
+    "doc": "Upload stdin or an input file to Amazon S3, specified by s3:// URL or bucket/key.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--read-stdin",
+          "--url",
+          "--bucket",
+          "--key",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--read-stdin": {
+        "help": "Read object body from stdin (alias for -i -)",
+        "type": "bool",
+        "default": false
+      },
+      "--url": "Full URL s3://bucket/key",
+      "--bucket": "Bucket name",
+      "--key": "Object key (when using --bucket)",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "decimate",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "bucket",
+        "content_type",
+        "input",
+        "key",
+        "url"
+      ]
+    },
+    "example_args": null
+  },
+  "decimate ftp": {
+    "description": "Upload stdin or an input file to an FTP destination path.",
+    "doc": "Upload stdin or an input file to an FTP destination path.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "path",
+        "help": "ftp://host/path or host/path",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "decimate",
+    "args_schema": {
+      "required": [
+        "input",
+        "path"
+      ],
+      "optional": []
+    },
+    "example_args": null
+  },
+  "decimate post": {
+    "description": "HTTP POST stdin or an input file to a URL with optional content-type.",
+    "doc": "HTTP POST stdin or an input file to a URL with optional content-type.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--content-type",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--content-type": "Content-Type header",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "url",
+        "help": "",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "decimate",
+    "args_schema": {
+      "required": [
+        "input",
+        "url"
+      ],
+      "optional": [
+        "content_type"
+      ]
+    },
+    "example_args": null
+  },
+  "decimate vimeo": {
+    "description": "Upload a new video to Vimeo or replace an existing video by URI. Optionally set title and description.",
+    "doc": "Upload a new video to Vimeo or replace an existing video by URI. Optionally set title and description.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--name",
+          "--description",
+          "--description-file",
+          "--replace-uri",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--name": "Video title",
+      "--description": "Video description",
+      "--description-file": "Read description text from a file (UTF-8)",
+      "--replace-uri": "Replace existing video at this Vimeo URI",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "decimate",
+    "args_schema": null,
+    "example_args": null
+  },
   "transform metadata": {
     "description": "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence.",
     "doc": "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence.",
@@ -4833,105 +4833,6 @@
     "args_schema": null,
     "example_args": null
   },
-  "simulate sample": {
-    "description": "zyra simulate sample",
-    "doc": "",
-    "epilog": "",
-    "groups": [
-      {
-        "title": "options",
-        "options": [
-          "--help",
-          "--seed",
-          "--trials"
-        ]
-      }
-    ],
-    "options": {
-      "--help": "show this help message and exit",
-      "--seed": {
-        "help": "Random seed",
-        "type": "int"
-      },
-      "--trials": {
-        "help": "Number of trials",
-        "type": "int",
-        "default": 1
-      }
-    },
-    "positionals": [],
-    "domain": "simulate",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "seed",
-        "trials"
-      ]
-    },
-    "example_args": null
-  },
-  "decide optimize": {
-    "description": "zyra decide optimize",
-    "doc": "",
-    "epilog": "",
-    "groups": [
-      {
-        "title": "options",
-        "options": [
-          "--help",
-          "--strategy"
-        ]
-      }
-    ],
-    "options": {
-      "--help": "show this help message and exit",
-      "--strategy": {
-        "help": "Optimization strategy (placeholder)",
-        "choices": [
-          "greedy",
-          "random",
-          "grid"
-        ],
-        "type": "str"
-      }
-    },
-    "positionals": [],
-    "domain": "decide",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "strategy"
-      ]
-    },
-    "example_args": null
-  },
-  "narrate describe": {
-    "description": "zyra narrate describe",
-    "doc": "",
-    "epilog": "",
-    "groups": [
-      {
-        "title": "options",
-        "options": [
-          "--help",
-          "--topic"
-        ]
-      }
-    ],
-    "options": {
-      "--help": "show this help message and exit",
-      "--topic": "Topic to narrate (placeholder)"
-    },
-    "positionals": [],
-    "domain": "narrate",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "topic"
-      ]
-    },
-    "example_args": null
-  },
   "search api": {
     "description": "zyra search api",
     "doc": "",
@@ -5214,6 +5115,78 @@
     "args_schema": null,
     "example_args": null
   },
+  "simulate sample": {
+    "description": "zyra simulate sample",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--seed",
+          "--trials"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--seed": {
+        "help": "Random seed",
+        "type": "int"
+      },
+      "--trials": {
+        "help": "Number of trials",
+        "type": "int",
+        "default": 1
+      }
+    },
+    "positionals": [],
+    "domain": "simulate",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "seed",
+        "trials"
+      ]
+    },
+    "example_args": null
+  },
+  "decide optimize": {
+    "description": "zyra decide optimize",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--strategy"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--strategy": {
+        "help": "Optimization strategy (placeholder)",
+        "choices": [
+          "greedy",
+          "random",
+          "grid"
+        ],
+        "type": "str"
+      }
+    },
+    "positionals": [],
+    "domain": "decide",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "strategy"
+      ]
+    },
+    "example_args": null
+  },
   "optimize optimize": {
     "description": "zyra optimize optimize",
     "doc": "",
@@ -5242,6 +5215,33 @@
     "positionals": [],
     "domain": "optimize",
     "args_schema": null,
+    "example_args": null
+  },
+  "narrate describe": {
+    "description": "zyra narrate describe",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--topic"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--topic": "Topic to narrate (placeholder)"
+    },
+    "positionals": [],
+    "domain": "narrate",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "topic"
+      ]
+    },
     "example_args": null
   },
   "verify evaluate": {

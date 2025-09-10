@@ -276,10 +276,10 @@ def _normalize_group_name(name: str) -> str:
         "import": "acquire",
         "ingest": "acquire",
         "render": "visualize",
-        # Prefer disseminate/export but keep decimate canonical internally
-        "disseminate": "decimate",
-        "export": "decimate",
-        "decimation": "decimate",
+        # Prefer disseminate/export as canonical; decimate is legacy
+        "export": "disseminate",
+        "decimation": "disseminate",
+        "decimate": "disseminate",
         "optimize": "decide",
     }
     return alias_map.get(n, n)
@@ -803,15 +803,15 @@ def main(argv: list[str] | None = None) -> int:
         p_render = sub.add_parser("render", help=argparse.SUPPRESS)
         render_sub = p_render.add_subparsers(dest="visualize_cmd", required=True)
         _visual_mod.register_cli(render_sub)
-    elif first_non_flag == "decimate":
+    elif first_non_flag == "disseminate":
         from zyra.connectors import egress as _egress_mod
 
-        p_decimate = sub.add_parser(
-            "decimate",
-            help="Write/egress data to destinations (alias: disseminate/export)",
+        p_disseminate = sub.add_parser(
+            "disseminate",
+            help="Write/egress data to destinations (alias: export; legacy: decimate)",
         )
-        dec_sub = p_decimate.add_subparsers(dest="decimate_cmd", required=True)
-        _egress_mod.register_cli(dec_sub)
+        dis_sub = p_disseminate.add_subparsers(dest="disseminate_cmd", required=True)
+        _egress_mod.register_cli(dis_sub)
         # Alias top-level: disseminate/export → decimate
         p_disseminate = sub.add_parser("disseminate", help=argparse.SUPPRESS)
         dis_sub = p_disseminate.add_subparsers(dest="decimate_cmd", required=True)
@@ -938,19 +938,19 @@ def main(argv: list[str] | None = None) -> int:
         viz_alias_sub = p_viz_alias.add_subparsers(dest="visualize_cmd", required=True)
         _visual_mod.register_cli(viz_alias_sub)
 
-        p_decimate = sub.add_parser(
-            "decimate",
-            help="Write/egress data to destinations (alias: disseminate/export)",
+        p_disseminate = sub.add_parser(
+            "disseminate",
+            help="Write/egress data to destinations (alias: export; legacy: decimate)",
         )
-        dec_sub = p_decimate.add_subparsers(dest="decimate_cmd", required=True)
-        _egress_mod.register_cli(dec_sub)
-        # Aliases: disseminate/export → decimate
-        p_disseminate = sub.add_parser("disseminate", help=argparse.SUPPRESS)
-        dis_sub = p_disseminate.add_subparsers(dest="decimate_cmd", required=True)
+        dis_sub = p_disseminate.add_subparsers(dest="disseminate_cmd", required=True)
         _egress_mod.register_cli(dis_sub)
+        # Aliases: export/decimate → disseminate
         p_export = sub.add_parser("export", help=argparse.SUPPRESS)
-        exp_sub = p_export.add_subparsers(dest="decimate_cmd", required=True)
+        exp_sub = p_export.add_subparsers(dest="disseminate_cmd", required=True)
         _egress_mod.register_cli(exp_sub)
+        p_dec_alias = sub.add_parser("decimate", help=argparse.SUPPRESS)
+        dec_alias_sub = p_dec_alias.add_subparsers(dest="disseminate_cmd", required=True)
+        _egress_mod.register_cli(dec_alias_sub)
 
         p_tr = sub.add_parser("transform", help="Transform helpers (metadata, etc.)")
         tr_sub = p_tr.add_subparsers(dest="transform_cmd", required=True)

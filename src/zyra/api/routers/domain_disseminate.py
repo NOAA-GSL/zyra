@@ -100,7 +100,8 @@ def _run(
     ok = resp.exit_code == 0
     assets = []
     try:
-        assets = infer_assets(stage, req.tool, args)
+        # Use canonical stage for asset inference to match utils expectations
+        assets = infer_assets(canonical, req.tool, args)
     except Exception:
         assets = []
     res = DomainRunResponse(

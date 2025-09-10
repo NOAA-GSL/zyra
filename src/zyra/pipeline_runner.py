@@ -156,13 +156,12 @@ def _apply_overrides(
 
 
 def _stage_group_alias(name: str) -> str:
-    """Normalize a stage name/alias to one of: acquire/process/visualize/decimate.
+    """Normalize a stage name/alias to one of: acquire/process/visualize/disseminate.
 
     Adds user-friendly aliases and corrected terminology:
     - import/ingest → acquire
     - render → visualize
-    - disseminate/export → decimate (legacy canonical)
-    - decimation → decimate (legacy)
+    - export/decimate/decimation → disseminate (canonical)
     - transform → process (combined under process)
     - optimize → decide
     """
@@ -174,9 +173,10 @@ def _stage_group_alias(name: str) -> str:
         "processing": "process",
         "visualization": "visualize",
         "render": "visualize",
-        "decimation": "decimate",
-        "disseminate": "decimate",
-        "export": "decimate",
+        "decimation": "disseminate",
+        "disseminate": "disseminate",
+        "export": "disseminate",
+        "decimate": "disseminate",
         "transform": "process",
         "optimize": "decide",
     }.get(name, name)
@@ -216,8 +216,8 @@ def _build_argv_for_stage(stage: dict[str, Any]) -> list[str]:
     if group == "acquire" and (cmd in (None, "acquire")) and "backend" in args:
         cmd = str(args.pop("backend")).lower()
 
-    # Special-case: decimate 'decimate' with backend -> translate to subcommand
-    if group == "decimate" and (cmd in (None, "decimate")) and "backend" in args:
+    # Special-case: disseminate with backend -> translate to subcommand
+    if group == "disseminate" and (cmd in (None, "disseminate")) and "backend" in args:
         cmd = str(args.pop("backend")).lower()
 
     argv: list[str] = [group, str(cmd)]
@@ -233,10 +233,10 @@ def _build_argv_for_stage(stage: dict[str, Any]) -> list[str]:
     elif group == "acquire" and cmd == "http":
         positionals = ["url"]
     elif (group == "acquire" and cmd == "ftp") or (
-        group == "decimate" and cmd in {"local", "ftp"}
+        group == "disseminate" and cmd in {"local", "ftp"}
     ):
         positionals = ["path"]
-    elif group == "decimate" and cmd == "post":
+    elif group == "disseminate" and cmd == "post":
         positionals = ["url"]
     # For other commands, default to flags-only mapping
 
@@ -286,7 +286,7 @@ def _run_cli(argv: list[str], input_bytes: bytes | None) -> tuple[int, bytes, st
         # Fast-path: decimate local with '-' input; write bytes directly
         if (
             len(argv) >= 3
-            and argv[0] == "decimate"
+            and argv[0] == "disseminate"
             and argv[1] == "local"
             and input_bytes is not None
         ):
@@ -590,7 +590,8 @@ def register_cli_run(subparsers: Any) -> None:
         "--only",
         help=(
             "Run only stages matching this alias "
-            "(import/acquire/process/transform/visualize/render/simulate/decide/optimize/narrate/verify/export/disseminate/decimate)"
+            "(import/acquire/process/transform/visualize/render/simulate/decide/optimize/"
+            "narrate/verify/export/disseminate/decimate)"
         ),
     )
     # Env & verbosity controls
