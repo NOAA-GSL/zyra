@@ -814,7 +814,9 @@ def main(argv: list[str] | None = None) -> int:
         _egress_mod.register_cli(dis_sub)
         # Legacy alias top-level: decimate → disseminate
         p_dec_alias = sub.add_parser("decimate", help=argparse.SUPPRESS)
-        dec_alias_sub = p_dec_alias.add_subparsers(dest="disseminate_cmd", required=True)
+        dec_alias_sub = p_dec_alias.add_subparsers(
+            dest="disseminate_cmd", required=True
+        )
         _egress_mod.register_cli(dec_alias_sub)
     elif first_non_flag == "decimate":
         # Legacy top-level alias retained for back-compat
