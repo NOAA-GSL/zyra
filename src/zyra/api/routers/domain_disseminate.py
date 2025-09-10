@@ -36,6 +36,14 @@ def _run(
     for validation and execution, then returns a standard ``DomainRunResponse``.
     """
     # Normalize alias stage names to canonical for validation/CLI execution
+    # NOTE:
+    # Although "disseminate" (and "export") are the preferred user-facing names
+    # for egress, the internal canonical remains "decimate" for now. This keeps
+    # backward compatibility with existing runners/tests and code paths that
+    # inspect the stage name (e.g., asset inference and pipeline argv building),
+    # while still exposing the new terms at the API/CLI surface. When the
+    # ecosystem has fully migrated, we can flip the canonical stage to
+    # "disseminate" and update dependent logic/tests accordingly.
     canonical = {
         "export": "decimate",
         "disseminate": "decimate",

@@ -276,10 +276,10 @@ def _normalize_group_name(name: str) -> str:
         "import": "acquire",
         "ingest": "acquire",
         "render": "visualize",
-        # Prefer disseminate/export as canonical; decimate is legacy
-        "export": "disseminate",
-        "decimation": "disseminate",
-        "decimate": "disseminate",
+        # Egress: keep 'decimate' as internal canonical for back-compat
+        "export": "decimate",
+        "disseminate": "decimate",
+        "decimation": "decimate",
         "optimize": "decide",
     }
     return alias_map.get(n, n)

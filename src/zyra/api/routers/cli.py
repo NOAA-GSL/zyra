@@ -355,7 +355,7 @@ def list_cli_examples() -> dict[str, Any]:
             "name": "decimate_to_s3",
             "description": "Upload a local file to S3 using the export/disseminate s3 command.",
             "request": {
-                "stage": "export",
+                "stage": "decimate",
                 "command": "s3",
                 "mode": "sync",
                 "args": {
