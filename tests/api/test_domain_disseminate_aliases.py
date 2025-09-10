@@ -30,4 +30,3 @@ def test_export_post_validation_error(monkeypatch) -> None:
     js = r.json()
     assert js.get("status") == "error"
     assert js.get("error", {}).get("type") == "validation_error"
-

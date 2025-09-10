@@ -25,7 +25,9 @@ router = APIRouter(tags=["decide"], prefix="")
 DecideRequest = DomainRunRequest
 
 
-def _run(stage: str, req: DecideRequest, bg: BackgroundTasks, request: Request) -> DomainRunResponse:
+def _run(
+    stage: str, req: DecideRequest, bg: BackgroundTasks, request: Request
+) -> DomainRunResponse:
     """Shared implementation for decide/optimize domain execution."""
     try:
         max_bytes = int(env_int("DOMAIN_MAX_BODY_BYTES", 0))
@@ -132,7 +134,9 @@ def _run(stage: str, req: DecideRequest, bg: BackgroundTasks, request: Request) 
 
 
 @router.post("/decide", response_model=DomainRunResponse)
-def decide_run(req: DecideRequest, bg: BackgroundTasks, request: Request) -> DomainRunResponse:
+def decide_run(
+    req: DecideRequest, bg: BackgroundTasks, request: Request
+) -> DomainRunResponse:
     """Run a decide-domain tool (preferred)."""
     return _run("decide", req, bg, request)
 

@@ -172,7 +172,9 @@ def _compute_cli_matrix() -> dict[str, Any]:
         return schema_list
 
     # Canonical groups
-    canonical_groups: list[tuple[str, dict[str, argparse.ArgumentParser]] | tuple[str, Any]] = []
+    canonical_groups: list[
+        tuple[str, dict[str, argparse.ArgumentParser]] | tuple[str, Any]
+    ] = []
     # acquire
     canonical_groups.append(("acquire", parsers_from_register(ingest.register_cli)))
     # process: combine processing + transform under one group
@@ -186,7 +188,9 @@ def _compute_cli_matrix() -> dict[str, Any]:
         parsers = parsers_from_register(processing.register_cli)
     canonical_groups.append(("process", parsers))
     # visualize
-    canonical_groups.append(("visualize", parsers_from_register(visualization.register_cli)))
+    canonical_groups.append(
+        ("visualize", parsers_from_register(visualization.register_cli))
+    )
     # decimate (canonical for export/disseminate)
     canonical_groups.append(("decimate", parsers_from_register(egress.register_cli)))
     # new groups

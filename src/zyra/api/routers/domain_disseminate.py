@@ -27,7 +27,9 @@ router = APIRouter(tags=["disseminate"], prefix="")
 DisseminateRequest = DomainRunRequest
 
 
-def _run(stage: str, req: DisseminateRequest, bg: BackgroundTasks, request: Request) -> DomainRunResponse:
+def _run(
+    stage: str, req: DisseminateRequest, bg: BackgroundTasks, request: Request
+) -> DomainRunResponse:
     """Shared implementation for disseminate/export/decimate.
 
     Normalizes the incoming stage alias to the canonical stage (``decimate``)
