@@ -1,12 +1,15 @@
 """Zyra CLI entrypoint and command wiring.
 
-Organizes commands into groups that mirror pipeline stages:
+Organizes commands into groups that mirror the 8-stage pipeline hierarchy:
 
-- acquire: ingress from HTTP/S3/FTP/Vimeo backends
-- process: GRIB/NetCDF decoding, extraction, format conversion
-- visualize: static and animated rendering
-- decimate: egress (local, S3, FTP, HTTP POST, Vimeo)
-- transform: lightweight metadata and JSON transforms
+- import (alias: acquire/ingest): ingress from HTTP/S3/FTP/Vimeo backends
+- process (alias: transform): GRIB/NetCDF decoding, extraction, format conversion, and metadata helpers
+- simulate: simulation under uncertainty (skeleton)
+- decide (alias: optimize): decision/optimization (skeleton)
+- visualize (alias: render): static and animated rendering
+- narrate: AI-driven storytelling/reporting (skeleton)
+- verify: evaluation and metrics (skeleton)
+- export (alias: disseminate; legacy: decimate): egress (local, S3, FTP, HTTP POST, Vimeo)
 - run: run a config-driven pipeline (YAML/JSON)
 
 Internal helpers support streaming bytes via stdin/stdout, GRIB ``.idx``
@@ -70,8 +73,20 @@ def _print_version_banner(mode: str = "short") -> None:
                     logo_text = Path(str(p)).read_text(
                         encoding="utf-8", errors="ignore"
                     )
-    except Exception:
+    except importlib_metadata.PackageNotFoundError:
+        # Package metadata not available (editable install or runtime env);
+        # ignore gracefully.
         pass
+    except Exception as exc:  # pragma: no cover - unexpected metadata error
+        # Avoid hard-failing version banner; log at debug level if possible.
+        try:
+            import logging as _log
+
+            _log.getLogger(__name__).debug(
+                "distribution() metadata read failed: %s", exc
+            )
+        except Exception:
+            pass
     if logo_text is None:
         for c in candidates:
             try:
@@ -258,6 +273,28 @@ def _parse_s3_url(url: str) -> Tuple[str, str]:
     if not m:
         raise ValueError("Invalid s3 URL. Expected s3://bucket/key")
     return m.group(1), m.group(2)
+
+
+def _normalize_group_name(name: str) -> str:
+    """Normalize top-level group aliases to canonical names.
+
+    Keeps canonical groups stable for internal wiring while accepting user-friendly
+    aliases at the CLI entry: import→acquire, render→visualize,
+    disseminate/export/decimation→decimate. The legacy name 'decimate' remains
+    accepted for back-compat.
+    """
+    n = (name or "").strip().lower()
+    alias_map = {
+        "import": "acquire",
+        "ingest": "acquire",
+        "render": "visualize",
+        # Egress: keep 'decimate' as internal canonical for back-compat
+        "export": "decimate",
+        "disseminate": "decimate",
+        "decimation": "decimate",
+        "optimize": "decide",
+    }
+    return alias_map.get(n, n)
 
 
 def _read_bytes(
@@ -731,7 +768,10 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     # Pre-scan argv to support lazy registration and avoid importing heavy stacks unnecessarily
-    first_non_flag = next((a for a in args_list if not a.startswith("-")), None)
+    first_non_flag_raw = next((a for a in args_list if not a.startswith("-")), None)
+    first_non_flag = (
+        _normalize_group_name(first_non_flag_raw) if first_non_flag_raw else None
+    )
 
     # Always make 'run' available (lightweight)
     from zyra.pipeline_runner import register_cli_run as _register_run
@@ -742,33 +782,101 @@ def main(argv: list[str] | None = None) -> int:
     if first_non_flag == "acquire":
         from zyra.connectors import ingest as _ingest_mod
 
-        p_acq = sub.add_parser("acquire", help="Acquire/ingest data from sources")
+        p_acq = sub.add_parser(
+            "acquire", help="Acquire/ingest data from sources (alias: import/ingest)"
+        )
         acq_sub = p_acq.add_subparsers(dest="acquire_cmd", required=True)
         _ingest_mod.register_cli(acq_sub)
+        # Alias top-level: import → acquire
+        p_import = sub.add_parser("import", help=argparse.SUPPRESS)
+        import_sub = p_import.add_subparsers(dest="acquire_cmd", required=True)
+        _ingest_mod.register_cli(import_sub)
     elif first_non_flag == "process":
+        import zyra.transform as _transform_mod
         from zyra import processing as _process_mod
 
         p_proc = sub.add_parser(
-            "process", help="Processing commands (GRIB/NetCDF/GeoTIFF)"
+            "process", help="Processing commands (GRIB/NetCDF/GeoTIFF) + transforms"
         )
         proc_sub = p_proc.add_subparsers(dest="process_cmd", required=True)
+        # Combine transform commands under process group
         _process_mod.register_cli(proc_sub)
+        _transform_mod.register_cli(proc_sub)
     elif first_non_flag == "visualize":
         from zyra.visualization import cli_register as _visual_mod
 
         p_viz = sub.add_parser(
-            "visualize", help="Visualization commands (static/interactive/animation)"
+            "visualize",
+            help="Visualization commands (static/interactive/animation) (alias: render)",
         )
         viz_sub = p_viz.add_subparsers(dest="visualize_cmd", required=True)
         _visual_mod.register_cli(viz_sub)
-    elif first_non_flag == "decimate":
+        # Alias top-level: render → visualize
+        p_render = sub.add_parser("render", help=argparse.SUPPRESS)
+        render_sub = p_render.add_subparsers(dest="visualize_cmd", required=True)
+        _visual_mod.register_cli(render_sub)
+    elif first_non_flag == "disseminate":
         from zyra.connectors import egress as _egress_mod
 
-        p_decimate = sub.add_parser(
-            "decimate", help="Write/egress data to destinations"
+        p_disseminate = sub.add_parser(
+            "disseminate",
+            help="Write/egress data to destinations (alias: export; legacy: decimate)",
         )
-        dec_sub = p_decimate.add_subparsers(dest="decimate_cmd", required=True)
+        dis_sub = p_disseminate.add_subparsers(dest="disseminate_cmd", required=True)
+        _egress_mod.register_cli(dis_sub)
+        # Legacy alias top-level: decimate → disseminate
+        p_dec_alias = sub.add_parser("decimate", help=argparse.SUPPRESS)
+        dec_alias_sub = p_dec_alias.add_subparsers(
+            dest="disseminate_cmd", required=True
+        )
+        _egress_mod.register_cli(dec_alias_sub)
+    elif first_non_flag == "decimate":
+        # Legacy top-level alias retained for back-compat
+        from zyra.connectors import egress as _egress_mod
+
+        p_dec = sub.add_parser(
+            "decimate",
+            help="[deprecated] Write/egress data (use 'disseminate' or 'export')",
+        )
+        dec_sub = p_dec.add_subparsers(dest="decimate_cmd", required=True)
         _egress_mod.register_cli(dec_sub)
+        # Alias top-level: disseminate/export → decimate
+        p_disseminate = sub.add_parser("disseminate", help=argparse.SUPPRESS)
+        dis_sub = p_disseminate.add_subparsers(dest="decimate_cmd", required=True)
+        _egress_mod.register_cli(dis_sub)
+        p_export = sub.add_parser("export", help=argparse.SUPPRESS)
+        exp_sub = p_export.add_subparsers(dest="decimate_cmd", required=True)
+        _egress_mod.register_cli(exp_sub)
+    elif first_non_flag == "simulate":
+        import zyra.simulate as _simulate_mod
+
+        p_sim = sub.add_parser("simulate", help="Simulate under uncertainty (skeleton)")
+        sim_sub = p_sim.add_subparsers(dest="simulate_cmd", required=True)
+        _simulate_mod.register_cli(sim_sub)
+    elif first_non_flag == "decide":
+        import zyra.decide as _decide_mod
+
+        p_dec = sub.add_parser("decide", help="Decision/optimization (skeleton)")
+        d_sub = p_dec.add_subparsers(dest="decide_cmd", required=True)
+        _decide_mod.register_cli(d_sub)
+        # Alias top-level: optimize → decide
+        p_opt = sub.add_parser("optimize", help=argparse.SUPPRESS)
+        opt_sub = p_opt.add_subparsers(dest="decide_cmd", required=True)
+        _decide_mod.register_cli(opt_sub)
+    elif first_non_flag == "narrate":
+        import zyra.narrate as _narrate_mod
+
+        p_nar = sub.add_parser("narrate", help="Narrate/report (skeleton)")
+        n_sub = p_nar.add_subparsers(dest="narrate_cmd", required=True)
+        _narrate_mod.register_cli(n_sub)
+    elif first_non_flag == "verify":
+        import zyra.verify as _verify_mod
+
+        p_ver = sub.add_parser(
+            "verify", help="Evaluation/metrics/validation (skeleton)"
+        )
+        v_sub = p_ver.add_subparsers(dest="verify_cmd", required=True)
+        _verify_mod.register_cli(v_sub)
     elif first_non_flag == "transform":
         import zyra.transform as _transform_mod
 
@@ -817,6 +925,9 @@ def main(argv: list[str] | None = None) -> int:
         p_gen.set_defaults(func=_cmd_gen)
     else:
         # Fallback: register the full CLI tree when we cannot infer the target
+        import zyra.decide as _decide_mod
+        import zyra.narrate as _narrate_mod
+        import zyra.simulate as _simulate_mod
         import zyra.transform as _transform_mod
         from zyra import processing as _process_mod
         from zyra import wizard as _wizard_mod
@@ -826,37 +937,82 @@ def main(argv: list[str] | None = None) -> int:
         from zyra.visualization import cli_register as _visual_mod
         from zyra.wizard.manifest import save_manifest as _save_manifest
 
-        p_acq = sub.add_parser("acquire", help="Acquire/ingest data from sources")
+        p_acq = sub.add_parser(
+            "acquire", help="Acquire/ingest data from sources (alias: import/ingest)"
+        )
         acq_sub = p_acq.add_subparsers(dest="acquire_cmd", required=True)
         _ingest_mod.register_cli(acq_sub)
+        # Alias: import → acquire
+        p_acq_alias = sub.add_parser("import", help=argparse.SUPPRESS)
+        acq_alias_sub = p_acq_alias.add_subparsers(dest="acquire_cmd", required=True)
+        _ingest_mod.register_cli(acq_alias_sub)
 
         p_proc = sub.add_parser(
-            "process", help="Processing commands (GRIB/NetCDF/GeoTIFF)"
+            "process", help="Processing commands (GRIB/NetCDF/GeoTIFF) + transforms"
         )
         proc_sub = p_proc.add_subparsers(dest="process_cmd", required=True)
+        # Combine transform commands under process group
         _process_mod.register_cli(proc_sub)
+        _transform_mod.register_cli(proc_sub)
 
         p_viz = sub.add_parser(
-            "visualize", help="Visualization commands (static/interactive/animation)"
+            "visualize",
+            help="Visualization commands (static/interactive/animation) (alias: render)",
         )
         viz_sub = p_viz.add_subparsers(dest="visualize_cmd", required=True)
         _visual_mod.register_cli(viz_sub)
+        # Alias: render → visualize
+        p_viz_alias = sub.add_parser("render", help=argparse.SUPPRESS)
+        viz_alias_sub = p_viz_alias.add_subparsers(dest="visualize_cmd", required=True)
+        _visual_mod.register_cli(viz_alias_sub)
 
-        p_decimate = sub.add_parser(
-            "decimate", help="Write/egress data to destinations"
+        p_disseminate = sub.add_parser(
+            "disseminate",
+            help="Write/egress data to destinations (alias: export; legacy: decimate)",
         )
-        dec_sub = p_decimate.add_subparsers(dest="decimate_cmd", required=True)
-        _egress_mod.register_cli(dec_sub)
+        dis_sub = p_disseminate.add_subparsers(dest="disseminate_cmd", required=True)
+        _egress_mod.register_cli(dis_sub)
+        # Aliases: export/decimate → disseminate
+        p_export = sub.add_parser("export", help=argparse.SUPPRESS)
+        exp_sub = p_export.add_subparsers(dest="disseminate_cmd", required=True)
+        _egress_mod.register_cli(exp_sub)
+        p_dec_alias = sub.add_parser("decimate", help=argparse.SUPPRESS)
+        dec_alias_sub = p_dec_alias.add_subparsers(
+            dest="disseminate_cmd", required=True
+        )
+        _egress_mod.register_cli(dec_alias_sub)
 
         p_tr = sub.add_parser("transform", help="Transform helpers (metadata, etc.)")
         tr_sub = p_tr.add_subparsers(dest="transform_cmd", required=True)
         _transform_mod.register_cli(tr_sub)
+
+        # New skeleton groups: simulate/decide/narrate
+        p_sim = sub.add_parser("simulate", help="Simulate under uncertainty (skeleton)")
+        sim_sub = p_sim.add_subparsers(dest="simulate_cmd", required=True)
+        _simulate_mod.register_cli(sim_sub)
+
+        p_dec = sub.add_parser("decide", help="Decision/optimization (skeleton)")
+        dec_sub2 = p_dec.add_subparsers(dest="decide_cmd", required=True)
+        _decide_mod.register_cli(dec_sub2)
+
+        p_nar = sub.add_parser("narrate", help="Narrate/report (skeleton)")
+        nar_sub = p_nar.add_subparsers(dest="narrate_cmd", required=True)
+        _narrate_mod.register_cli(nar_sub)
 
         # Wizard (single command, no subcommands)
         p_wiz = sub.add_parser(
             "wizard", help="Interactive assistant that suggests/runs CLI commands"
         )
         _wizard_mod.register_cli(p_wiz)
+
+        # Verify stage
+        import zyra.verify as _verify_mod
+
+        p_ver = sub.add_parser(
+            "verify", help="Evaluation/metrics/validation (skeleton)"
+        )
+        ver_sub = p_ver.add_subparsers(dest="verify_cmd", required=True)
+        _verify_mod.register_cli(ver_sub)
 
         # Search (single command)
         p_search = sub.add_parser(
@@ -886,6 +1042,25 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(args_list)
     # Apply global verbosity to environment so downstream modules pick it up
+    # Deprecation notice for legacy 'decimate' and 'transform' groups
+    try:
+        import warnings
+
+        cmd = getattr(args, "cmd", None)
+        if cmd == "decimate":
+            warnings.warn(
+                "'decimate' is deprecated; use 'export' or 'disseminate'",
+                category=UserWarning,
+                stacklevel=1,
+            )
+        if cmd == "transform":
+            warnings.warn(
+                "'transform' is merged into 'process'; use 'process'",
+                category=UserWarning,
+                stacklevel=1,
+            )
+    except Exception:
+        pass
     if getattr(args, "verbose", False):
         os.environ["ZYRA_VERBOSITY"] = "debug"
         os.environ["DATAVIZHUB_VERBOSITY"] = "debug"

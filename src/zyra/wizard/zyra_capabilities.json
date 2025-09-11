@@ -367,6 +367,323 @@
     "args_schema": null,
     "example_args": null
   },
+  "import http": {
+    "description": "Fetch a file via HTTP(S) to a local path. Optionally list/filter directory pages, or fetch multiple URLs with --inputs/--manifest.",
+    "doc": "Fetch a file via HTTP(S) to a local path. Optionally list/filter directory pages, or fetch multiple URLs with --inputs/--manifest.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--list",
+          "--pattern",
+          "--since",
+          "--since-period",
+          "--until",
+          "--date-format",
+          "--inputs",
+          "--manifest",
+          "--output-dir",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--list": {
+        "help": "List links on a directory page",
+        "type": "bool",
+        "default": false
+      },
+      "--pattern": "Regex to filter listed links",
+      "--since": "ISO date filter for list mode",
+      "--since-period": "ISO-8601 duration for lookback (e.g., P1Y, P6M, P7D, PT24H)",
+      "--until": "ISO date filter for list mode",
+      "--date-format": "Filename date format for list filtering (e.g., YYYYMMDD)",
+      "--inputs": {
+        "help": "Multiple HTTP URLs to fetch",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--manifest": {
+        "help": "Path to a file listing URLs (one per line)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "url",
+        "help": "",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "import",
+    "args_schema": null,
+    "example_args": null
+  },
+  "import s3": {
+    "description": "Fetch objects from Amazon S3 via s3:// URL or bucket/key. Supports unsigned access, listing prefixes, and batch via --inputs/--manifest.",
+    "doc": "Fetch objects from Amazon S3 via s3:// URL or bucket/key. Supports unsigned access, listing prefixes, and batch via --inputs/--manifest.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--url",
+          "--bucket",
+          "--key",
+          "--unsigned",
+          "--list",
+          "--pattern",
+          "--since",
+          "--since-period",
+          "--until",
+          "--date-format",
+          "--inputs",
+          "--manifest",
+          "--output-dir",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--url": "Full URL s3://bucket/key",
+      "--bucket": "Bucket name",
+      "--key": "Object key (when using --bucket)",
+      "--unsigned": {
+        "help": "Use unsigned access for public buckets",
+        "type": "bool",
+        "default": false
+      },
+      "--list": {
+        "help": "List keys under a prefix",
+        "type": "bool",
+        "default": false
+      },
+      "--pattern": "Regex to filter listed keys",
+      "--since": "ISO date filter for list mode",
+      "--since-period": "ISO-8601 duration for lookback (e.g., P1Y, P6M, P7D, PT24H)",
+      "--until": "ISO date filter for list mode",
+      "--date-format": "Filename date format for list filtering (e.g., YYYYMMDD)",
+      "--inputs": {
+        "help": "Multiple s3:// URLs to fetch",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--manifest": {
+        "help": "Path to a file listing s3:// URLs (one per line)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "import",
+    "args_schema": null,
+    "example_args": null
+  },
+  "import ftp": {
+    "description": "Fetch files via FTP (single path or batch). Optionally list or sync directories to a local folder.",
+    "doc": "Fetch files via FTP (single path or batch). Optionally list or sync directories to a local folder.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--list",
+          "--sync-dir",
+          "--pattern",
+          "--since",
+          "--since-period",
+          "--until",
+          "--date-format",
+          "--inputs",
+          "--manifest",
+          "--output-dir",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--list": {
+        "help": "List files in an FTP directory",
+        "type": "bool",
+        "default": false
+      },
+      "--sync-dir": "Sync FTP directory to a local directory",
+      "--pattern": "Regex to filter list/sync",
+      "--since": "ISO date filter for list/sync",
+      "--since-period": "ISO-8601 duration for lookback (e.g., P1Y, P6M, P7D, PT24H)",
+      "--until": "ISO date filter for list/sync",
+      "--date-format": "Filename date format for filtering (e.g., YYYYMMDD)",
+      "--inputs": {
+        "help": "Multiple FTP paths to fetch",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--manifest": {
+        "help": "Path to a file listing FTP paths (one per line)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "path",
+        "help": "ftp://host/path or host/path",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "import",
+    "args_schema": null,
+    "example_args": null
+  },
+  "import vimeo": {
+    "description": "Placeholder for fetching Vimeo videos by id. Not implemented yet.",
+    "doc": "Placeholder for fetching Vimeo videos by id. Not implemented yet.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "video_id",
+        "help": "",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "import",
+    "args_schema": null,
+    "example_args": null
+  },
   "process decode-grib2": {
     "description": "Decode a GRIB2 file or URL using cfgrib/pygrib/wgrib2 and log basic metadata. Optionally emit raw bytes (with optional .idx subset) to stdout.",
     "doc": "Decode a GRIB2 file or URL using cfgrib/pygrib/wgrib2 and log basic metadata. Optionally emit raw bytes (with optional .idx subset) to stdout.",
@@ -654,6 +971,322 @@
       "format": "netcdf",
       "stdout": true
     }
+  },
+  "process metadata": {
+    "description": "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence.",
+    "doc": "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--frames-dir",
+          "--pattern",
+          "--datetime-format",
+          "--period-seconds",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--frames-dir": {
+        "help": "Directory containing frames",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--pattern": "Regex filter for frame filenames",
+      "--datetime-format": "Datetime format used in filenames (e.g., %Y%m%d%H%M%S)",
+      "--period-seconds": {
+        "help": "Expected cadence to compute missing frames",
+        "type": "int"
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "process",
+    "args_schema": null,
+    "example_args": null
+  },
+  "process enrich-metadata": {
+    "description": "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin.",
+    "doc": "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--frames-meta",
+          "--read-frames-meta-stdin",
+          "--dataset-id",
+          "--vimeo-uri",
+          "--read-vimeo-uri",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--frames-meta": {
+        "help": "Path to frames metadata JSON",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--read-frames-meta-stdin": {
+        "help": "Read frames metadata JSON from stdin",
+        "type": "bool",
+        "default": false
+      },
+      "--dataset-id": "Dataset identifier to embed",
+      "--vimeo-uri": "Vimeo video URI to embed in metadata",
+      "--read-vimeo-uri": {
+        "help": "Read Vimeo URI from stdin (first line)",
+        "type": "bool",
+        "default": false
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "process",
+    "args_schema": null,
+    "example_args": null
+  },
+  "process enrich-datasets": {
+    "description": "zyra process enrich-datasets",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--items-file",
+          "--profile",
+          "--profile-file",
+          "--enrich",
+          "--enrich-timeout",
+          "--enrich-workers",
+          "--cache-ttl",
+          "--offline",
+          "--https-only",
+          "--allow-host",
+          "--deny-host",
+          "--max-probe-bytes",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--items-file": {
+        "help": "Path to items JSON",
+        "type": "str",
+        "required": true
+      },
+      "--profile": "Bundled profile name under zyra.assets.profiles",
+      "--profile-file": "External profile JSON path",
+      "--enrich": {
+        "help": "Enrichment level",
+        "choices": [
+          "shallow",
+          "capabilities",
+          "probe"
+        ],
+        "type": "str",
+        "required": true
+      },
+      "--enrich-timeout": {
+        "help": "Per-item timeout (s)",
+        "type": "float",
+        "default": 3.0
+      },
+      "--enrich-workers": {
+        "help": "Concurrency (workers)",
+        "type": "int",
+        "default": 4
+      },
+      "--cache-ttl": {
+        "help": "Cache TTL seconds",
+        "type": "int",
+        "default": 86400
+      },
+      "--offline": {
+        "help": "Disable network during enrichment",
+        "type": "bool",
+        "default": false
+      },
+      "--https-only": {
+        "help": "Require HTTPS for remote probing",
+        "type": "bool",
+        "default": false
+      },
+      "--allow-host": "Allow host suffix (repeatable)",
+      "--deny-host": "Deny host suffix (repeatable)",
+      "--max-probe-bytes": {
+        "help": "Skip probing when larger than this size",
+        "type": "int"
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "process",
+    "args_schema": null,
+    "example_args": null
+  },
+  "process update-dataset-json": {
+    "description": "Update a dataset.json entry by id using metadata (start/end and Vimeo URI) from a file, stdin, or args.",
+    "doc": "Update a dataset.json entry by id using metadata (start/end and Vimeo URI) from a file, stdin, or args.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input-url",
+          "--input-file",
+          "--dataset-id",
+          "--meta",
+          "--read-meta-stdin",
+          "--start",
+          "--end",
+          "--vimeo-uri",
+          "--no-set-data-link",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input-url": {
+        "help": "HTTP(S) or s3:// URL of dataset.json",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--input-file": {
+        "help": "Local dataset.json path",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--dataset-id": {
+        "help": "Dataset id to update",
+        "type": "str",
+        "required": true
+      },
+      "--meta": "Path to metadata JSON containing start_datetime/end_datetime/vimeo_uri",
+      "--read-meta-stdin": {
+        "help": "Read metadata JSON from stdin",
+        "type": "bool",
+        "default": false
+      },
+      "--start": "Explicit startTime override (ISO)",
+      "--end": "Explicit endTime override (ISO)",
+      "--vimeo-uri": "Explicit Vimeo URI (e.g., /videos/12345)",
+      "--no-set-data-link": {
+        "help": "Do not update dataLink from Vimeo URI",
+        "type": "bool",
+        "default": true
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "process",
+    "args_schema": null,
+    "example_args": null
   },
   "visualize heatmap": {
     "description": "zyra visualize heatmap",
@@ -1933,6 +2566,1658 @@
     },
     "example_args": null
   },
+  "render heatmap": {
+    "description": "zyra render heatmap",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--var",
+          "--basemap",
+          "--extent",
+          "--output",
+          "--inputs",
+          "--output-dir",
+          "--width",
+          "--height",
+          "--dpi",
+          "--cmap",
+          "--colorbar",
+          "--label",
+          "--units",
+          "--features",
+          "--xarray-engine",
+          "--map-type",
+          "--tile-source",
+          "--tile-zoom",
+          "--timestamp",
+          "--crs",
+          "--reproject",
+          "--timestamp-loc",
+          "--no-coastline",
+          "--no-borders",
+          "--no-gridlines",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Path to .nc or .npy input",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--var": "Variable name for NetCDF inputs",
+      "--basemap": "Basemap (path, bare image name, or pkg:ref)",
+      "--extent": {
+        "help": "west east south north",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
+      },
+      "--output": {
+        "help": "Output PNG path (required when using --input; for --inputs use --output-dir)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "Multiple input paths for batch rendering",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--width": {
+        "help": "",
+        "type": "int",
+        "default": 1024
+      },
+      "--height": {
+        "help": "",
+        "type": "int",
+        "default": 512
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--cmap": {
+        "help": "",
+        "type": "str",
+        "default": "YlOrBr"
+      },
+      "--colorbar": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--label": "",
+      "--units": "",
+      "--features": "Comma-separated features: coastline,borders,gridlines",
+      "--xarray-engine": "xarray engine for NetCDF inputs (e.g., netcdf4, h5netcdf, scipy)",
+      "--map-type": {
+        "help": "Basemap type: image (default) or tile",
+        "choices": [
+          "image",
+          "tile"
+        ],
+        "type": "str",
+        "default": "image"
+      },
+      "--tile-source": "Contextily tile source name or URL (when --map-type=tile)",
+      "--tile-zoom": {
+        "help": "Tile source zoom level",
+        "type": "int",
+        "default": 3
+      },
+      "--timestamp": "Overlay timestamp string",
+      "--crs": "Force input CRS (e.g., EPSG:3857)",
+      "--reproject": {
+        "help": "Attempt reprojection to EPSG:4326 (limited support)",
+        "type": "bool",
+        "default": false
+      },
+      "--timestamp-loc": {
+        "help": "Timestamp placement (axes-relative)",
+        "choices": [
+          "upper_left",
+          "upper_right",
+          "lower_left",
+          "lower_right"
+        ],
+        "type": "str",
+        "default": "lower_right"
+      },
+      "--no-coastline": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--no-borders": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--no-gridlines": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "render",
+    "args_schema": null,
+    "example_args": null
+  },
+  "render contour": {
+    "description": "zyra render contour",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--inputs",
+          "--output-dir",
+          "--var",
+          "--basemap",
+          "--extent",
+          "--output",
+          "--width",
+          "--height",
+          "--dpi",
+          "--cmap",
+          "--filled",
+          "--levels",
+          "--colorbar",
+          "--label",
+          "--units",
+          "--features",
+          "--xarray-engine",
+          "--map-type",
+          "--tile-source",
+          "--tile-zoom",
+          "--timestamp",
+          "--crs",
+          "--reproject",
+          "--timestamp-loc",
+          "--no-coastline",
+          "--no-borders",
+          "--no-gridlines",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Path to .nc or .npy input",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "Multiple inputs for batch rendering",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--var": "Variable name for NetCDF inputs",
+      "--basemap": "Basemap (path, bare image name, or pkg:ref)",
+      "--extent": {
+        "help": "west east south north",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
+      },
+      "--output": {
+        "help": "Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--width": {
+        "help": "",
+        "type": "int",
+        "default": 1024
+      },
+      "--height": {
+        "help": "",
+        "type": "int",
+        "default": 512
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--cmap": {
+        "help": "",
+        "type": "str",
+        "default": "YlOrBr"
+      },
+      "--filled": {
+        "help": "Use filled contours",
+        "type": "bool",
+        "default": false
+      },
+      "--levels": {
+        "help": "Count or comma-separated levels",
+        "type": "str",
+        "default": 10
+      },
+      "--colorbar": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--label": "",
+      "--units": "",
+      "--features": "Comma-separated features: coastline,borders,gridlines",
+      "--xarray-engine": "xarray engine for NetCDF inputs (e.g., netcdf4, h5netcdf, scipy)",
+      "--map-type": {
+        "help": "",
+        "choices": [
+          "image",
+          "tile"
+        ],
+        "type": "str",
+        "default": "image"
+      },
+      "--tile-source": "Contextily tile source (when --map-type=tile)",
+      "--tile-zoom": {
+        "help": "",
+        "type": "int",
+        "default": 3
+      },
+      "--timestamp": "Overlay timestamp string",
+      "--crs": "Force input CRS (e.g., EPSG:3857)",
+      "--reproject": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--timestamp-loc": {
+        "help": "Timestamp placement (axes-relative)",
+        "choices": [
+          "upper_left",
+          "upper_right",
+          "lower_left",
+          "lower_right"
+        ],
+        "type": "str",
+        "default": "lower_right"
+      },
+      "--no-coastline": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--no-borders": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--no-gridlines": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "render",
+    "args_schema": null,
+    "example_args": null
+  },
+  "render timeseries": {
+    "description": "zyra render timeseries",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--x",
+          "--y",
+          "--var",
+          "--output",
+          "--title",
+          "--xlabel",
+          "--ylabel",
+          "--style",
+          "--width",
+          "--height",
+          "--dpi",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--x": "",
+      "--y": "",
+      "--var": "",
+      "--output": {
+        "help": "",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--title": "",
+      "--xlabel": "",
+      "--ylabel": "",
+      "--style": {
+        "help": "",
+        "choices": [
+          "line",
+          "scatter"
+        ],
+        "type": "str",
+        "default": "line"
+      },
+      "--width": {
+        "help": "",
+        "type": "int",
+        "default": 1024
+      },
+      "--height": {
+        "help": "",
+        "type": "int",
+        "default": 512
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "render",
+    "args_schema": null,
+    "example_args": null
+  },
+  "render vector": {
+    "description": "zyra render vector",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--inputs",
+          "--output",
+          "--output-dir",
+          "--uvar",
+          "--vvar",
+          "--u",
+          "--v",
+          "--basemap",
+          "--extent",
+          "--width",
+          "--height",
+          "--dpi",
+          "--crs",
+          "--reproject",
+          "--map-type",
+          "--tile-source",
+          "--tile-zoom",
+          "--density",
+          "--scale",
+          "--color",
+          "--streamlines",
+          "--features",
+          "--no-coastline",
+          "--no-borders",
+          "--no-gridlines",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output": {
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--uvar": "",
+      "--vvar": "",
+      "--u": "",
+      "--v": "",
+      "--basemap": "Basemap (path, bare image name, or pkg:ref)",
+      "--extent": {
+        "help": "",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
+      },
+      "--width": {
+        "help": "",
+        "type": "int",
+        "default": 1024
+      },
+      "--height": {
+        "help": "",
+        "type": "int",
+        "default": 512
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--crs": "",
+      "--reproject": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--map-type": {
+        "help": "",
+        "choices": [
+          "image",
+          "tile"
+        ],
+        "type": "str",
+        "default": "image"
+      },
+      "--tile-source": "",
+      "--tile-zoom": {
+        "help": "",
+        "type": "int",
+        "default": 3
+      },
+      "--density": {
+        "help": "",
+        "type": "float",
+        "default": 0.2
+      },
+      "--scale": {
+        "help": "",
+        "type": "float"
+      },
+      "--color": {
+        "help": "",
+        "type": "str",
+        "default": "#333333"
+      },
+      "--streamlines": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--features": "",
+      "--no-coastline": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--no-borders": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--no-gridlines": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "render",
+    "args_schema": null,
+    "example_args": null
+  },
+  "render animate": {
+    "description": "zyra render animate",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--inputs",
+          "--output",
+          "--output-dir",
+          "--mode",
+          "--var",
+          "--uvar",
+          "--vvar",
+          "--u",
+          "--v",
+          "--density",
+          "--scale",
+          "--color",
+          "--basemap",
+          "--extent",
+          "--width",
+          "--height",
+          "--dpi",
+          "--cmap",
+          "--levels",
+          "--vmin",
+          "--vmax",
+          "--colorbar",
+          "--label",
+          "--units",
+          "--show-timestamp",
+          "--timestamps-csv",
+          "--timestamp-loc",
+          "--map-type",
+          "--tile-source",
+          "--tile-zoom",
+          "--xarray-engine",
+          "--crs",
+          "--reproject",
+          "--to-video",
+          "--fps",
+          "--grid-mode",
+          "--grid-cols",
+          "--combine-to",
+          "--seed",
+          "--particles",
+          "--custom-seed",
+          "--dt",
+          "--steps-per-frame",
+          "--method",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output": {
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--mode": {
+        "help": "",
+        "choices": [
+          "heatmap",
+          "contour",
+          "vector",
+          "particles"
+        ],
+        "type": "str",
+        "default": "heatmap"
+      },
+      "--var": "",
+      "--uvar": "",
+      "--vvar": "",
+      "--u": "",
+      "--v": "",
+      "--density": {
+        "help": "",
+        "type": "float",
+        "default": 0.2
+      },
+      "--scale": "",
+      "--color": {
+        "help": "",
+        "type": "str",
+        "default": "#333333"
+      },
+      "--basemap": "Basemap (path, bare image name, or pkg:ref)",
+      "--extent": {
+        "help": "",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
+      },
+      "--width": {
+        "help": "",
+        "type": "int",
+        "default": 1024
+      },
+      "--height": {
+        "help": "",
+        "type": "int",
+        "default": 512
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--cmap": {
+        "help": "",
+        "type": "str",
+        "default": "YlOrBr"
+      },
+      "--levels": "",
+      "--vmin": "",
+      "--vmax": "",
+      "--colorbar": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--label": "",
+      "--units": "",
+      "--show-timestamp": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--timestamps-csv": "",
+      "--timestamp-loc": {
+        "help": "",
+        "choices": [
+          "upper_left",
+          "upper_right",
+          "lower_left",
+          "lower_right"
+        ],
+        "type": "str",
+        "default": "lower_right"
+      },
+      "--map-type": {
+        "help": "",
+        "choices": [
+          "image",
+          "tile"
+        ],
+        "type": "str",
+        "default": "image"
+      },
+      "--tile-source": "",
+      "--tile-zoom": {
+        "help": "",
+        "type": "int",
+        "default": 3
+      },
+      "--xarray-engine": "",
+      "--crs": "",
+      "--reproject": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--to-video": "",
+      "--fps": {
+        "help": "",
+        "type": "int",
+        "default": 30
+      },
+      "--grid-mode": {
+        "help": "",
+        "choices": [
+          "grid",
+          "hstack",
+          "vstack"
+        ],
+        "type": "str",
+        "default": "grid"
+      },
+      "--grid-cols": {
+        "help": "",
+        "type": "int",
+        "default": 2
+      },
+      "--combine-to": "",
+      "--seed": {
+        "help": "",
+        "type": "int",
+        "default": 0
+      },
+      "--particles": {
+        "help": "",
+        "type": "int",
+        "default": 2000
+      },
+      "--custom-seed": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--dt": {
+        "help": "",
+        "type": "float",
+        "default": 0.5
+      },
+      "--steps-per-frame": {
+        "help": "",
+        "type": "int",
+        "default": 1
+      },
+      "--method": {
+        "help": "",
+        "choices": [
+          "RK4-SPH",
+          "RK4-Grid"
+        ],
+        "type": "str",
+        "default": "RK4-SPH"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "render",
+    "args_schema": null,
+    "example_args": null
+  },
+  "render compose-video": {
+    "description": "zyra render compose-video",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--frames",
+          "--output",
+          "--glob",
+          "--fps",
+          "--basemap",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--frames": {
+        "help": "Frames directory",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--output": {
+        "help": "Output MP4 path",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--glob": "Filename glob within frames dir (e.g., '*.png'); defaults to first extension found",
+      "--fps": {
+        "help": "",
+        "type": "int",
+        "default": 30
+      },
+      "--basemap": "Basemap (path, bare image name, or pkg:ref)",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "render",
+    "args_schema": null,
+    "example_args": null
+  },
+  "render interactive": {
+    "description": "zyra render interactive",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--var",
+          "--mode",
+          "--engine",
+          "--cmap",
+          "--colorbar",
+          "--label",
+          "--units",
+          "--timestamp",
+          "--timestamp-loc",
+          "--tiles",
+          "--zoom",
+          "--extent",
+          "--width",
+          "--height",
+          "--output",
+          "--uvar",
+          "--vvar",
+          "--u",
+          "--v",
+          "--density",
+          "--scale",
+          "--color",
+          "--streamlines",
+          "--features",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--var": "",
+      "--mode": {
+        "help": "",
+        "choices": [
+          "heatmap",
+          "vector",
+          "points"
+        ],
+        "type": "str",
+        "default": "heatmap"
+      },
+      "--engine": {
+        "help": "",
+        "choices": [
+          "plotly",
+          "folium"
+        ],
+        "type": "str",
+        "default": "plotly"
+      },
+      "--cmap": {
+        "help": "",
+        "type": "str",
+        "default": "YlOrBr"
+      },
+      "--colorbar": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--label": "",
+      "--units": "",
+      "--timestamp": "",
+      "--timestamp-loc": {
+        "help": "",
+        "type": "str",
+        "default": "lower_right"
+      },
+      "--tiles": {
+        "help": "",
+        "type": "str",
+        "default": "OpenStreetMap"
+      },
+      "--zoom": {
+        "help": "",
+        "type": "int",
+        "default": 3
+      },
+      "--extent": {
+        "help": "",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
+      },
+      "--width": {
+        "help": "",
+        "type": "int",
+        "default": 1024
+      },
+      "--height": {
+        "help": "",
+        "type": "int",
+        "default": 512
+      },
+      "--output": {
+        "help": "",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--uvar": "",
+      "--vvar": "",
+      "--u": "",
+      "--v": "",
+      "--density": {
+        "help": "",
+        "type": "float",
+        "default": 0.2
+      },
+      "--scale": {
+        "help": "",
+        "type": "float",
+        "default": 1.0
+      },
+      "--color": {
+        "help": "",
+        "type": "str",
+        "default": "#333333"
+      },
+      "--streamlines": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--features": "",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "render",
+    "args_schema": null,
+    "example_args": null
+  },
+  "disseminate local": {
+    "description": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
+    "doc": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "path",
+        "help": "Destination file path",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "disseminate",
+    "args_schema": null,
+    "example_args": null
+  },
+  "disseminate s3": {
+    "description": "Upload stdin or an input file to Amazon S3, specified by s3:// URL or bucket/key.",
+    "doc": "Upload stdin or an input file to Amazon S3, specified by s3:// URL or bucket/key.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--read-stdin",
+          "--url",
+          "--bucket",
+          "--key",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--read-stdin": {
+        "help": "Read object body from stdin (alias for -i -)",
+        "type": "bool",
+        "default": false
+      },
+      "--url": "Full URL s3://bucket/key",
+      "--bucket": "Bucket name",
+      "--key": "Object key (when using --bucket)",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "disseminate",
+    "args_schema": null,
+    "example_args": null
+  },
+  "disseminate ftp": {
+    "description": "Upload stdin or an input file to an FTP destination path.",
+    "doc": "Upload stdin or an input file to an FTP destination path.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "path",
+        "help": "ftp://host/path or host/path",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "disseminate",
+    "args_schema": null,
+    "example_args": null
+  },
+  "disseminate post": {
+    "description": "HTTP POST stdin or an input file to a URL with optional content-type.",
+    "doc": "HTTP POST stdin or an input file to a URL with optional content-type.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--content-type",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--content-type": "Content-Type header",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "url",
+        "help": "",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "disseminate",
+    "args_schema": null,
+    "example_args": null
+  },
+  "disseminate vimeo": {
+    "description": "Upload a new video to Vimeo or replace an existing video by URI. Optionally set title and description.",
+    "doc": "Upload a new video to Vimeo or replace an existing video by URI. Optionally set title and description.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--name",
+          "--description",
+          "--description-file",
+          "--replace-uri",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--name": "Video title",
+      "--description": "Video description",
+      "--description-file": "Read description text from a file (UTF-8)",
+      "--replace-uri": "Replace existing video at this Vimeo URI",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "disseminate",
+    "args_schema": null,
+    "example_args": null
+  },
+  "export local": {
+    "description": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
+    "doc": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "path",
+        "help": "Destination file path",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "export",
+    "args_schema": null,
+    "example_args": null
+  },
+  "export s3": {
+    "description": "Upload stdin or an input file to Amazon S3, specified by s3:// URL or bucket/key.",
+    "doc": "Upload stdin or an input file to Amazon S3, specified by s3:// URL or bucket/key.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--read-stdin",
+          "--url",
+          "--bucket",
+          "--key",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--read-stdin": {
+        "help": "Read object body from stdin (alias for -i -)",
+        "type": "bool",
+        "default": false
+      },
+      "--url": "Full URL s3://bucket/key",
+      "--bucket": "Bucket name",
+      "--key": "Object key (when using --bucket)",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "export",
+    "args_schema": null,
+    "example_args": null
+  },
+  "export ftp": {
+    "description": "Upload stdin or an input file to an FTP destination path.",
+    "doc": "Upload stdin or an input file to an FTP destination path.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "path",
+        "help": "ftp://host/path or host/path",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "export",
+    "args_schema": null,
+    "example_args": null
+  },
+  "export post": {
+    "description": "HTTP POST stdin or an input file to a URL with optional content-type.",
+    "doc": "HTTP POST stdin or an input file to a URL with optional content-type.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--content-type",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--content-type": "Content-Type header",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "url",
+        "help": "",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "export",
+    "args_schema": null,
+    "example_args": null
+  },
+  "export vimeo": {
+    "description": "Upload a new video to Vimeo or replace an existing video by URI. Optionally set title and description.",
+    "doc": "Upload a new video to Vimeo or replace an existing video by URI. Optionally set title and description.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--name",
+          "--description",
+          "--description-file",
+          "--replace-uri",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Input path or '-' for stdin",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--name": "Video title",
+      "--description": "Video description",
+      "--description-file": "Read description text from a file (UTF-8)",
+      "--replace-uri": "Replace existing video at this Vimeo URI",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "export",
+    "args_schema": null,
+    "example_args": null
+  },
   "decimate local": {
     "description": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
     "doc": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
@@ -2762,7 +5047,7 @@
         "help": "1-based index of last stage to run",
         "type": "int"
       },
-      "--only": "Run only stages matching this alias (acquire/process/visualize/decimate)",
+      "--only": "Run only stages matching this alias (import/acquire/process/transform/visualize/render/simulate/decide/optimize/narrate/verify/export/disseminate/decimate)",
       "--verbose": {
         "help": "Verbose runner output (prints stage headings)",
         "type": "bool",
@@ -2828,6 +5113,162 @@
     ],
     "domain": "run",
     "args_schema": null,
+    "example_args": null
+  },
+  "simulate sample": {
+    "description": "zyra simulate sample",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--seed",
+          "--trials"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--seed": {
+        "help": "Random seed",
+        "type": "int"
+      },
+      "--trials": {
+        "help": "Number of trials",
+        "type": "int",
+        "default": 1
+      }
+    },
+    "positionals": [],
+    "domain": "simulate",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "seed",
+        "trials"
+      ]
+    },
+    "example_args": null
+  },
+  "decide optimize": {
+    "description": "zyra decide optimize",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--strategy"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--strategy": {
+        "help": "Optimization strategy (placeholder)",
+        "choices": [
+          "greedy",
+          "random",
+          "grid"
+        ],
+        "type": "str"
+      }
+    },
+    "positionals": [],
+    "domain": "decide",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "strategy"
+      ]
+    },
+    "example_args": null
+  },
+  "optimize optimize": {
+    "description": "zyra optimize optimize",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--strategy"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--strategy": {
+        "help": "Optimization strategy (placeholder)",
+        "choices": [
+          "greedy",
+          "random",
+          "grid"
+        ],
+        "type": "str"
+      }
+    },
+    "positionals": [],
+    "domain": "optimize",
+    "args_schema": null,
+    "example_args": null
+  },
+  "narrate describe": {
+    "description": "zyra narrate describe",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--topic"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--topic": "Topic to narrate (placeholder)"
+    },
+    "positionals": [],
+    "domain": "narrate",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "topic"
+      ]
+    },
+    "example_args": null
+  },
+  "verify evaluate": {
+    "description": "zyra verify evaluate",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--metric"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--metric": "Metric name (placeholder)"
+    },
+    "positionals": [],
+    "domain": "verify",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "metric"
+      ]
+    },
     "example_args": null
   }
 }

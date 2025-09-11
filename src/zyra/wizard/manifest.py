@@ -35,6 +35,38 @@ def _safe_add_group(
         return
 
 
+def _safe_add_group_multi(
+    sub: argparse._SubParsersAction,
+    *,
+    name: str,
+    help_text: str,
+    dest: str,
+    import_paths: list[str],
+    register_attr: str = "register_cli",
+) -> None:
+    """Register multiple modules' CLI under a single group.
+
+    Creates one parser/subparsers entry, then imports each module path in
+    ``import_paths`` and calls its registrar on the same subparsers object.
+    Silently ignores ImportError/AttributeError per module to mirror
+    _safe_add_group behavior.
+    """
+    try:
+        p = sub.add_parser(name, help=help_text)
+        sp = p.add_subparsers(dest=dest, required=True)
+    except (AttributeError, ValueError, TypeError):  # pragma: no cover
+        # Mirror narrow exception handling style used elsewhere; avoid
+        # swallowing unrelated errors that shouldn't be ignored.
+        return
+    for ip in import_paths:
+        try:
+            mod = importlib.import_module(ip)
+            registrar = getattr(mod, register_attr)
+            registrar(sp)
+        except (ImportError, AttributeError):  # pragma: no cover - optional extras
+            continue
+
+
 def _safe_call_register(
     sub: argparse._SubParsersAction, *, import_path: str, func_name: str
 ) -> None:
@@ -85,14 +117,22 @@ def _safe_register_all(sub: argparse._SubParsersAction) -> None:
         dest="acquire_cmd",
         import_path="zyra.connectors.ingest",
     )
-
-    # process
+    # alias: import → acquire
     _safe_add_group(
         sub,
+        name="import",
+        help_text="Acquire/ingest data from sources (alias)",
+        dest="acquire_cmd",
+        import_path="zyra.connectors.ingest",
+    )
+
+    # process: include both processing and transform under one group
+    _safe_add_group_multi(
+        sub,
         name="process",
-        help_text="Processing commands (GRIB/NetCDF/GeoTIFF)",
+        help_text="Processing commands (GRIB/NetCDF/GeoTIFF) + transforms",
         dest="process_cmd",
-        import_path="zyra.processing",
+        import_paths=["zyra.processing", "zyra.transform"],
     )
 
     # visualize
@@ -104,13 +144,36 @@ def _safe_register_all(sub: argparse._SubParsersAction) -> None:
         dest="visualize_cmd",
         import_path="zyra.visualization.cli_register",
     )
+    # alias: render → visualize
+    _safe_add_group(
+        sub,
+        name="render",
+        help_text="Visualization commands (alias)",
+        dest="visualize_cmd",
+        import_path="zyra.visualization.cli_register",
+    )
 
-    # decimate
+    # disseminate (canonical egress) + aliases
+    _safe_add_group(
+        sub,
+        name="disseminate",
+        help_text="Write/egress data to destinations",
+        dest="disseminate_cmd",
+        import_path="zyra.connectors.egress",
+    )
+    # aliases: export/decimate → disseminate
+    _safe_add_group(
+        sub,
+        name="export",
+        help_text="Write/egress data to destinations (alias)",
+        dest="disseminate_cmd",
+        import_path="zyra.connectors.egress",
+    )
     _safe_add_group(
         sub,
         name="decimate",
-        help_text="Write/egress data to destinations",
-        dest="decimate_cmd",
+        help_text="Write/egress data to destinations (legacy alias)",
+        dest="disseminate_cmd",
         import_path="zyra.connectors.egress",
     )
 
@@ -123,6 +186,8 @@ def _safe_register_all(sub: argparse._SubParsersAction) -> None:
         import_path="zyra.transform",
     )
 
+    # skeleton groups and aliases registered below (with verify + optimize alias)
+
     # search (single command)
     _safe_add_single(
         sub,
@@ -134,6 +199,43 @@ def _safe_register_all(sub: argparse._SubParsersAction) -> None:
     # run
     _safe_call_register(
         sub, import_path="zyra.pipeline_runner", func_name="register_cli_run"
+    )
+
+    # new skeleton groups and aliases
+    _safe_add_group(
+        sub,
+        name="simulate",
+        help_text="Simulate under uncertainty (skeleton)",
+        dest="simulate_cmd",
+        import_path="zyra.simulate",
+    )
+    _safe_add_group(
+        sub,
+        name="decide",
+        help_text="Decision/optimization (skeleton)",
+        dest="decide_cmd",
+        import_path="zyra.decide",
+    )
+    _safe_add_group(
+        sub,
+        name="optimize",
+        help_text="Decision/optimization (alias)",
+        dest="decide_cmd",
+        import_path="zyra.decide",
+    )
+    _safe_add_group(
+        sub,
+        name="narrate",
+        help_text="Narrate/report (skeleton)",
+        dest="narrate_cmd",
+        import_path="zyra.narrate",
+    )
+    _safe_add_group(
+        sub,
+        name="verify",
+        help_text="Evaluation/metrics/validation (skeleton)",
+        dest="verify_cmd",
+        import_path="zyra.verify",
     )
 
 

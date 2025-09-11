@@ -47,7 +47,7 @@ Zyra is a utility library for building data-driven visual products. It provides 
 - `assets/images/`: packaged basemaps and overlays used by plots.
 
 Notes
-- Legacy `acquisition/` modules remain for back-compat but are deprecated. Prefer `zyra.connectors.backends.*` and the CLI groups `acquire`/`decimate`.
+- Legacy `acquisition/` modules remain for back-compat but are deprecated. Prefer `zyra.connectors.backends.*` and the CLI groups `import/acquire` and `export/disseminate` (legacy: `decimate`).
 
 ## Prerequisites
 - Python 3.10+
@@ -147,7 +147,8 @@ zyra
 │  ├─ animate         # write frames; optional MP4 composition
 │  ├─ compose-video   # frames → MP4 (ffmpeg)
 │  └─ interactive     # folium/plotly HTML
-├─ decimate           # Write/egress bytes to destinations
+├─ export (alias: disseminate, decimate [deprecated])
+                      # Publish/share bytes to destinations
 │  ├─ local           # file path
 │  ├─ s3              # s3://bucket/key
 │  ├─ ftp             # ftp://host/path or host/path
@@ -163,7 +164,8 @@ zyra
 Notes
 - All subcommands accept `-` for stdin/stdout where applicable to support piping.
   - `transform enrich-metadata` can read frames metadata JSON from stdin via `--read-frames-meta-stdin`.
-  - `decimate s3` can read bytes from stdin via `--read-stdin` (alias for `-i -`).
+  - `export s3` can read bytes from stdin via `--read-stdin` (alias for `-i -`).
+  - Terminology: The egress stage is now referred to as `export`/`disseminate` (preferred). The legacy name `decimate` remains as a supported alias across CLI, pipelines, and API but is deprecated.
 
 ### Quick Usage by Group
 
@@ -182,9 +184,9 @@ Notes
   - Contour PNG from NetCDF: `zyra visualize contour --input out.nc --var TMP --output contour.png --levels 10 --filled`
   - Animate frames and compose to MP4: `zyra visualize animate --mode heatmap --input cube.npy --output-dir frames && zyra visualize compose-video --frames frames -o out.mp4`
 
-- Decimate
-- Upload to S3 from stdin: `cat out.png | zyra decimate s3 --read-stdin --url s3://bucket/products/out.png`
-- HTTP POST JSON: `echo '{"ok":true}' | zyra decimate post -i - https://example.com/ingest --content-type application/json`
+- Export/Disseminate
+- Upload to S3 from stdin: `cat out.png | zyra export s3 --read-stdin --url s3://bucket/products/out.png`
+- HTTP POST JSON: `echo '{"ok":true}' | zyra disseminate post -i - https://example.com/ingest --content-type application/json`
 
 ## Batch Mode
 
@@ -387,7 +389,7 @@ Sample pipeline configs live under `samples/pipelines/`:
 
 - `nc_passthrough.yaml`: read NetCDF bytes from stdin and emit NetCDF to stdout.
   - Usage: `cat tests/testdata/demo.nc | zyra run samples/pipelines/nc_passthrough.yaml > out.nc`
-- `nc_to_file.yaml`: read NetCDF from stdin, then write to `out.nc` via `decimate local`.
+- `nc_to_file.yaml`: read NetCDF from stdin, then write to `out.nc` via `export local`.
   - Usage: `cat tests/testdata/demo.nc | zyra run samples/pipelines/nc_to_file.yaml`
 - `ftp_to_s3.yaml`: template for FTP → video composition → S3 upload (placeholders, not CI-safe).
   - Dry-run mapping: `zyra run samples/pipelines/ftp_to_s3.yaml --dry-run`
@@ -402,7 +404,7 @@ Sample pipeline configs live under `samples/pipelines/`:
 Overrides
 - Global override (applied where key exists): `--set var=TMP`
 - Per-stage override using 1-based index (1-based): `--set 2.var=TMP` (sets key `var` on stage 2 only)
-- Stage-name override (uses aliases acquisition/ingest→acquire, processing→process, visualization→visualize, decimation/egress→decimate):
+- Stage-name override (uses aliases import/ingest→acquire, process/transform→process, visualize/render→visualize, export/disseminate/decimation→export):
   - `--set processing.var=TMP`
   - `--set decimation.backend=local`
 
@@ -735,7 +737,7 @@ Distributed under the MIT License. See [LICENSE](LICENSE).
 - Source: https://github.com/NOAA-GSL/zyra
 - PyPI: https://pypi.org/project/zyra/
 ## API Service
-Expose the 4-stage CLI over HTTP using FastAPI.
+Expose the 8-stage CLI over HTTP using FastAPI.
 
 - Install with API extras: `poetry install --with dev -E api` or `--all-extras`.
 - Run locally: `poetry run uvicorn zyra.api.server:app --reload --host 0.0.0.0 --port 8000`.
@@ -905,13 +907,13 @@ jobs:
   acquire:
     steps:
       - "acquire http https://example.com/data.bin -o -"
-      - {stage: decimate, command: local, args: {input: "-", path: data.bin}}
+      - {stage: export, command: local, args: {input: "-", path: data.bin}}
 
   process:
     needs: acquire
     steps:
       - {stage: process, command: convert-format, args: {file_or_url: data.bin, format: netcdf, stdout: true}}
-      - {stage: decimate, command: local, args: {input: "-", path: out.nc}}
+      - {stage: export, command: local, args: {input: "-", path: out.nc}}
 ```
 
 Run the workflow:

@@ -332,6 +332,38 @@ class VisualizeInteractiveArgs(BaseModel):
     streamlines: bool | None = None
 
 
+class SimulateSampleArgs(BaseModel):
+    """Arguments for ``simulate sample``.
+
+    Provides simple placeholders to facilitate early integration and testing
+    of the simulate stage.
+    """
+
+    seed: int | None = Field(default=None, description="Random seed")
+    trials: int | None = Field(default=None, description="Number of trials")
+
+
+class DecideOptimizeArgs(BaseModel):
+    """Arguments for ``decide optimize`` (skeleton)."""
+
+    strategy: str | None = Field(
+        default=None,
+        description="Optimization strategy (e.g., 'greedy', 'random', 'grid')",
+    )
+
+
+class NarrateDescribeArgs(BaseModel):
+    """Arguments for ``narrate describe`` (skeleton)."""
+
+    topic: str | None = Field(default=None, description="Narration topic")
+
+
+class VerifyEvaluateArgs(BaseModel):
+    """Arguments for ``verify evaluate`` (skeleton)."""
+
+    metric: str | None = Field(default=None, description="Metric name")
+
+
 def resolve_model(stage: str, tool: str) -> type[BaseModel] | None:
     key = (stage, tool)
     if key == ("acquire", "http"):
@@ -370,4 +402,13 @@ def resolve_model(stage: str, tool: str) -> type[BaseModel] | None:
         return AcquireFtpArgs
     if key == ("acquire", "http"):
         return AcquireHttpArgs
+    # New skeleton domains
+    if key == ("simulate", "sample"):
+        return SimulateSampleArgs
+    if key == ("decide", "optimize"):
+        return DecideOptimizeArgs
+    if key == ("narrate", "describe"):
+        return NarrateDescribeArgs
+    if key == ("verify", "evaluate"):
+        return VerifyEvaluateArgs
     return None

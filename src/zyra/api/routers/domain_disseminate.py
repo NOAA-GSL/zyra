@@ -1,27 +1,19 @@
-"""Domain API: Visualize.
+"""Domain API: Disseminate (Export/Egress).
 
-Exposes ``POST /visualize`` for visualization tools using the domain envelope.
-Enforces an optional body-size cap (``ZYRA_DOMAIN_MAX_BODY_BYTES``) and logs
-structured call information.
+Primary endpoint: ``POST /disseminate``.
+Aliases: ``POST /export`` and legacy ``POST /decimate``.
+
+Uses the standard domain envelope and delegates to the CLI runner.
 """
 
 from __future__ import annotations
 
-from typing import Annotated, Union
+from typing import Any  # noqa: F401
 
-from fastapi import APIRouter, BackgroundTasks, Body, Request
+from fastapi import APIRouter, BackgroundTasks, Request
 from pydantic import ValidationError
 from zyra.api.models.cli_request import CLIRunRequest
-from zyra.api.models.domain_api import (
-    DomainRunResponse,
-    VisualizeAnimateRun,
-    VisualizeComposeVideoRun,
-    VisualizeContourRun,
-    VisualizeHeatmapRun,
-    VisualizeInteractiveRun,
-    VisualizeTimeSeriesRun,
-    VisualizeVectorRun,
-)
+from zyra.api.models.domain_api import DomainRunRequest, DomainRunResponse
 from zyra.api.routers.cli import get_cli_matrix, run_cli_endpoint
 from zyra.api.schemas.domain_args import normalize_and_validate
 from zyra.api.utils.assets import infer_assets
@@ -29,28 +21,37 @@ from zyra.api.utils.errors import domain_error_response
 from zyra.api.utils.obs import log_domain_call
 from zyra.utils.env import env_int
 
-router = APIRouter(tags=["visualize"], prefix="")
+router = APIRouter(tags=["disseminate"], prefix="")
 
 
-VisualizeRequest = Annotated[
-    Union[
-        VisualizeHeatmapRun,
-        VisualizeContourRun,
-        VisualizeAnimateRun,
-        VisualizeTimeSeriesRun,
-        VisualizeVectorRun,
-        VisualizeComposeVideoRun,
-        VisualizeInteractiveRun,
-    ],
-    Body(discriminator="tool"),
-]
+DisseminateRequest = DomainRunRequest
 
 
-@router.post("/visualize", response_model=DomainRunResponse)
-def visualize_run(
-    req: VisualizeRequest, bg: BackgroundTasks, request: Request
+def _run(
+    stage: str, req: DisseminateRequest, bg: BackgroundTasks, request: Request
 ) -> DomainRunResponse:
-    """Run a visualize-domain tool and return a standardized response."""
+    """Shared implementation for disseminate/export/decimate.
+
+    Normalizes the incoming stage alias to the canonical stage (``decimate``)
+    for validation and execution, then returns a standard ``DomainRunResponse``.
+    """
+    # Normalize alias stage names to canonical for validation/CLI execution
+    # NOTE:
+    # Although "disseminate" (and "export") are the preferred user-facing names
+    # for egress, the internal canonical remains "decimate" for now. This keeps
+    # backward compatibility with existing runners/tests and code paths that
+    # inspect the stage name (e.g., asset inference and pipeline argv building),
+    # while still exposing the new terms at the API/CLI surface. When the
+    # ecosystem has fully migrated, we can flip the canonical stage to
+    # "disseminate" and update dependent logic/tests accordingly.
+    #
+    # TODO: Track and flip canonical to "disseminate" after migration is complete
+    # (update runner alias mapping, assets inference, tests, examples, and docs).
+    canonical = {
+        "export": "decimate",
+        "disseminate": "decimate",
+        "decimate": "decimate",
+    }.get(stage, stage)
     try:
         max_bytes = int(env_int("DOMAIN_MAX_BODY_BYTES", 0))
     except Exception:
@@ -68,13 +69,12 @@ def visualize_run(
                 details={"content_length": cl, "limit": max_bytes},
             )
     matrix = get_cli_matrix()
-    stage = "visualize"
-    allowed = set(matrix.get(stage, {}).get("commands", []) or [])
+    allowed = set(matrix.get(canonical, {}).get("commands", []) or [])
     if req.tool not in allowed:
         return domain_error_response(
             status_code=400,
             err_type="validation_error",
-            message="Invalid tool for visualize domain",
+            message=f"Invalid tool for {stage} domain",
             details={"allowed": sorted(list(allowed))},
         )
 
@@ -86,7 +86,7 @@ def visualize_run(
         raw_args = req.args
         if hasattr(raw_args, "model_dump"):
             raw_args = raw_args.model_dump(exclude_none=True)  # type: ignore[attr-defined]
-        args = normalize_and_validate(stage, req.tool, raw_args)
+        args = normalize_and_validate(canonical, req.tool, raw_args)
     except ValidationError as ve:
         return domain_error_response(
             status_code=400,
@@ -98,7 +98,7 @@ def visualize_run(
 
     _t0 = _time.time()
     resp = run_cli_endpoint(
-        CLIRunRequest(stage=stage, command=req.tool, args=args, mode=mode), bg
+        CLIRunRequest(stage=canonical, command=req.tool, args=args, mode=mode), bg
     )
     if getattr(resp, "job_id", None):
         return DomainRunResponse(
@@ -111,7 +111,8 @@ def visualize_run(
     ok = resp.exit_code == 0
     assets = []
     try:
-        assets = infer_assets(stage, req.tool, args)
+        # Use canonical stage for asset inference to match utils expectations
+        assets = infer_assets(canonical, req.tool, args)
     except Exception:
         assets = []
     res = DomainRunResponse(
@@ -157,10 +158,34 @@ def visualize_run(
     return res
 
 
-# Alias for render (same handler; canonical stage remains 'visualize')
-@router.post("/render", response_model=DomainRunResponse)
-def render_run(
-    req: VisualizeRequest, bg: BackgroundTasks, request: Request
+@router.post("/disseminate", response_model=DomainRunResponse)
+def disseminate_run(
+    req: DisseminateRequest, bg: BackgroundTasks, request: Request
+) -> DomainRunResponse:
+    """Run a disseminate-domain tool (preferred egress name)."""
+    return _run("disseminate", req, bg, request)
+
+
+@router.post("/export", response_model=DomainRunResponse)
+def export_run(
+    req: DisseminateRequest, bg: BackgroundTasks, request: Request
 ) -> DomainRunResponse:  # noqa: D401
-    """Alias of /visualize for render terminology."""
-    return visualize_run(req, bg, request)
+    """Alias of /disseminate for export terminology."""
+    return _run("export", req, bg, request)
+
+
+@router.post("/decimate", response_model=DomainRunResponse)
+def decimate_run(
+    req: DisseminateRequest, bg: BackgroundTasks, request: Request
+) -> DomainRunResponse:  # noqa: D401
+    """Legacy alias of /disseminate for back-compat (misspelling retained)."""
+    # Emit a deprecation warning to API logs
+    try:
+        import logging as _log
+
+        _log.getLogger("zyra.api.domain").warning(
+            "[deprecated] '/decimate' is deprecated; use '/export' or '/disseminate'"
+        )
+    except Exception:
+        pass
+    return _run("decimate", req, bg, request)

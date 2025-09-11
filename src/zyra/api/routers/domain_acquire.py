@@ -147,3 +147,12 @@ def acquire_run(
             _t0,
         )
     return res
+
+
+# Alias for import (same handler; canonical stage remains 'acquire')
+@router.post("/import", response_model=DomainRunResponse)
+def import_run(
+    req: AcquireRequest, bg: BackgroundTasks, request: Request
+) -> DomainRunResponse:  # noqa: D401
+    """Alias of /acquire for import terminology."""
+    return acquire_run(req, bg, request)

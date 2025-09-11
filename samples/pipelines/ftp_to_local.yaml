@@ -29,15 +29,14 @@ stages:
       fps: 24
 
   # 4) Copy outputs to local filesystem (no network required)
-  - stage: decimate
+  - stage: export
     command: local
     args:
       input: frames_meta.json
       path: /tmp/frames_meta.json
 
-  - stage: decimate
+  - stage: export
     command: local
     args:
       input: video.mp4
       path: /tmp/video.mp4
-
