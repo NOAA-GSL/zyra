@@ -1032,16 +1032,14 @@ def main(argv: list[str] | None = None) -> int:
     # Apply global verbosity to environment so downstream modules pick it up
     # Deprecation notice for legacy 'decimate' and 'transform' groups
     try:
-        if getattr(args, "cmd", None) == "decimate":
-            import sys as _sys
+        import sys as _sys
 
+        if getattr(args, "cmd", None) == "decimate":
             print(
                 "[deprecated] 'decimate' is deprecated; use 'export' or 'disseminate'",
                 file=_sys.stderr,
             )
         if getattr(args, "cmd", None) == "transform":
-            import sys as _sys
-
             print(
                 "[deprecated] 'transform' is merged into 'process'; use 'process'",
                 file=_sys.stderr,

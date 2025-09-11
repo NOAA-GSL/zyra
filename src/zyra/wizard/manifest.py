@@ -35,6 +35,36 @@ def _safe_add_group(
         return
 
 
+def _safe_add_group_multi(
+    sub: argparse._SubParsersAction,
+    *,
+    name: str,
+    help_text: str,
+    dest: str,
+    import_paths: list[str],
+    register_attr: str = "register_cli",
+) -> None:
+    """Register multiple modules' CLI under a single group.
+
+    Creates one parser/subparsers entry, then imports each module path in
+    ``import_paths`` and calls its registrar on the same subparsers object.
+    Silently ignores ImportError/AttributeError per module to mirror
+    _safe_add_group behavior.
+    """
+    try:
+        p = sub.add_parser(name, help=help_text)
+        sp = p.add_subparsers(dest=dest, required=True)
+    except Exception:  # pragma: no cover
+        return
+    for ip in import_paths:
+        try:
+            mod = importlib.import_module(ip)
+            registrar = getattr(mod, register_attr)
+            registrar(sp)
+        except (ImportError, AttributeError):  # pragma: no cover - optional extras
+            continue
+
+
 def _safe_call_register(
     sub: argparse._SubParsersAction, *, import_path: str, func_name: str
 ) -> None:
@@ -95,25 +125,13 @@ def _safe_register_all(sub: argparse._SubParsersAction) -> None:
     )
 
     # process: include both processing and transform under one group
-    try:
-        p = sub.add_parser(
-            "process", help="Processing commands (GRIB/NetCDF/GeoTIFF) + transforms"
-        )
-        sp = p.add_subparsers(dest="process_cmd", required=True)
-        try:
-            import zyra.processing as _proc  # type: ignore
-
-            _proc.register_cli(sp)  # type: ignore[attr-defined]
-        except Exception:  # pragma: no cover
-            pass
-        try:
-            import zyra.transform as _tr  # type: ignore
-
-            _tr.register_cli(sp)  # type: ignore[attr-defined]
-        except Exception:  # pragma: no cover
-            pass
-    except Exception:  # pragma: no cover
-        pass
+    _safe_add_group_multi(
+        sub,
+        name="process",
+        help_text="Processing commands (GRIB/NetCDF/GeoTIFF) + transforms",
+        dest="process_cmd",
+        import_paths=["zyra.processing", "zyra.transform"],
+    )
 
     # visualize
     # Use lightweight registrar to avoid importing heavy visualization root
