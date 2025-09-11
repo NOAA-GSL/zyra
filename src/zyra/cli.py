@@ -73,8 +73,20 @@ def _print_version_banner(mode: str = "short") -> None:
                     logo_text = Path(str(p)).read_text(
                         encoding="utf-8", errors="ignore"
                     )
-    except Exception:
+    except importlib_metadata.PackageNotFoundError:
+        # Package metadata not available (editable install or runtime env);
+        # ignore gracefully.
         pass
+    except Exception as exc:  # pragma: no cover - unexpected metadata error
+        # Avoid hard-failing version banner; log at debug level if possible.
+        try:
+            import logging as _log
+
+            _log.getLogger(__name__).debug(
+                "distribution() metadata read failed: %s", exc
+            )
+        except Exception:
+            pass
     if logo_text is None:
         for c in candidates:
             try:

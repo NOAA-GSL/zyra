@@ -54,7 +54,9 @@ def _safe_add_group_multi(
     try:
         p = sub.add_parser(name, help=help_text)
         sp = p.add_subparsers(dest=dest, required=True)
-    except Exception:  # pragma: no cover
+    except (AttributeError, ValueError, TypeError):  # pragma: no cover
+        # Mirror narrow exception handling style used elsewhere; avoid
+        # swallowing unrelated errors that shouldn't be ignored.
         return
     for ip in import_paths:
         try:
