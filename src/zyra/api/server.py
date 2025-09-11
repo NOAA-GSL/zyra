@@ -75,7 +75,12 @@ def create_app() -> FastAPI:
             with suppress(asyncio.CancelledError):
                 await task
 
-    app = FastAPI(title="Zyra API", version=dvh_version, lifespan=lifespan)
+    app = FastAPI(
+        title="Zyra API",
+        version=dvh_version,
+        lifespan=lifespan,
+        root_path=env("API_ROOT_PATH", ""),
+    )
 
     @app.exception_handler(RequestValidationError)
     async def _map_validation_errors(request: Request, exc: RequestValidationError):
