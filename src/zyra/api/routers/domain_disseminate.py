@@ -44,6 +44,9 @@ def _run(
     # while still exposing the new terms at the API/CLI surface. When the
     # ecosystem has fully migrated, we can flip the canonical stage to
     # "disseminate" and update dependent logic/tests accordingly.
+    #
+    # TODO: Track and flip canonical to "disseminate" after migration is complete
+    # (update runner alias mapping, assets inference, tests, examples, and docs).
     canonical = {
         "export": "decimate",
         "disseminate": "decimate",
