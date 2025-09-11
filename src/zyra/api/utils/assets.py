@@ -15,6 +15,18 @@ from zyra.utils.env import env_bool, env_path
 MAX_DIRECTORY_FILES_IN_ASSETS = 5
 
 
+def is_egress_stage(stage: str | None) -> bool:
+    """Return True if the given stage name represents egress/dissemination.
+
+    Centralizes alias handling so callers don't duplicate checks. Includes
+    common aliases used across the codebase for backward compatibility.
+    """
+    if not stage:
+        return False
+    s = stage.strip().lower()
+    return s in {"disseminate", "export", "decimate", "decimation"}
+
+
 def _guess_media_type(path: Path) -> str | None:
     """Best-effort media type detection.
 
@@ -142,8 +154,8 @@ def infer_assets(stage: str, tool: str, args: dict[str, Any]) -> list[AssetRef]:
                 except Exception:
                     mt = None
                 out.append(AssetRef(uri=val, name=Path(val).name, media_type=mt))
-    # Disseminate (egress) local writes to positional 'path' (aliases: export, decimate)
-    if stage in {"disseminate", "export", "decimate"} and tool == "local":
+    # Egress local writes to positional 'path' (export/disseminate/decimate)
+    if is_egress_stage(stage) and tool == "local":
         val = args.get("path")
         if isinstance(val, str):
             base = _contained_base(val)
