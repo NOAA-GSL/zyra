@@ -30,7 +30,7 @@ stages:
       fps: 24
 
   # 4) Upload/replace Vimeo video (prints URI to stdout)
-  - stage: decimate
+  - stage: export
     command: vimeo
     args:
       input: /data/output/drought.mp4
@@ -48,7 +48,7 @@ stages:
       output: /data/images/drought/enriched_meta.json
 
   # 6) Upload enriched metadata to S3 (configure your bucket/key)
-  - stage: decimate
+  - stage: export
     command: s3
     args:
       input: /data/images/drought/enriched_meta.json
@@ -64,7 +64,7 @@ stages:
       output: /data/images/drought/updated_dataset.json
 
   # 8) Upload updated dataset.json back to S3
-  - stage: decimate
+  - stage: export
     command: s3
     args:
       input: /data/images/drought/updated_dataset.json

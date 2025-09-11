@@ -91,7 +91,7 @@ Zyra exposes a rich commands index for tool discovery:
 
 - ``GET /commands`` — JSON map of tools with metadata.
 - ``GET /commands?format=list|summary`` — list or summary views.
-- ``GET /commands?format=grouped`` — groups tools by domain (acquire/process/visualize/decimate/transform/run).
+- ``GET /commands?format=grouped`` — groups tools by domain (import/acquire, process/transform, visualize/render, export/disseminate/decimate, run).
 
 Each command entry includes:
 

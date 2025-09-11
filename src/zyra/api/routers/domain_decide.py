@@ -1,13 +1,12 @@
-"""Domain API: Decimate.
+"""Domain API: Decide/Optimize.
 
-Exposes ``POST /decimate`` to run egress/export tools using the domain envelope.
-Supports request body-size limiting (``ZYRA_DOMAIN_MAX_BODY_BYTES``) and emits
-structured logs with domain/tool/job_id/duration.
+Exposes ``POST /decide`` and alias ``POST /optimize`` for decision tools.
+Uses a generic domain envelope to avoid tight coupling while stubs mature.
 """
 
 from __future__ import annotations
 
-from typing import Any  # noqa: F401
+from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Request
 from pydantic import ValidationError
@@ -20,17 +19,16 @@ from zyra.api.utils.errors import domain_error_response
 from zyra.api.utils.obs import log_domain_call
 from zyra.utils.env import env_int
 
-router = APIRouter(tags=["decimate"], prefix="")
+router = APIRouter(tags=["decide"], prefix="")
 
 
-DecimateRequest = DomainRunRequest
+DecideRequest = DomainRunRequest
 
 
-@router.post("/decimate", response_model=DomainRunResponse)
-def decimate_run(
-    req: DecimateRequest, bg: BackgroundTasks, request: Request
+def _run(
+    stage: str, req: DecideRequest, bg: BackgroundTasks, request: Request
 ) -> DomainRunResponse:
-    """Run a decimate-domain tool and return a standardized response."""
+    """Shared implementation for decide/optimize domain execution."""
     try:
         max_bytes = int(env_int("DOMAIN_MAX_BODY_BYTES", 0))
     except Exception:
@@ -48,22 +46,20 @@ def decimate_run(
                 details={"content_length": cl, "limit": max_bytes},
             )
     matrix = get_cli_matrix()
-    stage = "decimate"
     allowed = set(matrix.get(stage, {}).get("commands", []) or [])
     if req.tool not in allowed:
         return domain_error_response(
             status_code=400,
             err_type="validation_error",
-            message="Invalid tool for decimate domain",
+            message=f"Invalid tool for {stage} domain",
             details={"allowed": sorted(list(allowed))},
         )
-
     if req.options and req.options.sync is not None:
         mode = "sync" if req.options.sync else "async"
     else:
         mode = (req.options.mode if req.options else None) or "sync"
     try:
-        raw_args = req.args
+        raw_args: Any = req.args
         if hasattr(raw_args, "model_dump"):
             raw_args = raw_args.model_dump(exclude_none=True)  # type: ignore[attr-defined]
         args = normalize_and_validate(stage, req.tool, raw_args)
@@ -135,3 +131,19 @@ def decimate_run(
             _t0,
         )
     return res
+
+
+@router.post("/decide", response_model=DomainRunResponse)
+def decide_run(
+    req: DecideRequest, bg: BackgroundTasks, request: Request
+) -> DomainRunResponse:
+    """Run a decide-domain tool (preferred)."""
+    return _run("decide", req, bg, request)
+
+
+@router.post("/optimize", response_model=DomainRunResponse)
+def optimize_run(
+    req: DecideRequest, bg: BackgroundTasks, request: Request
+) -> DomainRunResponse:  # noqa: D401
+    """Alias of /decide for optimize terminology."""
+    return _run("decide", req, bg, request)

@@ -156,14 +156,35 @@ def _apply_overrides(
 
 
 def _stage_group_alias(name: str) -> str:
-    """Normalize a stage name/alias to one of: acquire/process/visualize/decimate."""
+    """Normalize a stage name/alias to one of: acquire/process/visualize/decimate.
+
+    Preferred user-facing terms are ``export``/``disseminate`` for egress and
+    ``process`` (rather than ``transform``). For backward compatibility, we
+    currently normalize ``export``/``disseminate``/``decimation`` to the
+    internal canonical ``decimate``. Aliases include:
+
+    - import/ingest → acquire
+    - render → visualize
+    - disseminate/export/decimation → decimate (canonical for now)
+    - transform → process (combined under process)
+    - optimize → decide
+
+    TODO: Consider flipping the internal canonical to ``disseminate`` once
+    downstream code/tests and ecosystem usage have fully migrated.
+    """
     name = name.lower().strip()
     return {
         "acquisition": "acquire",
         "ingest": "acquire",
+        "import": "acquire",
         "processing": "process",
         "visualization": "visualize",
+        "render": "visualize",
         "decimation": "decimate",
+        "disseminate": "decimate",
+        "export": "decimate",
+        "transform": "process",
+        "optimize": "decide",
     }.get(name, name)
 
 
@@ -573,7 +594,11 @@ def register_cli_run(subparsers: Any) -> None:
     p.add_argument("--end", type=int, help="1-based index of last stage to run")
     p.add_argument(
         "--only",
-        help="Run only stages matching this alias (acquire/process/visualize/decimate)",
+        help=(
+            "Run only stages matching this alias "
+            "(import/acquire/process/transform/visualize/render/simulate/decide/optimize/"
+            "narrate/verify/export/disseminate/decimate)"
+        ),
     )
     # Env & verbosity controls
     vgrp = p.add_mutually_exclusive_group()

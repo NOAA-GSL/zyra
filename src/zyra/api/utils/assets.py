@@ -142,8 +142,8 @@ def infer_assets(stage: str, tool: str, args: dict[str, Any]) -> list[AssetRef]:
                 except Exception:
                     mt = None
                 out.append(AssetRef(uri=val, name=Path(val).name, media_type=mt))
-    # Decimate local writes to positional 'path'
-    if stage == "decimate" and tool == "local":
+    # Disseminate (egress) local writes to positional 'path' (aliases: export, decimate)
+    if stage in {"disseminate", "export", "decimate"} and tool == "local":
         val = args.get("path")
         if isinstance(val, str):
             base = _contained_base(val)

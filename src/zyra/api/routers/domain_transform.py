@@ -24,7 +24,21 @@ router = APIRouter(tags=["transform"], prefix="")
 def transform_run(
     req: DomainRunRequest, bg: BackgroundTasks, request: Request
 ) -> DomainRunResponse:
-    """Run a transform-domain tool and return a standardized response."""
+    """Run a transform-domain tool and return a standardized response.
+
+    Note: The transform group has been merged under ``process``. This endpoint
+    remains for backward compatibility, but new flows should prefer
+    ``/v1/process`` with the same tools.
+    """
+    # Log a gentle deprecation warning
+    try:
+        import logging as _log
+
+        _log.getLogger("zyra.api.domain").warning(
+            "[deprecated] '/transform' is merged under '/process'; prefer '/v1/process'"
+        )
+    except Exception:
+        pass
     try:
         max_bytes = int(env_int("DOMAIN_MAX_BODY_BYTES", 0))
     except Exception:

@@ -117,6 +117,27 @@ class DecimateFtpRun(DomainRunRequest):
     args: da.DecimateFtpArgs  # type: ignore[assignment]
 
 
+# New skeleton domains for OpenAPI clarity (optional typed variants)
+class SimulateSampleRun(DomainRunRequest):
+    tool: Literal["sample"]
+    args: da.SimulateSampleArgs  # type: ignore[assignment]
+
+
+class DecideOptimizeRun(DomainRunRequest):
+    tool: Literal["optimize"]
+    args: da.DecideOptimizeArgs  # type: ignore[assignment]
+
+
+class NarrateDescribeRun(DomainRunRequest):
+    tool: Literal["describe"]
+    args: da.NarrateDescribeArgs  # type: ignore[assignment]
+
+
+class VerifyEvaluateRun(DomainRunRequest):
+    tool: Literal["evaluate"]
+    args: da.VerifyEvaluateArgs  # type: ignore[assignment]
+
+
 # Acquire
 class AcquireHttpRun(DomainRunRequest):
     tool: Literal["http"]

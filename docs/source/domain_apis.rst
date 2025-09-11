@@ -10,7 +10,9 @@ Endpoints
 
 - ``POST /v1/process`` — Orchestration and data processing
 - ``POST /v1/visualize`` — Static images, animations, plots
-- ``POST /v1/decimate`` — Export, write, egress (local path, S3, etc.)
+- ``POST /v1/disseminate`` — Export/egress (local path, S3, HTTP POST, etc.)
+- ``POST /v1/export`` — Alias of ``/v1/disseminate`` (preferred)
+- ``POST /v1/decimate`` — Legacy alias (deprecated; still supported)
 - ``POST /v1/assets`` — Convenience alias for asset I/O (maps to decimate or acquire)
 
 Request/Response Shape
@@ -84,7 +86,7 @@ Visualize: contour to PNG (validation error example)::
   # → HTTP 400
   #   { "status": "error", "error": { "type": "validation_error", "message": "Invalid arguments", "details": { ... } } }
 
-Decimate: write to local::
+Disseminate: write to local::
 
   curl -sS -H 'Content-Type: application/json' -H "X-API-Key: $ZYRA_API_KEY" \\
     -d '{
@@ -92,7 +94,7 @@ Decimate: write to local::
           "args": { "input": "-", "output": "/tmp/out.bin" },
           "options": { "mode": "sync" }
         }' \\
-    http://localhost:8000/v1/decimate --data-binary @file.bin
+    http://localhost:8000/v1/disseminate --data-binary @file.bin
 
 Assets: convenience alias::
 
@@ -129,7 +131,7 @@ Visualize: animate frames (MP4 optional)::
         }' \
     http://localhost:8000/v1/visualize
 
-Decimate: HTTP POST bytes::
+Disseminate: HTTP POST bytes::
 
   curl -sS -H 'Content-Type: application/json' -H "X-API-Key: $ZYRA_API_KEY" \
     -d '{
@@ -137,4 +139,4 @@ Decimate: HTTP POST bytes::
           "args": { "input": "/path/to/file.bin", "url": "https://example.com/ingest", "content_type": "application/octet-stream" },
           "options": { "sync": true }
         }' \
-    http://localhost:8000/v1/decimate
+    http://localhost:8000/v1/disseminate

@@ -1,56 +1,33 @@
-"""Domain API: Visualize.
+"""Domain API: Verify.
 
-Exposes ``POST /visualize`` for visualization tools using the domain envelope.
-Enforces an optional body-size cap (``ZYRA_DOMAIN_MAX_BODY_BYTES``) and logs
-structured call information.
+Exposes ``POST /verify`` for evaluation/metrics tools.
 """
 
 from __future__ import annotations
 
-from typing import Annotated, Union
+from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Body, Request
+from fastapi import APIRouter, BackgroundTasks, Request
 from pydantic import ValidationError
 from zyra.api.models.cli_request import CLIRunRequest
-from zyra.api.models.domain_api import (
-    DomainRunResponse,
-    VisualizeAnimateRun,
-    VisualizeComposeVideoRun,
-    VisualizeContourRun,
-    VisualizeHeatmapRun,
-    VisualizeInteractiveRun,
-    VisualizeTimeSeriesRun,
-    VisualizeVectorRun,
-)
+from zyra.api.models.domain_api import DomainRunRequest, DomainRunResponse
 from zyra.api.routers.cli import get_cli_matrix, run_cli_endpoint
 from zyra.api.schemas.domain_args import normalize_and_validate
-from zyra.api.utils.assets import infer_assets
 from zyra.api.utils.errors import domain_error_response
 from zyra.api.utils.obs import log_domain_call
 from zyra.utils.env import env_int
 
-router = APIRouter(tags=["visualize"], prefix="")
+router = APIRouter(tags=["verify"], prefix="")
 
 
-VisualizeRequest = Annotated[
-    Union[
-        VisualizeHeatmapRun,
-        VisualizeContourRun,
-        VisualizeAnimateRun,
-        VisualizeTimeSeriesRun,
-        VisualizeVectorRun,
-        VisualizeComposeVideoRun,
-        VisualizeInteractiveRun,
-    ],
-    Body(discriminator="tool"),
-]
+VerifyRequest = DomainRunRequest
 
 
-@router.post("/visualize", response_model=DomainRunResponse)
-def visualize_run(
-    req: VisualizeRequest, bg: BackgroundTasks, request: Request
+@router.post("/verify", response_model=DomainRunResponse)
+def verify_run(
+    req: VerifyRequest, bg: BackgroundTasks, request: Request
 ) -> DomainRunResponse:
-    """Run a visualize-domain tool and return a standardized response."""
+    """Run a verify-domain tool (skeleton stage)."""
     try:
         max_bytes = int(env_int("DOMAIN_MAX_BODY_BYTES", 0))
     except Exception:
@@ -68,22 +45,21 @@ def visualize_run(
                 details={"content_length": cl, "limit": max_bytes},
             )
     matrix = get_cli_matrix()
-    stage = "visualize"
+    stage = "verify"
     allowed = set(matrix.get(stage, {}).get("commands", []) or [])
     if req.tool not in allowed:
         return domain_error_response(
             status_code=400,
             err_type="validation_error",
-            message="Invalid tool for visualize domain",
+            message="Invalid tool for verify domain",
             details={"allowed": sorted(list(allowed))},
         )
-
     if req.options and req.options.sync is not None:
         mode = "sync" if req.options.sync else "async"
     else:
         mode = (req.options.mode if req.options else None) or "sync"
     try:
-        raw_args = req.args
+        raw_args: Any = req.args
         if hasattr(raw_args, "model_dump"):
             raw_args = raw_args.model_dump(exclude_none=True)  # type: ignore[attr-defined]
         args = normalize_and_validate(stage, req.tool, raw_args)
@@ -109,15 +85,9 @@ def visualize_run(
             manifest=f"/jobs/{resp.job_id}/manifest",
         )
     ok = resp.exit_code == 0
-    assets = []
-    try:
-        assets = infer_assets(stage, req.tool, args)
-    except Exception:
-        assets = []
     res = DomainRunResponse(
         status="ok" if ok else "error",
         result={"argv": getattr(resp, "argv", None)},
-        assets=assets or None,
         logs=[
             *(
                 [{"stream": "stdout", "text": resp.stdout}]
@@ -155,12 +125,3 @@ def visualize_run(
             _t0,
         )
     return res
-
-
-# Alias for render (same handler; canonical stage remains 'visualize')
-@router.post("/render", response_model=DomainRunResponse)
-def render_run(
-    req: VisualizeRequest, bg: BackgroundTasks, request: Request
-) -> DomainRunResponse:  # noqa: D401
-    """Alias of /visualize for render terminology."""
-    return visualize_run(req, bg, request)

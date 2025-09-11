@@ -32,7 +32,7 @@ stages:
       fps: 24
 
   # 4) Upload video to Vimeo (prints Vimeo URI to stdout)
-  - stage: decimate
+  - stage: export
     command: vimeo
     args:
       input: video.mp4
@@ -49,7 +49,7 @@ stages:
       output: enriched_meta.json
 
   # 6) Upload enriched metadata to S3
-  - stage: decimate
+  - stage: export
     command: s3
     args:
       input: enriched_meta.json

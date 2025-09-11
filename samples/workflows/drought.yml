@@ -1,7 +1,7 @@
 name: drought-video
 
 # This workflow uses "structured steps": each step provides
-#   - stage: top-level CLI group (acquire/process/visualize/decimate/transform)
+#   - stage: top-level CLI group (import/acquire, process/transform, visualize/render, export/disseminate)
 #   - command: the subcommand to run under that stage
 #   - args: mapping of arguments
 # Keys under "args" translate to CLI flags:
@@ -75,7 +75,7 @@ jobs:
     # Replace the existing Vimeo video with the newly composed MP4.
     # Requires VIMEO_ACCESS_TOKEN (or client id/secret) to be available in env.
     steps:
-      - stage: decimate
+      - stage: export
         command: vimeo
         args:
           input: /data/output/${DATASET_ID}.mp4
@@ -101,7 +101,7 @@ jobs:
           meta: /data/images/${DATASET_ID}/metadata/frames-meta.json
           vimeo_uri: ${VIMEO_URI}
           output: '-'
-      - stage: decimate
+      - stage: export
         command: s3
         args:
           read_stdin: true
