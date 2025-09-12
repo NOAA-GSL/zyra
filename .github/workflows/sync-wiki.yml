@@ -11,7 +11,8 @@ on:
   workflow_dispatch:    # Manual trigger
 
 permissions:
-  contents: write  # Allow pushing synced wiki changes
+  contents: write  # Needed to create branches/commits
+  pull-requests: write  # Needed to open PRs
 
 jobs:
   sync-wiki:
@@ -38,19 +39,19 @@ jobs:
           # Mirror wiki contents but exclude the wiki's .git directory
           rsync -av --delete --exclude '.git' wiki/ main/docs/source/wiki/
 
-      - name: Commit wiki changes (main only)
-        run: |
-          cd main
-          if [ "${{ github.ref_name }}" = "main" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add docs/source/wiki/
-            if ! git diff --cached --quiet; then
-              git commit -m "chore(docs): sync wiki into docs/source/wiki"
-              git push
-            else
-              echo "No changes to commit"
-            fi
-          else
-            echo "Skipping commit: branch is ${{ github.ref_name }}"
-          fi
+      - name: Create PR with synced wiki (DCO sign-off)
+        uses: peter-evans/create-pull-request@v6
+        with:
+          path: main
+          base: main
+          branch: ci/sync-wiki
+          delete-branch: true
+          title: "chore(docs): sync wiki into docs/source/wiki"
+          body: |
+            Automated wiki sync from GitHub Wiki to docs/source/wiki.
+
+            This commit includes a DCO Signed-off-by trailer to satisfy enforcement.
+          commit-message: "chore(docs): sync wiki into docs/source/wiki"
+          signoff: true
+          committer: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
+          author: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
