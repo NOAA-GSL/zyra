@@ -1,6 +1,6 @@
 # 🌿 Welcome to Zyra
 
-![Zyra Banner](https://repository-images.githubusercontent.com/854215643/22d02986-68b8-44cb-a510-17082384386e)
+[![Zyra Presentation](https://github.com/user-attachments/assets/24b250cd-f4f1-4f47-a378-abba43af253d)](https://docs.google.com/presentation/d/1hdB2qLgzdiHQUzB3u_Mv2gU1wdh8xbcWsOh-dXjz9ME/present?usp=sharing)
 
 ---
 
