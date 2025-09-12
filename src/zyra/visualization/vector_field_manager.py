@@ -123,7 +123,7 @@ class VectorFieldManager(Renderer):
         try:
             from zyra.utils.geo_utils import to_cartopy_crs
 
-            user_crs = kwargs.get("crs", None)
+            user_crs = kwargs.get("crs")
             reproject = bool(kwargs.get("reproject", False))
             in_crs = user_crs or (
                 detect_crs_from_path(input_path) if input_path else None
@@ -176,7 +176,7 @@ class VectorFieldManager(Renderer):
         # Features override support and tile basemap
         features = kwargs.get("features", MAP_STYLES.get("features"))
         map_type = (kwargs.get("map_type") or "image").lower()
-        tile_source = kwargs.get("tile_source", None)
+        tile_source = kwargs.get("tile_source")
         tile_zoom = int(kwargs.get("tile_zoom", 3))
         if map_type == "tile":
             add_basemap_tile(ax, self.extent, tile_source=tile_source, zoom=tile_zoom)

@@ -104,13 +104,13 @@ class PlotManager(Renderer):
             height = int(kwargs.get("height", 2048))
             dpi = int(kwargs.get("dpi", 96))
             custom_cmap = kwargs.get("custom_cmap", self.base_cmap)
-            norm = kwargs.get("norm", None)
-            vmin = kwargs.get("vmin", None)
-            vmax = kwargs.get("vmax", None)
+            norm = kwargs.get("norm")
+            vmin = kwargs.get("vmin")
+            vmax = kwargs.get("vmax")
             flip_data = kwargs.get("flip_data", False)
-            border_color = kwargs.get("border_color", None)
-            coastline_color = kwargs.get("coastline_color", None)
-            linewidth = kwargs.get("linewidth", None)
+            border_color = kwargs.get("border_color")
+            coastline_color = kwargs.get("coastline_color")
+            linewidth = kwargs.get("linewidth")
 
             # Lazy imports to avoid import-time heavy deps
             import cartopy.crs as ccrs

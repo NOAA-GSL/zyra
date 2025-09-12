@@ -177,7 +177,7 @@ class VectorParticlesManager(Renderer):
 
         # CRS detection
         try:
-            user_crs = kwargs.get("crs", None)
+            user_crs = kwargs.get("crs")
             reproject = bool(kwargs.get("reproject", False))
             in_path = (
                 input_path
