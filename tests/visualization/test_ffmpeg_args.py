@@ -1,8 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
 from pathlib import Path
 
 import pytest
+
 from zyra.visualization.cli_animate import _build_ffmpeg_grid_args
 
 

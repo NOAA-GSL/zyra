@@ -1,1 +1,3 @@
 include src/rtvideo/images/*.jpg
+include LICENSE
+include NOTICE

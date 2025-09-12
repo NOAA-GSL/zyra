@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Federated API search helpers used by ``zyra search api``.
 
 Overview
@@ -19,6 +20,7 @@ Key entry points
   concurrency and retries.
 - :func:`print_openapi_info` — show discovered endpoint and query parameters.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Zyra CLI entrypoint and command wiring.
 
 Organizes commands into groups that mirror the 8-stage pipeline hierarchy:

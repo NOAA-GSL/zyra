@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Wait for a given package version to appear on PyPI.
 
 Usage:

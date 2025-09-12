@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
 import json
@@ -26,7 +27,7 @@ def test_redis_pubsub_roundtrip(monkeypatch):
         client = redis.Redis.from_url(url)
         client.ping()
     except Exception:
-        pytest.skip("Redis not available at %s" % url)
+        pytest.skip(f"Redis not available at {url}")
 
     channel = "jobs.redis.test.progress"
     pubsub = client.pubsub()

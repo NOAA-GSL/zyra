@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """GRIB utilities used by connectors and managers.
 
 This module centralizes protocol-agnostic helpers for working with GRIB2

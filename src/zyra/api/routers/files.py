@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
 import contextlib
@@ -6,6 +7,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+
 from zyra.utils.env import env_path
 
 router = APIRouter(tags=["files"])

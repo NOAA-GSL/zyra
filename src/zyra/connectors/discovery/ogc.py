@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """OGC discovery backends (WMS capabilities search).
 
 Lightweight parser that reads a WMS GetCapabilities XML document and returns

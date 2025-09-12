@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
 import concurrent.futures as _fut
@@ -63,13 +64,11 @@ UNITS_REGEX = re.compile(_UNITS_PATTERN, re.I)
 class BaseEnricher(Protocol):
     name: str
 
-    def supports(self, item: DatasetMetadata) -> bool:
-        ...
+    def supports(self, item: DatasetMetadata) -> bool: ...
 
     def enrich(
         self, item: DatasetMetadata, level: str, ctx: dict[str, Any]
-    ) -> DatasetEnrichment | None:
-        ...
+    ) -> DatasetEnrichment | None: ...
 
 
 def _now_iso() -> str:

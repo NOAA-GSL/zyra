@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Render 2D heatmaps with optional basemap using Cartopy + Matplotlib."""
 
 from __future__ import annotations
@@ -88,25 +89,25 @@ class HeatmapManager(Renderer):
         width = int(kwargs.get("width", 1024))
         height = int(kwargs.get("height", 512))
         dpi = int(kwargs.get("dpi", FIGURE_DPI))
-        vmin = kwargs.get("vmin", None)
-        vmax = kwargs.get("vmax", None)
+        vmin = kwargs.get("vmin")
+        vmax = kwargs.get("vmax")
         cmap = kwargs.get("cmap", self.cmap)
         flipud = bool(kwargs.get("flipud", False))
         features = kwargs.get("features", MAP_STYLES.get("features"))
         # Basemap type and tiles
         map_type = (kwargs.get("map_type") or "image").lower()
-        tile_source = kwargs.get("tile_source", None)
+        tile_source = kwargs.get("tile_source")
         tile_zoom = int(kwargs.get("tile_zoom", 3))
         # Colorbar options
         add_colorbar = bool(kwargs.get("colorbar", False))
-        cbar_label = kwargs.get("label", None)
-        cbar_units = kwargs.get("units", None)
+        cbar_label = kwargs.get("label")
+        cbar_units = kwargs.get("units")
         # Timestamp overlay
-        timestamp = kwargs.get("timestamp", None)
+        timestamp = kwargs.get("timestamp")
         timestamp_loc = kwargs.get("timestamp_loc", "lower_right")
-        input_path = kwargs.get("input_path", None)
-        var = kwargs.get("var", None)
-        user_crs = kwargs.get("crs", None)
+        input_path = kwargs.get("input_path")
+        var = kwargs.get("var")
+        user_crs = kwargs.get("crs")
         reproject = bool(kwargs.get("reproject", False))
 
         # Resolve data from source or direct argument

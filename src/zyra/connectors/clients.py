@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Optional OO connector clients.
 
 These thin wrappers provide a small amount of state (e.g., host or bucket)

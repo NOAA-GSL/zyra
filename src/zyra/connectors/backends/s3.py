@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """S3 connector backend.
 
 Functional helpers for working with Amazon S3 using the existing S3Manager

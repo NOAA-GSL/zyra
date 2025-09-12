@@ -731,7 +731,7 @@ print(vp.features)      # {'load','process','save','validate'}
 ```
 
 ## License
-Distributed under the MIT License. See [LICENSE](LICENSE).
+Distributed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
 
 ## Links
 - Source: https://github.com/NOAA-GSL/zyra

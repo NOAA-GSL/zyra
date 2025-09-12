@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 import textwrap
 from datetime import datetime
 from pathlib import Path

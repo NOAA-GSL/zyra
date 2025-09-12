@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Simulation stage CLI (skeleton).
 
 Exposes lightweight placeholder commands under the ``simulate`` stage so that

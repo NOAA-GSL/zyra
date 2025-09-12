@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """FastAPI application factory and system endpoints.
 
 This module wires together the API routers and adds a few system routes

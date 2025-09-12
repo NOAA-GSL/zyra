@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 def test_manifest_contains_core_groups():
     """Smoke-test the capabilities manifest builder for core groups.
 

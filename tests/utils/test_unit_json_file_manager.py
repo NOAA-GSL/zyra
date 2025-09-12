@@ -1,6 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
 from unittest.mock import mock_open, patch
 
 import pytest
+
 from zyra.utils.json_file_manager import JSONFileManager
 
 

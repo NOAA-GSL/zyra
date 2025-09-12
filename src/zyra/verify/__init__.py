@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Verification/evaluation stage CLI (skeleton).
 
 Adds a minimal ``verify`` stage with placeholder metrics to enable end-to-end

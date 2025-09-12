@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 def test_context_includes_enriched_option_details(monkeypatch, capsys):
     import zyra.wizard as wiz
 

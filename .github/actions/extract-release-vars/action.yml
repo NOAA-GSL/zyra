@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 name: Extract release variables
 description: Derive tag, version (without leading 'v'), and prerelease flag from a Git ref
 inputs:

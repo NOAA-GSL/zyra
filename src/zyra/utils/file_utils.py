@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Filesystem helper utilities.
 
 Lightweight helpers for common file and directory operations used across the

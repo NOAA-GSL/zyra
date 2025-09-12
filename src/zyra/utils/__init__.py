@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Utilities used across Zyra (dates, files, images, credentials).
 
 Avoid importing optional heavy dependencies at package import time to keep the

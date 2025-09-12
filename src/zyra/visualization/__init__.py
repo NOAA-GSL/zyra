@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 from .animate_manager import AnimateManager
 from .base import Renderer
 from .basemap import add_basemap_cartopy, add_basemap_tile

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 from unittest.mock import Mock, patch
 
 from zyra.connectors.backends import s3 as s3_backend

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 from zyra.utils.cli_helpers import sanitize_args, sanitize_for_log
 
 

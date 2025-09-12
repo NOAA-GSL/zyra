@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """HTTP connector backend.
 
 Provides functional helpers to fetch and list resources over HTTP(S), as well
