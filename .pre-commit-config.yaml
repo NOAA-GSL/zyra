@@ -7,6 +7,14 @@ repos:
         args: ["--fix", "--exit-non-zero-on-fix"]
   - repo: local
     hooks:
+      - id: require-dco-signoff
+        name: Require DCO Signed-off-by in commit messages
+        entry: scripts/check_dco_signoff.sh
+        language: system
+        stages: [commit-msg]
+        pass_filenames: true
+  - repo: local
+    hooks:
       - id: zyra-generate-manifest
         name: Regenerate Zyra CLI capabilities manifest
         entry: poetry run zyra generate-manifest
@@ -22,4 +30,4 @@ repos:
         language: system
         pass_filenames: false
         stages: [commit]
-        files: ^(src/zyra/api/(routers/.+|server\.py|models/.+|schemas/.+)\.py|scripts/(dump_openapi\.py|update_openapi_snapshot\.sh))$
+        files: ^((src/zyra/api/(routers/.+\.py|server\.py|models/.+\.py|schemas/.+\.py))|scripts/(dump_openapi\.py|update_openapi_snapshot\.sh))$

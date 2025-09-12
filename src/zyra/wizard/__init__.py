@@ -361,11 +361,9 @@ def _select_relevant_details(prompt: str, cap: dict, limit: int = 6) -> list[str
         # Include up to 5 options
         opts_block = meta.get("options", {})
         if isinstance(opts_block, dict) and opts_block:
-            count = 0
-            for flag, val in list(opts_block.items()):
+            for idx, (flag, val) in enumerate(list(opts_block.items()), start=1):
                 lines.append("  - " + _format_option_snippet(str(flag), val))
-                count += 1
-                if count >= 5:
+                if idx >= 5:
                     break
         result.append("\n".join(lines))
     return result

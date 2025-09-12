@@ -19,6 +19,7 @@ from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses import HTMLResponse
+
 from zyra.api.models.cli_request import (
     CLIRunRequest,
     CLIRunResponse,

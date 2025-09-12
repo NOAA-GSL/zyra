@@ -1,6 +1,7 @@
 from unittest.mock import Mock
 
 import pytest
+
 from zyra.processing.video_processor import VideoProcessor
 
 

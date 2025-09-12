@@ -142,9 +142,9 @@ class ColormapManager(Renderer):
 
         color_array = plt.get_cmap(base_cmap)(range(256))
         color_array[:transparent_range, -1] = 0
-        color_array[
-            transparent_range : transparent_range + blend_range, -1
-        ] = np.linspace(0.0, 1.0, blend_range)
+        color_array[transparent_range : transparent_range + blend_range, -1] = (
+            np.linspace(0.0, 1.0, blend_range)
+        )
         if overall_alpha < 1.0:
             color_array[:, -1] = color_array[:, -1] * overall_alpha
         custom_cmap = LinearSegmentedColormap.from_list(

@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch
 
 from botocore.exceptions import ClientError
+
 from zyra.connectors.backends import ftp as ftp_backend
 from zyra.connectors.backends import http as http_backend
 from zyra.connectors.backends import s3 as s3_backend

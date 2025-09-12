@@ -19,6 +19,7 @@ Key entry points
   concurrency and retries.
 - :func:`print_openapi_info` — show discovered endpoint and query parameters.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

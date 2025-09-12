@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 from fastapi import HTTPException
+
 from zyra.api.security import require_api_key
 
 

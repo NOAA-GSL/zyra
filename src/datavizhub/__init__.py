@@ -4,6 +4,7 @@ This package has been renamed to ``zyra``. The shim maps imports from
 ``datavizhub.*`` to ``zyra.*`` and emits a deprecation warning to aid
 migration.
 """
+
 from __future__ import annotations
 
 import sys

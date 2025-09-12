@@ -14,50 +14,42 @@ from typing import Any, Iterable, Protocol, runtime_checkable
 
 @runtime_checkable
 class Fetchable(Protocol):
-    def fetch_bytes(self, *args: Any, **kwargs: Any) -> bytes:
-        ...
+    def fetch_bytes(self, *args: Any, **kwargs: Any) -> bytes: ...
 
 
 @runtime_checkable
 class Uploadable(Protocol):
-    def upload_bytes(self, data: bytes, *args: Any, **kwargs: Any) -> bool:
-        ...
+    def upload_bytes(self, data: bytes, *args: Any, **kwargs: Any) -> bool: ...
 
 
 @runtime_checkable
 class Listable(Protocol):
-    def list_files(self, *args: Any, **kwargs: Any) -> Iterable[str] | None:
-        ...
+    def list_files(self, *args: Any, **kwargs: Any) -> Iterable[str] | None: ...
 
 
 @runtime_checkable
 class Existsable(Protocol):
-    def exists(self, *args: Any, **kwargs: Any) -> bool:
-        ...
+    def exists(self, *args: Any, **kwargs: Any) -> bool: ...
 
 
 @runtime_checkable
 class Deletable(Protocol):
-    def delete(self, *args: Any, **kwargs: Any) -> bool:
-        ...
+    def delete(self, *args: Any, **kwargs: Any) -> bool: ...
 
 
 @runtime_checkable
 class Statable(Protocol):
-    def stat(self, *args: Any, **kwargs: Any) -> Any:
-        ...
+    def stat(self, *args: Any, **kwargs: Any) -> Any: ...
 
 
 @runtime_checkable
 class Indexable(Protocol):
-    def get_idx_lines(self, *args: Any, **kwargs: Any) -> Iterable[str]:
-        ...
+    def get_idx_lines(self, *args: Any, **kwargs: Any) -> Iterable[str]: ...
 
 
 @runtime_checkable
 class ByteRanged(Protocol):
-    def download_byteranges(self, *args: Any, **kwargs: Any) -> bytes:
-        ...
+    def download_byteranges(self, *args: Any, **kwargs: Any) -> bytes: ...
 
 
 class Connector:

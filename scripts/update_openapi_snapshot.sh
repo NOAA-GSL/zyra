@@ -8,6 +8,21 @@ HASH_TXT="$SNAP_DIR/openapi_sha256.txt"
 
 mkdir -p "$SNAP_DIR"
 
+# Only run if relevant API/OpenAPI files changed
+CHANGED_FILES=""
+if [[ -n "${PRE_COMMIT_FROM_REF:-}" && -n "${PRE_COMMIT_TO_REF:-}" ]]; then
+  CHANGED_FILES="$(git diff --name-only "$PRE_COMMIT_FROM_REF" "$PRE_COMMIT_TO_REF")"
+else
+  # Staged changes
+  CHANGED_FILES="$(git diff --name-only --cached || true)"
+fi
+
+PATTERN='^(src/zyra/api/(routers/.+\.py|server\.py|models/.+\.py|schemas/.+\.py)|scripts/(dump_openapi\.py|update_openapi_snapshot\.sh))$'
+if [[ -z "$CHANGED_FILES" ]] || ! echo "$CHANGED_FILES" | grep -E -q "$PATTERN"; then
+  echo "No API/OpenAPI changes detected; skipping OpenAPI snapshot update."
+  exit 0
+fi
+
 tmpfile="$(mktemp)"
 trap 'rm -f "$tmpfile"' EXIT
 
@@ -21,7 +36,7 @@ if command -v jq >/dev/null 2>&1; then
     jq 'del(.info.version)' "$tmpfile" | sha256sum | awk '{print $1}' > "$HASH_TXT"
   else
     # Pass the temporary JSON file as argv[1] to the Python script
-    python - "$tmpfile" << 'PY' > "$HASH_TXT"
+    poetry run python - "$tmpfile" << 'PY' > "$HASH_TXT"
 import copy, json, hashlib, sys
 from pathlib import Path
 tmp = Path(sys.argv[1])
@@ -35,8 +50,8 @@ print(hashlib.sha256(s.encode()).hexdigest())
 PY
   fi
 else
-  # Fallback without jq: do everything in Python
-  python - << 'PY'
+  # Fallback without jq: do everything in Python (use Poetry env)
+  poetry run python - << 'PY'
 import copy, json, hashlib
 from pathlib import Path
 from zyra.api.server import app

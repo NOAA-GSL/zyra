@@ -17,6 +17,7 @@ from typing import Annotated, Union
 
 from fastapi import APIRouter, BackgroundTasks, Body, Request
 from pydantic import ValidationError
+
 from zyra.api.models.cli_request import CLIRunRequest
 from zyra.api.models.domain_api import (
     AcquireFtpRun,

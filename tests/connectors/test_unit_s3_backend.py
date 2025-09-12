@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch
 
 import pytest
+
 from zyra.connectors.backends import s3 as s3_backend
 
 

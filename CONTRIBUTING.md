@@ -14,6 +14,7 @@ This project thrives on community contributions, and we welcome improvements of 
 - Do not contribute code or assets you don’t have rights to. If you include third‑party code or data,
   ensure it is compatible with MIT and include proper attribution as required by the original license.
 - No CLA is required at this time; contributions are accepted under the project’s MIT terms.
+- This project enforces the Developer Certificate of Origin (DCO) via the GitHub DCO app approved by NOAA. All commits must include a Signed-off-by trailer.
 
 If you have questions about licensing or attribution, please open an issue before submitting your PR.
 
@@ -136,3 +137,45 @@ By following these templates, contributors help keep Zyra’s CLI aligned with r
 ---
 
 Thanks again for contributing!
+
+---
+
+## Developer Certificate of Origin (DCO)
+
+This project uses the DCO to ensure that contributors have the right to submit their work. The full text is included in the `DCO` file at the repository root.
+
+All commits must include a Signed-off-by line matching your Git author information. Use the `-s` flag when committing to add this automatically:
+
+```bash
+git commit -s -m "Add feature X"
+```
+
+If you forgot to sign off, amend the most recent commit:
+
+```bash
+git commit --amend -s --no-edit
+```
+
+For multiple commits, you can interactively rebase and sign each commit:
+
+```bash
+git rebase -i <base-branch>
+# then for each commit: edit -> git commit --amend -s --no-edit -> git rebase --continue
+```
+
+Notes
+- The Signed-off-by line must include your real name and a reachable email, for example:
+  `Signed-off-by: Jane Doe <jane.doe@example.com>`
+- Ensure your `git config user.name` and `user.email` are correct.
+- Co-authored commits require a Signed-off-by for each author.
+- The DCO check will run on pull requests; failures include instructions on how to fix your commits.
+
+Enable global sign-off (recommended)
+
+To automatically include a DCO sign-off on every commit from your machine, enable global sign-off:
+
+```bash
+git config --global format.signoff true
+```
+
+This works with most Git clients and IDEs (including VS Code) and reduces the chance of missing a sign-off.

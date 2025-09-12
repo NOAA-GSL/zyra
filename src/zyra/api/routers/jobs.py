@@ -4,6 +4,7 @@ This module exposes HTTP endpoints under the "jobs" tag. All endpoints are
 protected by API key authentication when an API key is set (supports
 `ZYRA_API_KEY` and legacy `DATAVIZHUB_API_KEY`).
 """
+
 from __future__ import annotations
 
 import mimetypes
@@ -13,6 +14,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
+
 from zyra.api.models.cli_request import JobStatusResponse
 from zyra.api.workers import jobs as jobs_backend
 
