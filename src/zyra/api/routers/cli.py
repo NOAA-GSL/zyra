@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """FastAPI router that exposes CLI discovery and execution endpoints.
 
 Endpoints
@@ -19,6 +20,7 @@ from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses import HTMLResponse
+
 from zyra.api.models.cli_request import (
     CLIRunRequest,
     CLIRunResponse,

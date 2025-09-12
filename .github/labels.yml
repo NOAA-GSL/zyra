@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 - name: bug
   color: d73a4a
   description: "Something isn't working"

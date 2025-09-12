@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 import json
 
 from zyra.transform import register_cli as register_transform

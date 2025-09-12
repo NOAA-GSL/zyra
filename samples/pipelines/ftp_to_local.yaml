@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 name: FTP → Transform → Video → Local
 stages:
   # 1) Acquire frames by syncing an FTP directory to local (anonymous example)

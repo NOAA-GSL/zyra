@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 def test_resolver_detects_missing_args():
     from zyra.wizard.resolver import MissingArgsError, MissingArgumentResolver
 

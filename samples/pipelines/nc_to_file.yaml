@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # NetCDF passthrough to file: reads NetCDF bytes from stdin and writes to a file
 name: NetCDF To File
 stages:

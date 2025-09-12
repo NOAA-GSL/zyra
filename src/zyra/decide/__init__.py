@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Decision/optimization stage CLI (skeleton).
 
 Provides a minimal ``decide`` stage with an ``optimize`` command so that

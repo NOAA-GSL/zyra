@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Shared CLI helpers and common options.
 
 This module can hold reusable option builders as the CLI grows.

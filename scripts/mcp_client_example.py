@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Minimal example MCP client for Zyra's /mcp JSON-RPC endpoint.
 
 Usage:

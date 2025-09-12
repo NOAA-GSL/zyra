@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 def test_group_title_in_option_completion_meta(monkeypatch):
     # Build a small manifest with groups metadata
     cap = {

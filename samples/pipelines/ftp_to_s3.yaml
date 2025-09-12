@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # Example: FTP -> compose video -> upload to S3
 # Note: This is a template and requires network access and credentials.
 # It is not intended to run in minimal CI environments.

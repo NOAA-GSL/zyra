@@ -1,9 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
 import json
 
 import pytest
 from fastapi.testclient import TestClient
+
 from zyra.api.server import app
 from zyra.api.workers import jobs as jb
 

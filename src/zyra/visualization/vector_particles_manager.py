@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Render particle advection frames over a vector field (U/V).
 
 Supports NetCDF (time, lat, lon) variables or 3D NumPy stacks. Particles are
@@ -177,7 +178,7 @@ class VectorParticlesManager(Renderer):
 
         # CRS detection
         try:
-            user_crs = kwargs.get("crs", None)
+            user_crs = kwargs.get("crs")
             reproject = bool(kwargs.get("reproject", False))
             in_path = (
                 input_path

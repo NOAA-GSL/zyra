@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.6.4
@@ -5,6 +6,23 @@ repos:
       - id: ruff-format
       - id: ruff
         args: ["--fix", "--exit-non-zero-on-fix"]
+  - repo: local
+    hooks:
+      - id: require-dco-signoff
+        name: Require DCO Signed-off-by in commit messages
+        entry: scripts/check_dco_signoff.sh
+        language: system
+        stages: [commit-msg]
+        pass_filenames: true
+  - repo: local
+    hooks:
+      - id: spdx-headers
+        name: Ensure SPDX headers (Apache-2.0)
+        entry: poetry run python scripts/spdx_headers.py --write
+        language: system
+        pass_filenames: false
+        stages: [commit]
+        files: ^(src/.+\.py|tests/.+\.py|scripts/.+\.(py|sh)|.*\.(yml|yaml))$
   - repo: local
     hooks:
       - id: zyra-generate-manifest
@@ -22,4 +40,4 @@ repos:
         language: system
         pass_filenames: false
         stages: [commit]
-        files: ^(src/zyra/api/(routers/.+|server\.py|models/.+|schemas/.+)\.py|scripts/(dump_openapi\.py|update_openapi_snapshot\.sh))$
+        files: ^((src/zyra/api/(routers/.+\.py|server\.py|models/.+\.py|schemas/.+\.py))|scripts/(dump_openapi\.py|update_openapi_snapshot\.sh))$

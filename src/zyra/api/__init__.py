@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """FastAPI service exposing the Zyra CLI (8-stage hierarchy).
 
 This package provides a lightweight web API to run CLI commands in-process

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 name: Bump Version on PR from staging to main
 
 on:
@@ -114,15 +115,16 @@ jobs:
 
       - name: Configure Git
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Bump patch version using Poetry
+      - name: Bump patch version using Poetry (DCO sign-off)
         if: steps.check.outputs.should_bump == 'true'
         run: |
           poetry version patch
           git add pyproject.toml
-          git commit -m "ci: bump version" || echo "No changes to commit"
+          # Add DCO Signed-off-by trailer via -s
+          git commit -s -m "ci: bump version" || echo "No changes to commit"
           git push origin "${{ steps.vars.outputs.head }}"
 
       - name: Skip bump (already bumped)

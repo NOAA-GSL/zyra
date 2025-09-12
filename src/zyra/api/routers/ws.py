@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
 import asyncio
@@ -14,6 +15,7 @@ from fastapi import (
     WebSocketDisconnect,
     WebSocketException,
 )
+
 from zyra.api.routers import mcp as mcp_router
 from zyra.api.routers.search import post_search as _post_search
 from zyra.api.routers.search import search as _get_search

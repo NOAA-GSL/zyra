@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """OGC API - Records discovery backend.
 
 Parses a Records "items" response (GeoJSON-like) and returns DatasetMetadata

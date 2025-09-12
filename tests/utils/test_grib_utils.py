@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 from zyra.utils.grib import (
     compute_chunks,
     ensure_idx_path,

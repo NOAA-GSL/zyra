@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # Example usage for the zyra-scheduler container.
 # Bring up with: `docker compose up -d` (Compose V2).
 

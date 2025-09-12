@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # Compose frames in a directory into a local MP4 video
 name: Compose Video to Local
 stages:

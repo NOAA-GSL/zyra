@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Dataset discovery backends and CLI for `zyra search`.
 
 Implements a lightweight local backend that searches the packaged

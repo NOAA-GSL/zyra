@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 import json
 
 from zyra.pipeline_runner import run_pipeline

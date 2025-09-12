@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Read, update, and write JSON files used as simple configs/datasets.
 
 Provides :class:`JSONFileManager` to persist simple JSON structures and to

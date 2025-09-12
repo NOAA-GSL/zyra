@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 name: rtvideo parity: drought weekly
 stages:
   # 1) Acquire frames from FTP (anonymous) into local directory with 1Y lookback

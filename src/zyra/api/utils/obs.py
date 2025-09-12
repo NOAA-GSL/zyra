@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Observability helpers for API logging.
 
 Provides structured logging functions with best-effort redaction of sensitive

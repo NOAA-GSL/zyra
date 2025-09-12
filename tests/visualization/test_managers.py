@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 import os
 import tempfile
 from importlib.resources import as_file, files

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """MCP adapter router.
 
 Exposes a minimal JSON-RPC 2.0 interface and progress streaming for MCP clients:
@@ -20,6 +21,7 @@ Notes
 - Request body size limits can be enforced via ``ZYRA_MCP_MAX_BODY_BYTES``.
 - Structured logs for MCP calls are emitted via the ``zyra.api.mcp`` logger.
 """
+
 from __future__ import annotations
 
 import logging
@@ -29,6 +31,7 @@ from typing import Any
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+
 from zyra.api import __version__ as dvh_version
 from zyra.api.models.cli_request import CLIRunRequest
 from zyra.api.routers.cli import get_cli_matrix, run_cli_endpoint

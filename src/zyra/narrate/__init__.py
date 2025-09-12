@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Narration/reporting stage CLI (skeleton).
 
 Adds a minimal ``narrate`` stage for AI-driven summaries/captions so that

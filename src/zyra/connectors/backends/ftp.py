@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """FTP connector backend.
 
 Thin functional wrappers around the FTPManager to support simple byte fetches

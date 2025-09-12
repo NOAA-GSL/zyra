@@ -1,4 +1,5 @@
 # For a list of available rules, see: https://docs.astral.sh/ruff/rules/
+[lint]
 select = [
     "E", # pycodestyle errors
     "W", # pycodestyle warnings
@@ -16,7 +17,7 @@ ignore = [
     "W505", # Supress line-too-long warnings: trust the formatter's judgement on this one.
 ]
 
-[per-file-ignores]
+[lint.per-file-ignores]
 # Tests: relax pytest-style and pathlib/style constraints
 "tests/**/*.py" = [
     "PT",

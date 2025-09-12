@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 import os
 import tempfile
 
@@ -5,6 +6,7 @@ import tempfile
 def test_timeseries_manager_csv():
     try:
         import matplotlib  # noqa: F401
+
         from zyra.visualization import TimeSeriesManager
     except Exception as e:
         import pytest

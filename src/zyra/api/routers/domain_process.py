@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Domain API: Process.
 
 Exposes ``POST /process`` to run processing tools with a domain envelope.
@@ -11,6 +12,7 @@ from typing import Annotated, Union
 
 from fastapi import APIRouter, BackgroundTasks, Body, Request
 from pydantic import ValidationError
+
 from zyra.api.models.cli_request import CLIRunRequest
 from zyra.api.models.domain_api import (
     DomainRunResponse,

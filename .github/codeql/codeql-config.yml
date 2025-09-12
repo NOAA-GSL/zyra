@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 name: DatavizHub CodeQL Configuration
 disable-default-queries: false
 paths:

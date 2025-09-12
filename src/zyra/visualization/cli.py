@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Compatibility wrapper delegating to the root CLI.
 
 This module remains importable for now to avoid breaking existing docs/tests.

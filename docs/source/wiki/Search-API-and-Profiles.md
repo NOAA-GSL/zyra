@@ -96,7 +96,7 @@ POST with enrichment and analysis:
 
 ```bash
 curl -sS -H "X-API-Key: $API_KEY" -H 'Content-Type: application/json' \
-  -X POST http://localhost:8000/v1/search \
+  -X POST http://localhost:8000/search \
   -d '{
         "query": "tsunami history datasets",
         "limit": 20,

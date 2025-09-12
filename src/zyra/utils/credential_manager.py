@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Credential storage and retrieval utilities.
 
 This module provides `CredentialManager`, a small helper class to securely

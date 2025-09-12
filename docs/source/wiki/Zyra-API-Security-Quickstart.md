@@ -16,7 +16,7 @@ This page describes how to enable and use API key authentication, how WebSocket 
 
 ```bash
 curl -H 'X-API-Key: $ZYRA_API_KEY' \
-  http://localhost:8000/v1/cli/commands
+  http://localhost:8000/cli/commands
 ```
 
 - WebSocket connection (e.g., websocat/wscat) with key and filters:
@@ -32,7 +32,7 @@ from fastapi.testclient import TestClient
 from zyra.api.server import app
 
 client = TestClient(app)
-r = client.get('/v1/cli/commands', headers={'X-API-Key': 'your-key'})
+r = client.get('/cli/commands', headers={'X-API-Key': 'your-key'})
 assert r.status_code == 200
 ```
 
@@ -72,3 +72,4 @@ The server then enables:
 
 - Rate limiting (e.g., SlowAPI) can be added later for abuse control
 - Structured logs + error reporting (e.g., Sentry) can be enabled with environment-based opt-in
+

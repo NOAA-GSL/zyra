@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Basemap helpers for Cartopy/Matplotlib renderers.
 
 Functions here are intentionally lightweight and avoid hard dependencies

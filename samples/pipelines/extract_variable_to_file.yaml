@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # Extract a variable from stdin GRIB/NetCDF, convert to NetCDF, and write to file
 name: Extract Variable to File
 stages:
