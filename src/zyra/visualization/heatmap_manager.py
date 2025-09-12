@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Render 2D heatmaps with optional basemap using Cartopy + Matplotlib."""
 
 from __future__ import annotations

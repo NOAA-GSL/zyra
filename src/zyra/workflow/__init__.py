@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Workflow runner (DAG + watch + cron export) used by ``zyra run``.
 
 Features

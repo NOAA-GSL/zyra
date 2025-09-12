@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 def test_select_provider_openai_falls_back_to_mock(monkeypatch):
     import zyra.wizard as wiz
 

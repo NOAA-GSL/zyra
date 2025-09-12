@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Connector protocols and a minimal abstract base.
 
 This module defines lightweight capability-oriented Protocols for connectors

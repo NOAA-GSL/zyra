@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """FastAPI router that exposes CLI discovery and execution endpoints.
 
 Endpoints

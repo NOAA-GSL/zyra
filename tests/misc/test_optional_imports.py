@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 from zyra import connectors, processing, utils, visualization
 
 

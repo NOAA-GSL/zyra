@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Plot 2D arrays over basemaps using Cartopy + Matplotlib.
 
 This module exposes :class:`PlotManager`, a renderer that composes a basemap

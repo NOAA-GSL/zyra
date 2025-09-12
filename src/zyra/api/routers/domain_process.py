@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Domain API: Process.
 
 Exposes ``POST /process`` to run processing tools with a domain envelope.

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Compatibility shim for the former ``datavizhub`` package.
 
 This package has been renamed to ``zyra``. The shim maps imports from

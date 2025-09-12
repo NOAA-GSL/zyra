@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Centralized visualization styles and defaults.
 
 These values are intentionally conservative and can be overridden via

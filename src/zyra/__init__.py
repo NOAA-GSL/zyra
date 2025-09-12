@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Zyra package root.
 
 This is the primary package namespace moving forward.

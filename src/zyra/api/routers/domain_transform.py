@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Domain API: Transform.
 
 Exposes ``POST /transform`` for lightweight transforms and metadata helpers.

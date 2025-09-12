@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Compatibility wrapper for API CLI module execution.
 
 Allows `python -m datavizhub.api_cli ...` after the rename to `zyra`.

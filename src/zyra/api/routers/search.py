@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """FastAPI router exposing dataset search based on the local SOS catalog.
 
 Reuses the connectors discovery backend so logic stays in one place.

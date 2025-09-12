@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Domain API: Decide/Optimize.
 
 Exposes ``POST /decide`` and alias ``POST /optimize`` for decision tools.

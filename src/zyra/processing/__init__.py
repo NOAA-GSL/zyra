@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 from .base import DataProcessor
 
 # Optional: GRIB utilities rely on optional deps like pygrib/cfgrib. Keep import lazy-safe.

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 def test_fallback_timeseries_for_csv_prompts():
     import zyra.wizard as wiz
 

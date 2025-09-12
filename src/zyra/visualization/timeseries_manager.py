@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Render time series from CSV or NetCDF as simple line charts."""
 
 from __future__ import annotations

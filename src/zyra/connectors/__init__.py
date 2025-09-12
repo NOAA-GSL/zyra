@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Connectors package: ingest and egress submodules and shared backends.
 
 Primary usage favors functional backends under ``zyra.connectors.backends``.

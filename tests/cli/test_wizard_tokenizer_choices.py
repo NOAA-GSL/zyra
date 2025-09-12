@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 def test_tokenizer_extracts_choices_for_options():
     import zyra.wizard as wiz
 

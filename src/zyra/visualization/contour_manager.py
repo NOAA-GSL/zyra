@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Render contour or filled contour plots with optional basemap."""
 
 from __future__ import annotations

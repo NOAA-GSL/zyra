@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # NetCDF passthrough: reads NetCDF bytes from stdin and emits NetCDF to stdout
 name: NetCDF Passthrough
 stages:

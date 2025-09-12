@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Domain API: Acquire.
 
 Exposes ``POST /acquire`` which accepts a domain envelope:

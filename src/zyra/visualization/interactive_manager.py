@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Interactive visualizations using Folium or Plotly.
 
 This manager produces a standalone HTML document containing an interactive map

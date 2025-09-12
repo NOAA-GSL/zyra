@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Colormap utilities for classified and continuous rendering.
 
 This module exposes :class:`ColormapManager`, a lightweight renderer that

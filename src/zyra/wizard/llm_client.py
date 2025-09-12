@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """LLM client adapters used by the Wizard.
 
 Network dependencies are optional. This module is designed to run in minimal

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Domain API: Visualize.
 
 Exposes ``POST /visualize`` for visualization tools using the domain envelope.

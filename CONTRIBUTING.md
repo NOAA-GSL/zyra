@@ -7,13 +7,13 @@ This project thrives on community contributions, and we welcome improvements of 
 
 ## License and Contributor Terms
 
-- Zyra is licensed under the MIT License. See `LICENSE` at the repository root.
+- Zyra is licensed under the Apache License, Version 2.0. See `LICENSE` at the repository root.
 - By submitting a pull request, issue suggestion, or any code/documentation/artwork (“Contribution”),
-  you agree to license your Contribution under the MIT License, and you represent that you have the
+  you agree to license your Contribution under the Apache License, Version 2.0, and you represent that you have the
   right to do so.
 - Do not contribute code or assets you don’t have rights to. If you include third‑party code or data,
   ensure it is compatible with MIT and include proper attribution as required by the original license.
-- No CLA is required at this time; contributions are accepted under the project’s MIT terms.
+- No CLA is required at this time; contributions are accepted under the project’s Apache License terms.
 - This project enforces the Developer Certificate of Origin (DCO) via the GitHub DCO app approved by NOAA. All commits must include a Signed-off-by trailer.
 
 If you have questions about licensing or attribution, please open an issue before submitting your PR.

@@ -8,8 +8,11 @@ include = [
     "src/zyra/assets/**",
     "src/zyra/wizard/*.json",
 ]
-license = "MIT"
+license = "Apache-2.0"
 readme = "README.md"
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+]
 packages = [
     # New public package name
     { include = "zyra", from = "src" },

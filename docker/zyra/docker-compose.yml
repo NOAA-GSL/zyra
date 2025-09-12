@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # Example usage for the zyra image.
 # Default image runs the API server; this compose service overrides
 # the entrypoint to expose the CLI for ad-hoc runs.

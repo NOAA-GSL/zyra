@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Domain API: Verify.
 
 Exposes ``POST /verify`` for evaluation/metrics tools.

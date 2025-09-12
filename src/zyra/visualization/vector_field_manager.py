@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Render 2D vector fields (U/V) as quivers over an optional basemap.
 
 Use for winds, ocean currents, or any horizontal vector field on a lon/lat grid.

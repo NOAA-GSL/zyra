@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Jobs router: job status, cancellation, manifest, and artifact downloads.
 
 This module exposes HTTP endpoints under the "jobs" tag. All endpoints are

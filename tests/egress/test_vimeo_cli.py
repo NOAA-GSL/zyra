@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 from unittest.mock import patch
 
 from zyra.cli import main as cli_main

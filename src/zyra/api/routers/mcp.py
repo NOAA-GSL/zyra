@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """MCP adapter router.
 
 Exposes a minimal JSON-RPC 2.0 interface and progress streaming for MCP clients:

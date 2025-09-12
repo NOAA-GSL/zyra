@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Packaged image resources (basemaps, overlays, examples).
 
 Contains image files used by visualization utilities and sample pipelines,

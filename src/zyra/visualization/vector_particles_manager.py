@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Render particle advection frames over a vector field (U/V).
 
 Supports NetCDF (time, lat, lon) variables or 3D NumPy stacks. Particles are

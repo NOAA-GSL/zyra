@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Date/time utilities for parsing, ranges, and frame calculations.
 
 Provides :class:`DateManager` for extracting timestamps from filenames, building

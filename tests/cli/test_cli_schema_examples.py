@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
 # Avoid external dependencies and sockets: call router functions directly.

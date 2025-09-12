@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Static assets for Zyra (images, templates, styles, and more).
 
 Provides a central, importable location for all non-code resources used by

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.6.4
@@ -13,6 +14,15 @@ repos:
         language: system
         stages: [commit-msg]
         pass_filenames: true
+  - repo: local
+    hooks:
+      - id: spdx-headers
+        name: Ensure SPDX headers (Apache-2.0)
+        entry: poetry run python scripts/spdx_headers.py --write
+        language: system
+        pass_filenames: false
+        stages: [commit]
+        files: ^(src/.+\.py|tests/.+\.py|scripts/.+\.(py|sh)|.*\.(yml|yaml))$
   - repo: local
     hooks:
       - id: zyra-generate-manifest

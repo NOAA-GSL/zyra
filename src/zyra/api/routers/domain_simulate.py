@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Domain API: Simulate.
 
 Exposes ``POST /simulate`` for simulation/uncertainty modeling tools.

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Domain API: Disseminate (Export/Egress).
 
 Primary endpoint: ``POST /disseminate``.

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 import sys
 from contextlib import contextmanager
 from pathlib import Path

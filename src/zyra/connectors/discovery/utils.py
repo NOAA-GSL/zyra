@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Shared utilities for discovery backends.
 
 Includes helpers shared by local/remote discovery paths to keep logic

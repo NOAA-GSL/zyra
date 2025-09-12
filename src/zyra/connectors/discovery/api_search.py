@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Federated API search helpers used by ``zyra search api``.
 
 Overview

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Domain API: Narrate.
 
 Exposes ``POST /narrate`` for AI-driven storytelling/reporting tools.

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Image utilities for basic inspection and change detection.
 
 Provides :class:`ImageManager` to read images from a directory, compute

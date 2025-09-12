@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Generate animation frames (PNG sequence) for heatmap/contour modes.
 
 This manager writes a numbered frame sequence and a small JSON manifest. It
