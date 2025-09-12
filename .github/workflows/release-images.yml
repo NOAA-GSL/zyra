@@ -18,9 +18,9 @@ on:
         required: false
         default: linux/amd64,linux/arm64
       zyra_extras_arm64:
-        description: Extras to use on arm64 for zyra (include 'api' to enable server default)
+        description: Extras to use on arm64 for zyra (omit 'processing' to skip pygrib; keep 'api' to run the server)
         required: false
-        default: connectors,processing,visualization,api
+        default: connectors,visualization,api
 
 permissions:
   contents: read
@@ -98,12 +98,10 @@ jobs:
           # Fetch and smudge LFS content so packaged assets contain real bytes
           git lfs fetch --all
           git lfs checkout || git lfs pull
-          # Fail fast if any LFS pointers remain in packaged images
           if grep -R -n "^version https://git-lfs" src/zyra/assets/images; then
             echo "ERROR: LFS pointers detected under src/zyra/assets/images" >&2
             exit 1
           fi
-          # Quick sanity: print MIME type of a known basemap if present
           if command -v file >/dev/null 2>&1 && [ -f src/zyra/assets/images/earth_vegetation.jpg ]; then
             file -b --mime-type src/zyra/assets/images/earth_vegetation.jpg || true
           fi
@@ -158,6 +156,7 @@ jobs:
           file: ${{ matrix.dockerfile }}
           platforms: ${{ matrix.name == 'zyra' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
           push: true
+          no-cache: true   # force rebuild
           build-args: |
             ZYRA_VERSION=${{ steps.vars.outputs.version }}
             ${{ matrix.name == 'zyra-scheduler' && 'ZYRA_EXTRAS=connectors' || '' }}
@@ -177,6 +176,7 @@ jobs:
           file: ${{ matrix.dockerfile }}
           platforms: ${{ matrix.name == 'zyra' && inputs.zyra_platforms || 'linux/amd64,linux/arm64' }}
           push: true
+          no-cache: true   # force rebuild
           build-args: |
             ZYRA_VERSION=${{ steps.vars.outputs.version }}
             ${{ matrix.name == 'zyra-scheduler' && 'ZYRA_EXTRAS=connectors' || '' }}

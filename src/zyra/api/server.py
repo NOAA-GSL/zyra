@@ -76,7 +76,13 @@ def create_app() -> FastAPI:
             with suppress(asyncio.CancelledError):
                 await task
 
-    app = FastAPI(title="Zyra API", version=dvh_version, lifespan=lifespan)
+    app = FastAPI(
+        title="Zyra API",
+        version=dvh_version,
+        lifespan=lifespan,
+        root_path=env("API_ROOT_PATH", ""),
+        root_path_in_servers=True,
+    )
 
     @app.exception_handler(RequestValidationError)
     async def _map_validation_errors(request: Request, exc: RequestValidationError):
@@ -350,19 +356,25 @@ def create_app() -> FastAPI:
         fmt = request.query_params.get("format")
         accept = request.headers.get("accept", "")
         prefer_html = (fmt == "html") or ("text/html" in accept and fmt != "json")
+        # Respect root_path so links work when mounted under a subpath (proxies)
+        root_path = str(request.scope.get("root_path") or "")
+
+        def _p(path: str) -> str:
+            return f"{root_path}{path}" if root_path else path
+
         endpoints_list = [
-            "/health",
-            "/ready",
-            "/llm/test",
-            "/commands",
-            "/cli/commands",
-            "/cli/examples",
-            "/cli/run",
-            "/jobs/{job_id}",
-            "/jobs/{job_id}/manifest",
-            "/jobs/{job_id}/download",
-            "/upload",
-            "/examples",
+            _p("/health"),
+            _p("/ready"),
+            _p("/llm/test"),
+            _p("/commands"),
+            _p("/cli/commands"),
+            _p("/cli/examples"),
+            _p("/cli/run"),
+            _p("/jobs/{job_id}"),
+            _p("/jobs/{job_id}/manifest"),
+            _p("/jobs/{job_id}/download"),
+            _p("/upload"),
+            _p("/examples"),
         ]
         # Conditionally expose MCP endpoint in discovery list
         if env_bool("ENABLE_MCP", True):
@@ -389,9 +401,9 @@ def create_app() -> FastAPI:
         mcp_line = ""
         if env_bool("ENABLE_MCP", True):
             mcp_line = (
-                '<li><a href="/mcp">GET /mcp</a> — MCP discovery</li>'
-                '<li>POST /mcp — MCP JSON-RPC (see <a href="/docs#/%2Fmcp">/docs</a>)</li>'
-                '<li><a href="/ws/mcp">WS /ws/mcp</a> — MCP WebSocket</li>'
+                f'<li><a href="{_p("/mcp")}">GET /mcp</a> — MCP discovery</li>'
+                f'<li>POST /mcp — MCP JSON-RPC (see <a href="{_p("/docs#/%2Fmcp")}">/docs</a>)</li>'
+                f'<li><a href="{_p("/ws/mcp")}">WS /ws/mcp</a> — MCP WebSocket</li>'
             )
 
         html = f"""
@@ -414,27 +426,27 @@ def create_app() -> FastAPI:
             <div class=\"muted\">Version {version_text}</div>
             <h2>Quick Links</h2>
             <ul>
-              <li><a href=\"/docs\">Swagger UI</a></li>
-              <li><a href=\"/redoc\">ReDoc</a></li>
-              <li><a href=\"/openapi.json\">OpenAPI JSON</a></li>
-              <li><a href=\"/examples\">Interactive Examples</a></li>
+              <li><a href=\"{_p('/docs')}\">Swagger UI</a></li>
+              <li><a href=\"{_p('/redoc')}\">ReDoc</a></li>
+              <li><a href=\"{_p('/openapi.json')}\">OpenAPI JSON</a></li>
+              <li><a href=\"{_p('/examples')}\">Interactive Examples</a></li>
             </ul>
             <h2>Endpoints</h2>
             <ul>
-              <li><a href=\"/health\">GET /health</a> — health probe</li>
-              <li><a href=\"/ready\">GET /ready</a> — readiness checks</li>
-              <li><a href=\"/commands\">GET /commands</a> — list/summary/json, fuzzy details</li>
-              <li><a href=\"/cli/commands\">GET /cli/commands</a> — discovery: stages, commands, args</li>
-              <li><a href=\"/cli/examples\">GET /cli/examples</a> — curated examples for /cli/run</li>
-              <li>POST /cli/run — see <a href=\"/docs#/%2Fcli%2Frun\">/docs</a></li>
+              <li><a href=\"{_p('/health')}\">GET /health</a> — health probe</li>
+              <li><a href=\"{_p('/ready')}\">GET /ready</a> — readiness checks</li>
+              <li><a href=\"{_p('/commands')}\">GET /commands</a> — list/summary/json, fuzzy details</li>
+              <li><a href=\"{_p('/cli/commands')}\">GET /cli/commands</a> — discovery: stages, commands, args</li>
+              <li><a href=\"{_p('/cli/examples')}\">GET /cli/examples</a> — curated examples for /cli/run</li>
+              <li>POST /cli/run — see <a href=\"{_p('/docs#/%2Fcli%2Frun')}\">/docs</a></li>
               {mcp_line}
-              <li><a href=\"/search\">GET /search</a> — dataset discovery</li>
-              <li><a href=\"/search/profiles\">GET /search/profiles</a> — bundled profiles</li>
+              <li><a href=\"{_p('/search')}\">GET /search</a> — dataset discovery</li>
+              <li><a href=\"{_p('/search/profiles')}\">GET /search/profiles</a> — bundled profiles</li>
               <li>POST /semantic_search — discovery + LLM analysis (see /docs)</li>
-              <li><a href=\"/jobs/{{job_id}}\">GET /jobs/{{job_id}}</a> — job status</li>
-              <li><a href=\"/jobs/{{job_id}}/manifest\">GET /jobs/{{job_id}}/manifest</a> — artifacts</li>
-              <li><a href=\"/jobs/{{job_id}}/download\">GET /jobs/{{job_id}}/download</a> — download</li>
-              <li>POST /upload — multipart upload (try in <a href=\"/docs#/%2Fupload\">/docs</a>)</li>
+              <li><a href=\"{_p('/jobs/{{job_id}}')}\">GET /jobs/{{job_id}}</a> — job status</li>
+              <li><a href=\"{_p('/jobs/{{job_id}}/manifest')}\">GET /jobs/{{job_id}}/manifest</a> — artifacts</li>
+              <li><a href=\"{_p('/jobs/{{job_id}}/download')}\">GET /jobs/{{job_id}}/download</a> — download</li>
+              <li>POST /upload — multipart upload (try in <a href=\"{_p('/docs#/%2Fupload')}\">/docs</a>)</li>
             </ul>
             <h2>Nomenclature</h2>
             <p class=\"muted\">Egress is now referred to as <code>export</code>/<code>disseminate</code>. The legacy name <code>decimate</code> remains supported across CLI, API, and MCP, but is deprecated.</p>

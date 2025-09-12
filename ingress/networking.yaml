@@ -5,44 +5,13 @@ metadata:
   name: zyra-api-ingress
   namespace: zyra
   annotations:
-    nginx.ingress.kubernetes.io/use-regex: "true"
-    nginx.ingress.kubernetes.io/rewrite-target: "/$1"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
-    nginx.ingress.kubernetes.io/proxy-buffering: "off"
-    # If using cert-manager, set your issuer here
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
 spec:
-  tls:
-    - hosts:
-        - apps.gsl.noaa.gov  # Change to your host
-      secretName: zyra-tls
   rules:
-    - host: apps.gsl.noaa.gov
+    - host: apps-dev.gsd.esrl.noaa.gov
       http:
         paths:
           - path: /zyra/(.*)
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: zyra-api
-                port:
-                  number: 80
-          - path: /zyra/data/(.*)
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: zyra-api
-                port:
-                  number: 80
-          - path: /data/(.*)
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: zyra-api
-                port:
-                  number: 80
-          - path: /static/(.*)
             pathType: ImplementationSpecific
             backend:
               service:

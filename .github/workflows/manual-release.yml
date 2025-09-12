@@ -184,6 +184,9 @@ jobs:
           push: true
           build-args: |
             ZYRA_VERSION=${{ inputs.version }}
+            ${{ matrix.name == 'zyra-scheduler' && 'ZYRA_EXTRAS=connectors' || '' }}
+            # On arm64, avoid pygrib by omitting 'processing' while keeping API
+            ${{ matrix.name == 'zyra' && 'ZYRA_EXTRAS_ARM64=connectors,visualization,api' || '' }}
           provenance: true
           sbom: true
           tags: ${{ steps.meta.outputs.tags }}
