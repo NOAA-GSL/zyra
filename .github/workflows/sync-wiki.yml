@@ -30,6 +30,33 @@ jobs:
           repository: ${{ github.repository }}.wiki
           path: wiki
 
+      - name: Ensure 'automerge' label exists
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const name = 'automerge';
+            const color = '0e8a16';
+            const description = 'Auto-merge PRs created by sync-wiki workflow';
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name,
+              });
+            } catch (e) {
+              if (e.status === 404) {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name,
+                  color,
+                  description,
+                });
+              } else {
+                throw e;
+              }
+            }
+
       - name: Sync wiki into docs/source/wiki
         run: |
           # Ensure no nested .git remains from previous runs
@@ -40,6 +67,7 @@ jobs:
           rsync -av --delete --exclude '.git' wiki/ main/docs/source/wiki/
 
       - name: Create PR with synced wiki (DCO sign-off)
+        id: cpr
         uses: peter-evans/create-pull-request@v6
         with:
           path: main
@@ -55,3 +83,33 @@ jobs:
           signoff: true
           committer: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
           author: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
+          labels: |
+            automerge
+
+      - name: Check for 'automerge' label on PR
+        id: check_automerge_label
+        if: steps.cpr.outputs.pull-request-number
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = Number(`${{ steps.cpr.outputs['pull-request-number'] }}`);
+            if (!prNumber) {
+              core.setOutput('has', 'false');
+            } else {
+              const { data: issue } = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+              });
+              const labels = issue.labels || [];
+              const has = labels.some(l => (typeof l === 'string' ? l === 'automerge' : l.name === 'automerge'));
+              core.setOutput('has', has ? 'true' : 'false');
+            }
+
+      - name: Enable auto-merge for sync PR
+        if: steps.cpr.outputs.pull-request-number && steps.check_automerge_label.outputs.has == 'true'
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          merge-method: squash
