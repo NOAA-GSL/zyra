@@ -1,10 +1,9 @@
-**Purpose:** Reusable, working examples of the four‑stage pipeline and how to 
+**Purpose:** Reusable, working examples of stage‑based pipelines (up to eight stages) and how to 
 chain stages via stdin/stdout.
 
-**Stages:** `[ Acquisition (Ingest) ] → [ Processing ] → [ Visualization ] → [
- Decimation (Egress) ]`
+**Stages:** `[ Import (Acquire/Ingest) ] → [ Process ] → [ Simulate ] → [ Decide ] → [ Visualize (Render) ] → [ Narrate ] → [ Verify ] → [ Export (Disseminate) ]`
 
-**CLI Groups:** `acquire`, `process`, `visualize`, `decimate`
+**CLI Groups:** `acquire`, `process`, `visualize`, `export` (alias: `decimate` [legacy])
 
 **Runner:** `zyra run pipeline.yaml` executes the stages in order, strea
 ming bytes between them.
@@ -13,12 +12,16 @@ ming bytes between them.
 
 - **Chaining:** Use `-` to read from stdin or write to stdout so stages can be c
 hained without temp files.
-- **Self‑Registration:** Each stage registers its own CLI; the runner resolves s
-tage aliases:
-  - acquisition/ingest → `acquire`
-  - processing → `process`
-  - visualization → `visualize`
-  - decimation/egress → `decimate`
+- **Self‑Registration:** Each stage registers its own CLI; the runner resolves stage aliases:
+  - import/acquisition/ingest → `acquire`
+  - process/transform → `process`
+  - simulate → `simulate` (planned)
+  - decide/optimize → `decide` (planned)
+  - visualize/render → `visualize`
+  - narrate → `narrate` (planned)
+  - verify → `verify` (planned)
+  - export/disseminate/decimate → `export`
+- **Note:** Most examples focus on `acquire → process → visualize → export`. The other stages are optional and can be added as they mature.
 - **Location:** Sample YAMLs live under `samples/pipelines/` in the repo.
 
 **Sample Pipelines**
@@ -31,14 +34,14 @@ assthrough.yaml > out.nc`
 - **nc_to_file.yaml:** Reads NetCDF from stdin, writes a local file.
   - Command: `cat tests/testdata/demo.nc | zyra run samples/pipelines/nc_t
 o_file.yaml`
-  - Stages: `process convert-format - netcdf --stdout → decimate local - out.nc`
+  - Stages: `process convert-format - netcdf --stdout → export local - out.nc`
 
 - **extract_variable_to_file.yaml:** Extracts a variable (e.g., TMP), converts t
 o NetCDF, saves locally.
   - Command: `cat tests/testdata/demo.nc | zyra run samples/pipelines/extr
 act_variable_to_file.yaml`
   - Stages: `process extract-variable - "TMP" → process convert-format - netcdf 
---stdout → decimate local - temperature.nc`
+--stdout → export local - temperature.nc`
 
 - **compose_video_to_local.yaml:** Composes frames to MP4 and writes the result 
 locally.
@@ -49,7 +52,7 @@ locally.
 - **ftp_to_s3.yaml (template):** FTP → compose video → upload to S3.
   - Command: Not CI‑safe; requires network access and credentials (edit placehol
 ders first).
-  - Stages: `acquire ftp → visualize compose-video → decimate s3`
+  - Stages: `acquire ftp → visualize compose-video → export s3`
 
 **Overrides**
 
@@ -59,8 +62,8 @@ ders first).
   - Example: `--set 2.var=TMP` (sets `var=TMP` on stage 2 only)
 - **Stage‑name:** Robust to reordering; uses aliases listed in Overview.
   - Examples:
-    - `--set processing.var=TMP`
-    - `--set decimation.backend=local`
+    - `--set process.var=TMP`
+    - `--set export.backend=local`
 - **Combining:** Index‑ and name‑based overrides can be used together; name‑base
 d is preferred for maintainability.
 
@@ -102,3 +105,55 @@ or S3/FTP/Vimeo.
   - Dry run (text): `--dry-run`
   - Dry run (JSON): `--dry-run --print-argv-format=json`
   - Continue on error: `--continue-on-error`
+
+**Illustrative YAML (with optional decide)**
+
+This example shows a typical `import → process → visualize → export` pipeline, and how an optional `decide` step can influence parameters via overrides.
+
+```yaml
+name: Heatmap pipeline with optional decide
+stages:
+  - stage: acquire
+    command: http
+    args:
+      url: https://example.com/sample.grib2
+      # Write to stdout for piping
+      output: -
+
+  - stage: process
+    command: convert-format
+    args:
+      input: -
+      output_format: netcdf
+      stdout: true
+
+  # Optional (planned): decide best colormap/levels based on quick stats
+  # - stage: decide
+  #   command: optimize-colormap    # placeholder; handled by orchestrator for now
+  #   args:
+  #     target: visualize.cmap
+  #     candidates: [viridis, magma, plasma]
+
+  - stage: visualize
+    command: heatmap
+    args:
+      input: -
+      var: T2M
+      output: heatmap.png
+      # cmap can be set by a prior decide step via --set visualize.cmap=...
+      # cmap: viridis
+
+  - stage: export
+    command: local
+    args:
+      input: heatmap.png
+      output: ./out/heatmap.png
+```
+
+Apply a decision at run time (no decide stage yet):
+
+```
+zyra run heatmap.yaml --set visualize.cmap=viridis
+```
+
+This pattern keeps the pipeline stable while enabling experimentation with parameters through overrides or an external orchestrator.

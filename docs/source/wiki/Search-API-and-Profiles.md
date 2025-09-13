@@ -1,9 +1,6 @@
 # Search API and Profiles
 
-Zyra exposes dataset discovery via the CLI and the HTTP API. Searches can be
-performed against the packaged SOS catalog, custom local catalogs, and remote
-OGC sources (WMS and OGC API - Records). Scoring is field-weighted and can be
-customized with profiles.
+Zyra exposes dataset discovery via the CLI and the HTTP API. Searches can be performed against the packaged SOS catalog, custom local catalogs, and remote OGC sources (WMS and OGC API - Records). Scoring is field‑weighted and can be customized with profiles.
 
 ## CLI
 
@@ -12,27 +9,41 @@ Examples:
 - Local SOS (bundled profile):
   - `zyra search --query "tsunami" --profile sos`
 - Custom catalog file:
-  - `zyra search --query "temperature" --catalog-file pkg:zyra.assets.metadata/sos_dataset_metadata.json --json`
+  - `zyra search --query "temperature" --catalog-file pkg:zyra.assets.metadata/sos_dataset_metadata.json`
 - OGC WMS (remote-only by default when remote endpoints provided):
   - `zyra search --query "Temperature" --ogc-wms "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?service=WMS&request=GetCapabilities"`
 - OGC API - Records:
   - `zyra search --query "lake" --ogc-records "https://demo.pygeoapi.io/master/collections/lakes/items?limit=100" --remote-only`
 - Combine sources via profile file:
-  - `zyra search --query "temperature" --profile-file ./samples/profiles/sos.json --json`
+  - `zyra search --query "temperature" --profile-file ./samples/profiles/sos.json`
 - Include local alongside remote:
   - `zyra search --query "Temperature" --ogc-wms <cap-url> --include-local`
+- Optional enrichment:
+  - `zyra search --query "sst" --profile gibs --enrich shallow`
 
-### Semantic Search (LLM-assisted)
+## HTTP API
 
-- Natural language → planned `zyra search` execution:
-  - `zyra search --semantic "Find global sea surface temperature layers from NASA" --limit 10 --show-plan`
-  - Heuristics map common intents to profiles (e.g., NASA/SST → `gibs`). `--show-plan` prints the raw and effective plans.
+Endpoints:
 
-### Semantic Analysis (LLM ranking)
+- `GET /v1/search` — Basic search with optional enrichment. Returns a JSON array of items: `{ id, name, description, source, format, uri }`.
+- `GET /v1/search/profiles` — Bundled profiles metadata: `{ profiles: [...], entries: [{ id, name, description, keywords }] }`.
+- `POST /v1/search` — JSON body variant. When `analyze: true`, returns `{ items, analysis }` (see Analysis below).
 
-- Perform a broad search and let the LLM summarize and rank results:
-  - `zyra search --semantic-analyze --query "hurricanes that have hit new orleans" --limit 20 --json`
-  - Output includes `analysis.summary` and `analysis.picks` (IDs with reasons).
+GET /search query params:
+
+- Required: `q` (query string)
+- Optional (discovery): `limit`, `catalog_file`, `profile`, `profile_file`, `ogc_wms`, `ogc_records`, `remote_only`, `include_local`
+- Optional (enrichment): `enrich=shallow|capabilities|probe`, `enrich_timeout`, `enrich_workers`, `cache_ttl`, `offline`, `https_only`, `allow_hosts`, `deny_hosts`, `max_probe_bytes`
+
+POST /search body keys:
+
+- Discovery keys mirror GET. Use `query`, `limit`, `catalog_file`, `profile`, `profile_file`, `ogc_wms`, `ogc_records`, `remote_only`, `include_local`.
+- Analysis: `analyze: true` adds an `analysis` block derived from LLM prompts. You can also provide `analysis_limit` to cap items included in analysis.
+
+### Analysis (LLM ranking)
+
+- POST `/v1/search` with `analyze: true` performs LLM-assisted summarization and ranking.
+- Response includes `analysis.summary` and `analysis.picks`.
 
 Flags:
 
@@ -62,26 +73,6 @@ Flags (CLI and API):
 
 Profiles can provide defaults (e.g., spatial bbox/CRS) and license policies. When no profile is provided and the local SOS catalog is included, Zyra auto-applies the SOS defaults to `sos-catalog` items only.
 
-## HTTP API
-
-Endpoints:
-
-- `GET /search` — query via URL params; returns items (supports enrichment)
-- `POST /search` — JSON body; set `analyze: true` to include LLM-assisted `analysis`
-
-Query params:
-
-- `q`: search string (required)
-- `limit`: 1..100
-- `catalog_file`: path or `pkg:module/resource`
-- `profile`: bundled profile name (e.g., `sos`, `gibs`, `pygeoapi`)
-- `profile_file`: external JSON profile path
-- `ogc_wms`: comma-separated list of capabilities URLs
-- `ogc_records`: comma-separated list of items URLs
-- `remote_only`: boolean
-- `include_local`: boolean
-- Enrichment and guards (optional): `enrich`, `enrich_timeout`, `enrich_workers`, `cache_ttl`, `offline`, `https_only`, `allow_hosts`, `deny_hosts`, `max_probe_bytes`
-
 Response: JSON array of items with fields:
 
 - `id`, `name`, `description`, `source` (`sos-catalog` | `ogc-wms` | `ogc-records`), `format`, `uri`
@@ -96,7 +87,7 @@ POST with enrichment and analysis:
 
 ```bash
 curl -sS -H "X-API-Key: $API_KEY" -H 'Content-Type: application/json' \
-  -X POST http://localhost:8000/search \
+  -X POST http://localhost:8000/v1/search \
   -d '{
         "query": "tsunami history datasets",
         "limit": 20,
@@ -106,32 +97,17 @@ curl -sS -H "X-API-Key: $API_KEY" -H 'Content-Type: application/json' \
       }' | python -m json.tool
 ```
 
-## Transform: Batch Enrich
+## Enrichment (Overview)
 
-Use `transform enrich-datasets` to enrich an items JSON file (list or `{ "items": [...] }`) with the same options available to the API and `zyra search`:
+Search supports optional metadata enrichment (shallow|capabilities|probe). For larger batch workflows, prefer using the transform enrichment utilities and CLI.
 
-```
-zyra transform enrich-datasets \
-  --items-file items.json \
-  --enrich shallow \
-  --profile sos \
-  --offline \
-  --output enriched.json
-```
+- API: set `enrich=...` on `GET /v1/search` or include `enrich` keys in `POST /v1/search`.
+- Transform CLI: see Dataset-Enrichment.md for `transform enrich-datasets` and policies.
 
-Each item should contain: `id`, `name`, `description`, `source`, `format`, `uri`.
-
-### Offline testing with local files
-
-When outbound network is unavailable, you can point OGC sources to local files:
+Offline testing with local files:
 
 - WMS (capabilities XML): `ogc_wms=file:/app/samples/ogc/sample_wms_capabilities.xml`
 - Records (items JSON): `ogc_records=file:/app/samples/ogc/sample_records.json`
-
-CLI equivalents:
-
-- `zyra search --query "temperature" --ogc-wms file:samples/ogc/sample_wms_capabilities.xml`
-- `zyra search --query "precip" --ogc-records file:samples/ogc/sample_records.json`
 
 ## Profiles
 
@@ -157,4 +133,14 @@ Example profile JSON:
   },
   "weights": { "title": 3, "description": 2, "keywords": 1 }
 }
+
+## Security & Allowed Paths
+
+When using file paths for `catalog_file` or `profile_file`, the server enforces allowlists:
+
+- Catalogs must be under `ZYRA_CATALOG_DIR` or `DATA_DIR`.
+- Profiles must be under `ZYRA_PROFILE_DIR` or `DATA_DIR`.
+- Packaged references are allowed with `pkg:module/resource`.
+
+This policy protects against path traversal and SSRF‑like issues during enrichment.
 ```
