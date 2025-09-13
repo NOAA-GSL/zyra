@@ -16,14 +16,13 @@ Core Rules
 
 Pre-commit Hooks
 
-- This repo ships with a pre-commit configuration to enforce Ruff formatting and linting.
+- Pre-commit is enabled. Config: https://github.com/NOAA-GSL/zyra/blob/main/.pre-commit-config.yaml
 - One-time setup:
-  - `poetry install --with dev` (ensures `pre-commit` and `ruff` are available)
+  - `poetry install --with dev`
   - `poetry run pre-commit install`
 - Run hooks manually on all files: `poetry run pre-commit run -a`
-- Hooks included:
-  - Ruff format (code formatting)
-  - Ruff (lint, with autofix; commit fails if fixes were applied)
+- Hooks enforce Ruff formatting/linting (authoritative list in the config above).
+- DCO: All commits must include a Signed-off-by line (see CONTRIBUTING). Add `-s` to `git commit` or enable global sign-off: `git config --global format.signoff true`.
 
 Agent Checklist (before returning code)
 
@@ -34,7 +33,7 @@ Agent Checklist (before returning code)
 
 Notes for CI and PRs
 
-- CI should run `poetry run ruff format --check . && poetry run ruff check .` to ensure compliance.
+- CI should run `poetry run ruff format --check . && poetry run ruff check .` to ensure compliance. DCO sign-off is enforced by the GitHub DCO app on pull requests.
 - Group related changes into single PRs with a clear description and run instructions.
 
 Repository Guidelines
@@ -42,25 +41,20 @@ Repository Guidelines
 Project Structure & Module Organization
 
 - Code lives under `src/zyra/`:
-  - `connectors/`: source/destination integrations and CLI registrars (`connectors.ingest`, `connectors.egress`). Prefer these over legacy `acquisition/` for new work.
-  - `processing/`: data processing (e.g., GRIB/NetCDF/GeoTIFF) exposed via the CLI.
-  - `visualization/`: visualization commands; CLI registration lives in `visualization/cli_register.py`.
-  - `wizard/`: interactive assistant and related utilities.
-  - `api/` + `api_cli.py`: HTTP API and CLI entry points.
-  - `transform/`: transform helpers (metadata, etc.).
-  - `utils/`: shared helpers/utilities.
-  - `assets/`: packaged static resources; access with `importlib.resources` (`zyra.assets`).
-  - `cli.py`, `pipeline_runner.py`: root CLI and pipeline runner.
-  - Capabilities manifest: `src/zyra/wizard/zyra_capabilities.json` (generated)
+  - `connectors/`: source/destination integrations and CLI registrars (`connectors.ingest`, `connectors.egress`, with shared `backends/`). Prefer these over legacy `acquisition/` for new work.
+  - `processing/`: data processing (e.g., GRIB/NetCDF/GeoTIFF) exposed via CLI.
+  - `visualization/`: visualization commands (static, animated, interactive); CLI registration lives alongside commands.
+  - `transform/`: lightweight helpers (metadata scans, enrich/merge, dataset JSON updates).
+  - `api/`: FastAPI service exposing selected CLI functionality (see `zyra.api_cli`).
+  - `wizard/`: optional assistant UX; ships JSON resources under `src/zyra/wizard/*.json`.
+  - `utils/`: shared helpers/utilities (credentials, dates, files, images, I/O).
+  - `assets/`: packaged resources (e.g., basemaps/overlays under `assets/images/`). Access via `importlib.resources` (`zyra.assets`).
+  - `cli.py`: root CLI entry (`zyra`); `api_cli.py`: API service CLI (`zyra-cli`).
 
-### Updating the CLI Capabilities Manifest
+### Assistant/Wizard Resources
 
-When you add or change CLI commands/options (e.g., new `search` flags), regenerate the capabilities manifest so assistants have an accurate view of the CLI:
-
-- `poetry run zyra generate-manifest`
-- Optionally write to a custom location with `-o path.json`
-
-The Wizard loads this manifest to ground its suggestions. If the file is missing, the Wizard falls back to building a dynamic manifest at runtime.
+- Wizard resources (JSON) are packaged under `src/zyra/wizard/*.json` and may be used to drive interactive flows.
+- If a CLI capabilities file is present in the repo, keep it in sync with CLI changes; otherwise, prefer runtime discovery and module docstrings for accuracy.
 
 Build, Test, and Development
 
@@ -105,5 +99,53 @@ Dependency Management (Poetry)
 
 Documentation Sources
 
-- Authoritative docs live under `docs/source/wiki/` in this repo (built with Sphinx).
-- If CI syncs from a GitHub Wiki, treat `docs/source/wiki/` as the source consumed by the docs build (do not hand-edit generated/synced content unless the process specifies).
+- Synced wiki in repo (for offline/background reading): `/docs/source/wiki/` — this is a cron-synced mirror of the GitHub Wiki. Prefer this path when you need background information by browsing the code repository.
+- Wiki (live, high-level docs, patterns, overview): https://github.com/NOAA-GSL/zyra/wiki
+- API Reference (module/CLI docs): https://noaa-gsl.github.io/zyra/
+- Key wiki pages to ground answers:
+  - Workflow Stages: https://github.com/NOAA-GSL/zyra/wiki/Workflow-Stages
+  - Stage Examples: https://github.com/NOAA-GSL/zyra/wiki/Stage-Examples
+  - Install & Extras: https://github.com/NOAA-GSL/zyra/wiki/Install-Extras
+  - Pipeline Patterns: https://github.com/NOAA-GSL/zyra/wiki/Pipeline-Patterns
+
+Notes
+- The `/docs/source/wiki/` content is generated via a scheduled sync from the GitHub Wiki. Do not hand-edit files in that folder unless the sync process specifically instructs otherwise. If you see a discrepancy between the repo copy and the live wiki, defer to the live wiki as the source of truth and file an issue to correct the mirror.
+
+When In Doubt: Decision Flow
+
+- CLI usage or flags
+  - Check generated docs: https://noaa-gsl.github.io/zyra/api/zyra.cli.html
+  - Run local help where possible: `poetry run zyra --help` (or subcommand `--help`).
+  - Cross-check examples in `Stage-Examples.md`.
+- Background/context
+  - Read the synced wiki in `/docs/source/wiki/`.
+  - If stale or missing, read the live wiki: https://github.com/NOAA-GSL/zyra/wiki
+- Implementation details
+  - Search code under `src/zyra/` (connectors, processing, visualization, transform, api, utils).
+- Roadmap/status
+  - Issues (enhancements/bugs): https://github.com/NOAA-GSL/zyra/issues
+  - Discussions (design/ideas): https://github.com/NOAA-GSL/zyra/discussions
+- Security & policy
+  - Zyra-API-Security-Quickstart.md, Privacy-and-Data-Usage-Best-Practices-for-Zyra.md, Logging-in-Zyra.md
+- Deploy/run
+  - Zyra-Containers-Overview-and-Usage.md; API routers/endpoints page
+
+Quick Test Loop (suggested)
+
+```
+# Format + lint (required)
+poetry run ruff format . && poetry run ruff check .
+
+# Focused tests
+poetry run pytest -q -k <pattern>
+
+# Sanity: help text prints and exits
+poetry run zyra --help
+```
+
+Stage Naming & Aliases (for CLI and docs)
+
+- Preferred: import → process → simulate → decide → visualize → narrate → verify → export
+- Aliases: acquire/ingest → process/transform → visualize/render → export/disseminate (legacy: decimate)
+- Implemented today: acquire (`http|s3|ftp|vimeo`), process (`decode-grib2|extract-variable|convert-format`), visualize (`heatmap|contour|animate|compose-video|interactive`), export (`local|s3|ftp|post|vimeo`)
+- Streaming: many commands accept `-` (stdin/stdout) to support piping.
