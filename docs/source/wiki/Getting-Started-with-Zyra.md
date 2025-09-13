@@ -36,20 +36,23 @@ You’ll see options for:
 
 ## 3. Your First Workflow
 
-Here’s a simple example: fetching demo weather data and turning it into a plot.
+Here’s a simple, realistic flow using the CLI’s groups:
 
 ```bash
-# Step 1. Acquire example dataset
-zyra acquire --source demo-weather
+# Step 1. Acquire a file (HTTP → local path)
+zyra acquire http https://example.com/sample.grib2 -o sample.grib2
 
-# Step 2. Process (filter last 24 hours)
-zyra process --filter "last24h"
+# Step 2. Convert GRIB2 → NetCDF (streams stdout to file)
+zyra process convert-format sample.grib2 netcdf --stdout > sample.nc
 
-# Step 3. Visualize
-zyra visualize --type line --output weather_plot.png
+# Step 3. Visualize (choose a variable present in the file)
+zyra visualize heatmap --input sample.nc --var VAR --output weather_plot.png
 ```
 
-✨ Result: a **line chart** of weather data saved as `weather_plot.png`.
+Notes
+- Replace the URL with your data source.
+- Use a variable that exists in your file for `--var` (e.g., `T2M`).
+- Many subcommands support stdin/stdout for piping (`-` as input/output).
 
 ---
 
@@ -59,7 +62,7 @@ zyra visualize --type line --output weather_plot.png
 - 🧩 [Pipeline Patterns](https://github.com/NOAA-GSL/zyra/wiki/Pipeline-Patterns) – Reusable workflow templates  
 - 🎨 [Visualization Module](https://noaa-gsl.github.io/zyra/api/zyra.visualization.html) – Plots, maps, and animations  
 - 🔧 [Processing Module](https://noaa-gsl.github.io/zyra/api/zyra.processing.html) – GRIB, NetCDF, and data transformations  
-- 🌐 [Acquisition Modules](https://noaa-gsl.github.io/zyra/api/zyra.connectors.html) – Fetching data from FTP, HTTP/S, S3, and more  
+- 🔌 [Connectors](https://noaa-gsl.github.io/zyra/api/zyra.connectors.html) – HTTP/FTP/S3/Vimeo transfer helpers  
 - 🛠️ [Utilities](https://noaa-gsl.github.io/zyra/api/zyra.utils.html) – File management, credentials, and helpers  
 
 ---

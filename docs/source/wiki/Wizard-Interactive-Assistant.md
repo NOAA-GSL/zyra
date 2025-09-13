@@ -5,7 +5,7 @@ The Wizard is an interactive and one‑shot assistant that turns natural‑langu
 - Modes: interactive REPL or one‑shot via `--prompt`
 - Providers: OpenAI, Ollama, or a network‑free mock
 
-This implements the MVP from the wiki plan “Implementation-Plan:-`wizard`-CLI-for-Zyra.md”.
+This implements the MVP for the interactive assistant. For current scope and status, see Roadmap-and-Tracking.md.
 
 ## Quick Start
 - Interactive:
