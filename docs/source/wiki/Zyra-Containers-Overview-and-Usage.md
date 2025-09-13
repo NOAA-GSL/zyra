@@ -153,4 +153,3 @@ services:
 - wgrib2 not found: the scheduler image excludes `wgrib2` by default; build with `WITH_WGRIB2=source|apt` if needed.
 - API 401: set `ZYRA_API_KEY` and include it via the `X-API-Key` header (configurable with `API_KEY_HEADER`).
 - Large outputs: mount a persistent volume at `/data` and set `DATA_DIR=/data` (default inside images).
-

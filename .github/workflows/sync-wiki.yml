@@ -11,7 +11,8 @@ on:
   workflow_dispatch:    # Manual trigger
 
 permissions:
-  contents: write  # Allow pushing synced wiki changes
+  contents: write  # Needed to create branches/commits
+  pull-requests: write  # Needed to open PRs
 
 jobs:
   sync-wiki:
@@ -29,6 +30,33 @@ jobs:
           repository: ${{ github.repository }}.wiki
           path: wiki
 
+      - name: Ensure 'automerge' label exists
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const name = 'automerge';
+            const color = '0e8a16';
+            const description = 'Auto-merge PRs created by sync-wiki workflow';
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name,
+              });
+            } catch (e) {
+              if (e.status === 404) {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name,
+                  color,
+                  description,
+                });
+              } else {
+                throw e;
+              }
+            }
+
       - name: Sync wiki into docs/source/wiki
         run: |
           # Ensure no nested .git remains from previous runs
@@ -38,19 +66,50 @@ jobs:
           # Mirror wiki contents but exclude the wiki's .git directory
           rsync -av --delete --exclude '.git' wiki/ main/docs/source/wiki/
 
-      - name: Commit wiki changes (main only)
-        run: |
-          cd main
-          if [ "${{ github.ref_name }}" = "main" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add docs/source/wiki/
-            if ! git diff --cached --quiet; then
-              git commit -m "chore(docs): sync wiki into docs/source/wiki"
-              git push
-            else
-              echo "No changes to commit"
-            fi
-          else
-            echo "Skipping commit: branch is ${{ github.ref_name }}"
-          fi
+      - name: Create PR with synced wiki (DCO sign-off)
+        id: cpr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          path: main
+          base: main
+          branch: ci/sync-wiki
+          delete-branch: true
+          title: "chore(docs): sync wiki into docs/source/wiki"
+          body: |
+            Automated wiki sync from GitHub Wiki to docs/source/wiki.
+
+            This commit includes a DCO Signed-off-by trailer to satisfy enforcement.
+          commit-message: "chore(docs): sync wiki into docs/source/wiki"
+          signoff: true
+          committer: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
+          author: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
+          labels: |
+            automerge
+
+      - name: Check for 'automerge' label on PR
+        id: check_automerge_label
+        if: steps.cpr.outputs.pull-request-number
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = Number(`${{ steps.cpr.outputs['pull-request-number'] }}`);
+            if (!prNumber) {
+              core.setOutput('has', 'false');
+            } else {
+              const { data: issue } = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+              });
+              const labels = issue.labels || [];
+              const has = labels.some(l => (typeof l === 'string' ? l === 'automerge' : l.name === 'automerge'));
+              core.setOutput('has', has ? 'true' : 'false');
+            }
+
+      - name: Enable auto-merge for sync PR
+        if: steps.cpr.outputs.pull-request-number && steps.check_automerge_label.outputs.has == 'true'
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          merge-method: squash

@@ -136,10 +136,6 @@ By following these templates, contributors help keep Zyra’s CLI aligned with r
 
 ---
 
-Thanks again for contributing!
-
----
-
 ## Developer Certificate of Origin (DCO)
 
 This project uses the DCO to ensure that contributors have the right to submit their work. The full text is included in the `DCO` file at the repository root.
@@ -179,3 +175,7 @@ git config --global format.signoff true
 ```
 
 This works with most Git clients and IDEs (including VS Code) and reduces the chance of missing a sign-off.
+
+---
+
+Thanks again for contributing!
