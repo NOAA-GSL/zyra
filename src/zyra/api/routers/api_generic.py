@@ -124,7 +124,12 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
                     params=params,
                     data=data,
                 )
-                if issues and bool(getattr(req, "openapi_strict", True)):
+                strict = (
+                    True
+                    if getattr(req, "openapi_strict", None) is None
+                    else bool(req.openapi_strict)
+                )
+                if issues and strict:
                     return Response(
                         content=json.dumps({"errors": issues}).encode("utf-8"),
                         media_type="application/json",

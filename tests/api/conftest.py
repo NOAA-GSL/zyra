@@ -25,15 +25,12 @@ def _force_inmemory_for_mcp_ws(
 def _api_speed_defaults():
     """Speed up API tests by disabling heavy extras and dotenv loading.
 
-    - Disable MCP to avoid extra routers and schema bloat
     - Force in-memory (no Redis) for all tests by default
     - Skip .env loading to avoid bringing in devcontainer flags/secrets
     - Remove any auth-induced delays
     """
     import os
 
-    os.environ["ZYRA_ENABLE_MCP"] = "0"
-    os.environ["ENABLE_MCP"] = "0"
     os.environ["ZYRA_USE_REDIS"] = "0"
     os.environ["DATAVIZHUB_USE_REDIS"] = "0"
     os.environ["ZYRA_SKIP_DOTENV"] = "1"
