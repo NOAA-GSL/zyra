@@ -449,7 +449,7 @@ def _cmd_api(ns: argparse.Namespace) -> int:
         elif "audioSource" not in params:
             params["audioSource"] = "pendant"
         # Map start/end or since/duration to epoch ms (startMs/endMs)
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timezone
 
         def _parse_iso(s: str) -> datetime:
             try:
@@ -476,27 +476,16 @@ def _cmd_api(ns: argparse.Namespace) -> int:
             end_dt = _parse_iso(end_iso)
         elif since_iso and duration_iso:
             start_dt = _parse_iso(since_iso)
-            # Parse basic PTnH / PTnM patterns
-            dur = duration_iso
-            hours = minutes = 0
-            if dur.startswith("PT") and dur.endswith("H"):
-                hours = int(dur[2:-1])
-            elif dur.startswith("PT") and dur.endswith("M"):
-                minutes = int(dur[2:-1])
-            elif dur.startswith("PT") and "H" in dur and "M" in dur:
-                # PT#H#M
-                try:
-                    h = dur.split("PT", 1)[1].split("H", 1)[0]
-                    m = dur.split("H", 1)[1].split("M", 1)[0]
-                    hours = int(h)
-                    minutes = int(m)
-                except Exception as exc:  # noqa: PERF203 - keep clarity
-                    raise SystemExit(f"Unsupported ISO-8601 duration: {dur}") from exc
-            else:
+            # Robust ISO-8601 duration parsing (P[nD]T[nH][nM][nS])
+            from zyra.utils.iso8601 import iso_duration_to_timedelta
+
+            try:
+                td = iso_duration_to_timedelta(duration_iso)
+            except Exception as exc:
                 raise SystemExit(
-                    "Provide --duration as ISO-8601 (e.g., PT2H or PT30M) with --since for limitless-audio"
-                )
-            end_dt = start_dt + timedelta(hours=hours, minutes=minutes)
+                    f"Unsupported ISO-8601 duration: {duration_iso}"
+                ) from exc
+            end_dt = start_dt + td
         else:
             # Expect startMs/endMs already via --params
             start_dt = end_dt = None

@@ -64,7 +64,19 @@ def _requests_mod():  # pragma: no cover - import depends on extras
 
 
 def _get_requests():
-    """Compatibility shim returning the cached requests module."""
+    """Return the requests module, preferring a sys.modules override.
+
+    Tests may monkeypatch sys.modules['requests']; honor that before falling
+    back to the cached import.
+    """
+    try:
+        import sys as _sys
+
+        mod = _sys.modules.get("requests")
+        if mod is not None:
+            return mod  # type: ignore[return-value]
+    except Exception:
+        pass
     return _requests_mod()
 
 
@@ -330,7 +342,7 @@ def query_single_api(
         if no_openapi
         else _discover_search_spec(base_url)
     )
-    _requests_mod()
+    _get_requests()
     # Attempt via discovered or overridden endpoint with params first
     url = urljoin(base_url.rstrip("/") + "/", (endpoint or spec.path).lstrip("/"))
     qp = qp_name or spec.query_param
@@ -478,7 +490,7 @@ def federated_api_search(
     See :func:`query_single_api` for parameter semantics.
     """
     # Ensure HTTP client available up front to avoid silent empties
-    _requests_mod()
+    _get_requests()
     rows: list[dict[str, Any]] = []
     from concurrent.futures import ThreadPoolExecutor, as_completed
 

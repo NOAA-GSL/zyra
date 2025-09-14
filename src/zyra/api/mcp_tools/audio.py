@@ -14,6 +14,7 @@ from typing import Any
 import requests
 
 from zyra.utils.env import env_path
+from zyra.utils.iso8601 import iso_to_ms, since_duration_to_range_ms
 
 
 def _infer_filename_from_headers(
@@ -49,53 +50,11 @@ def _infer_filename_from_headers(
 
 
 def _iso_to_ms(s: str) -> int:
-    """Convert an ISO-8601 datetime string to epoch milliseconds.
-
-    Accepts a trailing ``Z`` for UTC.
-    """
-    from datetime import datetime, timezone
-
-    if s.endswith("Z"):
-        s = s[:-1] + "+00:00"
-    dt = datetime.fromisoformat(s)
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return int(dt.timestamp() * 1000)
+    return iso_to_ms(s)
 
 
 def _since_duration_to_range(since: str, duration: str) -> tuple[int, int]:
-    """Return (startMs, endMs) from ISO ``since`` + ``duration``.
-
-    Parses a subset of ISO-8601 durations via regex: supports days and time
-    components (hours/minutes/seconds). Enforces a maximum window of two hours
-    and raises ``ValueError`` for invalid/unsupported inputs.
-    """
-    import re
-    from datetime import timedelta
-
-    start_ms = _iso_to_ms(since)
-    s = (duration or "").strip().upper()
-    # Pattern: P[nD][T[nH][nM][nS]] — capture days/hours/minutes/seconds if present
-    m = re.match(
-        r"^P(?:(?P<days>\d+)D)?(?:T(?:(?P<hours>\d+)H)?(?:(?P<minutes>\d+)M)?(?:(?P<seconds>\d+)S)?)?$",
-        s,
-        re.IGNORECASE,
-    )
-    if not m:
-        raise ValueError(
-            "Unsupported ISO-8601 duration; expected P[nD]T[nH][nM][nS] (e.g., PT30M, PT2H, PT1H30M)"
-        )
-    days = int(m.group("days") or 0)
-    hours = int(m.group("hours") or 0)
-    minutes = int(m.group("minutes") or 0)
-    seconds = int(m.group("seconds") or 0)
-    td = timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
-    if td.total_seconds() <= 0:
-        raise ValueError("Duration must be greater than zero")
-    end_ms = start_ms + int(td.total_seconds() * 1000)
-    if (end_ms - start_ms) > 2 * 60 * 60 * 1000:
-        raise ValueError("Maximum duration is 2 hours")
-    return start_ms, end_ms
+    return since_duration_to_range_ms(since, duration, max_hours=2)
 
 
 def download_audio(

@@ -470,37 +470,11 @@ def preset_limitless_audio(
     upstream Content-Type and optional Content-Disposition.
     """
     # Time mapping helpers
-    from datetime import datetime, timedelta, timezone
 
-    def _iso_to_ms(s: str) -> int:
-        if s.endswith("Z"):
-            s = s[:-1] + "+00:00"
-        dt = datetime.fromisoformat(s)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return int(dt.timestamp() * 1000)
-
-    def _since_duration_to_range(since: str, duration: str) -> tuple[int, int]:
-        start_ms = _iso_to_ms(since)
-        hours = minutes = 0
-        dur = duration
-        if dur.startswith("PT") and dur.endswith("H"):
-            hours = int(dur[2:-1])
-        elif dur.startswith("PT") and dur.endswith("M"):
-            minutes = int(dur[2:-1])
-        elif dur.startswith("PT") and "H" in dur and "M" in dur:
-            h = dur.split("PT", 1)[1].split("H", 1)[0]
-            m = dur.split("H", 1)[1].split("M", 1)[0]
-            hours = int(h)
-            minutes = int(m)
-        else:
-            raise HTTPException(status_code=400, detail="Unsupported ISO-8601 duration")
-        end_ms = start_ms + int(
-            timedelta(hours=hours, minutes=minutes).total_seconds() * 1000
-        )
-        if (end_ms - start_ms) > 2 * 60 * 60 * 1000:
-            raise HTTPException(status_code=400, detail="Maximum duration is 2 hours")
-        return start_ms, end_ms
+    from zyra.utils.iso8601 import iso_to_ms as _iso_to_ms
+    from zyra.utils.iso8601 import (
+        since_duration_to_range_ms as _since_duration_to_range,
+    )
 
     # Build request
     base = os.environ.get("LIMITLESS_API_URL", "https://api.limitless.ai/v1").rstrip(
