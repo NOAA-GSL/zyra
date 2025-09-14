@@ -95,7 +95,17 @@ def find_operation(spec: dict[str, Any], url: str, method: str) -> OperationRef 
         if sc is not None:
             candidates.append((p, item, sc))
     if not candidates:
-        return None
+        # Fallback: allow suffix match when path lengths differ; pick longest suffix
+        for p, item in paths.items():
+            if not isinstance(p, str) or not isinstance(item, dict):
+                continue
+            if req_path.endswith(p) and any(
+                str(k).lower() == method.lower() and isinstance(v, dict)
+                for k, v in item.items()
+            ):
+                candidates.append((p, item, len(p)))
+        if not candidates:
+            return None
     # pick the candidate with best score, tie-breaker by longer path
     candidates.sort(key=lambda t: (t[2], len(t[0])), reverse=True)
     path, item, _ = candidates[0]

@@ -46,3 +46,15 @@ def _api_speed_defaults():
 def client() -> TestClient:
     """Session-scoped TestClient to avoid repeated app startup in API tests."""
     return TestClient(create_app())
+
+
+@pytest.fixture(scope="session")
+def client_mcp() -> TestClient:
+    """Session-scoped TestClient with MCP enabled.
+
+    Overrides the autouse defaults to include MCP routers in the app.
+    """
+    import os as _os
+
+    _os.environ["ZYRA_ENABLE_MCP"] = "1"
+    return TestClient(create_app())
