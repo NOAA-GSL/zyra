@@ -182,9 +182,9 @@ def create_app() -> FastAPI:
     _inc(narrate_router.router)
     _inc(verify_router.router)
     _inc(transform_router.router)
-    # MCP adapter (feature gate; default disabled unless explicitly enabled)
-    if getattr(app.state, "mcp_enabled", False):
-        _inc(mcp_router.router)
+    # MCP adapter routes are always registered so OpenAPI remains stable.
+    # Handlers themselves enforce ENABLE_MCP and return 404 when disabled.
+    _inc(mcp_router.router)
 
     @app.get("/health", tags=["system"])
     def health() -> dict:

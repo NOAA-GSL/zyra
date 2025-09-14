@@ -48,6 +48,21 @@ router = APIRouter(tags=["mcp"])
 PROTOCOL_VERSION = "2025-06-18"
 
 
+def _require_mcp_enabled() -> None:
+    """Raise 404 when MCP is disabled via env flag.
+
+    Routes remain in OpenAPI while being effectively hidden unless ENABLE_MCP is set.
+    """
+    try:
+        from zyra.utils.env import env_bool as _env_bool
+
+        if not _env_bool("ENABLE_MCP", False):
+            raise HTTPException(status_code=404)
+    except Exception:
+        # On unexpected errors, be conservative and return 404
+        raise HTTPException(status_code=404) from None
+
+
 class JSONRPCRequest(BaseModel):
     jsonrpc: str = "2.0"
     method: str
@@ -70,6 +85,7 @@ def _rpc_result(id_val: Any, result: Any) -> dict[str, Any]:
 
 @router.post("/mcp")
 def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
+    _require_mcp_enabled()
     """Handle a JSON-RPC 2.0 request for MCP methods.
 
     Methods:
@@ -1069,18 +1085,21 @@ def _mcp_tools_list(refresh: bool = False) -> list[dict[str, Any]]:
 
 @router.get("/mcp")
 def mcp_capabilities(refresh: bool = False) -> dict[str, Any]:
+    _require_mcp_enabled()
     """HTTP discovery endpoint for MCP clients (Cursor/Claude/VS Code)."""
     return _mcp_discovery_payload(refresh=refresh)
 
 
 @router.options("/mcp")
 def mcp_capabilities_options(refresh: bool = False) -> dict[str, Any]:
+    _require_mcp_enabled()
     """OPTIONS variant returning the same MCP discovery payload."""
     return _mcp_discovery_payload(refresh=refresh)
 
 
 @router.get("/mcp/progress/{job_id}")
 def mcp_progress(job_id: str, interval_ms: int = 200, max_ms: int = 10000):
+    _require_mcp_enabled()
     """Server-Sent Events (SSE) stream of job status for MCP clients.
 
     Emits JSON events on each tick with ``job_id``, ``status``, ``exit_code``,
