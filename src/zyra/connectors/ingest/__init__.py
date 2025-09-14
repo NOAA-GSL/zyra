@@ -248,6 +248,565 @@ def _cmd_vimeo(ns: argparse.Namespace) -> int:  # pragma: no cover - placeholder
     raise SystemExit("acquire vimeo is not implemented yet")
 
 
+def _parse_kv_params(s: str | None) -> dict[str, str]:
+    if not s:
+        return {}
+    out: dict[str, str] = {}
+    for pair in s.split("&"):
+        if not pair:
+            continue
+        if "=" in pair:
+            k, v = pair.split("=", 1)
+            out[k] = v
+        else:
+            out[pair] = ""
+    return out
+
+
+def _parse_headers(vals: list[str] | None) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for item in vals or []:
+        if ":" in item:
+            k, v = item.split(":", 1)
+            out[k.strip()] = v.lstrip()
+    return out
+
+
+def _load_data_arg(data: str | None) -> bytes | str | dict | None:
+    if not data:
+        return None
+    s = data.strip()
+    if s.startswith("@"):
+        from pathlib import Path
+
+        path = s[1:]
+        p = Path(path)
+        b = p.read_bytes()
+        # Try JSON first
+        try:
+            import json
+
+            return json.loads(b.decode("utf-8"))
+        except Exception:
+            return b
+    # Try to parse inline JSON
+    try:
+        import json
+
+        return json.loads(s)
+    except Exception:
+        return s
+
+
+def _cmd_api(ns: argparse.Namespace) -> int:
+    """Call a REST API endpoint and write the response.
+
+    Supports:
+    - Methods, headers, params, and JSON/body data (``--data`` or ``@file``)
+    - Streaming binary downloads with resume, content-type validation, and
+      filename inference (``--stream``, ``--resume``, ``--expect-content-type``,
+      ``--detect-filename``)
+    - Pagination: cursor, page, and RFC 5988 Link with NDJSON output or
+      aggregated JSON array (``--paginate``, ``--newline-json``)
+    - Provider presets (e.g., ``--preset limitless-lifelogs`` and
+      ``--preset limitless-audio``)
+    """
+    # Map verbosity/trace
+    if getattr(ns, "verbose", False):
+        os.environ["ZYRA_VERBOSITY"] = "debug"
+    elif getattr(ns, "quiet", False):
+        os.environ["ZYRA_VERBOSITY"] = "quiet"
+    if getattr(ns, "trace", False):
+        os.environ["ZYRA_SHELL_TRACE"] = "1"
+    configure_logging_from_env()
+
+    headers = _parse_headers(getattr(ns, "header", None))
+    params = _parse_kv_params(getattr(ns, "params", None))
+    if getattr(ns, "content_type", None):
+        headers.setdefault("Content-Type", ns.content_type)
+    body = _load_data_arg(getattr(ns, "data", None))
+    # Convenience auth helper
+    auth = getattr(ns, "auth", None)
+    if auth:
+        try:
+            scheme, val = auth.split(":", 1)
+            scheme_l = scheme.strip().lower()
+            v = val.strip()
+            if v.startswith("$"):
+                import os as _os
+
+                v = _os.environ.get(v[1:], "")
+            if scheme_l == "bearer" and v and not headers.get("Authorization"):
+                headers["Authorization"] = f"Bearer {v}"
+            elif scheme_l == "basic" and v and not headers.get("Authorization"):
+                # v should be "user:pass" (or provided via env)
+                try:
+                    import base64 as _b64
+
+                    token = _b64.b64encode(v.encode("utf-8")).decode("ascii")
+                    headers["Authorization"] = f"Basic {token}"
+                except Exception:
+                    pass
+            elif scheme_l == "header" and v:
+                # v is expected to be "Name:Value" (Value may be $ENV)
+                try:
+                    name, value = v.split(":", 1)
+                    name = name.strip()
+                    value = value.strip()
+                    if value.startswith("$"):
+                        import os as _os
+
+                        value = _os.environ.get(value[1:], "")
+                    if name and value and name not in headers:
+                        headers[name] = value
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    from zyra.connectors.backends import api as api_backend
+
+    method = (getattr(ns, "method", "GET") or "GET").upper()
+    paginate = getattr(ns, "paginate", "none") or "none"
+    timeout = int(getattr(ns, "timeout", 60) or 60)
+    max_retries = int(getattr(ns, "max_retries", 3) or 3)
+    retry_backoff = float(getattr(ns, "retry_backoff", 0.5) or 0.5)
+    allow_non_2xx = bool(getattr(ns, "allow_non_2xx", False))
+
+    # OpenAPI: help/validation (before making requests)
+    if getattr(ns, "openapi_help", False) or getattr(ns, "openapi_validate", False):
+        from urllib.parse import urlparse as _urlparse  # noqa: I001
+        from zyra.connectors.openapi import validate as _ov  # noqa: I001
+
+        openapi_url = getattr(ns, "openapi_url", None)
+        if openapi_url:
+            spec = _ov.load_openapi_url(openapi_url)
+        else:
+            if not getattr(ns, "url", None):
+                raise SystemExit("--url is required for OpenAPI help/validation")
+            try:
+                pr = _urlparse(ns.url)
+                base_root = f"{pr.scheme}://{pr.netloc}"
+            except Exception:
+                base_root = ns.url
+            spec = _ov.load_openapi(base_root)
+        if not spec:
+            print("OpenAPI: not found", file=__import__("sys").stderr)
+            if getattr(ns, "openapi_help", False):
+                return 0
+        if getattr(ns, "openapi_help", False) and spec:
+            txt = _ov.help_text(spec=spec, url=ns.url, method=method)
+            print(txt)
+            return 0
+        if getattr(ns, "openapi_validate", False) and spec:
+            issues = _ov.validate_request(
+                spec=spec,
+                url=ns.url,
+                method=method,
+                headers=headers,
+                params=params,
+                data=body,
+            )
+            if issues:
+                import sys as _sys
+
+                for it in issues:
+                    _sys.stderr.write(
+                        f"OpenAPI validation: {it.get('loc')} {it.get('name')}: {it.get('message')}\n"
+                    )
+                if getattr(ns, "openapi_strict", False):
+                    raise SystemExit(2)
+            else:
+                print("OpenAPI validation: OK")
+                return 0
+
+    # Preset defaults (user-provided flags win)
+    preset = getattr(ns, "preset", None)
+    if preset == "limitless-lifelogs":
+        if not getattr(ns, "paginate", None) or ns.paginate == "none":
+            paginate = "cursor"
+        if not getattr(ns, "cursor_param", None):
+            ns.cursor_param = "cursor"
+        if not getattr(ns, "next_cursor_json_path", None):
+            ns.next_cursor_json_path = "meta.lifelogs.nextCursor"
+        # Map --since to 'start'
+        if getattr(ns, "since", None) and "start" not in params:
+            params["start"] = ns.since
+    elif preset == "limitless-audio":
+        import os as _os
+
+        # Default URL if not provided
+        if not getattr(ns, "url", None):
+            base = _os.environ.get("LIMITLESS_API_URL", "https://api.limitless.ai/v1")
+            ns.url = base.rstrip("/") + "/download-audio"
+        # Headers: Accept and expected content type
+        headers.setdefault("Accept", "audio/ogg")
+        if not getattr(ns, "expect_content_type", None):
+            ns.expect_content_type = "audio/ogg"
+        # Default audio source if not supplied
+        if getattr(ns, "audio_source", None) and "audioSource" not in params:
+            params["audioSource"] = ns.audio_source
+        elif "audioSource" not in params:
+            params["audioSource"] = "pendant"
+        # Map start/end or since/duration to epoch ms (startMs/endMs)
+        from datetime import datetime, timezone
+
+        def _parse_iso(s: str) -> datetime:
+            try:
+                # Support 'Z'
+                if s.endswith("Z"):
+                    s = s[:-1] + "+00:00"
+                return datetime.fromisoformat(s)
+            except Exception as exc:  # pragma: no cover - defensive
+                raise SystemExit(
+                    f"Invalid ISO datetime for --start/--end: {s}"
+                ) from exc
+
+        def _to_ms(dt: datetime) -> str:
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return str(int(dt.timestamp() * 1000))
+
+        start_iso = getattr(ns, "start", None)
+        end_iso = getattr(ns, "end", None)
+        since_iso = getattr(ns, "since", None)
+        duration_iso = getattr(ns, "duration", None)
+        if start_iso and end_iso:
+            start_dt = _parse_iso(start_iso)
+            end_dt = _parse_iso(end_iso)
+        elif since_iso and duration_iso:
+            start_dt = _parse_iso(since_iso)
+            # Robust ISO-8601 duration parsing (P[nD]T[nH][nM][nS])
+            from zyra.utils.iso8601 import iso_duration_to_timedelta
+
+            try:
+                td = iso_duration_to_timedelta(duration_iso)
+            except Exception as exc:
+                raise SystemExit(
+                    f"Unsupported ISO-8601 duration: {duration_iso}"
+                ) from exc
+            end_dt = start_dt + td
+        else:
+            # Expect startMs/endMs already via --params
+            start_dt = end_dt = None
+        if start_dt and end_dt:
+            # Validate max 2 hours
+            if (end_dt - start_dt).total_seconds() > 7200:
+                raise SystemExit(
+                    "Limitless audio maximum duration is 2 hours per request"
+                )
+            params.setdefault("startMs", _to_ms(start_dt))
+            params.setdefault("endMs", _to_ms(end_dt))
+        # Streaming is recommended
+        if not getattr(ns, "stream", False):
+            ns.stream = True
+
+    pages: list[bytes] = []
+    if paginate == "none" and not getattr(ns, "stream", False):
+        status, _resp_headers, content = api_backend.request_with_retries(
+            method,
+            ns.url,
+            headers=headers,
+            params=params,
+            data=body,
+            timeout=timeout,
+            max_retries=max_retries,
+            retry_backoff=retry_backoff,
+        )
+        if not allow_non_2xx and status >= 400:
+            raise SystemExit(f"HTTP error {status}")
+        if getattr(ns, "pretty", False):
+            try:
+                import json
+
+                obj = json.loads(content.decode("utf-8"))
+                content = (json.dumps(obj, ensure_ascii=False, indent=2) + "\n").encode(
+                    "utf-8"
+                )
+            except Exception:
+                pass
+        with open_output(ns.output) as f:
+            f.write(content)
+        return 0
+
+    # Streaming (binary-safe, large payloads)
+    if getattr(ns, "stream", False):
+        try:
+            import requests as _requests  # type: ignore
+        except Exception as exc:  # pragma: no cover - runtime error path
+            raise SystemExit(
+                "The 'requests' package is required for streaming; install extras: 'pip install \"zyra[connectors]\"'"
+            ) from exc
+        # Optional HEAD preflight
+        if getattr(ns, "head_first", False):
+            r_head = _requests.head(
+                ns.url,
+                headers=headers,
+                params=params,
+                timeout=timeout,
+                allow_redirects=True,
+            )
+            ct = r_head.headers.get("Content-Type")
+            if getattr(ns, "expect_content_type", None) and (
+                not ct or ns.expect_content_type not in ct
+            ):
+                raise SystemExit(f"Unexpected Content-Type: {ct!r}")
+        # Accept header
+        if getattr(ns, "accept", None):
+            headers.setdefault("Accept", ns.accept)
+        # Resume support
+        out_path = getattr(ns, "output", "-")
+        start_at = 0
+        if getattr(ns, "resume", False) and out_path not in (None, "-"):
+            from pathlib import Path as _P
+
+            p = _P(out_path)
+            if p.is_file():
+                start_at = p.stat().st_size
+                if start_at > 0:
+                    headers["Range"] = f"bytes={start_at}-"
+        resp = _requests.request(
+            method,
+            ns.url,
+            headers=headers,
+            params=params,
+            data=body,
+            timeout=timeout,
+            stream=True,
+            allow_redirects=True,
+        )
+        status = resp.status_code
+        if not allow_non_2xx and status >= 400:
+            raise SystemExit(f"HTTP error {status}")
+        ct = resp.headers.get("Content-Type")
+        if getattr(ns, "expect_content_type", None) and (
+            not ct or ns.expect_content_type not in ct
+        ):
+            raise SystemExit(f"Unexpected Content-Type: {ct!r}")
+        # Detect filename when output is a directory
+        out = getattr(ns, "output", "-") or "-"
+        if out not in ("-", None):
+            from pathlib import Path as _P
+
+            out_p = _P(out)
+            if (out_p.exists() and out_p.is_dir()) or str(out).endswith("/"):
+                if not getattr(ns, "detect_filename", False):
+                    raise SystemExit(
+                        "Output is a directory; pass --detect-filename to infer a name or specify a file path"
+                    )
+                name = None
+                cd = resp.headers.get("Content-Disposition") or ""
+                if "filename=" in cd:
+                    name = cd.split("filename=", 1)[1].strip().strip('"')
+                if not name and ct:
+                    ct_main = ct.split(";", 1)[0].strip().lower()
+                    ext_map = {
+                        "audio/ogg": ".ogg",
+                        "audio/mpeg": ".mp3",
+                        "audio/wav": ".wav",
+                        "video/mp4": ".mp4",
+                        "video/webm": ".webm",
+                        "video/ogg": ".ogv",
+                        "image/png": ".png",
+                        "image/jpeg": ".jpg",
+                        "image/gif": ".gif",
+                        "image/webp": ".webp",
+                        "application/pdf": ".pdf",
+                        "application/zip": ".zip",
+                        "application/octet-stream": ".bin",
+                    }
+                    ext = ext_map.get(ct_main)
+                    if ext:
+                        name = f"download{ext}"
+                if not name:
+                    name = "download.bin"
+                out_p = out_p / name
+                ns.output = str(out_p)
+        # Write chunks
+        total = 0
+        try:
+            total = int(resp.headers.get("Content-Length") or 0)
+        except Exception:
+            total = 0
+        downloaded = 0
+        show_progress = bool(getattr(ns, "progress", False)) and total > 0
+        # When resuming and the file already exists, append to it; otherwise, open normally
+        from contextlib import ExitStack as _ExitStack
+
+        with _ExitStack() as _stack:
+            if out not in ("-", None) and getattr(ns, "resume", False) and start_at > 0:
+                from pathlib import Path as _P
+
+                writer = _stack.enter_context(_P(ns.output).open("ab"))
+            else:
+                # Use standard helper which respects '-' to stdout
+                from zyra.utils.io_utils import open_output as _open_output
+
+                writer = _stack.enter_context(_open_output(ns.output))
+            for chunk in resp.iter_content(chunk_size=1024 * 1024):
+                if not chunk:
+                    continue
+                writer.write(chunk)
+                if show_progress:
+                    downloaded += len(chunk)
+                    try:
+                        import sys as _sys
+
+                        pct = (downloaded / total) * 100.0
+                        _sys.stderr.write(
+                            f"\rDownloaded {downloaded:,}/{total:,} bytes ({pct:5.1f}%)"
+                        )
+                        _sys.stderr.flush()
+                    except Exception:
+                        show_progress = False
+        if show_progress:
+            try:
+                import sys as _sys
+
+                _sys.stderr.write("\n")
+                _sys.stderr.flush()
+            except Exception:
+                pass
+        return 0
+
+    # Pagination
+    out_is_ndjson = bool(getattr(ns, "newline_json", False))
+    if out_is_ndjson:
+        with open_output(ns.output) as writer:
+            if paginate == "cursor":
+                cursor_param = getattr(ns, "cursor_param", "cursor")
+                next_cursor_json_path = getattr(ns, "next_cursor_json_path", "next")
+                for status, _h, content in api_backend.paginate_cursor(
+                    method,
+                    ns.url,
+                    headers=headers,
+                    params=params,
+                    data=body,
+                    timeout=timeout,
+                    max_retries=max_retries,
+                    retry_backoff=retry_backoff,
+                    cursor_param=cursor_param,
+                    next_cursor_json_path=next_cursor_json_path,
+                ):
+                    if not allow_non_2xx and status >= 400:
+                        raise SystemExit(f"HTTP error {status}")
+                    writer.write(content.rstrip(b"\n") + b"\n")
+            elif paginate == "page":
+                page_param = getattr(ns, "page_param", "page")
+                page_start = int(getattr(ns, "page_start", 1) or 1)
+                page_size_param = getattr(ns, "page_size_param", None)
+                page_size = getattr(ns, "page_size", None)
+                empty_json_path = getattr(ns, "empty_json_path", None)
+                for status, _h, content in api_backend.paginate_page(
+                    method,
+                    ns.url,
+                    headers=headers,
+                    params=params,
+                    data=body,
+                    timeout=timeout,
+                    max_retries=max_retries,
+                    retry_backoff=retry_backoff,
+                    page_param=page_param,
+                    page_start=page_start,
+                    page_size_param=page_size_param,
+                    page_size=page_size,
+                    empty_json_path=empty_json_path,
+                ):
+                    if not allow_non_2xx and status >= 400:
+                        raise SystemExit(f"HTTP error {status}")
+                    writer.write(content.rstrip(b"\n") + b"\n")
+            elif paginate == "link":
+                link_rel = getattr(ns, "link_rel", "next")
+                for status, _h, content in api_backend.paginate_link(
+                    method,
+                    ns.url,
+                    headers=headers,
+                    params=params,
+                    data=body,
+                    timeout=timeout,
+                    max_retries=max_retries,
+                    retry_backoff=retry_backoff,
+                    link_rel=link_rel,
+                ):
+                    if not allow_non_2xx and status >= 400:
+                        raise SystemExit(f"HTTP error {status}")
+                    writer.write(content.rstrip(b"\n") + b"\n")
+            else:
+                raise SystemExit(
+                    "Unsupported --paginate value. Use 'none', 'page', 'cursor', or 'link'"
+                )
+        return 0
+
+    # Aggregate paginated pages as a JSON array when not using NDJSON
+    import json as _json
+
+    if paginate == "cursor":
+        for status, _h, content in api_backend.paginate_cursor(
+            method,
+            ns.url,
+            headers=headers,
+            params=params,
+            data=body,
+            timeout=timeout,
+            max_retries=max_retries,
+            retry_backoff=retry_backoff,
+            cursor_param=getattr(ns, "cursor_param", "cursor"),
+            next_cursor_json_path=getattr(ns, "next_cursor_json_path", "next"),
+        ):
+            if not allow_non_2xx and status >= 400:
+                raise SystemExit(f"HTTP error {status}")
+            pages.append(content)
+    elif paginate == "page":
+        for status, _h, content in api_backend.paginate_page(
+            method,
+            ns.url,
+            headers=headers,
+            params=params,
+            data=body,
+            timeout=timeout,
+            max_retries=max_retries,
+            retry_backoff=retry_backoff,
+            page_param=getattr(ns, "page_param", "page"),
+            page_start=int(getattr(ns, "page_start", 1) or 1),
+            page_size_param=getattr(ns, "page_size_param", None),
+            page_size=getattr(ns, "page_size", None),
+            empty_json_path=getattr(ns, "empty_json_path", None),
+        ):
+            if not allow_non_2xx and status >= 400:
+                raise SystemExit(f"HTTP error {status}")
+            pages.append(content)
+    elif paginate == "link":
+        for status, _h, content in api_backend.paginate_link(
+            method,
+            ns.url,
+            headers=headers,
+            params=params,
+            data=body,
+            timeout=timeout,
+            max_retries=max_retries,
+            retry_backoff=retry_backoff,
+            link_rel=getattr(ns, "link_rel", "next"),
+        ):
+            if not allow_non_2xx and status >= 400:
+                raise SystemExit(f"HTTP error {status}")
+            pages.append(content)
+    else:
+        raise SystemExit(
+            "Unsupported --paginate value. Use 'none', 'page', 'cursor', or 'link'"
+        )
+
+    arr = []
+    for b in pages:
+        try:
+            arr.append(_json.loads(b.decode("utf-8")))
+        except Exception:
+            arr.append(None)
+    payload = (_json.dumps(arr, ensure_ascii=False) + "\n").encode("utf-8")
+    with open_output(ns.output) as f:
+        f.write(payload)
+    return 0
+
+
 def register_cli(acq_subparsers: Any) -> None:
     # http
     p_http = acq_subparsers.add_parser(
@@ -423,3 +982,185 @@ def register_cli(acq_subparsers: Any) -> None:
         help="Shell-style trace of key steps and external commands",
     )
     p_vimeo.set_defaults(func=_cmd_vimeo)
+
+    # api (generic REST)
+    p_api = acq_subparsers.add_parser(
+        "api",
+        help="Generic REST API fetch",
+        description=(
+            "Call a REST API endpoint with headers/params/body. Supports cursor/page pagination."
+        ),
+    )
+    p_api.add_argument(
+        "--preset",
+        choices=["limitless-lifelogs", "limitless-audio"],
+        help="Apply provider-specific defaults (e.g., Limitless lifelogs cursor mapping; Limitless audio download)",
+    )
+    p_api.add_argument("--url", help="Target endpoint URL (may be set by preset)")
+    p_api.add_argument(
+        "--method",
+        default="GET",
+        help="HTTP method (GET, POST, DELETE, PUT, PATCH)",
+    )
+    add_output_option(p_api)
+    p_api.add_argument(
+        "--header",
+        action="append",
+        help="Custom header 'K: V' (repeatable)",
+    )
+    p_api.add_argument(
+        "--content-type",
+        dest="content_type",
+        help="Content-Type header (e.g., application/json)",
+    )
+    p_api.add_argument(
+        "--auth",
+        help=(
+            "Convenience auth helper: 'bearer:$TOKEN' -> Authorization: Bearer <value>, "
+            "'basic:user:pass' -> Authorization: Basic <base64(user:pass)>"
+        ),
+    )
+    p_api.add_argument(
+        "--params",
+        help="URL query parameters as k1=v1&k2=v2",
+    )
+    p_api.add_argument(
+        "--since",
+        help="Convenience ISO start time; may map to provider param under presets",
+    )
+    p_api.add_argument(
+        "--data",
+        help="Inline JSON string or @path/to/file (JSON or raw)",
+    )
+    p_api.add_argument(
+        "--paginate",
+        choices=["none", "page", "cursor", "link"],
+        default="none",
+        help="Pagination mode",
+    )
+    # page-based
+    p_api.add_argument("--page-param", default="page")
+    p_api.add_argument("--page-start", type=int, default=1)
+    p_api.add_argument("--page-size-param")
+    p_api.add_argument("--page-size", type=int)
+    p_api.add_argument(
+        "--empty-json-path",
+        help="Dot path for list to detect empty page (stops when empty)",
+    )
+    # cursor-based
+    p_api.add_argument("--cursor-param", default="cursor")
+    p_api.add_argument(
+        "--next-cursor-json-path",
+        default="next",
+        help="Dot path to next cursor in response",
+    )
+    # link-based
+    p_api.add_argument(
+        "--link-rel",
+        dest="link_rel",
+        default="next",
+        help="Link relation to follow when --paginate link (default: next)",
+    )
+    # output behavior
+    p_api.add_argument(
+        "--newline-json",
+        action="store_true",
+        help="Write each page as one JSON line (NDJSON)",
+    )
+    p_api.add_argument(
+        "--pretty",
+        action="store_true",
+        default=True,
+        help="Pretty-print JSON for single response",
+    )
+    # Binary/streaming options
+    p_api.add_argument(
+        "--stream", action="store_true", help="Stream large/binary responses to output"
+    )
+    p_api.add_argument(
+        "--detect-filename",
+        dest="detect_filename",
+        action="store_true",
+        help="When output is a directory, infer filename from headers/content-type",
+    )
+    p_api.add_argument(
+        "--accept",
+        help="Set Accept header (e.g., audio/ogg)",
+    )
+    p_api.add_argument(
+        "--expect-content-type",
+        dest="expect_content_type",
+        help="Fail if response Content-Type does not contain this value",
+    )
+    p_api.add_argument(
+        "--head-first",
+        dest="head_first",
+        action="store_true",
+        help="Send a HEAD request before GET to validate type/size",
+    )
+    p_api.add_argument(
+        "--resume", action="store_true", help="Attempt HTTP Range resume when possible"
+    )
+    p_api.add_argument(
+        "--progress",
+        action="store_true",
+        help="Show simple byte progress when Content-Length is available",
+    )
+    # OpenAPI-aided help and validation
+    p_api.add_argument(
+        "--openapi-help",
+        action="store_true",
+        help="Fetch OpenAPI and print required params/headers/body for the resolved operation",
+    )
+    p_api.add_argument(
+        "--openapi-validate",
+        action="store_true",
+        help="Validate provided params/headers/body against OpenAPI (prints issues)",
+    )
+    p_api.add_argument(
+        "--openapi-strict",
+        action="store_true",
+        help="Exit non-zero when --openapi-validate finds issues",
+    )
+    p_api.add_argument(
+        "--openapi-url",
+        help=(
+            "Explicit OpenAPI spec URL (json/yaml). Overrides automatic discovery based on --url"
+        ),
+    )
+    # Limitless audio helpers
+    p_api.add_argument(
+        "--start", help="ISO-8601 start time (e.g., 2025-08-01T00:00:00Z)"
+    )
+    p_api.add_argument("--end", help="ISO-8601 end time (e.g., 2025-08-01T02:00:00Z)")
+    p_api.add_argument(
+        "--duration",
+        help="ISO-8601 duration for limitless-audio preset (e.g., PT2H, PT30M)",
+    )
+    p_api.add_argument(
+        "--audio-source",
+        dest="audio_source",
+        choices=["pendant", "app"],
+        help="Limitless audio source (maps to audioSource)",
+    )
+    # retries & timeouts
+    p_api.add_argument("--timeout", type=int, default=60)
+    p_api.add_argument("--max-retries", type=int, default=3)
+    p_api.add_argument("--retry-backoff", type=float, default=0.5)
+    p_api.add_argument(
+        "--allow-non-2xx",
+        action="store_true",
+        help="Do not exit non-zero for HTTP >= 400",
+    )
+    p_api.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_api.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
+    p_api.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
+    p_api.set_defaults(func=_cmd_api)

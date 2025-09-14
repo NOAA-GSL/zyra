@@ -158,6 +158,57 @@ class AcquireFtpArgs(BaseModel):
         return self
 
 
+# New: acquire api (generic REST)
+class AcquireApiArgs(BaseModel):
+    url: str | None = None
+    method: str | None = None
+    output: str | None = None
+    # Use dicts for API convenience
+    headers: dict[str, str] | None = None
+    params: dict[str, str] | None = None
+    data: str | dict | None = None
+    content_type: str | None = None
+    # Pagination
+    paginate: str | None = None
+    page_param: str | None = None
+    page_start: int | None = None
+    page_size_param: str | None = None
+    page_size: int | None = None
+    empty_json_path: str | None = None
+    cursor_param: str | None = None
+    next_cursor_json_path: str | None = None
+    # Link-based pagination
+    link_rel: str | None = None
+    # Streaming/binary
+    stream: bool | None = None
+    detect_filename: bool | None = None
+    accept: str | None = None
+    expect_content_type: str | None = None
+    head_first: bool | None = None
+    resume: bool | None = None
+    progress: bool | None = None
+    # OpenAPI validation
+    openapi_validate: bool | None = None
+    openapi_strict: bool | None = None
+    # Convenience auth helper
+    auth: str | None = None
+    # NDJSON option for paginated responses
+    newline_json: bool | None = None
+    # Preset helpers
+    preset: str | None = None
+    since: str | None = None
+    start: str | None = None
+    end: str | None = None
+    duration: str | None = None
+    audio_source: str | None = None
+
+    @model_validator(mode="after")
+    def _require_url_or_preset(self):  # type: ignore[override]
+        if not (self.url or self.preset):
+            raise ValueError("Provide url or preset")
+        return self
+
+
 def normalize_and_validate(stage: str, tool: str, args: dict) -> dict:
     """Validate known tool args via Pydantic models, else pass through as-is.
 
@@ -365,16 +416,78 @@ class VerifyEvaluateArgs(BaseModel):
     metric: str | None = Field(default=None, description="Metric name")
 
 
+# New: process tools
+class ProcessApiJsonArgs(BaseModel):
+    file_or_url: str
+    records_path: str | None = None
+    fields: str | None = None
+    flatten: bool | None = None
+    explode: list[str] | None = None
+    derived: str | None = None
+    format: str | None = None
+    output: str | None = None
+    preset: str | None = None
+
+
+class ProcessAudioTranscodeArgs(BaseModel):
+    input: str
+    output: str
+    to: str | None = None
+    sample_rate: int | None = None
+    mono: bool | None = None
+    stereo: bool | None = None
+
+
+class ProcessAudioMetadataArgs(BaseModel):
+    input: str
+    output: str | None = None
+
+
+class PresetLimitlessAudioArgs(BaseModel):
+    """Args for preset endpoint: /v1/presets/limitless/audio.
+
+    Provide either (start & end) or (since & duration). Optionally specify
+    audio_source (e.g., "pendant" or "app").
+    """
+
+    start: str | None = None
+    end: str | None = None
+    since: str | None = None
+    duration: str | None = None
+    audio_source: str | None = None
+
+    @model_validator(mode="after")
+    def _check_time_args(self):  # type: ignore[override]
+        use_range = bool(self.start and self.end)
+        use_since = bool(self.since and self.duration)
+        if not (use_range or use_since):
+            raise ValueError("Provide start+end or since+duration")
+        return self
+
+
 def resolve_model(stage: str, tool: str) -> type[BaseModel] | None:
     key = (stage, tool)
     if key == ("acquire", "http"):
         return AcquireHttpArgs
+    if key == ("acquire", "api"):
+        return AcquireApiArgs
+    # Aliases for acquire
+    if key == ("import", "http"):
+        return AcquireHttpArgs
+    if key == ("import", "api"):
+        return AcquireApiArgs
     if key == ("process", "convert-format"):
         return ProcessConvertFormatArgs
     if key == ("process", "decode-grib2"):
         return ProcessDecodeGrib2Args
     if key == ("process", "extract-variable"):
         return ProcessExtractVariableArgs
+    if key == ("process", "api-json"):
+        return ProcessApiJsonArgs
+    if key == ("process", "audio-transcode"):
+        return ProcessAudioTranscodeArgs
+    if key == ("process", "audio-metadata"):
+        return ProcessAudioMetadataArgs
     if key == ("visualize", "heatmap"):
         return VisualizeHeatmapArgs
     if key == ("visualize", "contour"):
@@ -396,6 +509,15 @@ def resolve_model(stage: str, tool: str) -> type[BaseModel] | None:
     if key == ("decimate", "post"):
         return DecimatePostArgs
     if key == ("decimate", "ftp"):
+        return DecimateFtpArgs
+    # Alias for disseminate/export mapping to decimate schemas
+    if key == ("disseminate", "local"):
+        return DecimateLocalArgs
+    if key == ("disseminate", "s3"):
+        return DecimateS3Args
+    if key == ("disseminate", "post"):
+        return DecimatePostArgs
+    if key == ("disseminate", "ftp"):
         return DecimateFtpArgs
     if key == ("acquire", "s3"):
         return AcquireS3Args

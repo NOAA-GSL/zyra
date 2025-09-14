@@ -6,10 +6,6 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
-from zyra.api.server import app
-
-client = TestClient(app)
-
 
 def test_arg_aliases_normalization_internal():
     # Validate internal normalization path for friendliness
@@ -24,7 +20,7 @@ def test_arg_aliases_normalization_internal():
     assert args2["path"] == "./o.bin"
 
 
-def test_sync_cli_run_success_and_failure(tmp_path):
+def test_sync_cli_run_success_and_failure(tmp_path, client: TestClient):
     # Success: decimate local should write 0-byte file from stdin '-'
     out_path = tmp_path / "ok.bin"
     resp = client.post(
@@ -57,7 +53,7 @@ def test_sync_cli_run_success_and_failure(tmp_path):
 
 
 @pytest.mark.redis
-def test_async_job_lifecycle_and_ws(tmp_path):
+def test_async_job_lifecycle_and_ws(tmp_path, client: TestClient):
     # Submit async job that will quickly fail (nonexistent input) to exercise lifecycle
     r = client.post(
         "/cli/run",

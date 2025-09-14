@@ -367,6 +367,273 @@
     "args_schema": null,
     "example_args": null
   },
+  "acquire api": {
+    "description": "Call a REST API endpoint with headers/params/body. Supports cursor/page pagination.",
+    "doc": "Call a REST API endpoint with headers/params/body. Supports cursor/page pagination.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--preset",
+          "--url",
+          "--method",
+          "--output",
+          "--header",
+          "--content-type",
+          "--auth",
+          "--params",
+          "--since",
+          "--data",
+          "--paginate",
+          "--page-param",
+          "--page-start",
+          "--page-size-param",
+          "--page-size",
+          "--empty-json-path",
+          "--cursor-param",
+          "--next-cursor-json-path",
+          "--link-rel",
+          "--newline-json",
+          "--pretty",
+          "--stream",
+          "--detect-filename",
+          "--accept",
+          "--expect-content-type",
+          "--head-first",
+          "--resume",
+          "--progress",
+          "--openapi-help",
+          "--openapi-validate",
+          "--openapi-strict",
+          "--openapi-url",
+          "--start",
+          "--end",
+          "--duration",
+          "--audio-source",
+          "--timeout",
+          "--max-retries",
+          "--retry-backoff",
+          "--allow-non-2xx",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--preset": {
+        "help": "Apply provider-specific defaults (e.g., Limitless lifelogs cursor mapping; Limitless audio download)",
+        "choices": [
+          "limitless-lifelogs",
+          "limitless-audio"
+        ],
+        "type": "str"
+      },
+      "--url": "Target endpoint URL (may be set by preset)",
+      "--method": {
+        "help": "HTTP method (GET, POST, DELETE, PUT, PATCH)",
+        "type": "str",
+        "default": "GET"
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--header": "Custom header 'K: V' (repeatable)",
+      "--content-type": "Content-Type header (e.g., application/json)",
+      "--auth": "Convenience auth helper: 'bearer:$TOKEN' -> Authorization: Bearer <value>, 'basic:user:pass' -> Authorization: Basic <base64(user:pass)>",
+      "--params": "URL query parameters as k1=v1&k2=v2",
+      "--since": "Convenience ISO start time; may map to provider param under presets",
+      "--data": "Inline JSON string or @path/to/file (JSON or raw)",
+      "--paginate": {
+        "help": "Pagination mode",
+        "choices": [
+          "none",
+          "page",
+          "cursor",
+          "link"
+        ],
+        "type": "str",
+        "default": "none"
+      },
+      "--page-param": {
+        "help": "",
+        "type": "str",
+        "default": "page"
+      },
+      "--page-start": {
+        "help": "",
+        "type": "int",
+        "default": 1
+      },
+      "--page-size-param": "",
+      "--page-size": {
+        "help": "",
+        "type": "int"
+      },
+      "--empty-json-path": "Dot path for list to detect empty page (stops when empty)",
+      "--cursor-param": {
+        "help": "",
+        "type": "str",
+        "default": "cursor"
+      },
+      "--next-cursor-json-path": {
+        "help": "Dot path to next cursor in response",
+        "type": "str",
+        "default": "next"
+      },
+      "--link-rel": {
+        "help": "Link relation to follow when --paginate link (default: next)",
+        "type": "str",
+        "default": "next"
+      },
+      "--newline-json": {
+        "help": "Write each page as one JSON line (NDJSON)",
+        "type": "bool",
+        "default": false
+      },
+      "--pretty": {
+        "help": "Pretty-print JSON for single response",
+        "type": "bool",
+        "default": true
+      },
+      "--stream": {
+        "help": "Stream large/binary responses to output",
+        "type": "bool",
+        "default": false
+      },
+      "--detect-filename": {
+        "help": "When output is a directory, infer filename from headers/content-type",
+        "type": "bool",
+        "default": false
+      },
+      "--accept": "Set Accept header (e.g., audio/ogg)",
+      "--expect-content-type": "Fail if response Content-Type does not contain this value",
+      "--head-first": {
+        "help": "Send a HEAD request before GET to validate type/size",
+        "type": "bool",
+        "default": false
+      },
+      "--resume": {
+        "help": "Attempt HTTP Range resume when possible",
+        "type": "bool",
+        "default": false
+      },
+      "--progress": {
+        "help": "Show simple byte progress when Content-Length is available",
+        "type": "bool",
+        "default": false
+      },
+      "--openapi-help": {
+        "help": "Fetch OpenAPI and print required params/headers/body for the resolved operation",
+        "type": "bool",
+        "default": false
+      },
+      "--openapi-validate": {
+        "help": "Validate provided params/headers/body against OpenAPI (prints issues)",
+        "type": "bool",
+        "default": false
+      },
+      "--openapi-strict": {
+        "help": "Exit non-zero when --openapi-validate finds issues",
+        "type": "bool",
+        "default": false
+      },
+      "--openapi-url": "Explicit OpenAPI spec URL (json/yaml). Overrides automatic discovery based on --url",
+      "--start": "ISO-8601 start time (e.g., 2025-08-01T00:00:00Z)",
+      "--end": "ISO-8601 end time (e.g., 2025-08-01T02:00:00Z)",
+      "--duration": "ISO-8601 duration for limitless-audio preset (e.g., PT2H, PT30M)",
+      "--audio-source": {
+        "help": "Limitless audio source (maps to audioSource)",
+        "choices": [
+          "pendant",
+          "app"
+        ],
+        "type": "str"
+      },
+      "--timeout": {
+        "help": "",
+        "type": "int",
+        "default": 60
+      },
+      "--max-retries": {
+        "help": "",
+        "type": "int",
+        "default": 3
+      },
+      "--retry-backoff": {
+        "help": "",
+        "type": "float",
+        "default": 0.5
+      },
+      "--allow-non-2xx": {
+        "help": "Do not exit non-zero for HTTP >= 400",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "acquire",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "accept",
+        "audio_source",
+        "auth",
+        "content_type",
+        "cursor_param",
+        "data",
+        "detect_filename",
+        "duration",
+        "empty_json_path",
+        "end",
+        "expect_content_type",
+        "head_first",
+        "headers",
+        "link_rel",
+        "method",
+        "newline_json",
+        "next_cursor_json_path",
+        "openapi_strict",
+        "openapi_validate",
+        "output",
+        "page_param",
+        "page_size",
+        "page_size_param",
+        "page_start",
+        "paginate",
+        "params",
+        "preset",
+        "progress",
+        "resume",
+        "since",
+        "start",
+        "stream",
+        "url"
+      ]
+    },
+    "example_args": null
+  },
   "import http": {
     "description": "Fetch a file via HTTP(S) to a local path. Optionally list/filter directory pages, or fetch multiple URLs with --inputs/--manifest.",
     "doc": "Fetch a file via HTTP(S) to a local path. Optionally list/filter directory pages, or fetch multiple URLs with --inputs/--manifest.",
@@ -450,7 +717,22 @@
       }
     ],
     "domain": "import",
-    "args_schema": null,
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "date_format",
+        "inputs",
+        "list_mode",
+        "manifest",
+        "output",
+        "output_dir",
+        "pattern",
+        "since",
+        "since_period",
+        "until",
+        "url"
+      ]
+    },
     "example_args": null
   },
   "import s3": {
@@ -682,6 +964,273 @@
     ],
     "domain": "import",
     "args_schema": null,
+    "example_args": null
+  },
+  "import api": {
+    "description": "Call a REST API endpoint with headers/params/body. Supports cursor/page pagination.",
+    "doc": "Call a REST API endpoint with headers/params/body. Supports cursor/page pagination.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--preset",
+          "--url",
+          "--method",
+          "--output",
+          "--header",
+          "--content-type",
+          "--auth",
+          "--params",
+          "--since",
+          "--data",
+          "--paginate",
+          "--page-param",
+          "--page-start",
+          "--page-size-param",
+          "--page-size",
+          "--empty-json-path",
+          "--cursor-param",
+          "--next-cursor-json-path",
+          "--link-rel",
+          "--newline-json",
+          "--pretty",
+          "--stream",
+          "--detect-filename",
+          "--accept",
+          "--expect-content-type",
+          "--head-first",
+          "--resume",
+          "--progress",
+          "--openapi-help",
+          "--openapi-validate",
+          "--openapi-strict",
+          "--openapi-url",
+          "--start",
+          "--end",
+          "--duration",
+          "--audio-source",
+          "--timeout",
+          "--max-retries",
+          "--retry-backoff",
+          "--allow-non-2xx",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--preset": {
+        "help": "Apply provider-specific defaults (e.g., Limitless lifelogs cursor mapping; Limitless audio download)",
+        "choices": [
+          "limitless-lifelogs",
+          "limitless-audio"
+        ],
+        "type": "str"
+      },
+      "--url": "Target endpoint URL (may be set by preset)",
+      "--method": {
+        "help": "HTTP method (GET, POST, DELETE, PUT, PATCH)",
+        "type": "str",
+        "default": "GET"
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--header": "Custom header 'K: V' (repeatable)",
+      "--content-type": "Content-Type header (e.g., application/json)",
+      "--auth": "Convenience auth helper: 'bearer:$TOKEN' -> Authorization: Bearer <value>, 'basic:user:pass' -> Authorization: Basic <base64(user:pass)>",
+      "--params": "URL query parameters as k1=v1&k2=v2",
+      "--since": "Convenience ISO start time; may map to provider param under presets",
+      "--data": "Inline JSON string or @path/to/file (JSON or raw)",
+      "--paginate": {
+        "help": "Pagination mode",
+        "choices": [
+          "none",
+          "page",
+          "cursor",
+          "link"
+        ],
+        "type": "str",
+        "default": "none"
+      },
+      "--page-param": {
+        "help": "",
+        "type": "str",
+        "default": "page"
+      },
+      "--page-start": {
+        "help": "",
+        "type": "int",
+        "default": 1
+      },
+      "--page-size-param": "",
+      "--page-size": {
+        "help": "",
+        "type": "int"
+      },
+      "--empty-json-path": "Dot path for list to detect empty page (stops when empty)",
+      "--cursor-param": {
+        "help": "",
+        "type": "str",
+        "default": "cursor"
+      },
+      "--next-cursor-json-path": {
+        "help": "Dot path to next cursor in response",
+        "type": "str",
+        "default": "next"
+      },
+      "--link-rel": {
+        "help": "Link relation to follow when --paginate link (default: next)",
+        "type": "str",
+        "default": "next"
+      },
+      "--newline-json": {
+        "help": "Write each page as one JSON line (NDJSON)",
+        "type": "bool",
+        "default": false
+      },
+      "--pretty": {
+        "help": "Pretty-print JSON for single response",
+        "type": "bool",
+        "default": true
+      },
+      "--stream": {
+        "help": "Stream large/binary responses to output",
+        "type": "bool",
+        "default": false
+      },
+      "--detect-filename": {
+        "help": "When output is a directory, infer filename from headers/content-type",
+        "type": "bool",
+        "default": false
+      },
+      "--accept": "Set Accept header (e.g., audio/ogg)",
+      "--expect-content-type": "Fail if response Content-Type does not contain this value",
+      "--head-first": {
+        "help": "Send a HEAD request before GET to validate type/size",
+        "type": "bool",
+        "default": false
+      },
+      "--resume": {
+        "help": "Attempt HTTP Range resume when possible",
+        "type": "bool",
+        "default": false
+      },
+      "--progress": {
+        "help": "Show simple byte progress when Content-Length is available",
+        "type": "bool",
+        "default": false
+      },
+      "--openapi-help": {
+        "help": "Fetch OpenAPI and print required params/headers/body for the resolved operation",
+        "type": "bool",
+        "default": false
+      },
+      "--openapi-validate": {
+        "help": "Validate provided params/headers/body against OpenAPI (prints issues)",
+        "type": "bool",
+        "default": false
+      },
+      "--openapi-strict": {
+        "help": "Exit non-zero when --openapi-validate finds issues",
+        "type": "bool",
+        "default": false
+      },
+      "--openapi-url": "Explicit OpenAPI spec URL (json/yaml). Overrides automatic discovery based on --url",
+      "--start": "ISO-8601 start time (e.g., 2025-08-01T00:00:00Z)",
+      "--end": "ISO-8601 end time (e.g., 2025-08-01T02:00:00Z)",
+      "--duration": "ISO-8601 duration for limitless-audio preset (e.g., PT2H, PT30M)",
+      "--audio-source": {
+        "help": "Limitless audio source (maps to audioSource)",
+        "choices": [
+          "pendant",
+          "app"
+        ],
+        "type": "str"
+      },
+      "--timeout": {
+        "help": "",
+        "type": "int",
+        "default": 60
+      },
+      "--max-retries": {
+        "help": "",
+        "type": "int",
+        "default": 3
+      },
+      "--retry-backoff": {
+        "help": "",
+        "type": "float",
+        "default": 0.5
+      },
+      "--allow-non-2xx": {
+        "help": "Do not exit non-zero for HTTP >= 400",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "import",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "accept",
+        "audio_source",
+        "auth",
+        "content_type",
+        "cursor_param",
+        "data",
+        "detect_filename",
+        "duration",
+        "empty_json_path",
+        "end",
+        "expect_content_type",
+        "head_first",
+        "headers",
+        "link_rel",
+        "method",
+        "newline_json",
+        "next_cursor_json_path",
+        "openapi_strict",
+        "openapi_validate",
+        "output",
+        "page_param",
+        "page_size",
+        "page_size_param",
+        "page_start",
+        "paginate",
+        "params",
+        "preset",
+        "progress",
+        "resume",
+        "since",
+        "start",
+        "stream",
+        "url"
+      ]
+    },
     "example_args": null
   },
   "process decode-grib2": {
@@ -971,6 +1520,243 @@
       "format": "netcdf",
       "stdout": true
     }
+  },
+  "process api-json": {
+    "description": "Read a JSON or NDJSON file/stream, select fields via dot paths, optionally flatten nested objects, explode arrays into multiple rows, and write CSV or JSONL.",
+    "doc": "Read a JSON or NDJSON file/stream, select fields via dot paths, optionally flatten nested objects, explode arrays into multiple rows, and write CSV or JSONL.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--records-path",
+          "--preset",
+          "--fields",
+          "--flatten",
+          "--explode",
+          "--derived",
+          "--format",
+          "--strict",
+          "--output"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--records-path": "Dot path to array of records (e.g., data.lifelogs or data.chat.messages)",
+      "--preset": {
+        "help": "Apply provider-specific defaults (e.g., Limitless lifelogs records path)",
+        "choices": [
+          "limitless-lifelogs"
+        ],
+        "type": "str"
+      },
+      "--fields": "Comma-separated field list (dot paths). If omitted, use first row keys",
+      "--flatten": {
+        "help": "Flatten nested objects",
+        "type": "bool",
+        "default": false
+      },
+      "--explode": "Repeatable: dot path to array to explode into multiple rows",
+      "--derived": "Comma-separated derived columns: word_count,sentence_count,tool_calls_count",
+      "--format": {
+        "help": "Output format",
+        "choices": [
+          "csv",
+          "jsonl"
+        ],
+        "type": "str",
+        "default": "csv"
+      },
+      "--strict": {
+        "help": "Error on missing fields instead of emitting empty strings",
+        "type": "bool",
+        "default": false
+      },
+      "--output": {
+        "help": "Output file path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      }
+    },
+    "positionals": [
+      {
+        "name": "file_or_url",
+        "help": "",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "process",
+    "args_schema": {
+      "required": [
+        "file_or_url"
+      ],
+      "optional": [
+        "derived",
+        "explode",
+        "fields",
+        "flatten",
+        "format",
+        "output",
+        "preset",
+        "records_path"
+      ]
+    },
+    "example_args": null
+  },
+  "process audio-transcode": {
+    "description": "Transcode input audio to a target format using ffmpeg. Requires FFmpeg runtime.",
+    "doc": "Transcode input audio to a target format using ffmpeg. Requires FFmpeg runtime.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--to",
+          "--sample-rate",
+          "--mono",
+          "--stereo",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": {
+        "help": "Output file path",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--to": {
+        "help": "",
+        "choices": [
+          "wav",
+          "mp3",
+          "ogg"
+        ],
+        "type": "str",
+        "default": "wav"
+      },
+      "--sample-rate": {
+        "help": "",
+        "type": "int",
+        "default": 16000
+      },
+      "--mono": {
+        "help": "Force mono output",
+        "type": "bool",
+        "default": true
+      },
+      "--stereo": {
+        "help": "Force stereo output (overrides --mono)",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "input",
+        "help": "Input audio file path",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "process",
+    "args_schema": {
+      "required": [
+        "input",
+        "output"
+      ],
+      "optional": [
+        "mono",
+        "sample_rate",
+        "stereo",
+        "to"
+      ]
+    },
+    "example_args": null
+  },
+  "process audio-metadata": {
+    "description": "Run ffprobe to extract duration, bitrate, channels, sample rate, codec, and size; writes JSON.",
+    "doc": "Run ffprobe to extract duration, bitrate, channels, sample rate, codec, and size; writes JSON.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "input",
+        "help": "Input audio file path",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "process",
+    "args_schema": {
+      "required": [
+        "input"
+      ],
+      "optional": [
+        "output"
+      ]
+    },
+    "example_args": null
   },
   "process metadata": {
     "description": "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence.",
@@ -3733,7 +4519,13 @@
       }
     ],
     "domain": "disseminate",
-    "args_schema": null,
+    "args_schema": {
+      "required": [
+        "input",
+        "path"
+      ],
+      "optional": []
+    },
     "example_args": null
   },
   "disseminate s3": {
@@ -3789,7 +4581,16 @@
     },
     "positionals": [],
     "domain": "disseminate",
-    "args_schema": null,
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "bucket",
+        "content_type",
+        "input",
+        "key",
+        "url"
+      ]
+    },
     "example_args": null
   },
   "disseminate ftp": {
@@ -3841,7 +4642,13 @@
       }
     ],
     "domain": "disseminate",
-    "args_schema": null,
+    "args_schema": {
+      "required": [
+        "input",
+        "path"
+      ],
+      "optional": []
+    },
     "example_args": null
   },
   "disseminate post": {
@@ -3895,7 +4702,15 @@
       }
     ],
     "domain": "disseminate",
-    "args_schema": null,
+    "args_schema": {
+      "required": [
+        "input",
+        "url"
+      ],
+      "optional": [
+        "content_type"
+      ]
+    },
     "example_args": null
   },
   "disseminate vimeo": {

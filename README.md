@@ -34,6 +34,14 @@ zyra process convert-format sample.grib2 netcdf --stdout > sample.nc
 zyra visualize heatmap --input sample.nc --var VAR --output plot.png
 ```
 
+### More Examples per Module
+
+See module-level READMEs under `src/zyra/` for focused examples and options:
+- Connectors/Ingest: `src/zyra/connectors/ingest/README.md`
+- Processing: `src/zyra/processing/README.md`
+- API (service): `src/zyra/api/README.md`
+- MCP Tools: `src/zyra/api/mcp_tools/README.md`
+
 ## Learn More (Wiki)
 - Getting Started: https://github.com/NOAA-GSL/zyra/wiki/Getting-Started-with-Zyra
 - Workflow Stages: https://github.com/NOAA-GSL/zyra/wiki/Workflow-Stages

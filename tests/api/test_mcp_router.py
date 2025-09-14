@@ -2,23 +2,21 @@
 from __future__ import annotations
 
 import os
+import time
 
 import pytest
 from fastapi.testclient import TestClient
 
-from zyra.api.server import app, create_app
 
-
-def _client_with_key(monkeypatch) -> TestClient:
+def _client_with_key(monkeypatch, client_mcp: TestClient) -> TestClient:
     # Enable API key auth and return a TestClient with default header helper
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
-    c = TestClient(app)
-    return c
+    return client_mcp
 
 
-def test_mcp_requires_api_key(monkeypatch) -> None:
+def test_mcp_requires_api_key(monkeypatch, client_mcp: TestClient) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
-    client = TestClient(app)
+    client = client_mcp
     # Missing header
     r = client.post(
         "/v1/mcp", json={"jsonrpc": "2.0", "method": "statusReport", "id": 1}
@@ -42,8 +40,8 @@ def test_mcp_requires_api_key(monkeypatch) -> None:
     assert body.get("result", {}).get("status") == "ok"
 
 
-def test_mcp_list_tools(monkeypatch) -> None:
-    client = _client_with_key(monkeypatch)
+def test_mcp_list_tools(monkeypatch, client_mcp: TestClient) -> None:
+    client = _client_with_key(monkeypatch, client_mcp)
     r = client.post(
         "/v1/mcp",
         json={"jsonrpc": "2.0", "method": "listTools", "id": 1},
@@ -61,9 +59,9 @@ def test_mcp_list_tools(monkeypatch) -> None:
     assert isinstance(sample["inputSchema"], dict)
 
 
-def test_mcp_http_discovery_get(monkeypatch) -> None:
+def test_mcp_http_discovery_get(monkeypatch, client_mcp: TestClient) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
-    c = TestClient(app)
+    c = client_mcp
     r = c.get("/mcp", headers={"X-API-Key": "k"})
     assert r.status_code == 200
     js = r.json()
@@ -76,17 +74,17 @@ def test_mcp_http_discovery_get(monkeypatch) -> None:
     assert all("name" in x and "parameters" in x for x in cmds)
 
 
-def test_mcp_http_discovery_options(monkeypatch) -> None:
+def test_mcp_http_discovery_options(monkeypatch, client_mcp: TestClient) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
-    c = TestClient(app)
+    c = client_mcp
     r = c.options("/mcp", headers={"X-API-Key": "k"})
     assert r.status_code == 200
     js = r.json()
     assert js.get("mcp_version") == "0.1"
 
 
-def test_mcp_calltool_local_sync(tmp_path, monkeypatch) -> None:
-    client = _client_with_key(monkeypatch)
+def test_mcp_calltool_local_sync(tmp_path, monkeypatch, client_mcp: TestClient) -> None:
+    client = _client_with_key(monkeypatch, client_mcp)
     out_path = tmp_path / "ok.bin"
     payload = {
         "jsonrpc": "2.0",
@@ -108,8 +106,8 @@ def test_mcp_calltool_local_sync(tmp_path, monkeypatch) -> None:
     assert out_path.exists()
 
 
-def test_mcp_calltool_invalid_params(monkeypatch) -> None:
-    client = _client_with_key(monkeypatch)
+def test_mcp_calltool_invalid_params(monkeypatch, client_mcp: TestClient) -> None:
+    client = _client_with_key(monkeypatch, client_mcp)
     r = client.post(
         "/v1/mcp",
         json={
@@ -126,10 +124,15 @@ def test_mcp_calltool_invalid_params(monkeypatch) -> None:
     assert js["error"].get("code") == -32602
 
 
-def test_mcp_calltool_async_job_lifecycle(tmp_path, monkeypatch) -> None:
+# TestClient already imported at top; no additional import here
+
+
+def test_mcp_calltool_async_job_lifecycle(
+    tmp_path, monkeypatch, client_mcp: TestClient
+) -> None:
     import time
 
-    client = _client_with_key(monkeypatch)
+    client = _client_with_key(monkeypatch, client_mcp)
     # Submit async job that will fail quickly (nonexistent input), to exercise lifecycle
     payload = {
         "jsonrpc": "2.0",
@@ -160,8 +163,8 @@ def test_mcp_calltool_async_job_lifecycle(tmp_path, monkeypatch) -> None:
         time.sleep(0.2)
 
 
-def test_mcp_method_not_found(monkeypatch) -> None:
-    client = _client_with_key(monkeypatch)
+def test_mcp_method_not_found(monkeypatch, client_mcp: TestClient) -> None:
+    client = _client_with_key(monkeypatch, client_mcp)
     r = client.post(
         "/v1/mcp",
         json={"jsonrpc": "2.0", "method": "nope", "id": 4},
@@ -172,8 +175,8 @@ def test_mcp_method_not_found(monkeypatch) -> None:
     assert js.get("error", {}).get("code") == -32601
 
 
-def test_mcp_invalid_jsonrpc_version(monkeypatch) -> None:
-    client = _client_with_key(monkeypatch)
+def test_mcp_invalid_jsonrpc_version(monkeypatch, client_mcp: TestClient) -> None:
+    client = _client_with_key(monkeypatch, client_mcp)
     r = client.post(
         "/v1/mcp",
         json={"jsonrpc": "1.0", "method": "statusReport", "id": 5},
@@ -184,8 +187,10 @@ def test_mcp_invalid_jsonrpc_version(monkeypatch) -> None:
     assert js.get("error", {}).get("code") == -32600
 
 
-def test_mcp_calltool_sync_execution_error(tmp_path, monkeypatch) -> None:
-    client = _client_with_key(monkeypatch)
+def test_mcp_calltool_sync_execution_error(
+    tmp_path, monkeypatch, client_mcp: TestClient
+) -> None:
+    client = _client_with_key(monkeypatch, client_mcp)
     payload = {
         "jsonrpc": "2.0",
         "method": "callTool",
@@ -203,8 +208,8 @@ def test_mcp_calltool_sync_execution_error(tmp_path, monkeypatch) -> None:
     assert "error" in js and js["error"].get("code") == -32000
 
 
-def test_mcp_status_report_has_version(monkeypatch) -> None:
-    client = _client_with_key(monkeypatch)
+def test_mcp_status_report_has_version(monkeypatch, client_mcp: TestClient) -> None:
+    client = _client_with_key(monkeypatch, client_mcp)
     r = client.post(
         "/v1/mcp",
         json={"jsonrpc": "2.0", "method": "statusReport", "id": 6},
@@ -217,8 +222,8 @@ def test_mcp_status_report_has_version(monkeypatch) -> None:
     assert isinstance(res.get("version"), str)
 
 
-def test_mcp_progress_sse(monkeypatch, tmp_path) -> None:
-    client = _client_with_key(monkeypatch)
+def test_mcp_progress_sse(monkeypatch, tmp_path, client_mcp: TestClient) -> None:
+    client = _client_with_key(monkeypatch, client_mcp)
     # Submit async job that will fail quickly
     payload = {
         "jsonrpc": "2.0",
@@ -262,11 +267,9 @@ def test_mcp_progress_sse(monkeypatch, tmp_path) -> None:
     assert terminal
 
 
-def test_mcp_initialize_handshake(monkeypatch) -> None:
-    # Build a fresh app to ensure the latest MCP methods are mounted
+def test_mcp_initialize_handshake(monkeypatch, client_mcp: TestClient) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
-    monkeypatch.setenv("ZYRA_ENABLE_MCP", "1")
-    client = TestClient(create_app())
+    client = client_mcp
     r = client.post(
         "/v1/mcp",
         json={"jsonrpc": "2.0", "method": "initialize", "id": 12},
@@ -287,11 +290,9 @@ def test_mcp_initialize_handshake(monkeypatch) -> None:
     assert isinstance(tools_cap, dict) and tools_cap.get("listChanged") is True
 
 
-def test_mcp_tools_list_namespaced(monkeypatch) -> None:
-    # Build a fresh app to ensure the latest MCP methods are mounted
+def test_mcp_tools_list_namespaced(monkeypatch, client_mcp: TestClient) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
-    monkeypatch.setenv("ZYRA_ENABLE_MCP", "1")
-    client = TestClient(create_app())
+    client = client_mcp
     r = client.post(
         "/v1/mcp",
         json={"jsonrpc": "2.0", "method": "tools/list", "id": 13, "params": {}},
@@ -306,11 +307,11 @@ def test_mcp_tools_list_namespaced(monkeypatch) -> None:
     assert isinstance(t0["inputSchema"], dict)
 
 
-def test_mcp_tools_call_namespaced_sync(tmp_path, monkeypatch) -> None:
-    # Build a fresh app to ensure the latest MCP methods are mounted
+def test_mcp_tools_call_namespaced_sync(
+    tmp_path, monkeypatch, client_mcp: TestClient
+) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
-    monkeypatch.setenv("ZYRA_ENABLE_MCP", "1")
-    client = TestClient(create_app())
+    client = client_mcp
     out_path = tmp_path / "ok2.bin"
     payload = {
         "jsonrpc": "2.0",
@@ -333,9 +334,9 @@ def test_mcp_tools_call_namespaced_sync(tmp_path, monkeypatch) -> None:
 
 @pytest.mark.mcp_ws
 @pytest.mark.timeout(10)
-def test_mcp_ws_initialize_and_notify(monkeypatch) -> None:
+def test_mcp_ws_initialize_and_notify(monkeypatch, client_mcp: TestClient) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
-    client = TestClient(create_app())
+    client = client_mcp
     with client.websocket_connect("/v1/ws/mcp?api_key=k") as ws:
         init = {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
         ws.send_json(init)
@@ -348,9 +349,11 @@ def test_mcp_ws_initialize_and_notify(monkeypatch) -> None:
 
 @pytest.mark.mcp_ws
 @pytest.mark.timeout(10)
-def test_mcp_ws_tools_list_after_initialize(monkeypatch) -> None:
+def test_mcp_ws_tools_list_after_initialize(
+    monkeypatch, client_mcp: TestClient
+) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
-    client = TestClient(create_app())
+    client = client_mcp
     with client.websocket_connect("/v1/ws/mcp?api_key=k") as ws:
         ws.send_json({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
         _ = ws.receive_json()  # init result
@@ -361,11 +364,10 @@ def test_mcp_ws_tools_list_after_initialize(monkeypatch) -> None:
         assert isinstance(tools, list) and tools
 
 
-def test_mcp_initialize_then_tools_list(monkeypatch) -> None:
+def test_mcp_initialize_then_tools_list(monkeypatch, client_mcp: TestClient) -> None:
     # Simulate a typical MCP client flow: initialize -> tools/list
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
-    monkeypatch.setenv("ZYRA_ENABLE_MCP", "1")
-    client = TestClient(create_app())
+    client = client_mcp
 
     # Step 1: initialize
     r1 = client.post(
@@ -396,9 +398,11 @@ def test_mcp_initialize_then_tools_list(monkeypatch) -> None:
     os.environ.get("CI") == "true",
     reason="Skip MCP WS async progress in CI: TestClient portal flake",
 )
-def test_mcp_ws_tools_call_async_progress(monkeypatch, tmp_path) -> None:
+def test_mcp_ws_tools_call_async_progress(
+    monkeypatch, tmp_path, client_mcp: TestClient
+) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
-    client = TestClient(create_app())
+    client = client_mcp
     with client.websocket_connect("/v1/ws/mcp?api_key=k") as ws:
         # Initialize
         ws.send_json({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
@@ -439,10 +443,9 @@ def test_mcp_ws_tools_call_async_progress(monkeypatch, tmp_path) -> None:
         assert progress_seen, "expected at least one progress notification for the job"
 
 
-def test_mcp_tools_call_search_query(monkeypatch) -> None:
+def test_mcp_tools_call_search_query(monkeypatch, client_mcp: TestClient) -> None:
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
-    monkeypatch.setenv("ZYRA_ENABLE_MCP", "1")
-    client = TestClient(create_app())
+    client = client_mcp
     r = client.post(
         "/v1/mcp",
         json={
@@ -463,11 +466,12 @@ def test_mcp_tools_call_search_query(monkeypatch) -> None:
     assert isinstance(items, list)
 
 
-def test_mcp_initialize_then_tools_call_sync(tmp_path, monkeypatch) -> None:
+def test_mcp_initialize_then_tools_call_sync(
+    tmp_path, monkeypatch, client_mcp: TestClient
+) -> None:
     # Simulate initialize followed by a simple tools/call invocation
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
-    monkeypatch.setenv("ZYRA_ENABLE_MCP", "1")
-    client = TestClient(create_app())
+    client = client_mcp
 
     # Step 1: initialize
     r1 = client.post(
@@ -501,10 +505,10 @@ def test_mcp_initialize_then_tools_call_sync(tmp_path, monkeypatch) -> None:
         assert out_path.exists()
 
 
-def test_mcp_tools_call_namespaced_async_job_lifecycle(tmp_path, monkeypatch) -> None:
-    import time
-
-    client = _client_with_key(monkeypatch)
+def test_mcp_tools_call_namespaced_async_job_lifecycle(
+    tmp_path, monkeypatch, client_mcp: TestClient
+) -> None:
+    client = _client_with_key(monkeypatch, client_mcp)
     payload = {
         "jsonrpc": "2.0",
         "method": "tools/call",
@@ -530,23 +534,20 @@ def test_mcp_tools_call_namespaced_async_job_lifecycle(tmp_path, monkeypatch) ->
         if body.get("status") in {"succeeded", "failed", "canceled"}:
             assert "exit_code" in body
             break
-        time.sleep(0.2)
+        time.sleep(0.1)
 
 
-def test_mcp_disabled_hides_route(monkeypatch) -> None:
+def test_mcp_disabled_hides_route(monkeypatch, client: TestClient) -> None:
     # Disable via env flag and build a fresh app
     monkeypatch.setenv("ZYRA_ENABLE_MCP", "0")
-    c = TestClient(create_app())
-    r = c.post("/mcp", json={"jsonrpc": "2.0", "method": "statusReport", "id": 7})
+    r = client.post("/mcp", json={"jsonrpc": "2.0", "method": "statusReport", "id": 7})
     assert r.status_code == 404
 
 
-def test_mcp_enabled_flag_allows_route(monkeypatch) -> None:
+def test_mcp_enabled_flag_allows_route(monkeypatch, client_mcp: TestClient) -> None:
     # Explicitly enable and expect endpoint to be present
-    monkeypatch.setenv("ZYRA_ENABLE_MCP", "1")
     monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
-    c = TestClient(create_app())
-    r = c.post(
+    r = client_mcp.post(
         "/mcp",
         json={"jsonrpc": "2.0", "method": "statusReport", "id": 8},
         headers={"X-API-Key": "k"},
@@ -554,12 +555,9 @@ def test_mcp_enabled_flag_allows_route(monkeypatch) -> None:
     assert r.status_code == 200
 
 
-def test_mcp_request_size_limit_enforced(monkeypatch) -> None:
+def test_mcp_request_size_limit_enforced(monkeypatch, client_mcp: TestClient) -> None:
     # Set a tiny request-body limit to force a rejection
-    monkeypatch.setenv("ZYRA_ENABLE_MCP", "1")
-    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
     monkeypatch.setenv("ZYRA_MCP_MAX_BODY_BYTES", "100")
-    c = TestClient(create_app())
     big = "x" * 200
     payload = {
         "jsonrpc": "2.0",
@@ -567,7 +565,7 @@ def test_mcp_request_size_limit_enforced(monkeypatch) -> None:
         "params": {"stage": "decimate", "command": "local", "args": {"pad": big}},
         "id": 9,
     }
-    r = c.post("/mcp", json=payload, headers={"X-API-Key": "k"})
+    r = client_mcp.post("/mcp", json=payload, headers={"X-API-Key": "k"})
     assert r.status_code == 200
     js = r.json()
     assert js.get("error", {}).get("code") == -32001
