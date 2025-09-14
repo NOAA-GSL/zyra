@@ -199,7 +199,8 @@ def validate_request(
                                 return s.lower() in {"true", "false", "1", "0"}
                         except Exception:
                             return False
-                        return True
+                        # Unrecognized types should not be treated as valid
+                        return False
 
                     if not _is_type(str(val), str(typ)):
                         issues.append(

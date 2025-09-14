@@ -52,15 +52,27 @@ def _require_mcp_enabled() -> None:
     """Raise 404 when MCP is disabled via env flag.
 
     Routes remain in OpenAPI while being effectively hidden unless ENABLE_MCP is set.
+    Be careful not to mask unexpected failures: log import or evaluation errors
+    and then return a conservative 404.
     """
+    import logging as _logging
+
+    lg = _logging.getLogger("zyra.api.mcp")
     try:
         from zyra.utils.env import env_bool as _env_bool
-
-        if not _env_bool("ENABLE_MCP", False):
-            raise HTTPException(status_code=404)
-    except Exception:
-        # On unexpected errors, be conservative and return 404
-        raise HTTPException(status_code=404) from None
+    except ImportError as err:  # explicit import failure
+        lg.error("Failed to import env helpers; disabling MCP", exc_info=err)
+        raise HTTPException(status_code=404) from err
+    except Exception as err:
+        lg.warning("Unexpected error importing env helpers; disabling MCP: %s", err)
+        raise HTTPException(status_code=404) from err
+    try:
+        enabled = bool(_env_bool("ENABLE_MCP", False))
+    except Exception as err:
+        lg.warning("Failed to evaluate ENABLE_MCP; disabling MCP: %s", err)
+        raise HTTPException(status_code=404) from err
+    if not enabled:
+        raise HTTPException(status_code=404)
 
 
 class JSONRPCRequest(BaseModel):

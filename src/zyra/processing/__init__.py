@@ -81,6 +81,15 @@ def register_cli(subparsers: Any) -> None:
         configure_logging_from_env()
         # Read input bytes first so missing-file errors surface quickly without
         # importing heavy GRIB dependencies. Only import decoders when needed.
+        #
+        # Deferred heavy imports
+        # ----------------------
+        # The GRIB decode path pulls in optional stacks (cfgrib/pygrib, eccodes
+        # bindings, etc.). Importing those libraries can be relatively slow and
+        # noisy in minimal environments. To keep "missing file"/"--raw" cases
+        # fast and to avoid importing heavy modules unnecessarily, we load the
+        # decoder utilities only after we've successfully read the input bytes
+        # and determined that we actually need to decode.
         data = _read_bytes(args.file_or_url)
         import logging
 
@@ -90,7 +99,7 @@ def register_cli(subparsers: Any) -> None:
         if getattr(args, "raw", False):
             sys.stdout.buffer.write(data)
             return 0
-        # Lazy-import after successful read
+        # Lazy-import after successful read (see note above)
         from zyra.processing import grib_decode
         from zyra.processing.grib_utils import extract_metadata
 
