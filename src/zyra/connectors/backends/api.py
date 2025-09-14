@@ -5,14 +5,15 @@ cursor-, page-, and RFC 5988 Link-based pagination.
 """
 
 # SPDX-License-Identifier: Apache-2.0
-from __future__ import annotations
+from __future__ import annotations  # noqa: I001
 
 import contextlib
 import json
 import time
 from collections.abc import Iterator
 from functools import lru_cache
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
+
 
 RETRY_STATUS = {429, 500, 502, 503, 504}
 
@@ -50,14 +51,130 @@ def request_once(
     data: bytes | str | dict[str, object] | None = None,
     timeout: int = 60,
 ) -> tuple[int, dict[str, str], bytes]:
+    # Defensive SSRF validation at backend layer (covers non-router callers)
+    try:
+        from zyra.utils.env import env as _env, env_bool as _env_bool  # noqa: I001
+
+        def _cfg(name: str, default: str | None = None) -> str | None:
+            return _env(
+                name,
+                _env(name.replace("API_", "MCP_"))
+                if name.startswith("API_")
+                else default,
+            )
+
+        def _https_only() -> bool:
+            return bool(_env_bool("API_FETCH_HTTPS_ONLY", True))
+
+        def _allowed_ports() -> set[int]:
+            raw = (_cfg("API_FETCH_ALLOW_PORTS", "80,443") or "80,443").strip()
+            out: set[int] = set()
+            for p in raw.split(","):
+                p = p.strip()
+                if not p:
+                    continue
+                try:
+                    out.add(int(p))
+                except Exception:
+                    continue
+            return out or {80, 443}
+
+        def _host_list(name: str) -> list[str]:
+            raw = (_cfg(name) or "").strip()
+            return [s.strip().lower() for s in raw.split(",") if s.strip()]
+
+        def _is_public_ip(ip_str: str) -> bool:
+            try:
+                import ipaddress as _ip
+
+                ip = _ip.ip_address(ip_str)
+                bad = (
+                    ip.is_private
+                    or ip.is_loopback
+                    or ip.is_link_local
+                    or ip.is_multicast
+                    or ip.is_reserved
+                    or ip.is_unspecified
+                )
+                if ip.version == 4 and ip.exploded.startswith("169.254.169.254"):
+                    bad = True
+                return not bad
+            except Exception:
+                return False
+
+        def _all_resolved_public(host: str, port: int | None) -> bool:
+            try:
+                import socket as _socket
+
+                infos = _socket.getaddrinfo(host, port or 0)
+                addrs: set[str] = set()
+                for _family, _type, _proto, _canon, sockaddr in infos:
+                    try:
+                        if len(sockaddr) >= 1:
+                            addrs.add(str(sockaddr[0]))
+                    except Exception:
+                        continue
+                return bool(addrs) and all(_is_public_ip(a) for a in addrs)
+            except Exception:
+                return False
+
+        def _host_allowed(host: str) -> bool:
+            h = (host or "").lower()
+            deny = _host_list("API_FETCH_DENY_HOSTS")
+            if any(h.endswith(d) for d in deny):
+                return False
+            allow = _host_list("API_FETCH_ALLOW_HOSTS")
+            return True if not allow else any(h.endswith(a) for a in allow)
+
+        pr = urlparse(url)
+        scheme = (pr.scheme or "").lower()
+        if scheme not in {"http", "https"}:
+            raise ValueError("Only http/https URLs are allowed")
+        if _https_only() and scheme != "https":
+            raise ValueError("HTTPS is required")
+        if pr.username or pr.password:
+            raise ValueError("Credentials in URL are not allowed")
+        host = pr.hostname or ""
+        if not host:
+            raise ValueError("URL host is required")
+        port = pr.port or (443 if scheme == "https" else 80)
+        if port not in _allowed_ports():
+            raise ValueError(f"Port {port} not permitted")
+        if not _host_allowed(host):
+            raise ValueError("Host is not permitted")
+        try:
+            import ipaddress as _ip
+
+            _ip.ip_address(host)
+            if not _is_public_ip(host):
+                raise ValueError("IP address is not publicly routable")
+        except ValueError:
+            if not _all_resolved_public(host, port):
+                raise ValueError("Destination resolves to a private network") from None
+    except Exception:
+        # Propagate validation failures to caller
+        raise
+
     requests = _get_requests()
+    # Strip hop-by-hop headers to avoid header-based SSRF tricks
+    _h = dict(headers or {})
+    for k in list(_h.keys()):
+        if k.lower() in {
+            "host",
+            "x-forwarded-for",
+            "x-forwarded-host",
+            "x-real-ip",
+            "forwarded",
+        }:
+            _h.pop(k, None)
     resp = requests.request(
         method.upper(),
         url,
-        headers=headers or {},
+        headers=_h,
         params=params or {},
         data=data,
         timeout=timeout,
+        allow_redirects=False,
     )
     status = resp.status_code
     # Flatten headers to str->str
@@ -256,6 +373,15 @@ def paginate_link(
       URL provided in the Link header unmodified.
     """
     cur_url = url
+    # Enforce same-host pagination by default for Link headers
+    base_host = (urlparse(url).hostname or "").lower()
+    allow_cross = False
+    try:
+        from zyra.utils.env import env_bool as _env_bool  # defer import
+
+        allow_cross = bool(_env_bool("API_FETCH_ALLOW_CROSS_HOST_LINKS", False))
+    except Exception:
+        allow_cross = False
     send_params: dict[str, str] | None = dict(params or {})
     while True:
         status, resp_headers, content = request_with_retries(
@@ -277,5 +403,12 @@ def paginate_link(
             break
         # Resolve relative next URL against the current URL
         cur_url = urljoin(cur_url, next_url)
+        if not allow_cross:
+            try:
+                nh = (urlparse(cur_url).hostname or "").lower()
+                if nh != base_host:
+                    break
+            except Exception:
+                break
         # After the first page, use the link-provided URL without extra params
         send_params = None

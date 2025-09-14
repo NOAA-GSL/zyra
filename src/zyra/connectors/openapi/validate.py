@@ -298,12 +298,13 @@ def validate_request(
                                 )  # type: ignore[arg-type]
                             except (
                                 Exception
-                            ) as ve:  # pragma: no cover - environment dependent
+                            ) as _ve:  # pragma: no cover - environment dependent
+                                # Avoid exposing internal exception details to clients
                                 issues.append(
                                     {
                                         "loc": "body",
                                         "name": "requestBody",
-                                        "message": f"JSON schema: {ve}",
+                                        "message": "JSON schema validation error",
                                     }
                                 )
                     except Exception:

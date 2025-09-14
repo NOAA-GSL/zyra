@@ -476,10 +476,10 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
                     )
                     text = f"download-audio: saved {res.get('path')} ({res.get('size_bytes')} bytes, {res.get('content_type')})"
                     return _ok({"content": [{"type": "text", "text": text}], **res})
-                except ValueError as ve:
-                    return _err(400, str(ve))
-                except Exception as exc:  # pragma: no cover
-                    return _err(-32603, f"Internal error: {exc}")
+                except ValueError:
+                    return _err(400, "Invalid params")
+                except Exception:  # pragma: no cover
+                    return _err(-32603, "Internal error")
             elif name == "api-fetch":
                 try:
                     from zyra.api.mcp_tools.generic import api_fetch as _api_fetch
@@ -499,8 +499,10 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
                         f"{res.get('content_type')}, status={res.get('status_code')})"
                     )
                     return _ok({"content": [{"type": "text", "text": text}], **res})
-                except Exception as exc:  # pragma: no cover
-                    return _err(-32603, f"Internal error: {exc}")
+                except ValueError:
+                    return _err(400, "Invalid params")
+                except Exception:  # pragma: no cover
+                    return _err(-32603, "Internal error")
             elif name == "api-process-json":
                 try:
                     from zyra.api.mcp_tools.generic import api_process_json as _api_proc
@@ -533,8 +535,8 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
                         f"format={res.get('format')})"
                     )
                     return _ok({"content": [{"type": "text", "text": text}], **res})
-                except Exception as exc:  # pragma: no cover
-                    return _err(-32603, f"Internal error: {exc}")
+                except Exception:  # pragma: no cover
+                    return _err(-32603, "Internal error")
 
             if name and (not stage or not command):
                 # Parse name like "stage.tool" or "stage tool"

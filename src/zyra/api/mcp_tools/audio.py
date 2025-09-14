@@ -74,8 +74,22 @@ def download_audio(
     - ``content_type``: MIME type from upstream response
     - ``size_bytes``: total bytes written
     """
-    base_dir = env_path("DATA_DIR", "_work")
-    out_dir = base_dir / (output_dir or "downloads")
+    # Resolve base DATA_DIR and ensure caller-provided output_dir stays within it
+    from pathlib import Path
+
+    base_dir = env_path("DATA_DIR", "_work").resolve()
+    subdir = output_dir or "downloads"
+    # Construct candidate and ensure it does not escape base_dir (no absolute paths / traversal)
+    try:
+        candidate = (base_dir / subdir).resolve()
+        # Python 3.10: Path.is_relative_to exists
+        if not candidate.is_relative_to(base_dir):  # type: ignore[attr-defined]
+            raise ValueError("Invalid output_dir: must be a subdirectory of DATA_DIR")
+    except Exception as exc:
+        raise ValueError(
+            "Invalid output_dir: must be a subdirectory of DATA_DIR"
+        ) from exc
+    out_dir: Path = candidate
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if profile.lower() != "limitless":
@@ -119,8 +133,20 @@ def download_audio(
     if "audio/ogg" not in ct:
         raise RuntimeError(f"Unexpected Content-Type: {ct}")
 
+    # Derive a safe filename from headers; strip any path components
+    from pathlib import Path as _P
+
     name = _infer_filename_from_headers(r.headers)
-    out_path = out_dir / name
+    safe_name = _P(name).name or "download.bin"
+    candidate = (out_dir / safe_name).resolve()
+    try:
+        if not candidate.is_relative_to(out_dir):  # type: ignore[attr-defined]
+            safe_name = "download.bin"
+            candidate = (out_dir / safe_name).resolve()
+    except Exception:
+        safe_name = "download.bin"
+        candidate = (out_dir / safe_name).resolve()
+    out_path = candidate
     size = 0
     with out_path.open("wb") as f:
         for chunk in r.iter_content(chunk_size=1024 * 1024):

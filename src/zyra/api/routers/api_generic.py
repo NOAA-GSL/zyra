@@ -11,10 +11,13 @@ the CLI while providing HTTP-friendly streaming behavior.
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
+import socket
 import tempfile
 from typing import Any
+from urllib.parse import urlparse
 
 import requests
 from fastapi import APIRouter, Body, File, HTTPException, Request, UploadFile
@@ -52,7 +55,124 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
     if not url:
         raise HTTPException(status_code=400, detail="url or preset is required")
 
-    headers = dict(req.headers or {})
+    # SSRF hardening helpers (scoped to this endpoint to avoid broad refactors)
+    from zyra.utils.env import env, env_bool
+
+    def _cfg(name: str, default: str | None = None) -> str | None:
+        # Prefer API_* envs, fall back to MCP_* for consistency with MCP tools
+        return env(
+            name,
+            env(name.replace("API_", "MCP_")) if name.startswith("API_") else default,
+        )
+
+    def _https_only() -> bool:
+        return bool(env_bool("API_FETCH_HTTPS_ONLY", True))
+
+    def _allowed_ports() -> set[int]:
+        raw = (_cfg("API_FETCH_ALLOW_PORTS", "80,443") or "80,443").strip()
+        out: set[int] = set()
+        for p in raw.split(","):
+            p = p.strip()
+            if not p:
+                continue
+            try:
+                out.add(int(p))
+            except Exception:
+                continue
+        return out or {80, 443}
+
+    def _host_list(name: str) -> list[str]:
+        raw = (_cfg(name) or "").strip()
+        return [s.strip().lower() for s in raw.split(",") if s.strip()]
+
+    def _is_public_ip(ip_str: str) -> bool:
+        try:
+            ip = ipaddress.ip_address(ip_str)
+            bad = (
+                ip.is_private
+                or ip.is_loopback
+                or ip.is_link_local
+                or ip.is_multicast
+                or ip.is_reserved
+                or ip.is_unspecified
+            )
+            if ip.version == 4 and ip.exploded.startswith("169.254.169.254"):
+                bad = True
+            return not bad
+        except Exception:
+            return False
+
+    def _all_resolved_public(host: str, port: int | None) -> bool:
+        try:
+            infos = socket.getaddrinfo(host, port or 0, proto=socket.IPPROTO_TCP)
+            addrs: set[str] = set()
+            for _family, _type, _proto, _canon, sockaddr in infos:
+                try:
+                    if len(sockaddr) >= 1:
+                        addrs.add(str(sockaddr[0]))
+                except Exception:
+                    continue
+            return bool(addrs) and all(_is_public_ip(a) for a in addrs)
+        except Exception:
+            return False
+
+    def _host_allowed(host: str) -> bool:
+        h = (host or "").lower()
+        deny = _host_list("API_FETCH_DENY_HOSTS")
+        if any(h.endswith(d) for d in deny):
+            return False
+        allow = _host_list("API_FETCH_ALLOW_HOSTS")
+        return True if not allow else any(h.endswith(a) for a in allow)
+
+    def _validate_url(u: str) -> None:
+        pr = urlparse(u)
+        scheme = (pr.scheme or "").lower()
+        if scheme not in {"http", "https"}:
+            raise HTTPException(
+                status_code=400, detail="Only http/https URLs are allowed"
+            )
+        if _https_only() and scheme != "https":
+            raise HTTPException(status_code=400, detail="HTTPS is required")
+        if pr.username or pr.password:
+            raise HTTPException(
+                status_code=400, detail="Credentials in URL are not allowed"
+            )
+        host = pr.hostname or ""
+        if not host:
+            raise HTTPException(status_code=400, detail="URL host is required")
+        port = pr.port or (443 if scheme == "https" else 80)
+        if port not in _allowed_ports():
+            raise HTTPException(status_code=400, detail=f"Port {port} not permitted")
+        if not _host_allowed(host):
+            raise HTTPException(status_code=400, detail="Host is not permitted")
+        try:
+            # If literal IP, must be public
+            ipaddress.ip_address(host)
+            if not _is_public_ip(host):
+                raise HTTPException(
+                    status_code=400, detail="IP address is not publicly routable"
+                )
+        except ValueError:
+            # DNS-resolved addresses must all be public
+            if not _all_resolved_public(host, port):
+                raise HTTPException(
+                    status_code=400, detail="Destination resolves to a private network"
+                ) from None
+
+    def _strip_hop_headers(h: dict[str, str]) -> dict[str, str]:
+        out = dict(h or {})
+        for k in list(out.keys()):
+            if k.lower() in {
+                "host",
+                "x-forwarded-for",
+                "x-forwarded-host",
+                "x-real-ip",
+                "forwarded",
+            }:
+                out.pop(k, None)
+        return out
+
+    headers = _strip_hop_headers(dict(req.headers or {}))
     params = dict(req.params or {})
     if req.accept and "Accept" not in headers:
         headers["Accept"] = req.accept
@@ -94,10 +214,17 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
         except Exception:
             pass
 
+    # Validate URL once up front to avoid SSRF
+    _validate_url(url)
+
     # HEAD preflight
     if req.head_first:
         r_head = requests.head(
-            url, headers=headers, params=params, allow_redirects=True, timeout=60
+            url,
+            headers=_strip_hop_headers(headers),
+            params=params,
+            allow_redirects=False,
+            timeout=60,
         )
         ct = r_head.headers.get("Content-Type")
         if req.expect_content_type and (not ct or req.expect_content_type not in ct):
@@ -151,7 +278,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
             iterator = api_backend.paginate_cursor(
                 method,
                 url,
-                headers=headers,
+                headers=_strip_hop_headers(headers),
                 params=params,
                 data=payload,
                 timeout=60,
@@ -164,7 +291,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
             iterator = api_backend.paginate_page(
                 method,
                 url,
-                headers=headers,
+                headers=_strip_hop_headers(headers),
                 params=params,
                 data=payload,
                 timeout=60,
@@ -180,7 +307,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
             iterator = api_backend.paginate_link(
                 method,
                 url,
-                headers=headers,
+                headers=_strip_hop_headers(headers),
                 params=params,
                 data=payload,
                 timeout=60,
@@ -223,7 +350,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
         r = requests.request(
             method,
             url,
-            headers=headers,
+            headers=_strip_hop_headers(headers),
             params=params,
             data=(
                 json.dumps(data).encode("utf-8")
@@ -232,7 +359,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
             ),
             timeout=60,
             stream=True,
-            allow_redirects=True,
+            allow_redirects=False,
         )
         if r.status_code >= 400:
             # Try to return upstream error text
@@ -259,7 +386,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
         status, hdrs, content = api_backend.request_with_retries(
             method,
             url,
-            headers=headers,
+            headers=_strip_hop_headers(headers),
             params=params,
             data=(
                 json.dumps(data).encode("utf-8")
@@ -295,7 +422,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
         r = requests.request(
             method,
             url,
-            headers=headers,
+            headers=_strip_hop_headers(headers),
             params=params,
             data=(
                 json.dumps(data).encode("utf-8")
@@ -304,7 +431,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
             ),
             timeout=60,
             stream=False,
-            allow_redirects=True,
+            allow_redirects=False,
         )
         if r.status_code >= 400:
             # Keep original stack context clear for HTTPException
@@ -322,10 +449,15 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
             err,
             exc_info=err,
         )
+        # If backend raised a ValueError due to SSRF validation, surface 400 and do not fallback
+        if isinstance(err, ValueError):
+            raise HTTPException(
+                status_code=400, detail=str(err) or "Invalid request"
+            ) from None
         r = requests.request(
             method,
             url,
-            headers=headers,
+            headers=_strip_hop_headers(headers),
             params=params,
             data=(
                 json.dumps(data).encode("utf-8")
@@ -334,7 +466,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
             ),
             timeout=60,
             stream=False,
-            allow_redirects=True,
+            allow_redirects=False,
         )
         if r.status_code >= 400:
             raise HTTPException(

@@ -1,15 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
+import ipaddress
 import json
+import socket
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import requests
 
 from zyra.api.models.cli_request import CLIRunRequest
 from zyra.api.routers.cli import run_cli_endpoint
-from zyra.utils.env import env_path
+from zyra.utils.env import env, env_bool, env_int, env_path
 
 
 def _infer_filename(headers: dict[str, str], default: str = "download.bin") -> str:
@@ -45,31 +48,161 @@ def api_fetch(
 
     Returns { path, content_type, size_bytes, status_code }.
     """
-    base = env_path("DATA_DIR", "_work")
-    out_dir = base / (output_dir or "downloads")
+    # Resolve base data dir and ensure caller-provided output_dir stays within it
+    base = env_path("DATA_DIR", "_work").resolve()
+    subdir = output_dir or "downloads"
+    try:
+        candidate_dir = (base / subdir).resolve()
+        if not candidate_dir.is_relative_to(base):  # type: ignore[attr-defined]
+            raise ValueError("Invalid output_dir: must be a subdirectory of DATA_DIR")
+    except Exception as exc:
+        raise ValueError(
+            "Invalid output_dir: must be a subdirectory of DATA_DIR"
+        ) from exc
+    out_dir = candidate_dir
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    # --- SSRF hardening & network policy ---
+    def _is_public_ip(ip_str: str) -> bool:
+        try:
+            ip = ipaddress.ip_address(ip_str)
+            bad = (
+                ip.is_private
+                or ip.is_loopback
+                or ip.is_link_local
+                or ip.is_multicast
+                or ip.is_reserved
+                or ip.is_unspecified
+            )
+            # Block common metadata endpoints explicitly
+            if ip.version == 4 and ip.exploded.startswith("169.254.169.254"):
+                bad = True
+            return not bad
+        except Exception:
+            return False
+
+    def _all_resolved_public(host: str, port: int | None) -> bool:
+        try:
+            infos = socket.getaddrinfo(host, port or 0, proto=socket.IPPROTO_TCP)
+            addrs: set[str] = set()
+            for _family, _type, _proto, _canon, sockaddr in infos:
+                try:
+                    if len(sockaddr) >= 1:
+                        addrs.add(str(sockaddr[0]))
+                except Exception:
+                    continue
+            if not addrs:
+                return False
+            return all(_is_public_ip(a) for a in addrs)
+        except Exception:
+            return False
+
+    def _host_allowed(host: str) -> bool:
+        h = host.lower()
+        deny = (env("MCP_FETCH_DENY_HOSTS") or "").strip()
+        if deny:
+            for d in [s.strip().lower() for s in deny.split(",") if s.strip()]:
+                if h.endswith(d):
+                    return False
+        allow = (env("MCP_FETCH_ALLOW_HOSTS") or "").strip()
+        if allow:
+            return any(
+                h.endswith(a)
+                for a in [s.strip().lower() for s in allow.split(",") if s.strip()]
+            )
+        return True
+
+    # Parse and validate URL
+    parsed = urlparse(url)
+    scheme = (parsed.scheme or "").lower()
+    if scheme not in {"http", "https"}:
+        raise ValueError("Only http/https URLs are allowed")
+    if env_bool("MCP_FETCH_HTTPS_ONLY", True) and scheme != "https":
+        raise ValueError("HTTPS is required for outbound fetches")
+    # Forbid URL userinfo (user:pass@host)
+    if parsed.username or parsed.password:
+        raise ValueError("Credentials in URL are not allowed")
+    host = parsed.hostname or ""
+    if not host:
+        raise ValueError("URL host is required")
+    # Port policy
+    port = parsed.port or (443 if scheme == "https" else 80)
+    allow_ports_raw = (env("MCP_FETCH_ALLOW_PORTS") or "80,443").strip()
+    try:
+        allow_ports = {int(p.strip()) for p in allow_ports_raw.split(",") if p.strip()}
+    except Exception:
+        allow_ports = {80, 443}
+    if port not in allow_ports:
+        raise ValueError(f"Port {port} not permitted")
+    # Allow/deny host list check
+    if not _host_allowed(host):
+        raise ValueError("Host is not permitted")
+    # Block direct IPs pointing to non-public ranges and domain names resolving internally
+    try:
+        ipaddress.ip_address(host)
+        # Literal IP provided
+        if not _is_public_ip(host):
+            raise ValueError("IP address is not publicly routable")
+    except ValueError:
+        # Not an IP literal; resolve and validate
+        if not _all_resolved_public(host, port):
+            raise ValueError(
+                "Destination resolves to a private or disallowed network"
+            ) from None
+
+    # Sanitize sensitive hop/host headers to avoid header-based SSRF tricks
+    hdrs = dict(headers or {})
+    for h in list(hdrs.keys()):
+        if str(h).lower() in {
+            "host",
+            "x-forwarded-for",
+            "x-forwarded-host",
+            "x-real-ip",
+            "forwarded",
+        }:
+            hdrs.pop(h, None)
 
     m = (method or "GET").upper()
     body = json.dumps(data).encode("utf-8") if isinstance(data, (dict, list)) else data
+
+    # Redirect policy: disabled by default; can be enabled with a small cap
+    allow_redirects = False
+
     r = requests.request(
         m,
         url,
-        headers=headers or {},
+        headers=hdrs,
         params=params or {},
         data=body,
         timeout=60,
         stream=True,
+        allow_redirects=allow_redirects,
     )
+    from pathlib import Path as _P
+
     ct = r.headers.get("Content-Type") or "application/octet-stream"
     name = _infer_filename(r.headers)
-    out = out_dir / name
+    safe_name = _P(name).name or "download.bin"
+    candidate = (out_dir / safe_name).resolve()
+    try:
+        if not candidate.is_relative_to(out_dir):  # type: ignore[attr-defined]
+            safe_name = "download.bin"
+            candidate = (out_dir / safe_name).resolve()
+    except Exception:
+        safe_name = "download.bin"
+        candidate = (out_dir / safe_name).resolve()
+    out = candidate
     size = 0
+    max_bytes_env = int(env_int("MCP_FETCH_MAX_BYTES", 0) or 0)
     with out.open("wb") as f:
         for chunk in r.iter_content(chunk_size=1024 * 1024):
             if not chunk:
                 continue
             f.write(chunk)
             size += len(chunk)
+            if max_bytes_env > 0 and size > max_bytes_env:
+                # Stop writing further to avoid unbounded downloads
+                break
     return {
         "path": str(out.relative_to(base)),
         "content_type": ct,
@@ -94,12 +227,32 @@ def api_process_json(
 
     Returns { path, size_bytes, format }.
     """
-    base = env_path("DATA_DIR", "_work")
-    out_dir = base / (output_dir or "outputs")
+    # Resolve and validate output directory
+    base = env_path("DATA_DIR", "_work").resolve()
+    subdir = output_dir or "outputs"
+    try:
+        candidate_dir = (base / subdir).resolve()
+        if not candidate_dir.is_relative_to(base):  # type: ignore[attr-defined]
+            raise ValueError("Invalid output_dir: must be a subdirectory of DATA_DIR")
+    except Exception as exc:
+        raise ValueError(
+            "Invalid output_dir: must be a subdirectory of DATA_DIR"
+        ) from exc
+    out_dir = candidate_dir
     out_dir.mkdir(parents=True, exist_ok=True)
     fmt = (format or "csv").lower()
-    name = output_name or ("output.jsonl" if fmt == "jsonl" else "output.csv")
-    out_path = out_dir / name
+    # Sanitize output name
+    safe_default = "output.jsonl" if fmt == "jsonl" else "output.csv"
+    name_raw = output_name or safe_default
+    name = Path(name_raw).name or safe_default
+    out_path = (out_dir / name).resolve()
+    try:
+        if not out_path.is_relative_to(out_dir):  # type: ignore[attr-defined]
+            name = safe_default
+            out_path = (out_dir / name).resolve()
+    except Exception:
+        name = safe_default
+        out_path = (out_dir / name).resolve()
 
     args: dict[str, Any] = {
         "file_or_url": file_or_url,
