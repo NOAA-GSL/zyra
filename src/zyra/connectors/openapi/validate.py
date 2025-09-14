@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable
 from urllib.parse import urlparse
 
+from zyra.connectors.backends import http as _http
 from zyra.connectors.discovery.api_search import _load_openapi as _disc_load
 
 
@@ -32,6 +33,35 @@ class OperationRef:
 def load_openapi(base_url: str) -> dict[str, Any] | None:
     """Load an OpenAPI spec from a base URL using discovery helpers."""
     return _disc_load(base_url)
+
+
+def load_openapi_url(url: str) -> dict[str, Any] | None:
+    """Load an OpenAPI spec from an explicit URL (json or yaml).
+
+    Attempts JSON first; if that fails, falls back to text + YAML parse when
+    PyYAML is available. Returns None on failure.
+    """
+    # Try JSON
+    try:
+        spec = _http.fetch_json(url)
+        if isinstance(spec, dict) and spec.get("paths"):
+            return spec  # type: ignore[return-value]
+    except Exception:
+        pass
+    # Try YAML when available
+    try:
+        text = _http.fetch_text(url)
+    except Exception:
+        return None
+    try:
+        import yaml  # type: ignore
+
+        spec = yaml.safe_load(text)  # type: ignore[no-redef]
+        if isinstance(spec, dict) and spec.get("paths"):
+            return spec  # type: ignore[return-value]
+    except Exception:
+        return None
+    return None
 
 
 def _iter_params(

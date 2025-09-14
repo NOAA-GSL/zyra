@@ -94,21 +94,75 @@ class APISearchSpec:
 def _load_openapi(base_url: str) -> dict[str, Any] | None:
     """Load an OpenAPI spec from common locations.
 
-    Attempts ``{base}/openapi.json`` and ``{base}/docs/openapi.json`` and
-    returns the first successful document that looks like an OpenAPI spec.
-    Returns ``None`` when not available.
+    Tries JSON and YAML endpoints in this order:
+    - ``{base}/openapi.json``
+    - ``{base}/docs/openapi.json``
+    - ``{base}/openapi.yaml``
+    - ``{base}/openapi.yml``
+
+    If not found and the host starts with ``api.`` or ``www.``, makes a
+    secondary attempt by swapping those prefixes (e.g., ``api.example.com``
+    -> ``www.example.com``) to accommodate sites that host their OpenAPI docs
+    on a different subdomain.
     """
-    bases = [
-        base_url.rstrip("/") + "/openapi.json",
-        base_url.rstrip("/") + "/docs/openapi.json",
-    ]
-    for u in bases:
-        try:
-            spec = http_backend.fetch_json(u)
-            if isinstance(spec, dict) and spec.get("paths"):
-                return spec  # type: ignore[return-value]
-        except Exception:
-            continue
+
+    def _try_load_from(base: str) -> dict[str, Any] | None:
+        # JSON locations
+        json_urls = [
+            base.rstrip("/") + "/openapi.json",
+            base.rstrip("/") + "/docs/openapi.json",
+        ]
+        for u in json_urls:
+            try:
+                spec = http_backend.fetch_json(u)
+                if isinstance(spec, dict) and spec.get("paths"):
+                    return spec  # type: ignore[return-value]
+            except Exception:
+                continue
+        # YAML locations
+        yaml_urls = [
+            base.rstrip("/") + "/openapi.yaml",
+            base.rstrip("/") + "/openapi.yml",
+        ]
+        for u in yaml_urls:
+            try:
+                text = http_backend.fetch_text(u)
+            except Exception:
+                continue
+            # Best-effort YAML parse when PyYAML is available
+            try:
+                import yaml  # type: ignore
+
+                spec = yaml.safe_load(text)  # type: ignore[no-redef]
+                if isinstance(spec, dict) and spec.get("paths"):
+                    return spec  # type: ignore[return-value]
+            except Exception:
+                # YAML unavailable or parse failed; skip
+                continue
+        return None
+
+    # First pass on provided base_url
+    spec = _try_load_from(base_url)
+    if spec:
+        return spec
+    # Secondary pass: swap api.<host> <-> www.<host> when applicable
+    try:
+        from urllib.parse import urlparse, urlunparse
+
+        pr = urlparse(base_url)
+        host = pr.netloc or ""
+        swapped = None
+        if host.startswith("api."):
+            swapped = host.replace("api.", "www.", 1)
+        elif host.startswith("www."):
+            swapped = host.replace("www.", "api.", 1)
+        if swapped and swapped != host:
+            alt = urlunparse((pr.scheme or "https", swapped, "", "", "", ""))
+            spec2 = _try_load_from(alt)
+            if spec2:
+                return spec2
+    except Exception:
+        pass
     return None
 
 

@@ -510,7 +510,18 @@ def register_cli(subparsers: Any) -> None:
                     )
                 return 0
             # CSV
-            headers = field_list or (list(out_rows[0].keys()) if out_rows else [])
+            if field_list:
+                headers = list(field_list)
+            else:
+                # Use a stable union of keys across all rows when fields are not provided.
+                # This avoids empty headers when the first row is sparse.
+                hdr_set: set[str] = set()
+                for row in out_rows:
+                    try:
+                        hdr_set.update(k for k in row if isinstance(k, str))
+                    except Exception:
+                        continue
+                headers = sorted(hdr_set)
             headers = headers + [d for d in derived_list if d not in headers]
             # csv expects a text file-like; ensure we pass the underlying handle if possible
             handle = getattr(f, "_file", None)

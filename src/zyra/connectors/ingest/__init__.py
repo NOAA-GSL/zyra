@@ -378,14 +378,18 @@ def _cmd_api(ns: argparse.Namespace) -> int:
         from urllib.parse import urlparse as _urlparse  # noqa: I001
         from zyra.connectors.openapi import validate as _ov  # noqa: I001
 
-        if not getattr(ns, "url", None):
-            raise SystemExit("--url is required for OpenAPI help/validation")
-        try:
-            pr = _urlparse(ns.url)
-            base_root = f"{pr.scheme}://{pr.netloc}"
-        except Exception:
-            base_root = ns.url
-        spec = _ov.load_openapi(base_root)
+        openapi_url = getattr(ns, "openapi_url", None)
+        if openapi_url:
+            spec = _ov.load_openapi_url(openapi_url)
+        else:
+            if not getattr(ns, "url", None):
+                raise SystemExit("--url is required for OpenAPI help/validation")
+            try:
+                pr = _urlparse(ns.url)
+                base_root = f"{pr.scheme}://{pr.netloc}"
+            except Exception:
+                base_root = ns.url
+            spec = _ov.load_openapi(base_root)
         if not spec:
             print("OpenAPI: not found", file=__import__("sys").stderr)
             if getattr(ns, "openapi_help", False):
@@ -1128,6 +1132,12 @@ def register_cli(acq_subparsers: Any) -> None:
         "--openapi-strict",
         action="store_true",
         help="Exit non-zero when --openapi-validate finds issues",
+    )
+    p_api.add_argument(
+        "--openapi-url",
+        help=(
+            "Explicit OpenAPI spec URL (json/yaml). Overrides automatic discovery based on --url"
+        ),
     )
     # Limitless audio helpers
     p_api.add_argument(

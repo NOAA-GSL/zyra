@@ -53,3 +53,48 @@ Auth helper
 - `--auth bearer:$TOKEN` — expands to `Authorization: Bearer <value>` with `$TOKEN` read from the environment.
 - `--auth basic:user:pass` — expands to `Authorization: Basic <base64(user:pass)>`. You may also use `basic:$ENV` where `$ENV` contains `user:pass`.
 - `--auth header:Name:Value` — injects a custom header when not already present. `Value` may be `$ENV`.
+
+## Limitless API examples
+
+Auth
+- Use `--header "X-API-Key: $LIMITLESS_API_KEY"` (verify with `echo ${LIMITLESS_API_KEY:0:6}`).
+
+OpenAPI assist
+- Show required/optional fields using the published spec:
+  - `zyra acquire api --url "https://api.limitless.ai/v1/download-audio" --openapi-url https://www.limitless.ai/openapi.yml --openapi-help`
+
+Download audio (preset)
+- Pendant/app audio with automatic ms conversion and streaming to file:
+  - `zyra acquire api --preset limitless-audio --since 2025-09-14T18:33:25Z --duration PT11M --audio-source pendant --header "X-API-Key: $LIMITLESS_API_KEY" --stream --output out.ogg`
+
+Download audio (explicit URL/params)
+- Compute epoch ms and pass required params (`startMs`, `endMs`), plus optional `audioSource`:
+  - `start="2025-09-14T18:33:25Z"; end="2025-09-14T18:44:32Z"`
+  - `startMs=$(date -u -d "$start" +%s)000; endMs=$(date -u -d "$end" +%s)000`
+  - `zyra acquire api --url "https://api.limitless.ai/v1/download-audio" --header "X-API-Key: $LIMITLESS_API_KEY" --accept audio/ogg --params "startMs=$startMs&endMs=$endMs&audioSource=pendant" --stream --output out.ogg`
+
+Troubleshooting
+- 401: check that the API key is present; prefer `X-API-Key` for this endpoint.
+- 400: validate window (`startMs < endMs`, ≤ 2h) and try switching/removing `audioSource`.
+- To inspect server JSON, temporarily disable the content-type guard and allow non-2xx:
+  - `... --allow-non-2xx --expect-content-type "" --stream --output - | head -c 1200`
+
+### Import transcripts (JSON/NDJSON)
+
+Fetch lifelog transcript pages as NDJSON using the preset (cursor pagination):
+- `zyra acquire api --preset limitless-lifelogs --url "https://api.limitless.ai/v1/lifelogs" --header "X-API-Key: $LIMITLESS_API_KEY" --since 2025-09-01T00:00:00Z --newline-json --output lifelogs.jsonl`
+
+Notes
+- The preset sets `--paginate cursor`, `--cursor-param cursor`, and `--next-cursor-json-path meta.lifelogs.nextCursor`.
+- Use `--since` to seed the range (maps to the provider’s `start` query parameter).
+
+### Using the Zyra API instead of CLI
+
+- Start the API: `poetry run uvicorn zyra.api.server:app --host 127.0.0.1 --port 8000`
+- Stream audio via API (explicit params):
+  - `curl -s -X POST http://127.0.0.1:8000/v1/acquire/api \`
+    `-H 'Content-Type: application/json' \`
+    `-d '{"url":"https://api.limitless.ai/v1/download-audio","method":"GET","accept":"audio/ogg","headers":{"X-API-Key":"'"$LIMITLESS_API_KEY"'"},"params":{"startMs":"1757874805000","endMs":"1757875472000","audioSource":"pendant"},"stream":true}' \`
+    `-o out.ogg`
+- Or use the preset endpoint (server maps ISO to ms):
+  - `curl -s -X POST http://127.0.0.1:8000/v1/presets/limitless/audio -H 'Content-Type: application/json' -d '{"since":"2025-09-14T18:33:25Z","duration":"PT11M","audio_source":"pendant"}' -o out.ogg`
