@@ -106,10 +106,26 @@ Documentation Sources
   - Workflow Stages: https://github.com/NOAA-GSL/zyra/wiki/Workflow-Stages
   - Stage Examples: https://github.com/NOAA-GSL/zyra/wiki/Stage-Examples
   - Install & Extras: https://github.com/NOAA-GSL/zyra/wiki/Install-Extras
-  - Pipeline Patterns: https://github.com/NOAA-GSL/zyra/wiki/Pipeline-Patterns
+- Pipeline Patterns: https://github.com/NOAA-GSL/zyra/wiki/Pipeline-Patterns
 
 Notes
 - The `/docs/source/wiki/` content is generated via a scheduled sync from the GitHub Wiki. Do not hand-edit files in that folder unless the sync process specifically instructs otherwise. If you see a discrepancy between the repo copy and the live wiki, defer to the live wiki as the source of truth and file an issue to correct the mirror.
+
+Documentation contribution guidelines (where to put updates)
+- Keep the top-level README concise. For detailed usage and options, prefer module-level READMEs and the wiki.
+- Module READMEs live next to code and should contain focused examples and flags:
+  - Connectors (ingest/egress/discovery):
+    - `src/zyra/connectors/ingest/README.md`
+    - `src/zyra/connectors/egress/README.md`
+    - `src/zyra/connectors/discovery/README.md`
+  - Processing: `src/zyra/processing/README.md`
+  - Visualization: `src/zyra/visualization/README.md`
+  - Transform: `src/zyra/transform/README.md`
+  - API service: `src/zyra/api/README.md`
+  - MCP tools: `src/zyra/api/mcp_tools/README.md`
+- Sphinx includes these module READMEs under "Module READMEs" in `docs/source/index.rst`. If you add a new README, include it there.
+- Keep function/class docstrings current; autodoc consumes them for the API reference pages.
+- Use the GitHub Wiki for narrative guides and high-level design. The mirrored copy under `docs/source/wiki/` is not edited directly.
 
 When In Doubt: Decision Flow
 

@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
 from zyra.api import __version__ as dvh_version
+from zyra.api.routers import api_generic as api_router
 from zyra.api.routers import cli as cli_router
 from zyra.api.routers import domain_acquire as acquire_router
 from zyra.api.routers import domain_assets as assets_router
@@ -150,6 +151,7 @@ def create_app() -> FastAPI:
         app.include_router(router, include_in_schema=False, **kw)
 
     _inc(cli_router.router)
+    _inc(api_router.router)
     _inc(files_router.router)
     # WS auth handled inside via query param
     _inc(ws_router.router, deps=False)

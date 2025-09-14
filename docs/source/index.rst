@@ -44,10 +44,25 @@ Contents
    api/zyra.transform
 
 .. toctree::
+   :maxdepth: 1
+   :caption: Module READMEs
+
+   ../../src/zyra/README
+   ../../src/zyra/connectors/ingest/README
+   ../../src/zyra/connectors/egress/README
+   ../../src/zyra/connectors/discovery/README
+   ../../src/zyra/processing/README
+   ../../src/zyra/api/README
+   ../../src/zyra/api/mcp_tools/README
+   ../../src/zyra/visualization/README
+   ../../src/zyra/transform/README
+
+.. toctree::
    :maxdepth: 2
    :caption: Guides
 
    discovery
+   openapi
    stages_overview
    domain_apis
    mcp

@@ -98,6 +98,22 @@ class ProcessConvertFormatRun(DomainRunRequest):
     args: da.ProcessConvertFormatArgs  # type: ignore[assignment]
 
 
+# New process tools
+class ProcessApiJsonRun(DomainRunRequest):
+    tool: Literal["api-json"]
+    args: da.ProcessApiJsonArgs  # type: ignore[assignment]
+
+
+class ProcessAudioTranscodeRun(DomainRunRequest):
+    tool: Literal["audio-transcode"]
+    args: da.ProcessAudioTranscodeArgs  # type: ignore[assignment]
+
+
+class ProcessAudioMetadataRun(DomainRunRequest):
+    tool: Literal["audio-metadata"]
+    args: da.ProcessAudioMetadataArgs  # type: ignore[assignment]
+
+
 # Decimate
 class DecimateLocalRun(DomainRunRequest):
     tool: Literal["local"]
@@ -154,3 +170,8 @@ class AcquireS3Run(DomainRunRequest):
 class AcquireFtpRun(DomainRunRequest):
     tool: Literal["ftp"]
     args: da.AcquireFtpArgs  # type: ignore[assignment]
+
+
+class AcquireApiRun(DomainRunRequest):
+    tool: Literal["api"]
+    args: da.AcquireApiArgs  # type: ignore[assignment]

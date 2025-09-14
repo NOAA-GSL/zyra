@@ -207,7 +207,7 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
             except Exception:
                 pass
 
-            # MCP-only tools: search-query and search-semantic
+            # MCP-only tools: search-query/search-semantic and download-audio
             if name in {"search-query", "search-semantic"}:
                 q = arguments.get("query") or args.get("query")
                 if not isinstance(q, str) or not q.strip():
@@ -421,6 +421,92 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
                         )
                     except Exception:
                         return _err(-32603, "Internal error")
+
+            elif name == "download-audio":
+                try:
+                    from zyra.api.mcp_tools.audio import download_audio as _dl_audio
+
+                    prof = str(
+                        arguments.get("profile") or args.get("profile") or "limitless"
+                    )
+                    start = arguments.get("start") or args.get("start")
+                    end = arguments.get("end") or args.get("end")
+                    since = arguments.get("since") or args.get("since")
+                    duration = arguments.get("duration") or args.get("duration")
+                    audio_source = arguments.get("audio_source") or args.get(
+                        "audio_source"
+                    )
+                    output_dir = arguments.get("output_dir") or args.get("output_dir")
+                    res = _dl_audio(
+                        profile=prof,
+                        start=start,
+                        end=end,
+                        since=since,
+                        duration=duration,
+                        audio_source=audio_source,
+                        output_dir=output_dir,
+                    )
+                    text = f"download-audio: saved {res.get('path')} ({res.get('size_bytes')} bytes, {res.get('content_type')})"
+                    return _ok({"content": [{"type": "text", "text": text}], **res})
+                except ValueError as ve:
+                    return _err(400, str(ve))
+                except Exception as exc:  # pragma: no cover
+                    return _err(-32603, f"Internal error: {exc}")
+            elif name == "api-fetch":
+                try:
+                    from zyra.api.mcp_tools.generic import api_fetch as _api_fetch
+
+                    res = _api_fetch(
+                        url=str(arguments.get("url") or args.get("url")),
+                        method=(arguments.get("method") or args.get("method")),
+                        headers=(arguments.get("headers") or args.get("headers")),
+                        params=(arguments.get("params") or args.get("params")),
+                        data=(arguments.get("data") or args.get("data")),
+                        output_dir=(
+                            arguments.get("output_dir") or args.get("output_dir")
+                        ),
+                    )
+                    text = (
+                        f"api-fetch: saved {res.get('path')} ({res.get('size_bytes')} bytes, "
+                        f"{res.get('content_type')}, status={res.get('status_code')})"
+                    )
+                    return _ok({"content": [{"type": "text", "text": text}], **res})
+                except Exception as exc:  # pragma: no cover
+                    return _err(-32603, f"Internal error: {exc}")
+            elif name == "api-process-json":
+                try:
+                    from zyra.api.mcp_tools.generic import api_process_json as _api_proc
+
+                    res = _api_proc(
+                        file_or_url=str(
+                            arguments.get("file_or_url") or args.get("file_or_url")
+                        ),
+                        records_path=(
+                            arguments.get("records_path") or args.get("records_path")
+                        ),
+                        fields=(arguments.get("fields") or args.get("fields")),
+                        flatten=(
+                            arguments.get("flatten")
+                            if "flatten" in arguments
+                            else args.get("flatten")
+                        ),
+                        explode=(arguments.get("explode") or args.get("explode")),
+                        derived=(arguments.get("derived") or args.get("derived")),
+                        format=(arguments.get("format") or args.get("format")),
+                        output_dir=(
+                            arguments.get("output_dir") or args.get("output_dir")
+                        ),
+                        output_name=(
+                            arguments.get("output_name") or args.get("output_name")
+                        ),
+                    )
+                    text = (
+                        f"api-process-json: saved {res.get('path')} ({res.get('size_bytes')} bytes, "
+                        f"format={res.get('format')})"
+                    )
+                    return _ok({"content": [{"type": "text", "text": text}], **res})
+                except Exception as exc:  # pragma: no cover
+                    return _err(-32603, f"Internal error: {exc}")
 
             if name and (not stage or not command):
                 # Parse name like "stage.tool" or "stage tool"
@@ -756,6 +842,43 @@ def _mcp_discovery_payload(refresh: bool = False) -> dict[str, Any]:
         }
     )
 
+    # Append download-audio command (profile-driven)
+    commands.append(
+        {
+            "name": "download-audio",
+            "description": "Download audio for a provider profile (default: limitless)",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "profile": {
+                        "type": "string",
+                        "enum": ["limitless"],
+                        "description": "Provider profile",
+                    },
+                    "start": {"type": "string", "description": "ISO-8601 start time"},
+                    "end": {"type": "string", "description": "ISO-8601 end time"},
+                    "since": {
+                        "type": "string",
+                        "description": "ISO-8601 since time (with duration)",
+                    },
+                    "duration": {
+                        "type": "string",
+                        "description": "ISO-8601 duration (e.g., PT2H)",
+                    },
+                    "audio_source": {
+                        "type": "string",
+                        "enum": ["pendant", "app"],
+                        "description": "Audio source",
+                    },
+                    "output_dir": {
+                        "type": "string",
+                        "description": "Relative output directory under DATA_DIR",
+                    },
+                },
+            },
+        }
+    )
+
     return {
         "mcp_version": "0.1",
         "name": "zyra",
@@ -861,6 +984,83 @@ def _mcp_tools_list(refresh: bool = False) -> list[dict[str, Any]]:
             "name": "search-semantic",
             "description": "Semantic search (LLM-assisted planning)",
             "inputSchema": basic_search_schema,
+        }
+    )
+
+    # Append download-audio tool (profile-driven)
+    tools.append(
+        {
+            "name": "download-audio",
+            "description": "Download audio for a provider profile (default: limitless)",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "profile": {
+                        "type": "string",
+                        "enum": ["limitless"],
+                        "description": "Provider profile",
+                    },
+                    "start": {"type": "string", "description": "ISO-8601 start time"},
+                    "end": {"type": "string", "description": "ISO-8601 end time"},
+                    "since": {
+                        "type": "string",
+                        "description": "ISO-8601 since time (with duration)",
+                    },
+                    "duration": {
+                        "type": "string",
+                        "description": "ISO-8601 duration (e.g., PT2H)",
+                    },
+                    "audio_source": {
+                        "type": "string",
+                        "enum": ["pendant", "app"],
+                        "description": "Audio source",
+                    },
+                    "output_dir": {
+                        "type": "string",
+                        "description": "Relative output directory under DATA_DIR",
+                    },
+                },
+            },
+        }
+    )
+    # Generic wrappers
+    tools.append(
+        {
+            "name": "api-fetch",
+            "description": "Fetch a REST API and save response under DATA_DIR",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string"},
+                    "method": {"type": "string"},
+                    "headers": {"type": "object"},
+                    "params": {"type": "object"},
+                    "data": {"type": "object"},
+                    "output_dir": {"type": "string"},
+                },
+                "required": ["url"],
+            },
+        }
+    )
+    tools.append(
+        {
+            "name": "api-process-json",
+            "description": "Transform JSON/NDJSON to CSV/JSONL via CLI and save under DATA_DIR",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "file_or_url": {"type": "string"},
+                    "records_path": {"type": "string"},
+                    "fields": {"type": "string"},
+                    "flatten": {"type": "boolean"},
+                    "explode": {"type": "array", "items": {"type": "string"}},
+                    "derived": {"type": "string"},
+                    "format": {"type": "string", "enum": ["csv", "jsonl"]},
+                    "output_dir": {"type": "string"},
+                    "output_name": {"type": "string"},
+                },
+                "required": ["file_or_url"],
+            },
         }
     )
 
