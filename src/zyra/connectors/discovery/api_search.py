@@ -24,65 +24,48 @@ Key entry points
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Any, Iterable
 from urllib.parse import urljoin, urlparse
 
 from zyra.connectors.backends import http as http_backend
 
-_requests = None  # lazily imported requests module
+_requests = None  # deprecated: retained for backward compatibility in tests
 
 # Common query parameter names for search endpoints, in preference order.
 # Centralized to keep fallbacks consistent across discovery paths.
 FALLBACK_QUERY_PARAM_NAMES: tuple[str, ...] = ("q", "query")
 
 
-def _ensure_requests() -> None:
-    """Ensure the requests module is importable and cache it.
+@lru_cache(maxsize=1)
+def _requests_mod():  # pragma: no cover - import depends on extras
+    """Thread-safe, lazy import of the requests module.
 
-    Consolidates the availability check and import to avoid delayed errors
-    at first use inside request loops.
+    Uses an LRU cache (with internal locking) to memoize the module and avoid
+    a mutable global, while preserving testability (monkeypatch sys.modules).
     """
-    global _requests
-    if _requests is not None:
-        return
-    try:  # pragma: no cover - import success depends on env extra
-        import requests as _req  # type: ignore
-
-        _requests = _req
-    except Exception as err:  # pragma: no cover - env dependent
-        raise RuntimeError(
-            "HTTP client requires the 'requests' extra. Install with: "
-            "poetry install -E connectors"
-        ) from err
-
-
-def _get_requests():
-    """Return the cached requests module, importing if necessary.
-
-    Keeps testability: respects monkeypatched ``sys.modules['requests']``
-    even when ``_ensure_requests`` is stubbed in tests.
-    """
-    global _requests
     # Prefer an already-imported/monkeypatched module in sys.modules
     try:
         import sys as _sys
 
         mod = _sys.modules.get("requests")
-        if mod is not None and mod is not _requests:
-            _requests = mod  # type: ignore[assignment]
-            return mod
+        if mod is not None:
+            return mod  # type: ignore[return-value]
     except Exception:
         pass
-    if _requests is not None:
-        return _requests
-    try:  # try direct import which will use any sys.modules override
+    try:
         import requests as _req  # type: ignore
 
-        _requests = _req
         return _req
-    except Exception:
-        _ensure_requests()
-        return _requests
+    except Exception as err:  # pragma: no cover - env dependent
+        raise RuntimeError(
+            "HTTP client requires the 'requests' extra. Install with: poetry install -E connectors"
+        ) from err
+
+
+def _get_requests():
+    """Compatibility shim returning the cached requests module."""
+    return _requests_mod()
 
 
 @dataclass
@@ -335,7 +318,7 @@ def query_single_api(
         if no_openapi
         else _discover_search_spec(base_url)
     )
-    _ensure_requests()
+    _requests_mod()
     # Attempt via discovered or overridden endpoint with params first
     url = urljoin(base_url.rstrip("/") + "/", (endpoint or spec.path).lstrip("/"))
     qp = qp_name or spec.query_param
@@ -483,7 +466,7 @@ def federated_api_search(
     See :func:`query_single_api` for parameter semantics.
     """
     # Ensure HTTP client available up front to avoid silent empties
-    _ensure_requests()
+    _requests_mod()
     rows: list[dict[str, Any]] = []
     from concurrent.futures import ThreadPoolExecutor, as_completed
 

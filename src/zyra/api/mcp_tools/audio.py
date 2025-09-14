@@ -66,29 +66,33 @@ def _iso_to_ms(s: str) -> int:
 def _since_duration_to_range(since: str, duration: str) -> tuple[int, int]:
     """Return (startMs, endMs) from ISO ``since`` + ``duration``.
 
-    Supports ``PTnH``, ``PTnM``, and ``PTnHnM``. Enforces a maximum window of
-    two hours and raises ``ValueError`` when exceeded.
+    Parses a subset of ISO-8601 durations via regex: supports days and time
+    components (hours/minutes/seconds). Enforces a maximum window of two hours
+    and raises ``ValueError`` for invalid/unsupported inputs.
     """
+    import re
     from datetime import timedelta
 
     start_ms = _iso_to_ms(since)
-    hours = minutes = 0
-    dur = duration
-    if dur.startswith("PT") and dur.endswith("H"):
-        hours = int(dur[2:-1])
-    elif dur.startswith("PT") and dur.endswith("M"):
-        minutes = int(dur[2:-1])
-    elif dur.startswith("PT") and "H" in dur and "M" in dur:
-        # PT#H#M
-        h = dur.split("PT", 1)[1].split("H", 1)[0]
-        m = dur.split("H", 1)[1].split("M", 1)[0]
-        hours = int(h)
-        minutes = int(m)
-    else:
-        raise ValueError("Unsupported ISO-8601 duration; use PTnH or PTnM or PTnHnM")
-    end_ms = start_ms + int(
-        timedelta(hours=hours, minutes=minutes).total_seconds() * 1000
+    s = (duration or "").strip().upper()
+    # Pattern: P[nD][T[nH][nM][nS]] — capture days/hours/minutes/seconds if present
+    m = re.match(
+        r"^P(?:(?P<days>\d+)D)?(?:T(?:(?P<hours>\d+)H)?(?:(?P<minutes>\d+)M)?(?:(?P<seconds>\d+)S)?)?$",
+        s,
+        re.IGNORECASE,
     )
+    if not m:
+        raise ValueError(
+            "Unsupported ISO-8601 duration; expected P[nD]T[nH][nM][nS] (e.g., PT30M, PT2H, PT1H30M)"
+        )
+    days = int(m.group("days") or 0)
+    hours = int(m.group("hours") or 0)
+    minutes = int(m.group("minutes") or 0)
+    seconds = int(m.group("seconds") or 0)
+    td = timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
+    if td.total_seconds() <= 0:
+        raise ValueError("Duration must be greater than zero")
+    end_ms = start_ms + int(td.total_seconds() * 1000)
     if (end_ms - start_ms) > 2 * 60 * 60 * 1000:
         raise ValueError("Maximum duration is 2 hours")
     return start_ms, end_ms

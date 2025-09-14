@@ -11,29 +11,23 @@ import contextlib
 import json
 import time
 from collections.abc import Iterator
-from typing import Any
+from functools import lru_cache
 from urllib.parse import urljoin
 
 RETRY_STATUS = {429, 500, 502, 503, 504}
 
 
-_REQUESTS: Any | None = None
+@lru_cache(maxsize=1)
+def _get_requests():  # pragma: no cover - import guard
+    """Thread-safe, lazy import of the `requests` module.
 
-
-def _import_requests():  # pragma: no cover - import guard
-    """Import and cache the `requests` module lazily.
-
-    Avoids repeated imports when helpers are called frequently. Keeps this
-    backend import-light for environments that don't use HTTP connectors.
+    Uses an LRU cache (with internal locking) to safely memoize the import
+    across threads, avoiding a mutable global.
     """
-    global _REQUESTS
-    if _REQUESTS is not None:
-        return _REQUESTS
     try:
         import requests as _req  # type: ignore
 
-        _REQUESTS = _req
-        return _REQUESTS
+        return _req
     except Exception as exc:  # pragma: no cover - runtime error path
         raise RuntimeError(
             "The 'requests' package is required for 'zyra acquire api'. Install extras: 'pip install \"zyra[connectors]\"'"
@@ -56,7 +50,7 @@ def request_once(
     data: bytes | str | dict[str, object] | None = None,
     timeout: int = 60,
 ) -> tuple[int, dict[str, str], bytes]:
-    requests = _import_requests()
+    requests = _get_requests()
     resp = requests.request(
         method.upper(),
         url,
