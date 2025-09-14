@@ -68,6 +68,18 @@ def _get_requests():
     return _requests_mod()
 
 
+def _ensure_requests() -> None:
+    """Backward-compat no-op used by older tests.
+
+    Tests may monkeypatch this symbol; keep it present and ensure the cached
+    import is initialized when called.
+    """
+    from contextlib import suppress
+
+    with suppress(Exception):
+        _requests_mod()
+
+
 @dataclass
 class APISearchSpec:
     path: str  # e.g., /search
