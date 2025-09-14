@@ -492,7 +492,11 @@ def preset_limitless_audio(
         params["startMs"] = str(_iso_to_ms(req.start))
         params["endMs"] = str(_iso_to_ms(req.end))
     elif req.since and req.duration:
-        s_ms, e_ms = _since_duration_to_range(req.since, req.duration)
+        try:
+            s_ms, e_ms = _since_duration_to_range(req.since, req.duration)
+        except ValueError as exc:
+            # Map validation error to HTTP 400 to satisfy preflight tests
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         params["startMs"] = str(s_ms)
         params["endMs"] = str(e_ms)
     if req.audio_source:
