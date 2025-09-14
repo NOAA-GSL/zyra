@@ -283,8 +283,15 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
             or "application/octet-stream"
         )
         return Response(content=content or b"", media_type=ct)
-    except Exception:
-        # Fallback to direct request if backend helper is unavailable
+    except ImportError as err:
+        # Backend helper not available; log and fall back to direct request
+        import logging as _logging
+
+        _logging.getLogger("zyra.api.api_generic").warning(
+            "connectors.backends.api unavailable; falling back to direct request: %s",
+            err,
+            exc_info=err,
+        )
         r = requests.request(
             method,
             url,
@@ -301,6 +308,35 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
         )
         if r.status_code >= 400:
             # Keep original stack context clear for HTTPException
+            raise HTTPException(
+                status_code=r.status_code, detail=(r.text or "Upstream error")
+            ) from None
+        ct = r.headers.get("Content-Type") or "application/octet-stream"
+        return Response(content=r.content or b"", media_type=ct)
+    except Exception as err:
+        # Unexpected error using backend helper; log and fall back to direct request
+        import logging as _logging
+
+        _logging.getLogger("zyra.api.api_generic").warning(
+            "request_with_retries failed; falling back to direct request: %s",
+            err,
+            exc_info=err,
+        )
+        r = requests.request(
+            method,
+            url,
+            headers=headers,
+            params=params,
+            data=(
+                json.dumps(data).encode("utf-8")
+                if isinstance(data, (dict, list))
+                else data
+            ),
+            timeout=60,
+            stream=False,
+            allow_redirects=True,
+        )
+        if r.status_code >= 400:
             raise HTTPException(
                 status_code=r.status_code, detail=(r.text or "Upstream error")
             ) from None

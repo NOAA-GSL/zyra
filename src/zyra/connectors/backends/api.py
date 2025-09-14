@@ -11,16 +11,29 @@ import contextlib
 import json
 import time
 from collections.abc import Iterator
+from typing import Any
 from urllib.parse import urljoin
 
 RETRY_STATUS = {429, 500, 502, 503, 504}
 
 
-def _import_requests():  # pragma: no cover - import guard
-    try:
-        import requests  # type: ignore
+_REQUESTS: Any | None = None
 
-        return requests
+
+def _import_requests():  # pragma: no cover - import guard
+    """Import and cache the `requests` module lazily.
+
+    Avoids repeated imports when helpers are called frequently. Keeps this
+    backend import-light for environments that don't use HTTP connectors.
+    """
+    global _REQUESTS
+    if _REQUESTS is not None:
+        return _REQUESTS
+    try:
+        import requests as _req  # type: ignore
+
+        _REQUESTS = _req
+        return _REQUESTS
     except Exception as exc:  # pragma: no cover - runtime error path
         raise RuntimeError(
             "The 'requests' package is required for 'zyra acquire api'. Install extras: 'pip install \"zyra[connectors]\"'"

@@ -426,6 +426,12 @@ def run_cli(stage: str, command: str, args: dict[str, Any]) -> RunResult:
             # Many CLI funcs raise SystemExit; extract code
             code = int(getattr(exc, "code", 1) or 0)
         except Exception as exc:  # pragma: no cover
+            # Log full traceback for visibility; still capture stderr for response mapping
+            import logging as _logging
+
+            _logging.getLogger(__name__).exception(
+                "Unhandled exception running CLI: %s", " ".join(argv)
+            )
             print(str(exc), file=sys.stderr)
             code = 1
         # Guard against steps that close sys.stdout/sys.stderr buffers

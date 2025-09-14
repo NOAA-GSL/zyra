@@ -45,6 +45,7 @@ if GRIBDataProcessor is not None and interpolate_time_steps is not None:
 
 # ---- CLI registration ---------------------------------------------------------------
 
+import copy
 import csv
 import io
 import json
@@ -360,8 +361,8 @@ def register_cli(subparsers: Any) -> None:
             val = _get_by_path(r, path)
             if isinstance(val, list) and val:
                 for item in val:
-                    # Shallow clone via JSON to avoid sharing nested references
-                    nr = json.loads(json.dumps(r))
+                    # Deep-copy the row so each exploded item is independent
+                    nr = copy.deepcopy(r)
                     parts = path.split(".")
                     cur = nr
                     for p in parts[:-1]:
