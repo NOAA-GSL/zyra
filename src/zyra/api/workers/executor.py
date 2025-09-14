@@ -238,6 +238,7 @@ def _args_dict_to_argv(stage: str, command: str, args: dict[str, Any]) -> list[s
         ("process", "decode-grib2"): ["file_or_url"],
         ("process", "extract-variable"): ["file_or_url", "pattern"],
         ("process", "convert-format"): ["file_or_url", "format"],
+        ("process", "api-json"): ["file_or_url"],
         ("acquire", "http"): ["url"],
         ("acquire", "ftp"): ["path"],
         ("decimate", "local"): [],  # uses --input and positional path
@@ -363,6 +364,25 @@ def run_cli(stage: str, command: str, args: dict[str, Any]) -> RunResult:
     stdout_cap = _StdCapture()
     stderr_cap = _StdCapture()
     old_out, old_err = sys.stdout, sys.stderr
+    # Best-effort: avoid blocking on stdin when commands expect '-' and no input is provided.
+    # Specifically handles 'decimate local --input - <path>' which otherwise reads from real stdin.
+    old_in = sys.stdin
+    use_empty_stdin = False
+    try:
+        if (
+            len(argv) >= 2
+            and argv[0] == "decimate"
+            and argv[1] == "local"
+            and "--input" in argv
+        ):
+            try:
+                i = argv.index("--input")
+                if i + 1 < len(argv) and argv[i + 1] == "-":
+                    use_empty_stdin = True
+            except ValueError:
+                pass
+    except Exception:
+        use_empty_stdin = False
     # Establish a stable working directory for relative outputs
     old_cwd = Path.cwd()
     # Default defensively; override from env if available
@@ -387,6 +407,14 @@ def run_cli(stage: str, command: str, args: dict[str, Any]) -> RunResult:
             e,
         )
     sys.stdout, sys.stderr = stdout_cap, stderr_cap
+    if use_empty_stdin:
+        import io as _io
+
+        class _SIn:
+            def __init__(self, b: bytes):
+                self.buffer = _io.BytesIO(b)
+
+        sys.stdin = _SIn(b"")  # type: ignore[assignment]
     try:
         code = 0
         try:
@@ -430,6 +458,8 @@ def run_cli(stage: str, command: str, args: dict[str, Any]) -> RunResult:
     finally:
         # Restore stdio
         sys.stdout, sys.stderr = old_out, old_err
+        with contextlib.suppress(Exception):
+            sys.stdin = old_in
         # Restore working directory
         from contextlib import suppress as _suppress
 

@@ -43,17 +43,7 @@ from zyra.api.routers import ws as ws_router
 from zyra.api.security import require_api_key
 from zyra.utils.env import env, env_bool, env_int, env_path, env_seconds
 
-# Best-effort: load environment variables from a local .env if present.
-# Mirrors the Wizard behavior so API picks up devcontainer-provided settings.
-try:  # pragma: no cover - environment dependent
-    from dotenv import find_dotenv, load_dotenv
-
-    _ENV_PATH = find_dotenv(usecwd=True)
-    if _ENV_PATH:
-        load_dotenv(_ENV_PATH, override=False)
-except Exception:
-    # Ignore if python-dotenv is unavailable; environment vars still work
-    pass
+# Note: .env loading happens inside create_app(), gated by a skip flag.
 
 
 def create_app() -> FastAPI:
@@ -77,6 +67,24 @@ def create_app() -> FastAPI:
             with suppress(asyncio.CancelledError):
                 await task
 
+    # Best-effort: load environment variables from a local .env if present,
+    # unless explicitly skipped via ZYRA_SKIP_DOTENV/DATAVIZHUB_SKIP_DOTENV.
+    try:  # pragma: no cover - environment dependent
+        skip = (
+            os.environ.get("ZYRA_SKIP_DOTENV")
+            or os.environ.get("DATAVIZHUB_SKIP_DOTENV")
+            or "0"
+        ).strip().lower() in {"1", "true", "yes"}
+        if not skip:
+            from dotenv import find_dotenv, load_dotenv
+
+            _ENV_PATH = find_dotenv(usecwd=True)
+            if _ENV_PATH:
+                load_dotenv(_ENV_PATH, override=False)
+    except Exception:
+        # Ignore if python-dotenv is unavailable; environment vars still work
+        pass
+
     app = FastAPI(
         title="Zyra API",
         version=dvh_version,
@@ -84,6 +92,11 @@ def create_app() -> FastAPI:
         root_path=env("API_ROOT_PATH", ""),
         root_path_in_servers=True,
     )
+    # Snapshot feature flags that control router inclusion
+    try:
+        app.state.mcp_enabled = bool(env_bool("ENABLE_MCP", False))
+    except Exception:
+        app.state.mcp_enabled = False
 
     @app.exception_handler(RequestValidationError)
     async def _map_validation_errors(request: Request, exc: RequestValidationError):
@@ -169,8 +182,8 @@ def create_app() -> FastAPI:
     _inc(narrate_router.router)
     _inc(verify_router.router)
     _inc(transform_router.router)
-    # MCP adapter (feature gate)
-    if env_bool("ENABLE_MCP", True):
+    # MCP adapter (feature gate; default disabled unless explicitly enabled)
+    if getattr(app.state, "mcp_enabled", False):
         _inc(mcp_router.router)
 
     @app.get("/health", tags=["system"])
@@ -379,7 +392,7 @@ def create_app() -> FastAPI:
             _p("/examples"),
         ]
         # Conditionally expose MCP endpoint in discovery list
-        if env_bool("ENABLE_MCP", True):
+        if getattr(request.app.state, "mcp_enabled", False):
             endpoints_list.append("/mcp")
 
         meta = {
@@ -401,7 +414,7 @@ def create_app() -> FastAPI:
         header_name = _html.escape(env("API_KEY_HEADER", "X-API-Key") or "X-API-Key")
         version_text = _html.escape(str(dvh_version))
         mcp_line = ""
-        if env_bool("ENABLE_MCP", True):
+        if getattr(request.app.state, "mcp_enabled", False):
             mcp_line = (
                 f'<li><a href="{_p("/mcp")}">GET /mcp</a> — MCP discovery</li>'
                 f'<li>POST /mcp — MCP JSON-RPC (see <a href="{_p("/docs#/%2Fmcp")}">/docs</a>)</li>'

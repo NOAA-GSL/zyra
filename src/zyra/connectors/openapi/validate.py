@@ -139,35 +139,38 @@ def validate_request(
         return issues
     hdrs = {str(k): str(v) for k, v in (headers or {}).items()}
     q = {str(k): str(v) for k, v in (params or {}).items()}
-    # Required parameters (query/header)
+    # Parameters (query/header): check required presence and simple schema when provided
     for p in _iter_params(opref.operation, opref.path_item):
         try:
             where = str(p.get("in") or "")
             name = str(p.get("name") or "")
             required = bool(p.get("required") or False)
-            if not required or not name:
+            if not name:
                 continue
-            if where == "query" and name not in q:
-                issues.append(
-                    {
-                        "loc": "query",
-                        "name": name,
-                        "message": "Missing required query parameter",
-                    }
-                )
-            if where == "header" and name not in hdrs:
-                issues.append(
-                    {
-                        "loc": "header",
-                        "name": name,
-                        "message": "Missing required header",
-                    }
-                )
-            # Simple enum/type checks when values are present
+            # Missing required checks
+            if required:
+                if where == "query" and name not in q:
+                    issues.append(
+                        {
+                            "loc": "query",
+                            "name": name,
+                            "message": "Missing required query parameter",
+                        }
+                    )
+                if where == "header" and name not in hdrs:
+                    issues.append(
+                        {
+                            "loc": "header",
+                            "name": name,
+                            "message": "Missing required header",
+                        }
+                    )
+            # Simple enum/type checks when values are present (even if optional)
             schema = p.get("schema") if isinstance(p.get("schema"), dict) else None
-            if schema and (
-                (where == "query" and name in q) or (where == "header" and name in hdrs)
-            ):
+            has_val = (where == "query" and name in q) or (
+                where == "header" and name in hdrs
+            )
+            if schema and has_val:
                 val = q.get(name) if where == "query" else hdrs.get(name)
                 if isinstance(schema.get("enum"), list) and val is not None:
                     allowed = [str(x) for x in schema["enum"]]

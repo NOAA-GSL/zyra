@@ -79,9 +79,8 @@ def register_cli(subparsers: Any) -> None:
         if getattr(args, "trace", False):
             os.environ["ZYRA_SHELL_TRACE"] = "1"
         configure_logging_from_env()
-        from zyra.processing import grib_decode
-        from zyra.processing.grib_utils import extract_metadata
-
+        # Read input bytes first so missing-file errors surface quickly without
+        # importing heavy GRIB dependencies. Only import decoders when needed.
         data = _read_bytes(args.file_or_url)
         import logging
 
@@ -91,6 +90,10 @@ def register_cli(subparsers: Any) -> None:
         if getattr(args, "raw", False):
             sys.stdout.buffer.write(data)
             return 0
+        # Lazy-import after successful read
+        from zyra.processing import grib_decode
+        from zyra.processing.grib_utils import extract_metadata
+
         decoded = grib_decode(data, backend=args.backend)
         meta = extract_metadata(decoded)
         logging.info(str(meta))

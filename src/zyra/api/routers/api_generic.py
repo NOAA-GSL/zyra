@@ -17,7 +17,7 @@ import tempfile
 from typing import Any
 
 import requests
-from fastapi import APIRouter, Body, File, HTTPException, UploadFile
+from fastapi import APIRouter, Body, File, HTTPException, Request, UploadFile
 from fastapi.responses import Response, StreamingResponse
 
 from zyra.api.schemas.domain_args import (
@@ -313,9 +313,7 @@ _PROCESS_FILE = File(None)
 
 
 @router.post("/process/api-json")
-def process_api_json(
-    req: ProcessApiJsonArgs = _PROCESS_BODY, file: UploadFile | None = _PROCESS_FILE
-):
+async def process_api_json(request: Request):
     """Transform JSON/NDJSON to CSV/JSONL using the CLI path under the hood.
 
     Accepts either an uploaded file or a request body that points to a file_or_url.
@@ -327,37 +325,74 @@ def process_api_json(
     args: dict[str, Any] = {}
     temp_path: str | None = None
     try:
-        if file is not None:
-            # Save upload to a temporary file
+        # Detect content type and parse accordingly
+        ct = (request.headers.get("content-type") or "").lower()
+        if ct.startswith("multipart/form-data"):
+            form = await request.form()
+            # File is required in multipart mode
+            up: UploadFile | None = form.get("file")  # type: ignore[assignment]
+            if up is None:
+                raise HTTPException(
+                    status_code=400, detail="Multipart upload requires 'file' field"
+                )
             with tempfile.NamedTemporaryFile(delete=False, suffix=".jsonl") as tmp:
                 temp_path = tmp.name
+                # Stream chunks from UploadFile
                 while True:
-                    chunk = file.file.read(1024 * 1024)
+                    chunk = await up.read(1024 * 1024)
                     if not chunk:
                         break
                     tmp.write(chunk)
             args["file_or_url"] = temp_path
-        elif req and req.file_or_url:
-            args["file_or_url"] = req.file_or_url
+            # Optional fields from form
+            if form.get("records_path"):
+                args["records_path"] = str(form.get("records_path"))
+            if form.get("fields"):
+                args["fields"] = str(form.get("fields"))
+            if form.get("flatten") is not None:
+                v = str(form.get("flatten")).strip().lower()
+                args["flatten"] = v in {"1", "true", "yes", "on"}
+            # explode may be repeated or comma-separated
+            if "explode" in form:
+                val = form.getlist("explode")  # type: ignore[attr-defined]
+                if not val:
+                    v = str(form.get("explode") or "")
+                    val = [p.strip() for p in v.split(",") if p.strip()]
+                args["explode"] = val
+            if form.get("derived"):
+                args["derived"] = str(form.get("derived"))
+            if form.get("format"):
+                args["format"] = str(form.get("format")).lower()
+            if form.get("preset"):
+                args["preset"] = str(form.get("preset"))
         else:
-            raise HTTPException(
-                status_code=400, detail="Provide file upload or file_or_url in body"
-            )
-
-        # Map options
-        if req:
-            if req.records_path:
-                args["records_path"] = req.records_path
-            if req.fields:
-                args["fields"] = req.fields
-            if req.flatten is not None:
-                args["flatten"] = bool(req.flatten)
-            if req.explode:
-                args["explode"] = list(req.explode)
-            if req.derived:
-                args["derived"] = req.derived
-            if req.format:
-                args["format"] = req.format
+            # Expect JSON body mapping to ProcessApiJsonArgs
+            try:
+                body = await request.json()
+            except Exception:
+                body = None
+            if not isinstance(body, dict):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Provide JSON body or multipart form with file",
+                )
+            # Validate and normalize via Pydantic schema
+            obj = ProcessApiJsonArgs(**body)
+            args["file_or_url"] = obj.file_or_url
+            if obj.records_path:
+                args["records_path"] = obj.records_path
+            if obj.fields:
+                args["fields"] = obj.fields
+            if obj.flatten is not None:
+                args["flatten"] = bool(obj.flatten)
+            if obj.explode:
+                args["explode"] = list(obj.explode)
+            if obj.derived:
+                args["derived"] = obj.derived
+            if obj.format:
+                args["format"] = obj.format
+            if obj.preset:
+                args["preset"] = obj.preset
 
         fmt = (args.get("format") or "csv").lower()
         cr = run_cli_endpoint(

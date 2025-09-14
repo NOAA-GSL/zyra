@@ -124,10 +124,15 @@ def test_mcp_calltool_invalid_params(monkeypatch, client_mcp: TestClient) -> Non
     assert js["error"].get("code") == -32602
 
 
-def test_mcp_calltool_async_job_lifecycle(tmp_path, monkeypatch) -> None:
+# TestClient already imported at top; no additional import here
+
+
+def test_mcp_calltool_async_job_lifecycle(
+    tmp_path, monkeypatch, client_mcp: TestClient
+) -> None:
     import time
 
-    client = _client_with_key(monkeypatch)
+    client = _client_with_key(monkeypatch, client_mcp)
     # Submit async job that will fail quickly (nonexistent input), to exercise lifecycle
     payload = {
         "jsonrpc": "2.0",
@@ -158,8 +163,8 @@ def test_mcp_calltool_async_job_lifecycle(tmp_path, monkeypatch) -> None:
         time.sleep(0.2)
 
 
-def test_mcp_method_not_found(monkeypatch) -> None:
-    client = _client_with_key(monkeypatch)
+def test_mcp_method_not_found(monkeypatch, client_mcp: TestClient) -> None:
+    client = _client_with_key(monkeypatch, client_mcp)
     r = client.post(
         "/v1/mcp",
         json={"jsonrpc": "2.0", "method": "nope", "id": 4},
@@ -170,8 +175,8 @@ def test_mcp_method_not_found(monkeypatch) -> None:
     assert js.get("error", {}).get("code") == -32601
 
 
-def test_mcp_invalid_jsonrpc_version(monkeypatch) -> None:
-    client = _client_with_key(monkeypatch)
+def test_mcp_invalid_jsonrpc_version(monkeypatch, client_mcp: TestClient) -> None:
+    client = _client_with_key(monkeypatch, client_mcp)
     r = client.post(
         "/v1/mcp",
         json={"jsonrpc": "1.0", "method": "statusReport", "id": 5},
@@ -182,8 +187,10 @@ def test_mcp_invalid_jsonrpc_version(monkeypatch) -> None:
     assert js.get("error", {}).get("code") == -32600
 
 
-def test_mcp_calltool_sync_execution_error(tmp_path, monkeypatch) -> None:
-    client = _client_with_key(monkeypatch)
+def test_mcp_calltool_sync_execution_error(
+    tmp_path, monkeypatch, client_mcp: TestClient
+) -> None:
+    client = _client_with_key(monkeypatch, client_mcp)
     payload = {
         "jsonrpc": "2.0",
         "method": "callTool",
@@ -201,8 +208,8 @@ def test_mcp_calltool_sync_execution_error(tmp_path, monkeypatch) -> None:
     assert "error" in js and js["error"].get("code") == -32000
 
 
-def test_mcp_status_report_has_version(monkeypatch) -> None:
-    client = _client_with_key(monkeypatch)
+def test_mcp_status_report_has_version(monkeypatch, client_mcp: TestClient) -> None:
+    client = _client_with_key(monkeypatch, client_mcp)
     r = client.post(
         "/v1/mcp",
         json={"jsonrpc": "2.0", "method": "statusReport", "id": 6},
@@ -215,8 +222,8 @@ def test_mcp_status_report_has_version(monkeypatch) -> None:
     assert isinstance(res.get("version"), str)
 
 
-def test_mcp_progress_sse(monkeypatch, tmp_path) -> None:
-    client = _client_with_key(monkeypatch)
+def test_mcp_progress_sse(monkeypatch, tmp_path, client_mcp: TestClient) -> None:
+    client = _client_with_key(monkeypatch, client_mcp)
     # Submit async job that will fail quickly
     payload = {
         "jsonrpc": "2.0",
