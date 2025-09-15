@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-name: DatavizHub CodeQL Configuration
+name: Zyra CodeQL Configuration
 disable-default-queries: false
 paths:
   - src
