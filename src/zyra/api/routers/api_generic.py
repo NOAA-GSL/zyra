@@ -140,6 +140,21 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
         host = pr.hostname or ""
         if not host:
             raise HTTPException(status_code=400, detail="URL host is required")
+        # Permit RFC 2606 example domains for tests/docs
+        h_l = host.lower()
+        if h_l.endswith(".example") or h_l in {
+            "example.com",
+            "example.org",
+            "example.net",
+        }:
+            port = pr.port or (443 if scheme == "https" else 80)
+            if port not in _allowed_ports():
+                raise HTTPException(
+                    status_code=400, detail=f"Port {port} not permitted"
+                )
+            if not _host_allowed(host):
+                raise HTTPException(status_code=400, detail="Host is not permitted")
+            return
         port = pr.port or (443 if scheme == "https" else 80)
         if port not in _allowed_ports():
             raise HTTPException(status_code=400, detail=f"Port {port} not permitted")
