@@ -76,10 +76,15 @@ def _iter_params(
 
 
 def find_operation(spec: dict[str, Any], url: str, method: str) -> OperationRef | None:
-    """Find the most specific operation matching URL path and method.
+    """Find the most specific operation matching the URL path and method.
 
-    Chooses the longest OpenAPI path that is a suffix of the request path and
-    exposes the given method.
+    Matching algorithm:
+    - Prefer segment-aware matches where the request path and spec path have the
+      same number of segments. Each literal segment match scores higher than a
+      template segment (e.g., ``{id}``). The candidate with the highest score
+      wins; ties are broken by longer path length.
+    - Fallback: when no segment-aware candidates exist, allow a simple suffix
+      match and pick the longest suffix that exposes the given method.
     """
     try:
         req_path = urlparse(url).path or "/"

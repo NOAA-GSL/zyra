@@ -13,8 +13,12 @@ import time
 from collections.abc import Iterator
 from functools import lru_cache
 from urllib.parse import urljoin, urlparse
+from zyra.utils.json_tools import get_by_path
 
-
+# Retry policy
+# - 429 (Too Many Requests): back off when rate limited (honor Retry-After when present)
+# - 500/502/503/504: transient server or gateway errors likely to succeed on retry
+# Retries use exponential backoff with optional floor from "Retry-After" header.
 RETRY_STATUS = {429, 500, 502, 503, 504}
 
 
@@ -227,16 +231,6 @@ def _json_loads(data: bytes) -> object:
         return json.loads(data.decode("utf-8"))
     except Exception:
         return None
-
-
-def get_by_path(obj: object, path: str) -> object:
-    cur = obj
-    for part in (path or "").split(".") if path else []:
-        if isinstance(cur, dict) and part in cur:
-            cur = cur[part]
-        else:
-            return None
-    return cur
 
 
 def paginate_cursor(

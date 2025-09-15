@@ -190,6 +190,28 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
                 out.pop(k, None)
         return out
 
+    # Shared request helper to avoid duplication across streaming and single-shot fallbacks
+    def _issue_request(
+        m: str,
+        u: str,
+        h: dict[str, str] | None,
+        p: dict[str, str] | None,
+        d: Any | None,
+        *,
+        stream: bool,
+    ):
+        payload = json.dumps(d).encode("utf-8") if isinstance(d, (dict, list)) else d
+        return requests.request(  # codeql[py/ssrf]
+            m,
+            u,
+            headers=_strip_hop_headers(h or {}),
+            params=p,
+            data=payload,
+            timeout=60,
+            stream=stream,
+            allow_redirects=False,
+        )
+
     headers = _strip_hop_headers(dict(req.headers or {}))
     params = dict(req.params or {})
     if req.accept and "Accept" not in headers:
@@ -369,23 +391,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
     # Streaming path
     if req.stream:
         # URL was validated earlier via `_validate_outbound_url(url)`
-        # Make sanitization explicit for static analyzers
-        safe_url = sanitized_url
-        # lgtm [py/ssrf]: using sanitized `safe_url`; hop headers stripped; redirects disabled.
-        r = requests.request(  # codeql[py/ssrf]
-            method,
-            safe_url,
-            headers=_strip_hop_headers(headers),
-            params=params,
-            data=(
-                json.dumps(data).encode("utf-8")
-                if isinstance(data, (dict, list))
-                else data
-            ),
-            timeout=60,
-            stream=True,
-            allow_redirects=False,
-        )
+        r = _issue_request(method, sanitized_url, headers, params, data, stream=True)
         if r.status_code >= 400:
             # Try to return upstream error text
             raise HTTPException(
@@ -445,21 +451,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
             exc_info=err,
         )
         # URL was validated earlier via `_validate_outbound_url(url)` at top
-        # lgtm [py/ssrf]: using sanitized `url`; hop headers stripped; redirects disabled.
-        r = requests.request(  # codeql[py/ssrf]
-            method,
-            sanitized_url,
-            headers=_strip_hop_headers(headers),
-            params=params,
-            data=(
-                json.dumps(data).encode("utf-8")
-                if isinstance(data, (dict, list))
-                else data
-            ),
-            timeout=60,
-            stream=False,
-            allow_redirects=False,
-        )
+        r = _issue_request(method, sanitized_url, headers, params, data, stream=False)
         if r.status_code >= 400:
             # Keep original stack context clear for HTTPException
             raise HTTPException(
@@ -482,21 +474,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
                 status_code=400, detail=str(err) or "Invalid request"
             ) from None
         # URL was validated earlier via `_validate_outbound_url(url)` at top
-        # lgtm [py/ssrf]: using sanitized `url`; hop headers stripped; redirects disabled.
-        r = requests.request(  # codeql[py/ssrf]
-            method,
-            sanitized_url,
-            headers=_strip_hop_headers(headers),
-            params=params,
-            data=(
-                json.dumps(data).encode("utf-8")
-                if isinstance(data, (dict, list))
-                else data
-            ),
-            timeout=60,
-            stream=False,
-            allow_redirects=False,
-        )
+        r = _issue_request(method, sanitized_url, headers, params, data, stream=False)
         if r.status_code >= 400:
             raise HTTPException(
                 status_code=r.status_code, detail=(r.text or "Upstream error")

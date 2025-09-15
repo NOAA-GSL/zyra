@@ -334,14 +334,7 @@ def register_cli(subparsers: Any) -> None:
         return 0
 
     # ---- api-json processor helpers ----
-    def _get_by_path(obj: Any, path: str) -> Any:
-        cur = obj
-        for part in (path or "").split(".") if path else []:
-            if isinstance(cur, dict) and part in cur:
-                cur = cur[part]
-            else:
-                return None
-        return cur
+    from zyra.utils.json_tools import get_by_path as _get_by_path
 
     def _flatten(obj: Any, prefix: str = "", out: dict | None = None) -> dict:
         out = out or {}
