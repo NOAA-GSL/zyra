@@ -24,3 +24,10 @@ extensions:
         input: Argument[6]
         provenance: manual
 
+      # Treat _normalize_and_validate_url as an SSRF sanitizer: its return value is safe
+      - tuple: sanitizerModel
+        package: zyra.api.routers.api_generic
+        name: _normalize_and_validate_url
+        kind: ssrf
+        output: ReturnValue
+        provenance: manual

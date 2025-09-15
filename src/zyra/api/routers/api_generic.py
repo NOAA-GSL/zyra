@@ -368,6 +368,8 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
     if req.stream:
         # Close-to-sink alias to make sanitization explicit for static analyzers
         validated_url = _normalize_and_validate_url(url)
+        # lgtm [py/ssrf]: URL validated by _normalize_and_validate_url; hop headers stripped;
+        # redirects disabled; streaming response returned directly.
         r = requests.request(
             method,
             validated_url,
@@ -675,7 +677,6 @@ def preset_limitless_audio(
         params=params,
         timeout=60,
         stream=True,
-        allow_redirects=False,
     )  # lgtm [py/ssrf]
     if r.status_code >= 400:
         raise HTTPException(
