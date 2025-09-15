@@ -38,8 +38,8 @@ FALLBACK_QUERY_PARAM_NAMES: tuple[str, ...] = ("q", "query")
 
 
 @lru_cache(maxsize=1)
-def _requests_mod():  # pragma: no cover - import depends on extras
-    """Thread-safe, lazy import of the requests module.
+def _get_requests_module():  # pragma: no cover - import depends on extras
+    """Thread-safe, lazy import of the ``requests`` module.
 
     Uses an LRU cache (with internal locking) to memoize the module and avoid
     a mutable global, while preserving testability (monkeypatch sys.modules).
@@ -77,7 +77,7 @@ def _get_requests():
             return mod  # type: ignore[return-value]
     except Exception:
         pass
-    return _requests_mod()
+    return _get_requests_module()
 
 
 def _ensure_requests() -> None:
@@ -89,7 +89,7 @@ def _ensure_requests() -> None:
     from contextlib import suppress
 
     with suppress(Exception):
-        _requests_mod()
+        _get_requests_module()
 
 
 @dataclass

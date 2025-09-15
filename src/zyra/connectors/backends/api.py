@@ -172,16 +172,9 @@ def request_once(
 
     requests = _get_requests()
     # Strip hop-by-hop headers to avoid header-based SSRF tricks
-    _h = dict(headers or {})
-    for k in list(_h.keys()):
-        if k.lower() in {
-            "host",
-            "x-forwarded-for",
-            "x-forwarded-host",
-            "x-real-ip",
-            "forwarded",
-        }:
-            _h.pop(k, None)
+    from zyra.utils.http import strip_hop_headers as _strip
+
+    _h = _strip(headers or {})
     # lgtm [py/ssrf]: URL has been validated against public networks,
     # allowed hosts/ports, credentials stripped, and redirects disabled above.
     resp = requests.request(  # codeql[py/ssrf]

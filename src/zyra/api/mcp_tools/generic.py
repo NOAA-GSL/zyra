@@ -157,16 +157,9 @@ def api_fetch(
             ) from None
 
     # Sanitize sensitive hop/host headers to avoid header-based SSRF tricks
-    hdrs = dict(headers or {})
-    for h in list(hdrs.keys()):
-        if str(h).lower() in {
-            "host",
-            "x-forwarded-for",
-            "x-forwarded-host",
-            "x-real-ip",
-            "forwarded",
-        }:
-            hdrs.pop(h, None)
+    from zyra.utils.http import strip_hop_headers as _strip
+
+    hdrs = _strip(headers or {})
 
     m = (method or "GET").upper()
     body = json.dumps(data).encode("utf-8") if isinstance(data, (dict, list)) else data
@@ -190,11 +183,23 @@ def api_fetch(
     name = _infer_filename(r.headers)
     safe_name = _P(name).name or "download.bin"
     candidate = (out_dir / safe_name).resolve()  # lgtm [py/path-injection]
+    # Validate containment under out_dir; prefer is_relative_to when available.
     try:
-        if not candidate.is_relative_to(out_dir):  # type: ignore[attr-defined]
+        try:
+            rel_ok = candidate.is_relative_to(out_dir)  # type: ignore[attr-defined]
+        except AttributeError:
+            # Fallback for environments without Path.is_relative_to
+            rel_ok = str(candidate).startswith(str(out_dir))
+        if not rel_ok:
             safe_name = "download.bin"
             candidate = (out_dir / safe_name).resolve()
-    except Exception:
+    except (OSError, ValueError) as exc:
+        # Log specific filesystem/path errors while falling back to a safe name
+        import logging as _logging
+
+        _logging.getLogger(__name__).warning(
+            "Path containment check failed for %s: %s", candidate, exc
+        )
         safe_name = "download.bin"
         candidate = (out_dir / safe_name).resolve()
     out = candidate

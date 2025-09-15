@@ -177,18 +177,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
         # Return original URL after validation (no mutation performed)
         return u
 
-    def _strip_hop_headers(h: dict[str, str]) -> dict[str, str]:
-        out = dict(h or {})
-        for k in list(out.keys()):
-            if k.lower() in {
-                "host",
-                "x-forwarded-for",
-                "x-forwarded-host",
-                "x-real-ip",
-                "forwarded",
-            }:
-                out.pop(k, None)
-        return out
+    from zyra.utils.http import strip_hop_headers as _strip_hop_headers
 
     # Shared request helper to avoid duplication across streaming and single-shot fallbacks
     def _issue_request(

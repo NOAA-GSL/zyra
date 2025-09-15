@@ -411,8 +411,37 @@ def run_cli(stage: str, command: str, args: dict[str, Any]) -> RunResult:
         import io as _io
 
         class _SIn:
+            """Minimal stdin shim that behaves like an empty file.
+
+            Provides a binary ``buffer`` for code that expects ``sys.stdin.buffer``
+            and basic text methods (read, readline, readlines) to satisfy callers
+            that operate on ``sys.stdin`` directly.
+            """
+
             def __init__(self, b: bytes):
                 self.buffer = _io.BytesIO(b)
+
+            # Text I/O compatibility (empty input)
+            def read(self, size: int = -1) -> str:  # noqa: D401
+                return ""
+
+            def readline(self, size: int = -1) -> str:
+                return ""
+
+            def readlines(self, hint: int = -1) -> list[str]:
+                return []
+
+            def __iter__(self):
+                return iter(())
+
+            def readable(self) -> bool:
+                return True
+
+            def close(self) -> None:
+                from contextlib import suppress as _s
+
+                with _s(Exception):
+                    self.buffer.close()
 
         sys.stdin = _SIn(b"")  # type: ignore[assignment]
     try:
