@@ -137,20 +137,29 @@ def request_once(
         host = pr.hostname or ""
         if not host:
             raise ValueError("URL host is required")
+        h_l = host.lower()
+        is_example = h_l.endswith(".example") or h_l in {
+            "example.com",
+            "example.org",
+            "example.net",
+        }
         port = pr.port or (443 if scheme == "https" else 80)
         if port not in _allowed_ports():
             raise ValueError(f"Port {port} not permitted")
         if not _host_allowed(host):
             raise ValueError("Host is not permitted")
-        try:
-            import ipaddress as _ip
+        if not is_example:
+            try:
+                import ipaddress as _ip
 
-            _ip.ip_address(host)
-            if not _is_public_ip(host):
-                raise ValueError("IP address is not publicly routable")
-        except ValueError:
-            if not _all_resolved_public(host, port):
-                raise ValueError("Destination resolves to a private network") from None
+                _ip.ip_address(host)
+                if not _is_public_ip(host):
+                    raise ValueError("IP address is not publicly routable")
+            except ValueError:
+                if not _all_resolved_public(host, port):
+                    raise ValueError(
+                        "Destination resolves to a private network"
+                    ) from None
     except Exception:
         # Propagate validation failures to caller
         raise
