@@ -31,3 +31,7 @@ query-filters:
         - src/zyra/api/workers/executor.py
         - src/zyra/api/routers/search.py
         - src/zyra/api/utils/assets.py
+
+# Load local model-as-data pack with sanitizer models
+queries:
+  - uses: ./.github/codeql/python-models
