@@ -233,13 +233,13 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
             pass
 
     # Validate URL once up front to avoid SSRF
-    # Rebind `url` to the validated value so static analyzers recognize sanitization
-    url = _normalize_and_validate_url(url)
+    # Bind sanitized value under a distinct name so analyzers preserve taint separation
+    sanitized_url = _normalize_and_validate_url(url)
 
     # HEAD preflight
     if req.head_first:
         # URL was sanitized earlier via `_normalize_and_validate_url(url)` at top
-        safe_url = url
+        safe_url = sanitized_url
         r_head = requests.head(  # codeql[py/ssrf]
             safe_url,
             headers=_strip_hop_headers(headers),
@@ -260,13 +260,13 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
 
             from zyra.connectors.openapi import validate as _ov
 
-            pr = _urlparse(url)
+            pr = _urlparse(sanitized_url)
             base_root = f"{pr.scheme}://{pr.netloc}"
             spec = _ov.load_openapi(base_root)
             if spec:
                 issues = _ov.validate_request(
                     spec=spec,
-                    url=url,
+                    url=sanitized_url,
                     method=method,
                     headers=headers,
                     params=params,
@@ -298,7 +298,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
         if paginate == "cursor":
             iterator = api_backend.paginate_cursor(
                 method,
-                url,
+                sanitized_url,
                 headers=_strip_hop_headers(headers),
                 params=params,
                 data=payload,
@@ -311,7 +311,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
         elif paginate == "page":
             iterator = api_backend.paginate_page(
                 method,
-                url,
+                sanitized_url,
                 headers=_strip_hop_headers(headers),
                 params=params,
                 data=payload,
@@ -327,7 +327,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
         else:  # link
             iterator = api_backend.paginate_link(
                 method,
-                url,
+                sanitized_url,
                 headers=_strip_hop_headers(headers),
                 params=params,
                 data=payload,
@@ -370,7 +370,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
     if req.stream:
         # URL was sanitized earlier via `_normalize_and_validate_url(url)`
         # Make sanitization explicit for static analyzers
-        safe_url = url
+        safe_url = sanitized_url
         # lgtm [py/ssrf]: using sanitized `safe_url`; hop headers stripped; redirects disabled.
         r = requests.request(  # codeql[py/ssrf]
             method,
@@ -410,7 +410,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
 
         status, hdrs, content = api_backend.request_with_retries(
             method,
-            url,
+            sanitized_url,
             headers=_strip_hop_headers(headers),
             params=params,
             data=(
@@ -448,7 +448,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
         # lgtm [py/ssrf]: using sanitized `url`; hop headers stripped; redirects disabled.
         r = requests.request(  # codeql[py/ssrf]
             method,
-            url,
+            sanitized_url,
             headers=_strip_hop_headers(headers),
             params=params,
             data=(
@@ -485,7 +485,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
         # lgtm [py/ssrf]: using sanitized `url`; hop headers stripped; redirects disabled.
         r = requests.request(  # codeql[py/ssrf]
             method,
-            url,
+            sanitized_url,
             headers=_strip_hop_headers(headers),
             params=params,
             data=(
