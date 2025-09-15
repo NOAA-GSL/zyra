@@ -238,10 +238,9 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
 
     # HEAD preflight
     if req.head_first:
-        # Close-to-sink alias to make sanitization explicit for static analyzers
-        vurl = _normalize_and_validate_url(url)
+        # URL was sanitized earlier via `_normalize_and_validate_url(url)` at top
         r_head = requests.head(
-            vurl,
+            url,
             headers=_strip_hop_headers(headers),
             params=params,
             allow_redirects=False,
