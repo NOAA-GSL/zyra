@@ -40,7 +40,7 @@ query-filters:
         - src/zyra/api/routers/api_generic.py
         - src/zyra/connectors/backends/api.py
 
-# Load local model-as-data pack with sanitizer models
 # Load the local model-as-data pack providing sanitizer models
 packs:
-  - ./.github/codeql/python-models
+  python:
+    - ./.github/codeql/python-models
