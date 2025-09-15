@@ -164,9 +164,7 @@ def request_once(
         # Propagate validation failures to caller
         raise
 
-    # Use an explicit alias after successful validation to make sanitization
-    # obvious to static analyzers and CodeQL.
-    safe_url = url
+    # URL has been validated above; use the validated `url` directly below.
 
     requests = _get_requests()
     # Strip hop-by-hop headers to avoid header-based SSRF tricks
@@ -184,7 +182,7 @@ def request_once(
     # allowed hosts/ports, credentials stripped, and redirects disabled above.
     resp = requests.request(  # codeql[py/ssrf]
         method.upper(),
-        safe_url,
+        url,
         headers=_h,
         params=params or {},
         data=data,

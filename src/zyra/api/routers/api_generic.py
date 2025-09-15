@@ -124,7 +124,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
         allow = _host_list("API_FETCH_ALLOW_HOSTS")
         return True if not allow else any(h.endswith(a) for a in allow)
 
-    def _normalize_and_validate_url(u: str) -> str:
+    def _validate_outbound_url(u: str) -> str:
         pr = urlparse(u)
         scheme = (pr.scheme or "").lower()
         if scheme not in {"http", "https"}:
@@ -234,11 +234,11 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
 
     # Validate URL once up front to avoid SSRF
     # Bind sanitized value under a distinct name so analyzers preserve taint separation
-    sanitized_url = _normalize_and_validate_url(url)
+    sanitized_url = _validate_outbound_url(url)
 
     # HEAD preflight
     if req.head_first:
-        # URL was sanitized earlier via `_normalize_and_validate_url(url)` at top
+        # URL was validated earlier via `_validate_outbound_url(url)` at top
         safe_url = sanitized_url
         r_head = requests.head(  # codeql[py/ssrf]
             safe_url,
@@ -368,7 +368,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
 
     # Streaming path
     if req.stream:
-        # URL was sanitized earlier via `_normalize_and_validate_url(url)`
+        # URL was validated earlier via `_validate_outbound_url(url)`
         # Make sanitization explicit for static analyzers
         safe_url = sanitized_url
         # lgtm [py/ssrf]: using sanitized `safe_url`; hop headers stripped; redirects disabled.
@@ -444,7 +444,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
             err,
             exc_info=err,
         )
-        # URL was sanitized earlier via `_normalize_and_validate_url(url)` at top
+        # URL was validated earlier via `_validate_outbound_url(url)` at top
         # lgtm [py/ssrf]: using sanitized `url`; hop headers stripped; redirects disabled.
         r = requests.request(  # codeql[py/ssrf]
             method,
@@ -481,7 +481,7 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
             raise HTTPException(
                 status_code=400, detail=str(err) or "Invalid request"
             ) from None
-        # URL was sanitized earlier via `_normalize_and_validate_url(url)` at top
+        # URL was validated earlier via `_validate_outbound_url(url)` at top
         # lgtm [py/ssrf]: using sanitized `url`; hop headers stripped; redirects disabled.
         r = requests.request(  # codeql[py/ssrf]
             method,

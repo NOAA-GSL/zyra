@@ -24,9 +24,26 @@ def iso_to_ms(s: str) -> int:
     return int(dt.timestamp() * 1000)
 
 
+# Supported duration subset: P[nD]T[nH][nM][nS]
+# Examples: PT30M, PT2H, PT1H30M, P1DT30M
+# Notes:
+# - The leading "P" is required
+# - The date part currently supports only days (D)
+# - The time part is introduced by "T" and supports hours (H), minutes (M), seconds (S)
+# - Each component is optional but at least one must be present overall
 _DUR_RX = re.compile(
-    r"^P(?:(?P<days>\d+)D)?(?:T(?:(?P<hours>\d+)H)?(?:(?P<minutes>\d+)M)?(?:(?P<seconds>\d+)S)?)?$",
-    re.IGNORECASE,
+    r"""
+    ^P                             # Duration designator
+    (?:(?P<days>\d+)D)?           # Optional days
+    (?:                            # Optional time part
+      T
+      (?:(?P<hours>\d+)H)?        # Optional hours
+      (?:(?P<minutes>\d+)M)?      # Optional minutes
+      (?:(?P<seconds>\d+)S)?      # Optional seconds
+    )?
+    $                             # End of string
+    """,
+    re.IGNORECASE | re.VERBOSE,
 )
 
 

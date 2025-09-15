@@ -156,10 +156,6 @@ def api_fetch(
                 "Destination resolves to a private or disallowed network"
             ) from None
 
-    # URL has passed SSRF validation above; keep a distinct alias to make
-    # the sanitized-to-sink flow explicit for static analyzers.
-    safe_url = url
-
     # Sanitize sensitive hop/host headers to avoid header-based SSRF tricks
     hdrs = dict(headers or {})
     for h in list(hdrs.keys()):
@@ -180,7 +176,7 @@ def api_fetch(
 
     r = requests.request(  # codeql[py/ssrf]
         m,
-        safe_url,
+        url,
         headers=hdrs,
         params=params or {},
         data=body,
