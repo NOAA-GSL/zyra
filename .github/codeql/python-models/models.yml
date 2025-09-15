@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: Apache-2.0
+extensions:
+  - addsTo:
+      pack: codeql/python-all
+    data:
+      # Treat validated output_dir parameters as sanitizers for path injection
+      # in MCP tool helpers that re-anchor under DATA_DIR and enforce containment.
+      - tuple: sanitizerModel
+        package: zyra.api.mcp_tools.generic
+        name: api_fetch
+        kind: path-injection
+        input: Argument[5]
+        provenance: manual
+      - tuple: sanitizerModel
+        package: zyra.api.mcp_tools.generic
+        name: api_process_json
+        kind: path-injection
+        input: Argument[7]
+        provenance: manual
+      - tuple: sanitizerModel
+        package: zyra.api.mcp_tools.audio
+        name: download_audio
+        kind: path-injection
+        input: Argument[6]
+        provenance: manual
+
+      # Treat _normalize_and_validate_url as an SSRF sanitizer: its return value is safe
+      - tuple: sanitizerModel
+        package: zyra.api.routers.api_generic
+        name: _normalize_and_validate_url
+        kind: ssrf
+        output: ReturnValue
+        provenance: manual
+
+      # Backends: treat url argument as sanitized within helper that enforces SSRF policy
+      - tuple: sanitizerModel
+        package: zyra.connectors.backends.api
+        name: request_once
+        kind: ssrf
+        input: Argument[1]
+        provenance: manual
+      - tuple: sanitizerModel
+        package: zyra.connectors.backends.api
+        name: request_with_retries
+        kind: ssrf
+        input: Argument[1]
+        provenance: manual
