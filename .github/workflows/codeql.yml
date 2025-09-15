@@ -33,7 +33,6 @@ jobs:
         with:
           languages: python
           config-file: ./.github/codeql/codeql-config.yml
-          packs: ./.github/codeql/python-models
 
       # For pure Python, no build is necessary. If you later add native code
       # or need dependency installation for better analysis, add steps here.
