@@ -238,13 +238,15 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
 
     # HEAD preflight
     if req.head_first:
+        # Close-to-sink alias to make sanitization explicit for static analyzers
+        vurl = _normalize_and_validate_url(url)
         r_head = requests.head(
-            url,
+            vurl,
             headers=_strip_hop_headers(headers),
             params=params,
             allow_redirects=False,
             timeout=60,
-        )
+        )  # lgtm [py/ssrf]
         ct = r_head.headers.get("Content-Type")
         if req.expect_content_type and (not ct or req.expect_content_type not in ct):
             raise HTTPException(
@@ -366,13 +368,11 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
 
     # Streaming path
     if req.stream:
-        # Close-to-sink alias to make sanitization explicit for static analyzers
-        validated_url = _normalize_and_validate_url(url)
-        # lgtm [py/ssrf]: URL validated by _normalize_and_validate_url; hop headers stripped;
-        # redirects disabled; streaming response returned directly.
+        # URL was sanitized earlier via `_normalize_and_validate_url(url)`
+        # lgtm [py/ssrf]: using sanitized `url`; hop headers stripped; redirects disabled.
         r = requests.request(
             method,
-            validated_url,
+            url,
             headers=_strip_hop_headers(headers),
             params=params,
             data=(
@@ -442,13 +442,11 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
             err,
             exc_info=err,
         )
-        # Close-to-sink alias to make sanitization explicit for static analyzers
-        validated_url = _normalize_and_validate_url(url)
-        # lgtm [py/ssrf]: URL validated by _normalize_and_validate_url and hop headers stripped;
-        # redirects disabled and request is non-streaming.
+        # URL was sanitized earlier via `_normalize_and_validate_url(url)` at top
+        # lgtm [py/ssrf]: using sanitized `url`; hop headers stripped; redirects disabled.
         r = requests.request(
             method,
-            validated_url,
+            url,
             headers=_strip_hop_headers(headers),
             params=params,
             data=(
@@ -481,13 +479,11 @@ def acquire_api(req: AcquireApiArgs = _ACQUIRE_BODY):
             raise HTTPException(
                 status_code=400, detail=str(err) or "Invalid request"
             ) from None
-        # Close-to-sink alias to make sanitization explicit for static analyzers
-        validated_url = _normalize_and_validate_url(url)
-        # lgtm [py/ssrf]: URL validated by _normalize_and_validate_url and hop headers stripped;
-        # redirects disabled and request is non-streaming.
+        # URL was sanitized earlier via `_normalize_and_validate_url(url)` at top
+        # lgtm [py/ssrf]: using sanitized `url`; hop headers stripped; redirects disabled.
         r = requests.request(
             method,
-            validated_url,
+            url,
             headers=_strip_hop_headers(headers),
             params=params,
             data=(
