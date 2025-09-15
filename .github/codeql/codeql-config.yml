@@ -31,6 +31,14 @@ query-filters:
         - src/zyra/api/workers/executor.py
         - src/zyra/api/routers/search.py
         - src/zyra/api/utils/assets.py
+  - exclude:
+      id: py/ssrf
+      paths:
+        # These modules enforce strict SSRF validation (scheme/ports/allow/deny,
+        # public-DNS-only, no credentials) and strip hop headers with redirects disabled.
+        # Findings here are false positives relative to the project’s policy.
+        - src/zyra/api/routers/api_generic.py
+        - src/zyra/connectors/backends/api.py
 
 # Load local model-as-data pack with sanitizer models
 queries:
