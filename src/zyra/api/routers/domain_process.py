@@ -16,6 +16,9 @@ from pydantic import ValidationError
 from zyra.api.models.cli_request import CLIRunRequest
 from zyra.api.models.domain_api import (
     DomainRunResponse,
+    ProcessApiJsonRun,
+    ProcessAudioMetadataRun,
+    ProcessAudioTranscodeRun,
     ProcessConvertFormatRun,
     ProcessDecodeGrib2Run,
     ProcessExtractVariableRun,
@@ -35,6 +38,9 @@ ProcessRequest = Annotated[
         ProcessDecodeGrib2Run,
         ProcessExtractVariableRun,
         ProcessConvertFormatRun,
+        ProcessApiJsonRun,
+        ProcessAudioTranscodeRun,
+        ProcessAudioMetadataRun,
     ],
     Body(discriminator="tool"),
 ]

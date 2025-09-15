@@ -67,10 +67,20 @@ async def _forward_progress_to_ws(
                         data = json.loads(msg)
                     except Exception:
                         continue
+                    params = {"job_id": job_id}
+                    if isinstance(data, dict):
+                        params.update(data)
+                        # Derive terminal status from exit_code when not provided
+                        if "status" not in params and "exit_code" in data:
+                            try:
+                                ec = int(data.get("exit_code"))
+                                params["status"] = "succeeded" if ec == 0 else "failed"
+                            except Exception:
+                                pass
                     notify = {
                         "jsonrpc": "2.0",
                         "method": "notifications/progress",
-                        "params": {"job_id": job_id, **data},
+                        "params": params,
                     }
                     await websocket.send_text(json.dumps(notify))
             finally:

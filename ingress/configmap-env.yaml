@@ -15,4 +15,4 @@ data:
   # Optional: tune results cleanup/TTL (seconds)
   # RESULTS_TTL_SECONDS: "86400"
   # RESULTS_CLEAN_INTERVAL_SECONDS: "3600"
-
+  API_ROOT_PATH: "/zyra"

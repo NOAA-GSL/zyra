@@ -238,6 +238,7 @@ def _args_dict_to_argv(stage: str, command: str, args: dict[str, Any]) -> list[s
         ("process", "decode-grib2"): ["file_or_url"],
         ("process", "extract-variable"): ["file_or_url", "pattern"],
         ("process", "convert-format"): ["file_or_url", "format"],
+        ("process", "api-json"): ["file_or_url"],
         ("acquire", "http"): ["url"],
         ("acquire", "ftp"): ["path"],
         ("decimate", "local"): [],  # uses --input and positional path
@@ -363,6 +364,25 @@ def run_cli(stage: str, command: str, args: dict[str, Any]) -> RunResult:
     stdout_cap = _StdCapture()
     stderr_cap = _StdCapture()
     old_out, old_err = sys.stdout, sys.stderr
+    # Best-effort: avoid blocking on stdin when commands expect '-' and no input is provided.
+    # Specifically handles 'decimate local --input - <path>' which otherwise reads from real stdin.
+    old_in = sys.stdin
+    use_empty_stdin = False
+    try:
+        if (
+            len(argv) >= 2
+            and argv[0] == "decimate"
+            and argv[1] == "local"
+            and "--input" in argv
+        ):
+            try:
+                i = argv.index("--input")
+                if i + 1 < len(argv) and argv[i + 1] == "-":
+                    use_empty_stdin = True
+            except ValueError:
+                pass
+    except Exception:
+        use_empty_stdin = False
     # Establish a stable working directory for relative outputs
     old_cwd = Path.cwd()
     # Default defensively; override from env if available
@@ -387,6 +407,43 @@ def run_cli(stage: str, command: str, args: dict[str, Any]) -> RunResult:
             e,
         )
     sys.stdout, sys.stderr = stdout_cap, stderr_cap
+    if use_empty_stdin:
+        import io as _io
+
+        class _SIn:
+            """Minimal stdin shim that behaves like an empty file.
+
+            Provides a binary ``buffer`` for code that expects ``sys.stdin.buffer``
+            and basic text methods (read, readline, readlines) to satisfy callers
+            that operate on ``sys.stdin`` directly.
+            """
+
+            def __init__(self, b: bytes):
+                self.buffer = _io.BytesIO(b)
+
+            # Text I/O compatibility (empty input)
+            def read(self, size: int = -1) -> str:  # noqa: D401
+                return ""
+
+            def readline(self, size: int = -1) -> str:
+                return ""
+
+            def readlines(self, hint: int = -1) -> list[str]:
+                return []
+
+            def __iter__(self):
+                return iter(())
+
+            def readable(self) -> bool:
+                return True
+
+            def close(self) -> None:
+                from contextlib import suppress as _s
+
+                with _s(Exception):
+                    self.buffer.close()
+
+        sys.stdin = _SIn(b"")  # type: ignore[assignment]
     try:
         code = 0
         try:
@@ -398,6 +455,12 @@ def run_cli(stage: str, command: str, args: dict[str, Any]) -> RunResult:
             # Many CLI funcs raise SystemExit; extract code
             code = int(getattr(exc, "code", 1) or 0)
         except Exception as exc:  # pragma: no cover
+            # Log full traceback for visibility; still capture stderr for response mapping
+            import logging as _logging
+
+            _logging.getLogger(__name__).exception(
+                "Unhandled exception running CLI: %s", " ".join(argv)
+            )
             print(str(exc), file=sys.stderr)
             code = 1
         # Guard against steps that close sys.stdout/sys.stderr buffers
@@ -430,6 +493,8 @@ def run_cli(stage: str, command: str, args: dict[str, Any]) -> RunResult:
     finally:
         # Restore stdio
         sys.stdout, sys.stderr = old_out, old_err
+        with contextlib.suppress(Exception):
+            sys.stdin = old_in
         # Restore working directory
         from contextlib import suppress as _suppress
 

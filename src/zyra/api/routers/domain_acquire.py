@@ -21,6 +21,7 @@ from pydantic import ValidationError
 
 from zyra.api.models.cli_request import CLIRunRequest
 from zyra.api.models.domain_api import (
+    AcquireApiRun,
     AcquireFtpRun,
     AcquireHttpRun,
     AcquireS3Run,
@@ -36,7 +37,7 @@ router = APIRouter(tags=["acquire"], prefix="")
 
 
 AcquireRequest = Annotated[
-    Union[AcquireHttpRun, AcquireS3Run, AcquireFtpRun],
+    Union[AcquireHttpRun, AcquireS3Run, AcquireFtpRun, AcquireApiRun],
     Body(discriminator="tool"),
 ]
 
