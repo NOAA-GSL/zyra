@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-name: DatavizHub CodeQL Configuration
+name: Zyra CodeQL Configuration
 disable-default-queries: false
 paths:
   - src
@@ -16,6 +16,8 @@ paths-ignore:
   # These files enforce strict SSRF validation and have inline suppressions; see repo discussion.
   - src/zyra/api/routers/api_generic.py
   - src/zyra/connectors/backends/api.py
+  - src/zyra/api/routers/mcp.py
+  - src/zyra/api/mcp_tools/generic.py
 
 # Narrow filters for noisy queries on vetted, hardened paths
 query-filters:
@@ -43,8 +45,6 @@ query-filters:
         # Findings here are false positives relative to the project’s policy.
         - src/zyra/api/routers/api_generic.py
         - src/zyra/connectors/backends/api.py
-        - src/zyra/api/routers/mcp.py
-        - src/zyra/api/mcp_tools/generic.py
 
 # Load local model-as-data pack with sanitizer models
 # Load the local model-as-data pack providing sanitizer models
