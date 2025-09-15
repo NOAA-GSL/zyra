@@ -35,3 +35,7 @@ query-filters:
 # Load local model-as-data pack with sanitizer models
 queries:
   - uses: ./.github/codeql/python-models
+
+# Also load the local model-as-data pack via packs directive (supported for dataExtensions)
+packs:
+  - ./.github/codeql/python-models

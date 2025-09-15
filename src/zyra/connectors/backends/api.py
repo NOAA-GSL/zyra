@@ -182,7 +182,7 @@ def request_once(
             _h.pop(k, None)
     # lgtm [py/ssrf]: URL has been validated against public networks,
     # allowed hosts/ports, credentials stripped, and redirects disabled above.
-    resp = requests.request(
+    resp = requests.request(  # codeql[py/ssrf]
         method.upper(),
         safe_url,
         headers=_h,
