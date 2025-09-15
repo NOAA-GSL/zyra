@@ -51,8 +51,14 @@ def api_fetch(
     # Resolve base data dir and ensure caller-provided output_dir stays within it
     base = env_path("DATA_DIR", "_work").resolve()
     subdir = output_dir or "downloads"
+    # Pre-sanitize: forbid absolute paths and traversal parts before joining
+    sd = Path(subdir)
+    if sd.is_absolute() or any(part in {"", ".", ".."} for part in sd.parts):
+        raise ValueError("Invalid output_dir: must be a relative subdirectory")
     try:
-        candidate_dir = (base / subdir).resolve()
+        candidate_dir = (
+            base / sd
+        ).resolve()  # lgtm [py/path-injection] [py/uncontrolled-data-in-path-expression]
         if not candidate_dir.is_relative_to(base):  # type: ignore[attr-defined]
             raise ValueError("Invalid output_dir: must be a subdirectory of DATA_DIR")
     except Exception as exc:
@@ -183,7 +189,7 @@ def api_fetch(
     ct = r.headers.get("Content-Type") or "application/octet-stream"
     name = _infer_filename(r.headers)
     safe_name = _P(name).name or "download.bin"
-    candidate = (out_dir / safe_name).resolve()
+    candidate = (out_dir / safe_name).resolve()  # lgtm [py/path-injection]
     try:
         if not candidate.is_relative_to(out_dir):  # type: ignore[attr-defined]
             safe_name = "download.bin"
@@ -245,7 +251,7 @@ def api_process_json(
     safe_default = "output.jsonl" if fmt == "jsonl" else "output.csv"
     name_raw = output_name or safe_default
     name = Path(name_raw).name or safe_default
-    out_path = (out_dir / name).resolve()
+    out_path = (out_dir / name).resolve()  # lgtm [py/path-injection]
     try:
         if not out_path.is_relative_to(out_dir):  # type: ignore[attr-defined]
             name = safe_default

@@ -79,9 +79,15 @@ def download_audio(
 
     base_dir = env_path("DATA_DIR", "_work").resolve()
     subdir = output_dir or "downloads"
+    # Reject absolute paths and traversal segments before joining
+    sd = Path(subdir)
+    if sd.is_absolute() or any(part in {"", ".", ".."} for part in sd.parts):
+        raise ValueError("Invalid output_dir: must be a relative subdirectory")
     # Construct candidate and ensure it does not escape base_dir (no absolute paths / traversal)
     try:
-        candidate = (base_dir / subdir).resolve()
+        candidate = (
+            base_dir / sd
+        ).resolve()  # lgtm [py/path-injection] [py/uncontrolled-data-in-path-expression]
         # Python 3.10: Path.is_relative_to exists
         if not candidate.is_relative_to(base_dir):  # type: ignore[attr-defined]
             raise ValueError("Invalid output_dir: must be a subdirectory of DATA_DIR")
@@ -90,7 +96,10 @@ def download_audio(
             "Invalid output_dir: must be a subdirectory of DATA_DIR"
         ) from exc
     out_dir: Path = candidate
-    out_dir.mkdir(parents=True, exist_ok=True)
+    # Directory is under DATA_DIR after explicit sanitize + resolve + containment check
+    out_dir.mkdir(
+        parents=True, exist_ok=True
+    )  # lgtm [py/path-injection] [py/uncontrolled-data-in-path-expression]
 
     if profile.lower() != "limitless":
         raise ValueError("Unsupported profile; only 'limitless' is implemented")
