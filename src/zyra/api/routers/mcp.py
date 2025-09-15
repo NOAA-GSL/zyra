@@ -484,8 +484,86 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
                 try:
                     from zyra.api.mcp_tools.generic import api_fetch as _api_fetch
 
-                    res = _api_fetch(
-                        url=str(arguments.get("url") or args.get("url")),
+                    # Pre-sanitize URL at router level to make SSRF validation
+                    # explicit to static analyzers before calling the tool.
+                    def _normalize_and_validate_url(u: str) -> str:
+                        import ipaddress as _ip
+                        import socket as _socket
+                        from urllib.parse import urlparse as _urlparse
+
+                        from zyra.utils.env import env as _env
+                        from zyra.utils.env import env_bool as _env_bool
+
+                        pr = _urlparse(u)
+                        scheme = (pr.scheme or "").lower()
+                        if scheme not in {"http", "https"}:
+                            raise ValueError("Only http/https URLs are allowed")
+                        if (
+                            bool(_env_bool("MCP_FETCH_HTTPS_ONLY", True))
+                            and scheme != "https"
+                        ):
+                            raise ValueError("HTTPS is required for outbound fetches")
+                        if pr.username or pr.password:
+                            raise ValueError("Credentials in URL are not allowed")
+                        host = pr.hostname or ""
+                        if not host:
+                            raise ValueError("URL host is required")
+                        port = pr.port or (443 if scheme == "https" else 80)
+                        raw = (_env("MCP_FETCH_ALLOW_PORTS") or "80,443").strip()
+                        try:
+                            allowed = {
+                                int(p.strip()) for p in raw.split(",") if p.strip()
+                            }
+                        except Exception:
+                            allowed = {80, 443}
+                        if port not in (allowed or {80, 443}):
+                            raise ValueError(f"Port {port} not permitted")
+                        try:
+                            # If literal IP, must be public
+                            _ip.ip_address(host)
+                            ip_lit = True
+                        except Exception:
+                            ip_lit = False
+
+                        def _is_public(ip_str: str) -> bool:
+                            try:
+                                ip = _ip.ip_address(ip_str)
+                                return not (
+                                    ip.is_private
+                                    or ip.is_loopback
+                                    or ip.is_link_local
+                                    or ip.is_multicast
+                                    or ip.is_reserved
+                                    or ip.is_unspecified
+                                ) and not (
+                                    ip.version == 4
+                                    and ip.exploded.startswith("169.254.169.254")
+                                )
+                            except Exception:
+                                return False
+
+                        if ip_lit:
+                            if not _is_public(host):
+                                raise ValueError("IP address is not publicly routable")
+                        else:
+                            try:
+                                infos = _socket.getaddrinfo(
+                                    host, port or 0, proto=_socket.IPPROTO_TCP
+                                )
+                                addrs = {str(s[4][0]) for s in infos if len(s) >= 5}
+                                if not addrs or not all(_is_public(a) for a in addrs):
+                                    raise ValueError(
+                                        "Destination resolves to a private or disallowed network"
+                                    )
+                            except Exception as exc:
+                                raise ValueError("DNS resolution failed") from exc
+                        return u
+
+                    raw_url = str(arguments.get("url") or args.get("url"))
+                    sanitized_url = _normalize_and_validate_url(raw_url)
+
+                    res = _api_fetch(  # codeql[py/ssrf]
+                        url=sanitized_url,
                         method=(arguments.get("method") or args.get("method")),
                         headers=(arguments.get("headers") or args.get("headers")),
                         params=(arguments.get("params") or args.get("params")),
