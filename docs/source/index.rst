@@ -56,6 +56,7 @@ Contents
    ../../src/zyra/api/mcp_tools/README
    ../../src/zyra/visualization/README
    ../../src/zyra/transform/README
+   ../../src/zyra/narrate/README
 
 .. toctree::
    :maxdepth: 2
@@ -66,6 +67,7 @@ Contents
    stages_overview
    domain_apis
    mcp
+   guides/narrate_swarm_quickstart
 
 .. toctree::
    :maxdepth: 2

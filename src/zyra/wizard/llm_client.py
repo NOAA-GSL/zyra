@@ -50,7 +50,7 @@ class LLMClient:
     model: str | None = None
 
     def generate(
-        self, system_prompt: str, user_prompt: str
+        self, system_prompt: str, user_prompt: str, images: list[str] | None = None
     ) -> str:  # pragma: no cover - thin wrapper
         raise NotImplementedError
 
@@ -91,7 +91,7 @@ class OpenAIClient(LLMClient):
         return self._session
 
     def generate(
-        self, system_prompt: str, user_prompt: str
+        self, system_prompt: str, user_prompt: str, images: list[str] | None = None
     ) -> str:  # pragma: no cover - network optional
         import json
         from json import JSONDecodeError
@@ -102,12 +102,29 @@ class OpenAIClient(LLMClient):
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json",
             }
+
+            # Content blocks for multimodal: text + optional image data URLs
+            def _content_blocks(txt: str, imgs: list[str] | None) -> list[dict]:
+                blocks: list[dict] = [{"type": "text", "text": txt}]
+                for b64 in imgs or []:
+                    blocks.append(
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/*;base64,{b64}"},
+                        }
+                    )
+                return blocks
+
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": _content_blocks(user_prompt, images),
+                },
+            ]
             payload = {
                 "model": self.model,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
+                "messages": messages,
                 "temperature": 0.2,
             }
             sess = self._get_session()
@@ -136,7 +153,7 @@ class OpenAIClient(LLMClient):
             # Avoid exposing exception details; provide generic hint and fallback to mock
             return (
                 "# OpenAI error: fallback response used\n"
-                + _get_mock_singleton().generate(system_prompt, user_prompt)
+                + _get_mock_singleton().generate(system_prompt, user_prompt, images)
             )
 
 
@@ -173,14 +190,14 @@ class OllamaClient(LLMClient):
         return self._session
 
     def generate(
-        self, system_prompt: str, user_prompt: str
+        self, system_prompt: str, user_prompt: str, images: list[str] | None = None
     ) -> str:  # pragma: no cover - network optional
         import json
         from json import JSONDecodeError
 
         try:
             url = f"{self.base_url}/api/chat"
-            payload = {
+            payload: dict = {
                 "model": self.model,
                 "messages": [
                     {"role": "system", "content": system_prompt},
@@ -188,6 +205,9 @@ class OllamaClient(LLMClient):
                 ],
                 "stream": False,
             }
+            # Ollama multimodal: attach images as base64 strings when provided
+            if images:
+                payload["images"] = images
             sess = self._get_session()
             if sess is None:
                 import requests  # type: ignore
@@ -217,7 +237,7 @@ class OllamaClient(LLMClient):
                 hint_text = "\n# " + "\n# ".join(hints)
             return (
                 f"# Ollama error: fallback response used{hint_text}\n"
-                + _get_mock_singleton().generate(system_prompt, user_prompt)
+                + _get_mock_singleton().generate(system_prompt, user_prompt, images)
             )
 
 
@@ -228,7 +248,9 @@ class MockClient(LLMClient):
         # Ensure dataclass field 'name' is initialized correctly
         super().__init__(name=self.name, model=None)
 
-    def generate(self, system_prompt: str, user_prompt: str) -> str:
+    def generate(
+        self, system_prompt: str, user_prompt: str, images: list[str] | None = None
+    ) -> str:
         q = user_prompt.lower()
         # Very small heuristic to return plausible commands
         if "subset" in q and ("hrrr" in q or "colorado" in q):

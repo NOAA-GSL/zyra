@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+agents: [summary, context, critic, editor, style_adapter]
+audiences: [kids, policy, scientific, media, educators]
+style: journalistic
+max_rounds: 3
+graph:
+  - from: [summary, context]
+    to: [critic]
+  - from: [critic]
+    to: [editor]

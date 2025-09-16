@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+agents: [summary, context, critic, editor]
+audiences: []
+style: journalistic
+max_rounds: 1

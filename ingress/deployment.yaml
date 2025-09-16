@@ -56,11 +56,11 @@ spec:
             failureThreshold: 3
           resources:
             limits:
-              cpu: '1'
-              memory: 128Mi
+              cpu: '4'
+              memory: 24576Mi
             requests:
               cpu: '1'
-              memory: 128Mi
+              memory: 2048Mi
           securityContext:
             allowPrivilegeEscalation: false
             privileged: false
