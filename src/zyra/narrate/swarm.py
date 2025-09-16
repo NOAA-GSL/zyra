@@ -372,6 +372,13 @@ class SwarmOrchestrator:
         if not self.agents:
             return outputs
 
+        # If any dependencies are declared, prefer DAG execution (critic/editor
+        # agents will be skipped when prerequisites fail). This aligns with tests
+        # expecting unmet deps to block dependents.
+        if any(a.spec.depends_on for a in self.agents):
+            outputs.update(await self._execute_dag(context))
+            return outputs
+
         normal_agents = [
             a for a in self.agents if a.spec.role not in {"critic", "editor"}
         ]

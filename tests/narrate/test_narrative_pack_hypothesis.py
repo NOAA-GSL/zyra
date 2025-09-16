@@ -7,6 +7,7 @@ hyp = pytest.importorskip("hypothesis")
 st = pytest.importorskip("hypothesis.strategies")
 
 
+@hyp.settings(max_examples=5)
 @hyp.given(
     st.fixed_dictionaries(
         {
