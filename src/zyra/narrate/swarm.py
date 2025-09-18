@@ -379,21 +379,15 @@ class SwarmOrchestrator:
             outputs.update(await self._execute_dag(context))
             return outputs
 
-        normal_agents = [
-            a for a in self.agents if a.spec.role not in {"critic", "editor"}
-        ]
         review_agents = [a for a in self.agents if a.spec.role in {"critic", "editor"}]
 
-        if normal_agents:
-            # Run non-review agents first (ignore DAG for simplicity here)
-            outputs.update(await self._run_round(normal_agents, context))
-        else:
-            # No non-review agents; run whatever is present
-            outputs.update(await self._run_round(self.agents, context))
+        # Round 1: run all agents once
+        outputs.update(await self._run_round(self.agents, context))
 
-        # Review rounds: run critic/editor R times where R=max_rounds
+        # Subsequent rounds: run only critic/editor agents (rounds - 1 times)
         rounds = max(0, int(self.max_rounds or 0))
-        for _ in range(rounds):
+        extra = max(0, rounds - 1)
+        for _ in range(extra):
             if not review_agents:
                 break
             outputs.update(await self._run_round(review_agents, context))
