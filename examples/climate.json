@@ -1,0 +1,48 @@
+{
+  "title": "Climate Change Indicators with Visuals",
+  "description": "Key climate data and imagery from recent years, combining CO₂ trends, temperature anomalies, sea level rise, and extreme events.",
+  "data": {
+    "temperature_anomalies_c": [
+      {"year": 2020, "value": 1.02},
+      {"year": 2021, "value": 0.95},
+      {"year": 2022, "value": 1.10}
+    ],
+    "co2_ppm": [
+      {"year": 2020, "value": 414.2},
+      {"year": 2021, "value": 416.5},
+      {"year": 2022, "value": 419.0},
+      {"year": 2023, "value": 421.2},
+      {"year": 2024, "value": 423.5}
+    ],
+    "sea_level_rise_mm": [
+      {"year": 2020, "value": 91.3},
+      {"year": 2021, "value": 92.5},
+      {"year": 2022, "value": 93.8},
+      {"year": 2023, "value": 95.1}
+    ],
+    "extreme_events": [
+      {"year": 2020, "wildfires": "Australia, US West Coast", "economic_loss_billion_usd": 20},
+      {"year": 2021, "hurricanes": "Ida, Elsa", "economic_loss_billion_usd": 65},
+      {"year": 2022, "heatwaves": "Europe, South Asia", "deaths": 15000}
+    ]
+  },
+  "narrative": "From 2020 to 2024, the planet has seen continued rises in atmospheric CO₂, persistent global temperature anomalies, steady sea level rise, and increasingly damaging extreme events. The data and images together provide a stark illustration of the urgency of climate action.",
+  "key_findings": [
+    "Atmospheric CO₂ rose from 414 ppm in 2020 to 423 ppm in 2024.",
+    "2022 showed a global average temperature anomaly of +1.1 °C.",
+    "Sea levels have risen over 95 mm compared to baseline, reflecting long-term global trends.",
+    "Wildfires in 2020 and deadly heatwaves in 2022 highlight the societal impacts of climate change."
+  ],
+  "images": [
+    {"label": "Atmospheric CO₂ Concentrations (2020–Present)", "path": "co2_curve.png"},
+    {"label": "Global Temperature Anomaly (2022) This data visualization shows the 2022 global surface temperature anomaly compared with the 1951-1980 average.", "path": "temp_anomaly_2022.png"},
+    {"label": "Global Wildfire Activity (2020) This still image shows the cumulative FRP over the year 2020, summing the 375 m resolution data into one-quarter degree bins, in a Robinson projection.", "path": "wildfires_2020.png"},
+    {"label": "Global Mean Sea Level Rise", "path": "sea_level.jpg"}
+  ],
+  "sources": [
+    "NOAA ESRL CO₂ records",
+    "NASA GISTEMP",
+    "NOAA  NESDIS  STAR Laboratory for Satellite Altimetry",
+    "NASA Earth Observatory"
+  ]
+}

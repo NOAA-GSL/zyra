@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+agents: [summary, context, critic, editor]
+audiences: [scientific]
+style: technical
+max_rounds: 2

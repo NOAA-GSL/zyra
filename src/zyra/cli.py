@@ -1071,6 +1071,13 @@ def main(argv: list[str] | None = None) -> int:
     else:
         os.environ.setdefault("ZYRA_VERBOSITY", "info")
         os.environ.setdefault("DATAVIZHUB_VERBOSITY", "info")
+    # Configure logging based on env verbosity (idempotent)
+    try:
+        from zyra.utils.cli_helpers import configure_logging_from_env as _cfg_log
+
+        _cfg_log(default=os.environ.get("ZYRA_VERBOSITY", "info"))
+    except Exception:
+        pass
     return args.func(args)
 
 
