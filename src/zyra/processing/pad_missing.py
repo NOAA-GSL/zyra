@@ -15,7 +15,7 @@ import logging
 import re
 from collections import Counter
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Sequence
 
@@ -382,6 +382,20 @@ def _write_json_report(path: str, payload: dict[str, Any]) -> None:
     report_path.write_text(text, encoding="utf-8")
 
 
+def _close_images(*images: PILImage.Image | None) -> None:
+    """Best-effort helper to close Pillow image objects without duplicates."""
+    seen_ids: set[int] = set()
+    for image in images:
+        if image is None or not hasattr(image, "close"):
+            continue
+        obj_id = id(image)
+        if obj_id in seen_ids:
+            continue
+        seen_ids.add(obj_id)
+        with contextlib.suppress(Exception):
+            image.close()
+
+
 def pad_missing_frames(
     metadata_path: str,
     *,
@@ -455,6 +469,7 @@ def pad_missing_frames(
             if indicator_spec:
                 img = _apply_indicator(img, indicator_spec)
             _save_image(img, target, target_mode)
+            _close_images(img)
         elif fill_mode == "solid":
             img = (
                 basemap_img.copy() if basemap_img else _build_blank(mode, size, basemap)
@@ -462,6 +477,7 @@ def pad_missing_frames(
             if indicator_spec:
                 img = _apply_indicator(img, indicator_spec)
             _save_image(img, target, target_mode)
+            _close_images(img)
         elif fill_mode == "basemap":
             if basemap_img is None:
                 raise ValueError("Failed to prepare basemap image")
@@ -469,6 +485,7 @@ def pad_missing_frames(
             if indicator_spec:
                 img = _apply_indicator(img, indicator_spec)
             _save_image(img, target, target_mode)
+            _close_images(img)
         elif fill_mode == "nearest":
             donor = catalog.nearest(ts)
             if not donor:
@@ -476,21 +493,12 @@ def pad_missing_frames(
                 base = _build_blank(mode, size)
             else:
                 with Image.open(donor) as donor_img:
-                    base = donor_img.convert(target_mode or donor_img.mode)
+                    base = donor_img.convert(target_mode or donor_img.mode).copy()
             img = base
             if indicator_spec:
                 img = _apply_indicator(img, indicator_spec)
             _save_image(img, target, target_mode)
-            seen: set[int] = set()
-            for candidate in (img, base):
-                if candidate is None or not hasattr(candidate, "close"):
-                    continue
-                obj_id = id(candidate)
-                if obj_id in seen:
-                    continue
-                seen.add(obj_id)
-                with contextlib.suppress(Exception):
-                    candidate.close()
+            _close_images(img, base)
         created.append(target)
         logging.debug("Created placeholder frame '%s'", target)
     if dry_run:
@@ -527,7 +535,9 @@ def pad_missing_frames(
                 "dry_run": dry_run,
                 "overwrite": overwrite,
                 "frames_existing_count": catalog.record_count,
-                "timestamp": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+                "timestamp": datetime.now(timezone.utc)
+                .replace(microsecond=0)
+                .isoformat(),
             }
             _write_json_report(json_report, report_payload)
             logging.info("Wrote pad-missing report to '%s'", json_report)
