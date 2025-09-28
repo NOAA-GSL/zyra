@@ -479,11 +479,18 @@ def pad_missing_frames(
                     base = donor_img.convert(target_mode or donor_img.mode)
             img = base
             if indicator_spec:
-                img = _apply_indicator(base, indicator_spec)
+                img = _apply_indicator(img, indicator_spec)
             _save_image(img, target, target_mode)
-            if img is not base and hasattr(base, "close"):
+            seen: set[int] = set()
+            for candidate in (img, base):
+                if candidate is None or not hasattr(candidate, "close"):
+                    continue
+                obj_id = id(candidate)
+                if obj_id in seen:
+                    continue
+                seen.add(obj_id)
                 with contextlib.suppress(Exception):
-                    base.close()
+                    candidate.close()
         created.append(target)
         logging.debug("Created placeholder frame '%s'", target)
     if dry_run:
