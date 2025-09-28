@@ -410,6 +410,37 @@ class NarrateDescribeArgs(BaseModel):
     topic: str | None = Field(default=None, description="Narration topic")
 
 
+class NarrateSwarmArgs(BaseModel):
+    """Arguments for ``narrate swarm``.
+
+    Mirrors the CLI flags; types favor strings to align with CLI parsing.
+    """
+
+    preset: str | None = Field(default=None, description="Preset name (-P/--preset)")
+    swarm_config: str | None = Field(
+        default=None, description="YAML config path for swarm orchestrator"
+    )
+    agents: str | None = Field(
+        default=None, description="Comma-separated agent IDs (e.g., summary,critic)"
+    )
+    audiences: str | None = Field(
+        default=None, description="Comma-separated audiences (e.g., kids,policy)"
+    )
+    style: str | None = Field(default=None, description="Target writing style")
+    provider: str | None = Field(
+        default=None, description="LLM provider (mock|openai|ollama)"
+    )
+    model: str | None = Field(default=None, description="Model name")
+    base_url: str | None = Field(default=None, description="Provider base URL")
+    max_workers: int | None = Field(
+        default=None, description="Max concurrent agents (auto-scales if omitted)"
+    )
+    max_rounds: int | None = Field(default=None, description="Critic/editor rounds")
+    pack: str | None = Field(
+        default=None, description="Output pack path ('-' for stdout)"
+    )
+
+
 class VerifyEvaluateArgs(BaseModel):
     """Arguments for ``verify evaluate`` (skeleton)."""
 
@@ -532,6 +563,8 @@ def resolve_model(stage: str, tool: str) -> type[BaseModel] | None:
         return DecideOptimizeArgs
     if key == ("narrate", "describe"):
         return NarrateDescribeArgs
+    if key == ("narrate", "swarm"):
+        return NarrateSwarmArgs
     if key == ("verify", "evaluate"):
         return VerifyEvaluateArgs
     return None
