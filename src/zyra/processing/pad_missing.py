@@ -312,7 +312,8 @@ def _apply_watermark(img: PILImage.Image, text: str | None) -> PILImage.Image:
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
     except Exception:
-        text_width, text_height = font.getsize(text)
+        mask = font.getmask(text)
+        text_width, text_height = mask.size
     margin = max(8, width // 100)
     x = width - text_width - margin
     y = height - text_height - margin

@@ -178,6 +178,3 @@ def test_transform_scan_frames_alias(tmp_path: Path) -> None:
     assert exit_code == 0
     data = json.loads(output.read_text(encoding="utf-8"))
     assert data["frame_count_actual"] == 1
-
-
-pytest.importorskip("PIL")
