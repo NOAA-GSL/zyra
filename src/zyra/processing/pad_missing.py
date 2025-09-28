@@ -17,9 +17,28 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
-from PIL import Image, ImageColor, ImageDraw, ImageFont, ImageOps
+try:
+    from PIL import Image, ImageColor, ImageDraw, ImageFont, ImageOps
+except ModuleNotFoundError:  # pragma: no cover - optional dependency
+    Image = ImageColor = ImageDraw = ImageFont = ImageOps = None  # type: ignore
+
+    def _ensure_pillow() -> None:
+        raise ModuleNotFoundError(
+            "Pillow is required for 'zyra process pad-missing'. Install the 'processing' extra or add Pillow."
+        )
+
+else:  # pragma: no cover - simple guard
+
+    def _ensure_pillow() -> None:
+        return None
+
+
+if TYPE_CHECKING:  # pragma: no cover - type checking only
+    from PIL import Image as PILImage
+else:  # pragma: no cover - runtime helper
+    PILImage = Any  # type: ignore
 
 from zyra.utils.date_manager import DateManager
 from zyra.utils.io_utils import open_input
@@ -217,7 +236,9 @@ def _determine_canvas(catalog: FramesCatalog) -> tuple[tuple[int, int], str]:
         return DEFAULT_SIZE, DEFAULT_MODE
 
 
-def _save_image(image: Image.Image, destination: Path, target_mode: str | None) -> None:
+def _save_image(
+    image: PILImage.Image, destination: Path, target_mode: str | None
+) -> None:
     out = image
     converted = None
     if target_mode and out.mode != target_mode:
@@ -233,7 +254,7 @@ def _save_image(image: Image.Image, destination: Path, target_mode: str | None) 
 
 def _build_blank(
     mode: str, size: tuple[int, int], color: str | None = None
-) -> Image.Image:
+) -> PILImage.Image:
     if mode == "P":
         mode = "RGBA"
     fill = (0, 0, 0, 0) if "A" in mode and not color else None
@@ -250,7 +271,7 @@ def _build_blank(
     return Image.new(mode if mode != "1" else "L", size, fill)
 
 
-def _load_basemap(basemap: str, size: tuple[int, int]) -> Image.Image:
+def _load_basemap(basemap: str, size: tuple[int, int]) -> PILImage.Image:
     if not basemap:
         raise ValueError("--basemap is required for basemap fill mode")
     path = basemap
@@ -271,7 +292,7 @@ def _load_basemap(basemap: str, size: tuple[int, int]) -> Image.Image:
                 guard.close()
 
 
-def _apply_indicator(img: Image.Image, spec: IndicatorSpec) -> Image.Image:
+def _apply_indicator(img: PILImage.Image, spec: IndicatorSpec) -> PILImage.Image:
     if spec.kind == "watermark":
         return _apply_watermark(img, spec.value)
     if spec.kind == "badge":
@@ -279,7 +300,7 @@ def _apply_indicator(img: Image.Image, spec: IndicatorSpec) -> Image.Image:
     return img
 
 
-def _apply_watermark(img: Image.Image, text: str | None) -> Image.Image:
+def _apply_watermark(img: PILImage.Image, text: str | None) -> PILImage.Image:
     if not text:
         return img
     out = img.copy()
@@ -314,7 +335,7 @@ def _apply_watermark(img: Image.Image, text: str | None) -> Image.Image:
     return out
 
 
-def _apply_badge(img: Image.Image, badge_path: str | None) -> Image.Image:
+def _apply_badge(img: PILImage.Image, badge_path: str | None) -> PILImage.Image:
     if not badge_path:
         return img
     path = badge_path
@@ -373,6 +394,7 @@ def pad_missing_frames(
     read_stdin: bool = False,
 ) -> list[Path]:
     """Pad missing frame timestamps according to the requested strategy."""
+    _ensure_pillow()
     meta = _load_metadata(metadata_path, read_stdin)
     frames_dir = meta.get("frames_dir")
     if not frames_dir:

@@ -8,7 +8,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from PIL import Image, ImageChops
+
+try:
+    from PIL import Image, ImageChops
+except ModuleNotFoundError:
+    pytest.skip("Pillow is required for pad-missing tests", allow_module_level=True)
 
 from zyra.processing.pad_missing import pad_missing_frames
 from zyra.transform import register_cli as register_transform_cli
@@ -174,3 +178,6 @@ def test_transform_scan_frames_alias(tmp_path: Path) -> None:
     assert exit_code == 0
     data = json.loads(output.read_text(encoding="utf-8"))
     assert data["frame_count_actual"] == 1
+
+
+pytest.importorskip("PIL")
