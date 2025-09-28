@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 import pytest
+from hypothesis import HealthCheck
 
 from zyra.narrate.schemas import NarrativePack
 
@@ -7,7 +8,7 @@ hyp = pytest.importorskip("hypothesis")
 st = pytest.importorskip("hypothesis.strategies")
 
 
-@hyp.settings(max_examples=5)
+@hyp.settings(max_examples=5, suppress_health_check=[HealthCheck.too_slow])
 @hyp.given(
     st.fixed_dictionaries(
         {

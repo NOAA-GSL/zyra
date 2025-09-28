@@ -16,8 +16,23 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from typing import Any
 
 from zyra.utils.env import env_bool as _env_bool
+
+
+def _content_blocks(txt: str, imgs: list[str] | None) -> list[dict[str, Any]]:
+    """Build OpenAI-style multimodal content blocks for text + optional images."""
+    blocks: list[dict[str, Any]] = [{"type": "text", "text": txt}]
+    for b64 in imgs or []:
+        blocks.append(
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:image/*;base64,{b64}"},
+            }
+        )
+    return blocks
+
 
 # Exception hierarchy for HTTP/network errors.
 # requests may be unavailable in minimal environments; provide fallbacks so
@@ -102,18 +117,6 @@ class OpenAIClient(LLMClient):
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json",
             }
-
-            # Content blocks for multimodal: text + optional image data URLs
-            def _content_blocks(txt: str, imgs: list[str] | None) -> list[dict]:
-                blocks: list[dict] = [{"type": "text", "text": txt}]
-                for b64 in imgs or []:
-                    blocks.append(
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:image/*;base64,{b64}"},
-                        }
-                    )
-                return blocks
 
             messages = [
                 {"role": "system", "content": system_prompt},

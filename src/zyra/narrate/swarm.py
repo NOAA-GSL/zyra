@@ -13,6 +13,7 @@ from typing import Any, Iterable
 # Eight threads keeps concurrency modest on laptops/CI while still exercising
 # parallel behaviour in tests.
 DEFAULT_MAX_WORKERS = 8
+IMAGE_MAX_BYTES = 1_500_000
 
 
 @dataclass
@@ -130,7 +131,7 @@ class Agent:
                                 continue
                             try:
                                 data = Path(p).read_bytes()
-                                if len(data) > (1_500_000):
+                                if len(data) > IMAGE_MAX_BYTES:
                                     continue
                                 image_b64.append(base64.b64encode(data).decode("ascii"))
                                 image_list_for_prompt.append(label or Path(p).name)

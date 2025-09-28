@@ -8,8 +8,10 @@ Keeps a minimal ``describe`` command for back-compat and adds a new
 from __future__ import annotations
 
 import argparse
+import asyncio
 import difflib
 import json
+import os
 import sys
 from contextlib import suppress
 from datetime import datetime
@@ -18,6 +20,7 @@ from importlib import resources as ir
 from typing import Any
 
 from zyra.narrate.schemas import NarrativePack
+from zyra.narrate.swarm import Agent, AgentSpec, SwarmOrchestrator
 from zyra.wizard import _select_provider as _wiz_select_provider
 
 
@@ -213,24 +216,52 @@ def _cmd_swarm(ns: argparse.Namespace) -> int:
 
 
 def _build_pack_with_orchestrator(cfg: dict[str, Any]) -> dict[str, Any]:
-    from zyra.narrate.swarm import Agent, AgentSpec, SwarmOrchestrator
-
-    outputs: dict[str, Any] = {}
     agents_cfg = cfg.get("agents") or ["summary", "critic"]
     audiences = cfg.get("audiences") or []
     style = cfg.get("style") or "journalistic"
     input_path = cfg.get("input")
-
-    # Optional: load input data (JSON/YAML autodetect; else text)
-    inp_format = None
-    input_data: Any | None = None
-    if input_path:
-        input_data, inp_format = _load_input_data(input_path)
-
-    # Provider selection (mock-friendly)
+    input_data, inp_format = _load_input_payload(input_path)
     client = _wiz_select_provider(cfg.get("provider"), cfg.get("model"))
 
-    # Build Agent instances from config
+    agents = _create_agents(
+        agents_cfg,
+        cfg.get("depends_on") or {},
+        audiences,
+        style,
+        client,
+    )
+
+    context, rubric_ref = _build_execution_context(client, cfg, input_data)
+    outputs, orch = _execute_orchestrator(agents, cfg, context)
+
+    return _build_pack_structure(
+        cfg,
+        outputs,
+        orch,
+        agents,
+        client,
+        audiences,
+        style,
+        rubric_ref,
+        input_path,
+        inp_format,
+        input_data,
+    )
+
+
+def _load_input_payload(input_path: str | None) -> tuple[Any | None, str | None]:
+    if not input_path:
+        return None, None
+    return _load_input_data(input_path)
+
+
+def _create_agents(
+    agents_cfg: list[Any],
+    depends_map: dict[str, list[str]],
+    audiences: list[str],
+    style: str,
+    client: Any,
+) -> list[Agent]:
     def role_for_id(aid: str) -> str:
         if aid == "critic":
             return "critic"
@@ -245,8 +276,7 @@ def _build_pack_with_orchestrator(cfg: dict[str, Any]) -> dict[str, Any]:
             return "edited"
         return aid
 
-    depends_map: dict[str, list[str]] = cfg.get("depends_on") or {}
-    agent_objs = []
+    agents: list[Agent] = []
     for entry in agents_cfg:
         if isinstance(entry, dict):
             raw_id = str(entry.get("id") or "").strip()
@@ -298,15 +328,14 @@ def _build_pack_with_orchestrator(cfg: dict[str, Any]) -> dict[str, Any]:
             params=params,
             depends_on=resolved_depends or None,
         )
-        agent_objs.append(Agent(spec, audience=audiences, style=style, llm=client))
+        agents.append(Agent(spec, audience=audiences, style=style, llm=client))
 
-    # Add a dedicated audience_adapter agent for per-audience variants
     if audiences:
         aud_outputs = [f"{a}_version" for a in audiences]
         aud_prompt, aud_prompt_ref = _resolve_prompt_template(
             "audience_adapter", "specialist"
         )
-        agent_objs.append(
+        agents.append(
             Agent(
                 AgentSpec(
                     id="audience_adapter",
@@ -321,17 +350,14 @@ def _build_pack_with_orchestrator(cfg: dict[str, Any]) -> dict[str, Any]:
             )
         )
 
-    orch = SwarmOrchestrator(
-        agent_objs,
-        max_workers=cfg.get("max_workers"),
-        max_rounds=int(cfg.get("max_rounds") or 1),
-    )
+    return agents
 
-    import asyncio as _asyncio
 
-    # Load critic rubric (default packaged or CLI-provided)
+def _build_execution_context(
+    client: Any, cfg: dict[str, Any], input_data: Any | None
+) -> tuple[dict[str, Any], str]:
     rubric, rubric_ref = _load_critic_rubric(cfg.get("rubric"))
-    ctx = {
+    context: dict[str, Any] = {
         "llm": client,
         "critic_rubric": rubric,
         "outputs": {},
@@ -340,24 +366,46 @@ def _build_pack_with_orchestrator(cfg: dict[str, Any]) -> dict[str, Any]:
         "attach_images": bool(cfg.get("attach_images")),
         "input_data": input_data,
     }
-    outputs.update(_asyncio.run(orch.execute(ctx)))
+    return context, rubric_ref
 
-    # Runtime invariants: restrict failed_agents to declared agents and sort provenance timestamps per agent
-    declared_agents = [a.spec.id for a in agent_objs]
-    failed = set(
-        a for a in getattr(orch, "failed_agents", []) if a in set(declared_agents)
+
+def _execute_orchestrator(
+    agents: list[Agent], cfg: dict[str, Any], context: dict[str, Any]
+) -> tuple[dict[str, Any], SwarmOrchestrator]:
+    orch = SwarmOrchestrator(
+        agents,
+        max_workers=cfg.get("max_workers"),
+        max_rounds=int(cfg.get("max_rounds") or 1),
     )
-    # Sort provenance by (agent, started) to ensure monotonic order per agent
-    prov = list(getattr(orch, "provenance", []))
-    from contextlib import suppress as _suppress
+    outputs = asyncio.run(orch.execute(context))
+    return outputs, orch
 
-    with _suppress(Exception):
+
+def _build_pack_structure(
+    cfg: dict[str, Any],
+    outputs: dict[str, Any],
+    orch: SwarmOrchestrator,
+    agents: list[Agent],
+    client: Any,
+    audiences: list[str],
+    style: str,
+    rubric_ref: str,
+    input_path: str | None,
+    inp_format: str | None,
+    input_data: Any | None,
+) -> dict[str, Any]:
+    declared_agents = [a.spec.id for a in agents]
+    failed = {
+        a for a in getattr(orch, "failed_agents", []) if a in set(declared_agents)
+    }
+
+    prov = list(getattr(orch, "provenance", []))
+    with suppress(Exception):
         prov.sort(key=lambda p: (p.get("agent") or "", p.get("started") or ""))
-    # Determine completion based on critical agents
+
     critical = {"summary", "critic", "editor"}
     completed = not any(a in failed for a in critical)
 
-    # Strict grounding: if enabled and critic marks UNGROUNDED, flip to incomplete
     if bool(cfg.get("strict_grounding")):
         _cn = outputs.get("critic_notes")
 
@@ -376,14 +424,12 @@ def _build_pack_with_orchestrator(cfg: dict[str, Any]) -> dict[str, Any]:
             completed = False
 
     reviews: dict[str, Any] = {}
-    # Populate reviews.critic if critic_notes present and non-empty
     _cn = outputs.get("critic_notes")
     if (isinstance(_cn, str) and _cn.strip()) or (
         isinstance(_cn, dict) and _cn.get("notes")
     ):
         reviews["critic"] = _cn
 
-    # Inputs section with optional images metadata (label/path/size) when present
     inputs_section: dict[str, Any] = {
         "audiences": audiences,
         "style": style,
@@ -417,7 +463,7 @@ def _build_pack_with_orchestrator(cfg: dict[str, Any]) -> dict[str, Any]:
     except Exception:
         pass
 
-    pack: dict[str, Any] = {
+    return {
         "version": 0,
         "inputs": inputs_section,
         "models": {
@@ -430,7 +476,6 @@ def _build_pack_with_orchestrator(cfg: dict[str, Any]) -> dict[str, Any]:
         "errors": getattr(orch, "errors", []),
         "provenance": prov,
     }
-    return pack
 
 
 def _is_rfc3339(ts: str) -> bool:
@@ -608,6 +653,30 @@ def _load_critic_rubric(path: str | None) -> tuple[list[str], str]:
         if not isinstance(data, list) or not all(isinstance(x, str) for x in data):
             raise ValueError("rubric must be a list of strings")
         return [str(x) for x in data], str(Path(path).expanduser())
+
+    env_fallback = os.getenv("ZYRA_CRITIC_RUBRIC_FALLBACK")
+    if env_fallback:
+        from pathlib import Path
+
+        try:
+            text = Path(env_fallback).expanduser().read_text(encoding="utf-8")
+        except FileNotFoundError as err:
+            raise ValueError(f"fallback rubric file not found: {env_fallback}") from err
+        except Exception as exc:  # pragma: no cover - rare read failure
+            raise ValueError(
+                f"failed to read fallback rubric '{env_fallback}': {exc}"
+            ) from exc
+        try:
+            import yaml  # type: ignore
+
+            data = yaml.safe_load(text) or []
+        except Exception as exc:  # pragma: no cover - yaml parse failure
+            raise ValueError(
+                f"failed to parse fallback rubric '{env_fallback}': {exc}"
+            ) from exc
+        if not isinstance(data, list) or not all(isinstance(x, str) for x in data):
+            raise ValueError("fallback rubric must be a list of strings")
+        return [str(x) for x in data], str(Path(env_fallback).expanduser())
 
     try:
         base = ir.files("zyra.assets").joinpath("llm/rubrics/critic.yaml")
