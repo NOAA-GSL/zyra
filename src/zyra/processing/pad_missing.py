@@ -130,9 +130,12 @@ class FramesCatalog:
             self._timestamp_to_path[key] = path
             self._suffix_counter[path.suffix.lower()] += 1
         self._records.sort(key=lambda r: r.timestamp)
-        if template_prefix is not None:
-            self._prefix = template_prefix
-            self._suffix = template_suffix or ""
+        self._apply_template_bounds(template_prefix, template_suffix)
+
+    def _apply_template_bounds(self, prefix: str | None, suffix: str | None) -> None:
+        if prefix is not None:
+            self._prefix = prefix
+            self._suffix = suffix or ""
         else:
             self._prefix = ""
             self._suffix = ""
