@@ -1,15 +1,22 @@
 # SPDX-License-Identifier: Apache-2.0
 import asyncio
+from typing import Any
 
 from zyra.narrate.swarm import Agent, AgentSpec, SwarmOrchestrator
 
 
 class CountingAgent(Agent):
-    def __init__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
-        super().__init__(*args, **kwargs)
-        self.calls = 0
+    def __init__(
+        self,
+        spec: AgentSpec,
+        audience: list[str] | None = None,
+        style: str | None = None,
+        llm: Any | None = None,
+    ) -> None:
+        super().__init__(spec, audience=audience, style=style, llm=llm)
+        self.calls: int = 0
 
-    async def run(self, context):  # type: ignore[no-untyped-def]
+    async def run(self, context: dict[str, Any]) -> dict[str, Any]:
         self.calls += 1
         return await super().run(context)
 

@@ -1,15 +1,24 @@
 # SPDX-License-Identifier: Apache-2.0
 import asyncio
+from typing import Any
 
 from zyra.narrate.swarm import Agent, AgentSpec, SwarmOrchestrator
 
 
 class FlakyAgent(Agent):
-    def __init__(self, *args, fail_times=0, **kwargs):  # type: ignore[no-untyped-def]
-        super().__init__(*args, **kwargs)
-        self._remaining = fail_times
+    def __init__(
+        self,
+        spec: AgentSpec,
+        audience: list[str] | None = None,
+        style: str | None = None,
+        llm: Any | None = None,
+        *,
+        fail_times: int = 0,
+    ) -> None:
+        super().__init__(spec, audience=audience, style=style, llm=llm)
+        self._remaining: int = fail_times
 
-    async def run(self, context):  # type: ignore[no-untyped-def]
+    async def run(self, context: dict[str, Any]) -> dict[str, Any]:
         if self._remaining > 0:
             self._remaining -= 1
             raise RuntimeError("transient")

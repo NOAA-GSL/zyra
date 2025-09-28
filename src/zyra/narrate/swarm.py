@@ -114,7 +114,8 @@ class Agent:
                 else:
                     imgs = idata.get("images") or []
                     if isinstance(imgs, list):
-                        # local imports kept inside to avoid heavy deps if unused
+                        # Import lazily so Path/file I/O helpers are only loaded when
+                        # callers opt into image attachments (WPS433).
                         import base64  # noqa: WPS433
                         from pathlib import Path  # noqa: WPS433
 

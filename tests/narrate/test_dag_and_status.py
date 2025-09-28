@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 import asyncio
+from typing import Any
 
 from zyra.narrate.swarm import Agent, AgentSpec, SwarmOrchestrator
 
 
 class FailingAgent(Agent):
-    async def run(self, context):  # type: ignore[no-untyped-def]
+    async def run(self, context: dict[str, Any]) -> dict[str, Any]:
         raise RuntimeError("boom")
 
 
