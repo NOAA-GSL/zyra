@@ -81,6 +81,20 @@ def _add_swarm_flags(p: argparse.ArgumentParser) -> None:
         help="Output file for Narrative Pack (yaml or json); '-' for stdout",
     )
     p.add_argument(
+        "--rubric",
+        help="Path to critic rubric YAML (defaults to packaged critic rubric)",
+    )
+    p.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Verbose logging (shows per-agent dialog)",
+    )
+    p.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Quiet logging (errors only)",
+    )
+    p.add_argument(
         "--input",
         help="Optional input file path or '-' for stdin (JSON/YAML autodetect; falls back to text)",
     )
@@ -120,6 +134,19 @@ def _list_presets() -> list[str]:
 
 
 def _cmd_swarm(ns: argparse.Namespace) -> int:
+    # Configure logging per verbosity flags
+    try:
+        import os as _os
+
+        from zyra.utils.cli_helpers import configure_logging_from_env as _cfg_log
+
+        if getattr(ns, "verbose", False):
+            _os.environ["ZYRA_VERBOSITY"] = "debug"
+        elif getattr(ns, "quiet", False):
+            _os.environ["ZYRA_VERBOSITY"] = "quiet"
+        _cfg_log()
+    except Exception:
+        pass
     # Handle preset listing/alias behavior first
     if ns.list_presets or (ns.preset and ns.preset in {"help", "?"}):
         names = _list_presets()
@@ -144,7 +171,11 @@ def _cmd_swarm(ns: argparse.Namespace) -> int:
         print(str(e), file=sys.stderr)
         return 2
     # Skeleton execution using the orchestrator for agent outputs
-    pack = _build_pack_with_orchestrator(resolved)
+    try:
+        pack = _build_pack_with_orchestrator(resolved)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     # Validate before writing; map validation errors to exit 2
     try:
         pack = NarrativePack.model_validate(pack)
@@ -211,25 +242,75 @@ def _build_pack_with_orchestrator(cfg: dict[str, Any]) -> dict[str, Any]:
             return "edited"
         return aid
 
-    # Graph dependencies (optional)
-    depends: dict[str, list[str]] = cfg.get("depends_on") or {}
+    depends_map: dict[str, list[str]] = cfg.get("depends_on") or {}
     agent_objs = []
-    for aid in agents_cfg:
+    for entry in agents_cfg:
+        if isinstance(entry, dict):
+            raw_id = str(entry.get("id") or "").strip()
+            if not raw_id:
+                continue
+            aid = raw_id
+            role = str(entry.get("role") or role_for_id(aid))
+            outputs_list = _coerce_outputs(entry.get("outputs"), output_for_id(aid))
+            entry_depends = _as_str_list(entry.get("depends_on"))
+            params = (
+                entry.get("params") if isinstance(entry.get("params"), dict) else None
+            )
+            prompt_value = (
+                entry.get("prompt") if isinstance(entry.get("prompt"), str) else None
+            )
+            prompt_ref_override = (
+                entry.get("prompt_ref")
+                if isinstance(entry.get("prompt_ref"), str)
+                else None
+            )
+        else:
+            raw_id = str(entry).strip()
+            if not raw_id:
+                continue
+            aid = raw_id
+            role = role_for_id(aid)
+            outputs_list = [output_for_id(aid)]
+            entry_depends = []
+            params = None
+            prompt_value = None
+            prompt_ref_override = None
+
+        base_depends = _as_str_list(depends_map.get(aid))
+        resolved_depends = _merge_unique_ids(base_depends, entry_depends)
+        prompt_text, prompt_ref = _resolve_prompt_template(aid, role)
+        if prompt_value:
+            override_text, override_ref = _resolve_prompt_override(prompt_value)
+            if override_text is not None:
+                prompt_text = override_text
+                prompt_ref = override_ref or prompt_ref
+        if prompt_ref_override:
+            prompt_ref = prompt_ref_override
         spec = AgentSpec(
             id=aid,
-            role=role_for_id(aid),
-            outputs=[output_for_id(aid)],
-            depends_on=depends.get(aid, []),
+            role=role,
+            prompt=prompt_text,
+            prompt_ref=prompt_ref,
+            outputs=outputs_list,
+            params=params,
+            depends_on=resolved_depends or None,
         )
         agent_objs.append(Agent(spec, audience=audiences, style=style, llm=client))
 
     # Add a dedicated audience_adapter agent for per-audience variants
     if audiences:
         aud_outputs = [f"{a}_version" for a in audiences]
+        aud_prompt, aud_prompt_ref = _resolve_prompt_template(
+            "audience_adapter", "specialist"
+        )
         agent_objs.append(
             Agent(
                 AgentSpec(
-                    id="audience_adapter", role="specialist", outputs=aud_outputs
+                    id="audience_adapter",
+                    role="specialist",
+                    prompt=aud_prompt,
+                    prompt_ref=aud_prompt_ref,
+                    outputs=aud_outputs,
                 ),
                 audience=audiences,
                 style=style,
@@ -245,14 +326,15 @@ def _build_pack_with_orchestrator(cfg: dict[str, Any]) -> dict[str, Any]:
 
     import asyncio as _asyncio
 
-    # Load default critic rubric for critic/editor loop
-    rubric = _load_default_critic_rubric()
+    # Load critic rubric (default packaged or CLI-provided)
+    rubric, rubric_ref = _load_critic_rubric(cfg.get("rubric"))
     ctx = {
         "llm": client,
         "critic_rubric": rubric,
         "outputs": {},
         "critic_structured": bool(cfg.get("critic_structured")),
         "strict_grounding": bool(cfg.get("strict_grounding")),
+        "attach_images": bool(cfg.get("attach_images")),
         "input_data": input_data,
     }
     outputs.update(_asyncio.run(orch.execute(ctx)))
@@ -302,8 +384,11 @@ def _build_pack_with_orchestrator(cfg: dict[str, Any]) -> dict[str, Any]:
     inputs_section: dict[str, Any] = {
         "audiences": audiences,
         "style": style,
+        "rubric": rubric_ref,
         **({"file": input_path, "format": inp_format} if input_path else {}),
     }
+    if cfg.get("preset"):
+        inputs_section["preset"] = cfg.get("preset")
     try:
         if input_data and isinstance(input_data, dict) and input_data.get("images"):
             from pathlib import Path
@@ -404,23 +489,139 @@ def _runtime_validate_pack_dict(d: dict[str, Any]) -> None:
         raise ValueError(str(exc)) from exc
 
 
-def _load_default_critic_rubric() -> list[str]:
+def _coerce_outputs(value: Any, default_output: str) -> list[str]:
+    outputs = _as_str_list(value)
+    return outputs or [default_output]
+
+
+def _as_str_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return _split_csv(value)
+    if isinstance(value, (list, tuple, set)):
+        out: list[str] = []
+        for item in value:
+            if isinstance(item, str) and item.strip():
+                out.append(item.strip())
+        return out
+    return []
+
+
+def _merge_unique_ids(left: list[str], right: list[str]) -> list[str]:
+    merged: list[str] = []
+    for seq in (left or [], right or []):
+        for item in seq:
+            if item not in merged:
+                merged.append(item)
+    return merged
+
+
+def _resolve_prompt_template(aid: str, role: str) -> tuple[str | None, str | None]:
+    name_map = {
+        "summary": "summary",
+        "context": "context",
+        "critic": "critic",
+        "editor": "editor",
+        "audience_adapter": "audience_adapter",
+    }
+    key = name_map.get(aid)
+    if not key and role == "critic":
+        key = "critic"
+    if not key and role == "editor":
+        key = "editor"
+    if not key:
+        return None, None
     try:
-        base = ir.files("zyra.assets").joinpath("llm/rubrics/critic.yaml")
-        with ir.as_file(base) as p:
+        base = ir.files("zyra.assets").joinpath(f"llm/prompts/narrate/{key}.md")
+        return (
+            base.read_text(encoding="utf-8"),
+            f"zyra.assets/llm/prompts/narrate/{key}.md",
+        )
+    except Exception:
+        return None, None
+
+
+def _resolve_prompt_override(value: str) -> tuple[str | None, str | None]:
+    candidate = value.strip()
+    if not candidate:
+        return None, None
+    if "\n" in candidate:
+        return candidate, None
+    pathish = any(
+        sep in candidate for sep in ("/", "\\")
+    ) or candidate.lower().endswith((".md", ".txt", ".yaml", ".yml"))
+    if candidate.startswith("zyra.assets/"):
+        rel = candidate.split("zyra.assets/", 1)[1]
+        try:
+            base = ir.files("zyra.assets").joinpath(rel)
+            return base.read_text(encoding="utf-8"), candidate
+        except Exception as exc:  # pragma: no cover - exercised via CLI tests
+            raise ValueError(f"failed to read prompt '{candidate}': {exc}") from exc
+    if pathish:
+        from pathlib import Path
+
+        path = Path(candidate).expanduser()
+        if path.is_file():
+            try:
+                return path.read_text(encoding="utf-8"), str(path)
+            except Exception as exc:  # pragma: no cover - file read errors rare
+                raise ValueError(f"failed to read prompt '{candidate}': {exc}") from exc
+        # Attempt to resolve relative to packaged assets
+        try:
+            base = ir.files("zyra.assets").joinpath(candidate)
+            if base.is_file():
+                return base.read_text(encoding="utf-8"), f"zyra.assets/{candidate}"
+        except Exception:
+            pass
+        raise ValueError(f"prompt file not found: {candidate}")
+    return candidate, None
+
+
+_FALLBACK_CRITIC_RUBRIC = [
+    "Clarity for non-experts",
+    "Avoid bias and stereotypes",
+    "Include citations where possible",
+    "Flag unverifiable claims",
+]
+
+
+def _load_critic_rubric(path: str | None) -> tuple[list[str], str]:
+    if path:
+        from pathlib import Path
+
+        try:
+            text = Path(path).expanduser().read_text(encoding="utf-8")
+        except FileNotFoundError as err:
+            raise ValueError(f"rubric file not found: {path}") from err
+        except Exception as exc:  # pragma: no cover - rare read failure
+            raise ValueError(f"failed to read rubric '{path}': {exc}") from exc
+        try:
             import yaml  # type: ignore
 
-            data = yaml.safe_load(p.read_text(encoding="utf-8")) or []
-            if isinstance(data, list) and all(isinstance(x, str) for x in data):
-                return data
+            data = yaml.safe_load(text) or []
+        except Exception as exc:  # pragma: no cover - yaml parse failure
+            raise ValueError(f"failed to parse rubric '{path}': {exc}") from exc
+        if not isinstance(data, list) or not all(isinstance(x, str) for x in data):
+            raise ValueError("rubric must be a list of strings")
+        return [str(x) for x in data], str(Path(path).expanduser())
+
+    try:
+        base = ir.files("zyra.assets").joinpath("llm/rubrics/critic.yaml")
+        text = base.read_text(encoding="utf-8")
+        import yaml  # type: ignore
+
+        data = yaml.safe_load(text) or []
+        if isinstance(data, list) and all(isinstance(x, str) for x in data):
+            return [str(x) for x in data], "zyra.assets/llm/rubrics/critic.yaml"
     except Exception:
         pass
-    return [
-        "Clarity for non-experts",
-        "Avoid bias and stereotypes",
-        "Include citations where possible",
-        "Flag unverifiable claims",
-    ]
+    return _FALLBACK_CRITIC_RUBRIC, "zyra.assets/llm/rubrics/critic.yaml"
+
+
+def _load_default_critic_rubric() -> list[str]:  # pragma: no cover - legacy helper
+    rubric, _ = _load_critic_rubric(None)
+    return rubric
 
 
 def _resolve_swarm_config(ns: argparse.Namespace) -> dict[str, Any]:
@@ -466,6 +667,7 @@ def _resolve_swarm_config(ns: argparse.Namespace) -> dict[str, Any]:
     _merge_cli("model", ns.model)
     _merge_cli("base_url", getattr(ns, "base_url", None))
     _merge_cli("pack", ns.pack)
+    _merge_cli("rubric", ns.rubric)
     _merge_cli("input", getattr(ns, "input", None))
     _merge_cli("max_workers", ns.max_workers)
     _merge_cli("max_rounds", ns.max_rounds)
@@ -479,6 +681,8 @@ def _resolve_swarm_config(ns: argparse.Namespace) -> dict[str, Any]:
         _merge_cli("agents", _split_csv(ns.agents))
     if ns.audiences:
         _merge_cli("audiences", _split_csv(ns.audiences))
+    if preset_name and preset_name not in {"help", "?"}:
+        cfg.setdefault("preset", preset_name)
     return cfg
 
 
@@ -507,6 +711,7 @@ def _normalize_cfg(d: dict[str, Any]) -> dict[str, Any]:
         "model",
         "base_url",
         "pack",
+        "rubric",
         "strict_grounding",
         "critic_structured",
         "attach_images",

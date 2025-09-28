@@ -11,17 +11,28 @@ Quick start
 - List presets: `poetry run zyra narrate swarm -P help`
 - Run a preset to stdout (YAML):
   `poetry run zyra narrate swarm -P kids_policy_basic --provider mock --pack -`
+- Load a custom rubric:
+  `poetry run zyra narrate swarm -P kids_policy_basic --rubric custom_rubric.yaml --pack -`
 - Tutorial notebook: see `examples/narration_swarm.ipynb` for an end-to-end walkthrough (mock provider by default).
 
 Key behaviors
 
 - Presets live under `zyra.assets/llm/presets/narrate/*.yaml` and can be merged
-  with `--swarm-config` and CLI flags (CLI overrides print a warning).
+  with `--swarm-config` and CLI flags (CLI overrides print a warning). CLI flags
+  always take precedence over config/preset values.
 - Audience variants are produced by an internal `audience_adapter` agent when
   `--audiences` is set (emits `<aud>_version` outputs).
 - Provenance is recorded per agent run and included in the Narrative Pack under
   `provenance[]` with fields: `agent`, `model`, `started`, `prompt_ref`, and
   `duration_ms`.
+- Critic safety rules come from a rubric. By default Zyra loads
+  `zyra.assets/llm/rubrics/critic.yaml`; `--rubric <path>` lets callers inject a
+  YAML list of rubric bullets. The resolved rubric path is echoed under
+  `inputs.rubric` in the Narrative Pack.
+- Flags such as `--strict-grounding`, `--critic-structured`, and
+  `--attach-images` enable stricter review loops, structured critic notes, or
+  multimodal prompts respectively. These options are also available through
+  presets/YAML config and surfaced in the execution context.
 
 Validation and JSON Schema
 
@@ -70,6 +81,13 @@ Notes
 - Prompt templates for common roles are packaged under
   `zyra.assets/llm/prompts/narrate/` and referenced in provenance via
   `prompt_ref`.
+- You can extend or replace agent prompts by supplying dictionaries in
+  `--swarm-config` (or preset files). Each agent config supports keys such as
+  `id`, `role`, `outputs`, `depends_on`, `params`, `prompt`, and `prompt_ref`.
+  Prompts may be inline text, file paths, or packaged asset references. Invalid
+  prompt/rubric paths cause the CLI to exit with status 2 and a clear message.
+- The Narrative Pack `inputs` section records which preset and rubric were used
+  so downstream consumers can reproduce the run or select matching presets.
 
 Running property-based tests (Hypothesis)
 

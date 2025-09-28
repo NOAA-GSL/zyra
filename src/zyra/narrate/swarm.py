@@ -15,6 +15,7 @@ class AgentSpec:
     id: str
     role: str = "specialist"  # specialist|critic|editor|planner
     prompt: str | None = None
+    prompt_ref: str | None = None
     outputs: list[str] | None = None
     params: dict[str, Any] | None = None
     depends_on: list[str] | None = None
@@ -37,7 +38,10 @@ class Agent:
         # Minimal LLM-backed behavior: one sentence per declared output
         outs: dict[str, Any] = {}
         llm = self.llm or context.get("llm")
-        sys_prompt = "You are a narration agent for Zyra. Keep outputs concise."
+        sys_prompt = (
+            self.spec.prompt
+            or "You are a narration agent for Zyra. Keep outputs concise."
+        )
         role = self.spec.role
         ctx_outputs: dict[str, Any] = (
             context.get("outputs", {}) if isinstance(context, dict) else {}
@@ -140,9 +144,15 @@ class Agent:
                 rubric_text = "; ".join(critic_rubric[:4]) if critic_rubric else ""
                 base_for_critic = ctx_outputs.get("summary") or seed_text
                 base_clause = f" Base: {base_for_critic!r}." if base_for_critic else ""
+                flags: list[str] = []
+                if context.get("strict_grounding"):
+                    flags.append("strict_grounding")
+                if context.get("critic_structured"):
+                    flags.append("structured")
+                flag_clause = f" Flags: {', '.join(flags)}." if flags else ""
                 user_prompt = (
                     f"Review outputs [{sample}] against rubric [{rubric_text}] and provide one-sentence notes."
-                    f"{base_clause}"
+                    f"{base_clause}{flag_clause}"
                 )
             elif role == "editor":
                 base = ctx_outputs.get("summary") or next(
@@ -296,20 +306,44 @@ class SwarmOrchestrator:
                 dt_ms = int((time.perf_counter() - t0) * 1000)
                 if dt_ms < 0:
                     dt_ms = 0
+                # Conversational trace: show agent outputs (redacted) in debug mode
+                if debug and isinstance(res, dict) and res:
+                    try:
+                        from zyra.utils.cli_helpers import (
+                            sanitize_for_log,
+                        )  # lazy import
+
+                        for k, v in res.items():
+                            s = v if isinstance(v, str) else str(v)
+                            s = sanitize_for_log(s)
+                            preview = s[:160] + ("…" if len(s) > 160 else "")
+                            log.info(
+                                "[agent %s:%s] -> %s: %s",
+                                a.spec.id,
+                                a.spec.role,
+                                k,
+                                preview,
+                            )
+                    except Exception:
+                        # Never fail the run on logging/preview issues
+                        pass
                 # Derive a simple prompt reference path based on id/role
-                known_ids = {
-                    "summary",
-                    "context",
-                    "critic",
-                    "editor",
-                    "audience_adapter",
-                }
-                base_name = (
-                    a.spec.id
-                    if a.spec.id in known_ids
-                    else (a.spec.role or "specialist")
-                )
-                ref = f"zyra.assets/llm/prompts/narrate/{base_name}.md"
+                if a.spec.prompt_ref:
+                    ref = a.spec.prompt_ref
+                else:
+                    known_ids = {
+                        "summary",
+                        "context",
+                        "critic",
+                        "editor",
+                        "audience_adapter",
+                    }
+                    base_name = (
+                        a.spec.id
+                        if a.spec.id in known_ids
+                        else (a.spec.role or "specialist")
+                    )
+                    ref = f"zyra.assets/llm/prompts/narrate/{base_name}.md"
                 self.provenance.append(
                     {
                         "agent": a.spec.id,
