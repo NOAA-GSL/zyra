@@ -13,11 +13,12 @@ import contextlib
 import json
 import logging
 import re
+from bisect import bisect_left
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any
 
 try:
     from PIL import Image, ImageColor, ImageDraw, ImageFont, ImageOps
@@ -151,7 +152,7 @@ class FramesCatalog:
         if not self._records:
             return None
         targets = [rec.timestamp for rec in self._records]
-        pos = self._bisect(targets, ts)
+        pos = bisect_left(targets, ts)
         candidates: list[FrameRecord] = []
         if pos > 0:
             candidates.append(self._records[pos - 1])
@@ -161,17 +162,6 @@ class FramesCatalog:
             return None
         best = min(candidates, key=lambda rec: abs(rec.timestamp - ts))
         return best.path
-
-    @staticmethod
-    def _bisect(items: Sequence[datetime], value: datetime) -> int:
-        lo, hi = 0, len(items)
-        while lo < hi:
-            mid = (lo + hi) // 2
-            if items[mid] < value:
-                lo = mid + 1
-            else:
-                hi = mid
-        return lo
 
     @property
     def extension(self) -> str:
