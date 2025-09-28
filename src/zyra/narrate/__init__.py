@@ -13,6 +13,7 @@ import json
 import sys
 from contextlib import suppress
 from datetime import datetime
+from functools import lru_cache
 from importlib import resources as ir
 from typing import Any
 
@@ -119,8 +120,10 @@ def _add_swarm_flags(p: argparse.ArgumentParser) -> None:
     )
 
 
+@lru_cache(maxsize=1)
 def _list_presets() -> list[str]:
-    # Discover packaged presets under zyra.assets/llm/presets/narrate
+    # Discover packaged presets under zyra.assets/llm/presets/narrate. Cache once
+    # per process so repeated --list-presets invocations avoid repeated I/O.
     names: list[str] = []
     try:
         base = ir.files("zyra.assets").joinpath("llm/presets/narrate")

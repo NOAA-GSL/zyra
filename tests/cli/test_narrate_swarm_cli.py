@@ -19,7 +19,9 @@ def test_narrate_swarm_preset_list(capsys):
 def test_narrate_swarm_unknown_preset_exit_2(capsys):
     from zyra.cli import main
 
-    rc = main(["narrate", "swarm", "-P", "kid_policy_basic"])  # typo
+    rc = main(
+        ["narrate", "swarm", "-P", "kid_policy_basic"]
+    )  # typo of kids_policy_basic
     assert rc == 2
     err = capsys.readouterr().err
     assert "unknown preset" in err

@@ -9,6 +9,11 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Iterable
 
+# Default worker cap used when no explicit limit is provided via CLI/env.
+# Eight threads keeps concurrency modest on laptops/CI while still exercising
+# parallel behaviour in tests.
+DEFAULT_MAX_WORKERS = 8
+
 
 @dataclass
 class AgentSpec:
@@ -236,8 +241,11 @@ class SwarmOrchestrator:
         self.failed_agents: list[str] = []
 
     def _auto_pool_size(self, n: int) -> int:
-        env_cap = int(os.getenv("ZYRA_SWARM_MAX_WORKERS_CAP", "8") or 8)
-        cores = os.cpu_count() or 8
+        env_cap = int(
+            os.getenv("ZYRA_SWARM_MAX_WORKERS_CAP", str(DEFAULT_MAX_WORKERS))
+            or DEFAULT_MAX_WORKERS
+        )
+        cores = os.cpu_count() or DEFAULT_MAX_WORKERS
         pool = max(1, min(n, cores, env_cap))
         return pool
 
