@@ -1,0 +1,199 @@
+{
+  "$defs": {
+    "ErrorEntry": {
+      "properties": {
+        "agent": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agent ID that produced the error",
+          "title": "Agent"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "retried": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retried"
+        }
+      },
+      "required": [
+        "message"
+      ],
+      "title": "ErrorEntry",
+      "type": "object"
+    },
+    "ProvenanceEntry": {
+      "properties": {
+        "agent": {
+          "title": "Agent",
+          "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "started": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "RFC3339 timestamp when the agent started",
+          "title": "Started"
+        },
+        "prompt_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prompt Ref"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "duration_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution duration in milliseconds",
+          "title": "Duration Ms"
+        }
+      },
+      "required": [
+        "agent"
+      ],
+      "title": "ProvenanceEntry",
+      "type": "object"
+    },
+    "Status": {
+      "properties": {
+        "completed": {
+          "description": "True if critical path succeeded",
+          "title": "Completed",
+          "type": "boolean"
+        },
+        "failed_agents": {
+          "description": "Agent IDs that failed or were skipped",
+          "items": {
+            "type": "string"
+          },
+          "title": "Failed Agents",
+          "type": "array"
+        }
+      },
+      "required": [
+        "completed"
+      ],
+      "title": "Status",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "version": {
+      "default": 0,
+      "description": "Schema version (integer for v0)",
+      "title": "Version",
+      "type": "integer"
+    },
+    "inputs": {
+      "additionalProperties": true,
+      "title": "Inputs",
+      "type": "object"
+    },
+    "models": {
+      "additionalProperties": true,
+      "title": "Models",
+      "type": "object"
+    },
+    "status": {
+      "$ref": "#/$defs/Status"
+    },
+    "outputs": {
+      "additionalProperties": true,
+      "title": "Outputs",
+      "type": "object"
+    },
+    "reviews": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reviews"
+    },
+    "errors": {
+      "items": {
+        "$ref": "#/$defs/ErrorEntry"
+      },
+      "title": "Errors",
+      "type": "array"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/ProvenanceEntry"
+      },
+      "title": "Provenance",
+      "type": "array"
+    }
+  },
+  "required": [
+    "status"
+  ],
+  "title": "NarrativePack",
+  "type": "object"
+}
