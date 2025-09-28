@@ -23,6 +23,7 @@ from .netcdf_data_processor import (
     load_netcdf,
     subset_netcdf,
 )
+from .pad_missing import pad_missing_frames
 from .video_processor import VideoProcessor
 
 __all__ = [
@@ -38,6 +39,7 @@ __all__ = [
     "load_netcdf",
     "subset_netcdf",
     "convert_to_grib2",
+    "pad_missing_frames",
 ]
 # Only export GRIBDataProcessor helpers when optional deps are present
 if GRIBDataProcessor is not None and interpolate_time_steps is not None:
@@ -331,6 +333,42 @@ def register_cli(subparsers: Any) -> None:
         import logging
 
         logging.info(args.output)
+        return 0
+
+    def cmd_pad_missing(args: argparse.Namespace) -> int:
+        import logging
+        import os
+
+        from zyra.utils.cli_helpers import configure_logging_from_env
+
+        if getattr(args, "verbose", False):
+            os.environ["ZYRA_VERBOSITY"] = "debug"
+        elif getattr(args, "quiet", False):
+            os.environ["ZYRA_VERBOSITY"] = "quiet"
+        if getattr(args, "trace", False):
+            os.environ["ZYRA_SHELL_TRACE"] = "1"
+        configure_logging_from_env()
+        try:
+            source = getattr(args, "frames_meta", None) or "-"
+            created = pad_missing_frames(
+                source,
+                output_dir=args.output_dir,
+                fill_mode=args.fill_mode,
+                basemap=getattr(args, "basemap", None),
+                indicator=getattr(args, "indicator", None),
+                overwrite=bool(getattr(args, "overwrite", False)),
+                dry_run=bool(getattr(args, "dry_run", False)),
+                json_report=getattr(args, "json_report", None),
+                read_stdin=bool(getattr(args, "read_frames_meta_stdin", False)),
+            )
+        except Exception as exc:
+            logging.error(str(exc))
+            return 2
+        for path in created:
+            try:
+                print(path)
+            except Exception:
+                logging.debug("Created frame: %s", path)
         return 0
 
     # ---- api-json processor helpers ----
@@ -672,6 +710,75 @@ def register_cli(subparsers: Any) -> None:
         help="Shell-style trace of key steps and external commands",
     )
     p_conv.set_defaults(func=cmd_convert_format)
+
+    p_pad = subparsers.add_parser(
+        "pad-missing",
+        help="Fill missing frames using metadata output",
+        description=(
+            "Read frames metadata JSON from 'transform metadata/scan-frames' and generate placeholder images "
+            "for each missing timestamp using blank, solid color, basemap, or nearest-frame strategies."
+        ),
+    )
+    meta_source = p_pad.add_mutually_exclusive_group(required=True)
+    meta_source.add_argument(
+        "--frames-meta",
+        dest="frames_meta",
+        help="Path to frames metadata JSON (from transform metadata/scan-frames)",
+    )
+    meta_source.add_argument(
+        "--read-frames-meta-stdin",
+        dest="read_frames_meta_stdin",
+        action="store_true",
+        help="Read frames metadata JSON from stdin",
+    )
+    p_pad.add_argument(
+        "--output-dir",
+        dest="output_dir",
+        required=True,
+        help="Directory where placeholder frames will be written",
+    )
+    p_pad.add_argument(
+        "--fill-mode",
+        dest="fill_mode",
+        default="blank",
+        choices=["blank", "solid", "basemap", "nearest"],
+        help="Strategy for filling gaps (default: blank)",
+    )
+    p_pad.add_argument(
+        "--basemap",
+        help="Basemap image, package reference, or color (solid/basemap modes)",
+    )
+    p_pad.add_argument(
+        "--indicator",
+        help="Optional overlay indicator, e.g., watermark:MISSING or badge:pkg:...",
+    )
+    p_pad.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace existing files when output paths already exist",
+    )
+    p_pad.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Report planned outputs without writing files",
+    )
+    p_pad.add_argument(
+        "--json-report",
+        dest="json_report",
+        help="Optional path to write a JSON summary report",
+    )
+    p_pad.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_pad.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
+    p_pad.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
+    p_pad.set_defaults(func=cmd_pad_missing)
 
     # api-json
     p_api_json = subparsers.add_parser(

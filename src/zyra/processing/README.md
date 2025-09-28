@@ -5,6 +5,7 @@ Commands
 - `decode-grib2` — Decode GRIB2 and print metadata (supports cfgrib/pygrib/wgrib2 backends).
 - `extract-variable` — Extract a variable from a dataset and write to NetCDF.
 - `convert-format` — Convert decoded data to NetCDF/GeoTIFF (when supported).
+- `pad-missing` — Generate placeholder frames for missing timestamps using transform metadata.
 - `audio-transcode` — Transcode audio (wav/mp3/ogg) via ffmpeg.
 - `audio-metadata` — Print audio metadata via ffprobe.
 
@@ -57,6 +58,20 @@ GRIB2
 - Decode: `zyra process decode-grib2 input.grib2`
 - Backends: `--backend cfgrib|pygrib|wgrib2`
 - Convert: `zyra process convert-format input.grib2 netcdf -o out.nc`
+
+pad-missing
+- Metadata: `--frames-meta frames_meta.json` (from `transform scan-frames`)
+- Stdin metadata: `--read-frames-meta-stdin` (pipe JSON from `transform scan-frames`)
+- Output: `--output-dir data/padded_frames`
+- Modes: `--fill-mode blank|solid|basemap|nearest`
+- Basemap/color: `--basemap pkg:zyra.assets/images/earth_vegetation.jpg` or `--basemap "#202020"`
+- Indicators: `--indicator watermark:MISSING` or `--indicator badge:pkg:zyra.assets/images/nearest.png`
+- Reports: `--json-report _work/images/${DATASET_NAME}/metadata/pad-missing-report.json`
+
+Examples
+- Basemap placeholders: `zyra process pad-missing --frames-meta frames_meta.json --fill-mode basemap --basemap pkg:zyra.assets/images/earth_vegetation.jpg --output-dir data/padded`
+- Nearest copy with watermark + report: `zyra process pad-missing --frames-meta frames_meta.json --fill-mode nearest --indicator watermark:ESTIMATED --json-report data/padded/pad-missing-report.json --output-dir data/padded`
+- Pipeline piping example: `zyra transform scan-frames --frames-dir frames -o - | zyra process pad-missing --read-frames-meta-stdin --output-dir frames_padded`
 
 Audio
 - Transcode: `zyra process audio-transcode input.ogg --to wav -o out.wav`

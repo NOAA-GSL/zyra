@@ -104,6 +104,13 @@ def _cmd_metadata(ns: argparse.Namespace) -> int:
     if getattr(ns, "trace", False):
         os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
+    alias = getattr(ns, "_command_alias", "metadata")
+    if alias == "metadata":
+        import logging
+
+        logging.info(
+            "Note: 'transform metadata' is also available as 'transform scan-frames'."
+        )
     meta = _compute_frames_metadata(
         ns.frames_dir,
         pattern=ns.pattern,
@@ -128,6 +135,43 @@ def _cmd_metadata(ns: argparse.Namespace) -> int:
 
 def register_cli(subparsers: Any) -> None:
     """Register transform subcommands (metadata, enrich-metadata, enrich-datasets, update-dataset-json)."""
+
+    from zyra.cli_common import add_output_option
+
+    def _configure_metadata_parser(
+        parser: argparse.ArgumentParser, *, alias_name: str
+    ) -> None:
+        parser.add_argument(
+            "--frames-dir",
+            required=True,
+            dest="frames_dir",
+            help="Directory containing frames",
+        )
+        parser.add_argument("--pattern", help="Regex filter for frame filenames")
+        parser.add_argument(
+            "--datetime-format",
+            dest="datetime_format",
+            help="Datetime format used in filenames (e.g., %Y%m%d%H%M%S)",
+        )
+        parser.add_argument(
+            "--period-seconds",
+            type=int,
+            help="Expected cadence to compute missing frames",
+        )
+        add_output_option(parser)
+        parser.add_argument(
+            "--verbose", action="store_true", help="Verbose logging for this command"
+        )
+        parser.add_argument(
+            "--quiet", action="store_true", help="Quiet logging for this command"
+        )
+        parser.add_argument(
+            "--trace",
+            action="store_true",
+            help="Shell-style trace of key steps and external commands",
+        )
+        parser.set_defaults(func=_cmd_metadata, _command_alias=alias_name)
+
     p = subparsers.add_parser(
         "metadata",
         help="Compute frames metadata as JSON",
@@ -135,36 +179,16 @@ def register_cli(subparsers: Any) -> None:
             "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence."
         ),
     )
-    p.add_argument(
-        "--frames-dir",
-        required=True,
-        dest="frames_dir",
-        help="Directory containing frames",
-    )
-    p.add_argument("--pattern", help="Regex filter for frame filenames")
-    p.add_argument(
-        "--datetime-format",
-        dest="datetime_format",
-        help="Datetime format used in filenames (e.g., %Y%m%d%H%M%S)",
-    )
-    p.add_argument(
-        "--period-seconds", type=int, help="Expected cadence to compute missing frames"
-    )
-    from zyra.cli_common import add_output_option
+    _configure_metadata_parser(p, alias_name="metadata")
 
-    add_output_option(p)
-    p.add_argument(
-        "--verbose", action="store_true", help="Verbose logging for this command"
+    p_scan = subparsers.add_parser(
+        "scan-frames",
+        help="Alias of 'metadata' with a descriptive name",
+        description=(
+            "Alias of 'metadata'. Scan a frames directory and report timestamps, counts, and missing frames."
+        ),
     )
-    p.add_argument(
-        "--quiet", action="store_true", help="Quiet logging for this command"
-    )
-    p.add_argument(
-        "--trace",
-        action="store_true",
-        help="Shell-style trace of key steps and external commands",
-    )
-    p.set_defaults(func=_cmd_metadata)
+    _configure_metadata_parser(p_scan, alias_name="scan-frames")
 
     # Enrich metadata with dataset_id, vimeo_uri, and updated_at
     def _cmd_enrich(ns: argparse.Namespace) -> int:

@@ -14,6 +14,11 @@ Modules
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: zyra.processing.pad_missing
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 .. automodule:: zyra.processing.video_processor
    :members:
    :undoc-members:

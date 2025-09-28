@@ -1521,6 +1521,93 @@
       "stdout": true
     }
   },
+  "process pad-missing": {
+    "description": "Read frames metadata JSON from 'transform metadata/scan-frames' and generate placeholder images for each missing timestamp using blank, solid color, basemap, or nearest-frame strategies.",
+    "doc": "Read frames metadata JSON from 'transform metadata/scan-frames' and generate placeholder images for each missing timestamp using blank, solid color, basemap, or nearest-frame strategies.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--frames-meta",
+          "--read-frames-meta-stdin",
+          "--output-dir",
+          "--fill-mode",
+          "--basemap",
+          "--indicator",
+          "--overwrite",
+          "--dry-run",
+          "--json-report",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--frames-meta": {
+        "help": "Path to frames metadata JSON (from transform metadata/scan-frames)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--read-frames-meta-stdin": {
+        "help": "Read frames metadata JSON from stdin",
+        "type": "bool",
+        "default": false
+      },
+      "--output-dir": {
+        "help": "Directory where placeholder frames will be written",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--fill-mode": {
+        "help": "Strategy for filling gaps (default: blank)",
+        "choices": [
+          "blank",
+          "solid",
+          "basemap",
+          "nearest"
+        ],
+        "type": "str",
+        "default": "blank"
+      },
+      "--basemap": "Basemap image, package reference, or color (solid/basemap modes)",
+      "--indicator": "Optional overlay indicator, e.g., watermark:MISSING or badge:pkg:...",
+      "--overwrite": {
+        "help": "Replace existing files when output paths already exist",
+        "type": "bool",
+        "default": false
+      },
+      "--dry-run": {
+        "help": "Report planned outputs without writing files",
+        "type": "bool",
+        "default": false
+      },
+      "--json-report": "Optional path to write a JSON summary report",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "process",
+    "args_schema": null,
+    "example_args": null
+  },
   "process api-json": {
     "description": "Read a JSON or NDJSON file/stream, select fields via dot paths, optionally flatten nested objects, explode arrays into multiple rows, and write CSV or JSONL.",
     "doc": "Read a JSON or NDJSON file/stream, select fields via dot paths, optionally flatten nested objects, explode arrays into multiple rows, and write CSV or JSONL.",
@@ -1761,6 +1848,67 @@
   "process metadata": {
     "description": "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence.",
     "doc": "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--frames-dir",
+          "--pattern",
+          "--datetime-format",
+          "--period-seconds",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--frames-dir": {
+        "help": "Directory containing frames",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--pattern": "Regex filter for frame filenames",
+      "--datetime-format": "Datetime format used in filenames (e.g., %Y%m%d%H%M%S)",
+      "--period-seconds": {
+        "help": "Expected cadence to compute missing frames",
+        "type": "int"
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "process",
+    "args_schema": null,
+    "example_args": null
+  },
+  "process scan-frames": {
+    "description": "Alias of 'metadata'. Scan a frames directory and report timestamps, counts, and missing frames.",
+    "doc": "Alias of 'metadata'. Scan a frames directory and report timestamps, counts, and missing frames.",
     "epilog": "",
     "groups": [
       {
@@ -5393,6 +5541,67 @@
     "args_schema": null,
     "example_args": null
   },
+  "transform scan-frames": {
+    "description": "Alias of 'metadata'. Scan a frames directory and report timestamps, counts, and missing frames.",
+    "doc": "Alias of 'metadata'. Scan a frames directory and report timestamps, counts, and missing frames.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--frames-dir",
+          "--pattern",
+          "--datetime-format",
+          "--period-seconds",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--frames-dir": {
+        "help": "Directory containing frames",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--pattern": "Regex filter for frame filenames",
+      "--datetime-format": "Datetime format used in filenames (e.g., %Y%m%d%H%M%S)",
+      "--period-seconds": {
+        "help": "Expected cadence to compute missing frames",
+        "type": "int"
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "transform",
+    "args_schema": null,
+    "example_args": null
+  },
   "transform enrich-metadata": {
     "description": "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin.",
     "doc": "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin.",
@@ -6080,6 +6289,9 @@
           "--max-workers",
           "--max-rounds",
           "--pack",
+          "--rubric",
+          "--verbose",
+          "--quiet",
           "--input",
           "--critic-structured",
           "--attach-images",
@@ -6111,6 +6323,17 @@
         "type": "int"
       },
       "--pack": "Output file for Narrative Pack (yaml or json); '-' for stdout",
+      "--rubric": "Path to critic rubric YAML (defaults to packaged critic rubric)",
+      "--verbose": {
+        "help": "Verbose logging (shows per-agent dialog)",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging (errors only)",
+        "type": "bool",
+        "default": false
+      },
       "--input": {
         "help": "Optional input file path or '-' for stdin (JSON/YAML autodetect; falls back to text)",
         "path_arg": true,
