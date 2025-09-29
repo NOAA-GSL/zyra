@@ -1,7 +1,7 @@
 # Transform
 
 Commands
-- `metadata` — Compute frames metadata JSON from a directory of images.
+- `metadata` — Compute frames metadata JSON from a directory of images (alias: `scan-frames`).
 - `enrich-metadata` — Enrich frames metadata JSON with dataset id, Vimeo URI, and timestamp.
 - `update-dataset-json` — Update dataset JSON fields from CLI args or another file.
 
@@ -13,4 +13,4 @@ metadata
 - Output: `-o out.json` or `-` for stdout
 
 Examples
-- `zyra transform metadata --frames-dir ./frames --pattern '\\.(png|jpg)$' --period-seconds 300 -o frames.json`
+- `zyra transform scan-frames --frames-dir ./frames --pattern '\\.(png|jpg)$' --period-seconds 300 -o frames.json`
