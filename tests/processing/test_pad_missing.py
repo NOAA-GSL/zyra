@@ -135,12 +135,11 @@ def test_pad_missing_reads_metadata_from_stdin(
     report_path = tmp_path / "stdin-report.json"
     out_dir = output_dir / "stdin"
 
-    class _MockStdin:
+    class _StdInMock:
         def __init__(self, data: bytes) -> None:
             self.buffer = BytesIO(data)
 
-    mock_stdin = _MockStdin(meta_path.read_bytes())
-    with patch("sys.stdin", mock_stdin):
+    with patch("sys.stdin", _StdInMock(meta_path.read_bytes())):
         pad_missing_frames(
             "-",
             output_dir=str(out_dir),

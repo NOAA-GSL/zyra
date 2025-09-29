@@ -27,7 +27,7 @@ except ModuleNotFoundError:  # pragma: no cover - optional dependency
 
     def _ensure_pillow() -> None:
         raise ModuleNotFoundError(
-            "Pillow is required for 'zyra process pad-missing'. Install the 'processing' extra or add Pillow."
+            "Pillow is required for 'zyra process pad-missing'. Install Pillow (e.g. 'pip install pillow') before running this command."
         )
 
 else:  # pragma: no cover - simple guard
@@ -46,7 +46,9 @@ from zyra.utils.io_utils import open_input
 
 try:  # Optional dependency for basemap resolution reused from visualization
     from zyra.visualization.cli_utils import resolve_basemap_ref
-except Exception:  # pragma: no cover - keep CLI usable without visualization extras
+except (
+    ModuleNotFoundError
+):  # pragma: no cover - keep CLI usable without visualization extras
     resolve_basemap_ref = None  # type: ignore[assignment]
 
 
@@ -267,12 +269,7 @@ def _build_blank(
 def _load_basemap(basemap: str, size: tuple[int, int]) -> PILImage.Image:
     if not basemap:
         raise ValueError("--basemap is required for basemap fill mode")
-    path = basemap
-    guard = None
-    if resolve_basemap_ref:
-        resolved, guard = resolve_basemap_ref(basemap)
-        if resolved:
-            path = resolved
+    path, guard = _resolve_basemap_reference(basemap)
     if not path:
         raise ValueError(f"Could not resolve basemap reference '{basemap}'")
     try:
@@ -281,8 +278,10 @@ def _load_basemap(basemap: str, size: tuple[int, int]) -> PILImage.Image:
             return ImageOps.fit(img, size, method=Image.BILINEAR)
     finally:
         if guard is not None:
-            with contextlib.suppress(Exception):
-                guard.close()
+            close = getattr(guard, "close", None)
+            if close:
+                with contextlib.suppress(Exception):
+                    close()
 
 
 def _apply_indicator(img: PILImage.Image, spec: IndicatorSpec) -> PILImage.Image:
@@ -373,6 +372,24 @@ def _write_json_report(path: str, payload: dict[str, Any]) -> None:
         report_path.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(payload, indent=2) + "\n"
     report_path.write_text(text, encoding="utf-8")
+
+
+def _resolve_basemap_reference(
+    ref: str,
+) -> tuple[str | None, contextlib.AbstractContextManager | None]:
+    if not resolve_basemap_ref:
+        return ref, None
+    try:
+        result = resolve_basemap_ref(ref)
+    except Exception as exc:  # pragma: no cover - defensive logging
+        logging.warning("Failed to resolve basemap reference '%s': %s", ref, exc)
+        return ref, None
+    if isinstance(result, tuple) and len(result) == 2:
+        return result
+    if isinstance(result, str):
+        return result, None
+    logging.warning("Unexpected basemap resolver output for '%s': %r", ref, result)
+    return ref, None
 
 
 def _close_images(*images: PILImage.Image | None) -> None:
