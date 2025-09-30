@@ -290,6 +290,25 @@ def register_cli(subparsers: Any) -> None:
     p_anim.add_argument("--show-timestamp", action="store_true")
     p_anim.add_argument("--timestamps-csv")
     p_anim.add_argument(
+        "--overlay",
+        action="append",
+        dest="overlays",
+        help="Overlay specification: [alias=]path[:style] (repeatable)",
+    )
+    p_anim.add_argument(
+        "--overlay-time-key",
+        action="append",
+        dest="overlay_time_keys",
+        help="Overlay time property mapping (alias=property or property)",
+    )
+    p_anim.add_argument(
+        "--overlay-time-tolerance",
+        type=int,
+        default=900,
+        dest="overlay_time_tolerance",
+        help="Seconds to allow when matching overlay timestamps (default: 900)",
+    )
+    p_anim.add_argument(
         "--timestamp-loc",
         choices=["upper_left", "upper_right", "lower_left", "lower_right"],
         default="lower_right",
@@ -300,6 +319,13 @@ def register_cli(subparsers: Any) -> None:
     p_anim.add_argument("--xarray-engine")
     p_anim.add_argument("--crs")
     p_anim.add_argument("--reproject", action="store_true")
+    p_anim.add_argument(
+        "--features", help="Comma-separated features: coastline,borders,gridlines"
+    )
+    p_anim.add_argument(
+        "--manifest",
+        help="Optional manifest output path (JSON); when omitted, manifest is only logged",
+    )
     p_anim.add_argument("--to-video")
     p_anim.add_argument("--fps", type=int, default=30)
     p_anim.add_argument(

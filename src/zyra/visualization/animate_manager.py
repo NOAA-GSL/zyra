@@ -8,13 +8,17 @@ does not invoke FFmpeg; composing video is left to downstream tools.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Sequence
 
+from zyra.utils.iso8601 import to_datetime
+
 from .base import Renderer
 from .contour_manager import ContourManager
 from .heatmap_manager import HeatmapManager
+from .overlays import OverlayRenderer, OverlaySpec, build_overlay_datasets
 from .styles import DEFAULT_EXTENT, FIGURE_DPI
 from .vector_field_manager import VectorFieldManager
 
@@ -138,6 +142,11 @@ class AnimateManager(Renderer):
         import matplotlib.pyplot as plt
         import numpy as np
 
+        overlay_specs: list[OverlaySpec] = kwargs.pop("overlay_specs", None) or []
+        overlay_time_map: dict[str, str] = kwargs.pop("overlay_time_map", None) or {}
+        overlay_time_default: str | None = kwargs.pop("overlay_time_default", None)
+        overlay_time_tolerance = int(kwargs.pop("overlay_time_tolerance", 900) or 900)
+
         width = int(kwargs.get("width", 1024))
         height = int(kwargs.get("height", 512))
         dpi = int(kwargs.get("dpi", FIGURE_DPI))
@@ -172,6 +181,10 @@ class AnimateManager(Renderer):
 
         output_dir.mkdir(parents=True, exist_ok=True)
         frames: list[FrameInfo] = []
+        if overlay_specs and mode not in ("heatmap", "contour"):
+            raise ValueError(
+                "Overlays are supported only for heatmap and contour modes"
+            )
         if mode == "vector":
             import numpy as np
 
@@ -277,13 +290,35 @@ class AnimateManager(Renderer):
                 warn_if_mismatch(in_crs, reproject=reproject, context="animate")
             except Exception:
                 pass
+            frame_times_dt: list[datetime] = []
+            base_start = datetime(1970, 1, 1, tzinfo=timezone.utc)
+            for idx in range(stack.shape[0]):
+                ts_val = timestamps[idx] if idx < len(timestamps) else None
+                dt = to_datetime(ts_val)
+                if dt is None:
+                    dt = base_start + timedelta(seconds=idx)
+                frame_times_dt.append(dt)
+
+            overlay_renderer: OverlayRenderer | None = None
+            overlay_manifest: list[dict[str, str]] | None = None
+            if overlay_specs:
+                datasets = build_overlay_datasets(
+                    overlay_specs,
+                    frame_times=frame_times_dt,
+                    default_time_key=overlay_time_default,
+                    time_keys=overlay_time_map,
+                    tolerance=timedelta(seconds=overlay_time_tolerance),
+                )
+                overlay_renderer = OverlayRenderer(datasets)
+                overlay_manifest = overlay_renderer.describe()
+
             for i in range(stack.shape[0]):
                 arr = stack[i]
                 if mode == "contour":
                     mgr = ContourManager(
                         basemap=self.basemap, extent=self.extent, cmap=cmap, filled=True
                     )
-                    mgr.render(
+                    fig = mgr.render(
                         arr,
                         width=width,
                         height=height,
@@ -306,7 +341,7 @@ class AnimateManager(Renderer):
                     mgr = HeatmapManager(
                         basemap=self.basemap, extent=self.extent, cmap=cmap
                     )
-                    mgr.render(
+                    fig = mgr.render(
                         arr,
                         width=width,
                         height=height,
@@ -327,6 +362,12 @@ class AnimateManager(Renderer):
                         tile_zoom=tile_zoom,
                     )
 
+                if overlay_renderer and hasattr(mgr, "_fig"):
+                    fig_obj = getattr(mgr, "_fig", None)
+                    if fig_obj and fig_obj.axes:
+                        ax = fig_obj.axes[0]
+                        overlay_renderer.draw(ax, i)
+
                 fname = self.filename_template.format(index=i)
                 fpath = output_dir / fname
                 mgr.save(str(fpath))
@@ -344,6 +385,8 @@ class AnimateManager(Renderer):
             "count": len(frames),
             "frames": [asdict(f) for f in frames],
         }
+        if overlay_specs:
+            self._manifest["overlays"] = overlay_manifest or []
         return self._manifest
 
     def save(self, output_path: str | None = None, *, as_buffer: bool = False):
