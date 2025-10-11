@@ -16,6 +16,7 @@ import os
 import re
 import shlex
 import shutil
+import string
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path, PurePath
@@ -466,7 +467,7 @@ def _default_sequence_basename(stem: str) -> str:
     no_printf = _PRINTF_FORMAT_PATTERN.sub("", stem)
     no_brace = _BRACE_FORMAT_PATTERN.sub("", no_printf)
     trimmed = no_brace.strip().rstrip("_-. ")
-    without_digits = trimmed.rstrip("0123456789")
+    without_digits = trimmed.rstrip(string.digits)
     return without_digits or "transcoded"
 
 
