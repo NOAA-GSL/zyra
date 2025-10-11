@@ -28,7 +28,9 @@ def _patch_ffmpeg(monkeypatch):
     from zyra.processing import video_transcode
 
     def fake_which(cmd):  # noqa: ARG001
-        return f"/usr/bin/{cmd}"
+        if cmd in {"ffmpeg", "ffprobe"}:
+            return f"/usr/bin/{cmd}"
+        return None
 
     monkeypatch.setattr(video_transcode.shutil, "which", fake_which)
     return video_transcode
@@ -144,6 +146,113 @@ def test_video_transcode_sequence_sos_defaults(tmp_path, monkeypatch, _patch_ffm
     assert ffmpeg_cmd[framerate_index + 2] == "-i"
     assert out.exists()
     assert ffmpeg_cmd[-1].endswith("legacy.mp4")
+
+
+def test_video_transcode_sequence_default_name(tmp_path, monkeypatch, _patch_ffmpeg):
+    module = _patch_ffmpeg
+    frames_dir = tmp_path / "frames"
+    frames_dir.mkdir()
+    (frames_dir / "tile_%04d.png").write_bytes(b"")
+    commands: list[list[str]] = []
+
+    def fake_run(cmd, capture_output=False, text=False, **kwargs):  # noqa: ARG001
+        commands.append(cmd)
+        if cmd[0].endswith("ffmpeg"):
+            Path(cmd[-1]).write_bytes(b"seq")
+            return _FakeCompleted(0, "", "")
+        if cmd[0].endswith("ffprobe"):
+            return _FakeCompleted(1, "", "ffprobe unavailable")
+        raise AssertionError(f"Unexpected command: {cmd}")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    parser = _build_parser()
+    args = parser.parse_args(
+        [
+            "video-transcode",
+            f"{frames_dir}/tile_%04d.png",
+            "--to",
+            "mp4",
+        ]
+    )
+    rc = args.func(args)
+    assert rc == 0
+    ffmpeg_cmd = commands[0]
+    output_path = Path(ffmpeg_cmd[-1])
+    assert output_path.name == "tile.mp4"
+    assert output_path.parent == frames_dir
+
+
+def test_video_transcode_scale_width_only(tmp_path, monkeypatch, _patch_ffmpeg):
+    module = _patch_ffmpeg
+    src = tmp_path / "clip.mpg"
+    src.write_bytes(b"data")
+    out = tmp_path / "clip.mp4"
+    commands: list[list[str]] = []
+
+    def fake_run(cmd, capture_output=False, text=False, **kwargs):  # noqa: ARG001
+        commands.append(cmd)
+        if cmd[0].endswith("ffmpeg"):
+            Path(cmd[-1]).write_bytes(b"video")
+            return _FakeCompleted(0, "", "")
+        if cmd[0].endswith("ffprobe"):
+            return _FakeCompleted(1, "", "ffprobe unavailable")
+        raise AssertionError(f"Unexpected command: {cmd}")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    parser = _build_parser()
+    args = parser.parse_args(
+        [
+            "video-transcode",
+            str(src),
+            "--scale",
+            "1920x?",
+            "-o",
+            str(out),
+        ]
+    )
+    rc = args.func(args)
+    assert rc == 0
+    ffmpeg_cmd = commands[0]
+    vf_index = ffmpeg_cmd.index("-vf")
+    assert ffmpeg_cmd[vf_index + 1] == "scale=1920:-2"
+
+
+def test_video_transcode_scale_passthrough(tmp_path, monkeypatch, _patch_ffmpeg):
+    module = _patch_ffmpeg
+    src = tmp_path / "clip.mpg"
+    src.write_bytes(b"data")
+    out = tmp_path / "clip.mp4"
+    commands: list[list[str]] = []
+
+    def fake_run(cmd, capture_output=False, text=False, **kwargs):  # noqa: ARG001
+        commands.append(cmd)
+        if cmd[0].endswith("ffmpeg"):
+            Path(cmd[-1]).write_bytes(b"video")
+            return _FakeCompleted(0, "", "")
+        if cmd[0].endswith("ffprobe"):
+            return _FakeCompleted(1, "", "ffprobe unavailable")
+        raise AssertionError(f"Unexpected command: {cmd}")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    parser = _build_parser()
+    args = parser.parse_args(
+        [
+            "video-transcode",
+            str(src),
+            "--scale",
+            "scale=w=1280:h=-1",
+            "-o",
+            str(out),
+        ]
+    )
+    rc = args.func(args)
+    assert rc == 0
+    ffmpeg_cmd = commands[0]
+    vf_index = ffmpeg_cmd.index("-vf")
+    assert ffmpeg_cmd[vf_index + 1] == "scale=w=1280:h=-1"
 
 
 def test_video_transcode_sos_mpg_warns_and_sets_mpeg2(
@@ -339,3 +448,43 @@ def test_video_transcode_extra_args_split(tmp_path, monkeypatch, _patch_ffmpeg):
     assert "+faststart" in ffmpeg_cmd
     assert "-max_muxing_queue_size" in ffmpeg_cmd
     assert "2048" in ffmpeg_cmd
+
+
+def test_video_transcode_percent_filename_not_sequence(
+    tmp_path, monkeypatch, _patch_ffmpeg
+):
+    module = _patch_ffmpeg
+    src = tmp_path / "clip%done.mp4"
+    src.write_bytes(b"data")
+    out = tmp_path / "converted" / "clip.mp4"
+    commands: list[list[str]] = []
+
+    def fake_run(cmd, capture_output=False, text=False, **kwargs):  # noqa: ARG001
+        commands.append(cmd)
+        if cmd[0].endswith("ffmpeg"):
+            Path(cmd[-1]).parent.mkdir(parents=True, exist_ok=True)
+            Path(cmd[-1]).write_bytes(b"video")
+            return _FakeCompleted(0, "", "")
+        if cmd[0].endswith("ffprobe"):
+            return _FakeCompleted(1, "", "ffprobe unavailable")
+        raise AssertionError(f"Unexpected command: {cmd}")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    parser = _build_parser()
+    args = parser.parse_args(
+        [
+            "video-transcode",
+            str(src),
+            "--to",
+            "mp4",
+            "-o",
+            str(out),
+        ]
+    )
+    rc = args.func(args)
+    assert rc == 0
+    assert out.exists()
+    ffmpeg_cmd = commands[0]
+    assert "-framerate" not in ffmpeg_cmd
+    assert ffmpeg_cmd[ffmpeg_cmd.index("-i") + 1] == str(src)

@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -418,28 +419,69 @@ def run_video_transcode(args: Any) -> int:
 
 
 def _render_scale_filter(value: str) -> str:
-    if "x" in value.lower():
-        return f"scale={value}"
-    if value.isdigit():
-        return f"scale=-2:{value}"
-    return value
+    candidate = value.strip()
+    if not candidate:
+        return "scale=-2:-2"
+    lowered = candidate.lower()
+    if lowered.startswith("scale="):
+        return candidate
+    if lowered.startswith(("w=", "width=")):
+        width_expr = candidate.split("=", 1)[1]
+        return f"scale={_normalize_scale_dim(width_expr)}:-2"
+    if lowered.startswith(("h=", "height=")):
+        height_expr = candidate.split("=", 1)[1]
+        return f"scale=-2:{_normalize_scale_dim(height_expr)}"
+    for sep in (":", "x", "X"):
+        if sep in candidate:
+            width_expr, height_expr = candidate.split(sep, 1)
+            return f"scale={_normalize_scale_dim(width_expr)}:{_normalize_scale_dim(height_expr)}"
+    if candidate.isdigit():
+        return f"scale=-2:{candidate}"
+    if lowered in {"auto", "?", "keep"}:
+        return "scale=-2:-2"
+    return candidate if lowered.startswith("scale") else f"scale={candidate}"
+
+
+def _normalize_scale_dim(dim: str) -> str:
+    token = dim.strip()
+    if not token:
+        return "-2"
+    lowered = token.lower()
+    if lowered in {"auto", "?", "keep"}:
+        return "-2"
+    if lowered in {"width", "w"}:
+        return "iw"
+    if lowered in {"height", "h"}:
+        return "ih"
+    return token
 
 
 def _default_sequence_basename(stem: str) -> str:
-    cleaned = stem.replace("%", "").strip()
+    cleaned = _PRINTF_FORMAT_PATTERN.sub("", stem)
+    cleaned = _BRACE_FORMAT_PATTERN.sub("", cleaned)
+    cleaned = cleaned.strip().rstrip("_-.")
     cleaned = cleaned.rstrip("0123456789")
-    if cleaned.endswith("d"):
-        cleaned = cleaned[:-1]
     return cleaned or "transcoded"
 
 
+_PRINTF_FORMAT_PATTERN = re.compile(r"%(?:\d+\$)?0?\d*(?:\.\d+)?[diuoxX]")
+_BRACE_FORMAT_PATTERN = re.compile(r"\{[^}]*\}")
+_PRINTF_SEQUENCE_PATTERN = re.compile(r"%(?:0?\d+)?d")
+_BRACE_SEQUENCE_PATTERN = re.compile(r"\{\d+(?:\.\.|:)\d+(?::\d+)?\}")
+
+
 def _looks_like_sequence(spec: str) -> bool:
-    return "%" in spec
+    return bool(
+        _PRINTF_SEQUENCE_PATTERN.search(spec) or _BRACE_SEQUENCE_PATTERN.search(spec)
+    )
 
 
 def _expand_glob(pattern: str) -> Iterable[str]:
     from glob import glob
 
+    path = Path(pattern)
+    if not path.is_absolute():
+        return [str(match) for match in Path().glob(pattern)]
     return glob(pattern, recursive=True)  # noqa: PTH207 - absolute patterns require glob module
 
 
