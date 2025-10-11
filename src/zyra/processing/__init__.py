@@ -25,13 +25,18 @@ from .netcdf_data_processor import (
 )
 from .pad_missing import pad_missing_frames
 from .video_processor import VideoProcessor
-from .video_transcode import VideoTranscoder, run_video_transcode
+from .video_transcode import (
+    VideoTranscoder,
+    normalise_extra_args,
+    run_video_transcode,
+)
 
 __all__ = [
     "DataProcessor",
     "VideoProcessor",
     "VideoTranscoder",
     "run_video_transcode",
+    "normalise_extra_args",
     "DecodedGRIB",
     "VariableNotFoundError",
     "grib_decode",
@@ -953,13 +958,7 @@ def register_cli(subparsers: Any) -> None:
     p_vt.add_argument("--trace", action="store_true")
 
     def _vt_entry(args: argparse.Namespace) -> int:
-        import shlex
-
-        extra_chunks = getattr(args, "extra_args", None) or []
-        parsed_extra: list[str] = []
-        for chunk in extra_chunks:
-            parsed_extra.extend(shlex.split(chunk))
-        args.extra_args = parsed_extra
+        args.extra_args = normalise_extra_args(getattr(args, "extra_args", None))
         return cmd_video_transcode(args)
 
     p_vt.set_defaults(func=_vt_entry)

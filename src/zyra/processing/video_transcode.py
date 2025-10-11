@@ -24,6 +24,16 @@ from typing import Any, Iterable, Sequence
 from zyra.utils.cli_helpers import sanitize_for_log
 
 
+def normalise_extra_args(raw: Sequence[str] | None) -> list[str]:
+    """Split repeatable ``--extra-args`` chunks into individual FFmpeg flags."""
+
+    parsed: list[str] = []
+    for chunk in raw or []:
+        if chunk:
+            parsed.extend(shlex.split(chunk))
+    return parsed
+
+
 class VideoTranscodeError(RuntimeError):
     """Raised when FFmpeg or FFprobe encounters an unrecoverable issue."""
 
@@ -172,10 +182,7 @@ class VideoTranscoder:
         metadata_path = Path(metadata_out) if metadata_out else None
         output = getattr(args, "output", None)
         output_path = Path(output) if output else None
-        extra_args: list[str] = []
-        for item in getattr(args, "extra_args", []) or []:
-            if item:
-                extra_args.extend(shlex.split(item))
+        extra_args = normalise_extra_args(getattr(args, "extra_args", None))
         return VideoTranscodeConfig(
             input_spec=args.input,
             output=output_path,
@@ -289,7 +296,6 @@ class VideoTranscoder:
         out_arg = self.config.output
         if out_arg:
             if out_arg.exists() and out_arg.is_dir():
-                out_arg.mkdir(parents=True, exist_ok=True)
                 return out_arg / filename
             if out_arg.suffix:
                 out_arg.parent.mkdir(parents=True, exist_ok=True)
