@@ -3,6 +3,7 @@
 
 # Local data/output (optional; uncomment if used)
 _work/
+data/
 
 # Test artifacts
 test.json

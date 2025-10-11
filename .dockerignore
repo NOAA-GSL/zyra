@@ -33,3 +33,6 @@ docker-compose.yml
 .idea/
 *.swp
 *.swo
+
+data/
+_work/
