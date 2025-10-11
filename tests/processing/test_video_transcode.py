@@ -152,7 +152,8 @@ def test_video_transcode_sequence_default_name(tmp_path, monkeypatch, _patch_ffm
     module = _patch_ffmpeg
     frames_dir = tmp_path / "frames"
     frames_dir.mkdir()
-    (frames_dir / "tile_%04d.png").write_bytes(b"")
+    for idx in range(3):
+        (frames_dir / f"tile_{idx:04d}.png").write_bytes(b"")
     commands: list[list[str]] = []
 
     def fake_run(cmd, capture_output=False, text=False, **kwargs):  # noqa: ARG001

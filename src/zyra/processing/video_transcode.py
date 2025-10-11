@@ -463,16 +463,20 @@ def _normalize_scale_dim(dim: str) -> str:
 
 
 def _default_sequence_basename(stem: str) -> str:
-    cleaned = _PRINTF_FORMAT_PATTERN.sub("", stem)
-    cleaned = _BRACE_FORMAT_PATTERN.sub("", cleaned)
-    cleaned = cleaned.strip().rstrip("_-.")
-    cleaned = cleaned.rstrip("0123456789")
-    return cleaned or "transcoded"
+    no_printf = _PRINTF_FORMAT_PATTERN.sub("", stem)
+    no_brace = _BRACE_FORMAT_PATTERN.sub("", no_printf)
+    trimmed = no_brace.strip().rstrip("_-. ")
+    without_digits = trimmed.rstrip("0123456789")
+    return without_digits or "transcoded"
 
 
+# Matches printf placeholders (e.g., %04d, %2$05d) used in FFmpeg sequences
 _PRINTF_FORMAT_PATTERN = re.compile(r"%(?:\d+\$)?0?\d*(?:\.\d+)?[diuoxX]")
+# Matches brace-style templates (e.g., {0001..0100}) seen in some workflows
 _BRACE_FORMAT_PATTERN = re.compile(r"\{[^}]*\}")
+# Specific pattern to detect printf digit sequences for sequence detection
 _PRINTF_SEQUENCE_PATTERN = re.compile(r"%(?:0?\d+)?d")
+# Specific pattern to detect brace ranges like {0001..0100} or {1:100}
 _BRACE_SEQUENCE_PATTERN = re.compile(r"\{\d+(?:\.\.|:)\d+(?::\d+)?\}")
 
 
@@ -560,8 +564,4 @@ def _pattern_root(pattern: str) -> Path | None:
 
 
 def _is_relative_to(path: Path, root: Path) -> bool:
-    try:
-        path.relative_to(root)
-        return True
-    except ValueError:
-        return False
+    return path.is_relative_to(root)
