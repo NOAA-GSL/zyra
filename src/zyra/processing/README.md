@@ -8,6 +8,7 @@ Commands
 - `pad-missing` — Generate placeholder frames for missing timestamps using transform metadata.
 - `audio-transcode` — Transcode audio (wav/mp3/ogg) via ffmpeg.
 - `audio-metadata` — Print audio metadata via ffprobe.
+- `video-transcode` — Re-encode videos or JPG stacks via ffmpeg (modern + SOS presets).
 
 api-json
 - CLI: `zyra process api-json <file_or_url>`
@@ -76,3 +77,11 @@ Examples
 Audio
 - Transcode: `zyra process audio-transcode input.ogg --to wav -o out.wav`
 - Metadata: `zyra process audio-metadata input.ogg`
+
+Video
+- Modern re-encode: `zyra process video-transcode input.mpg --to mp4 --codec h264 -o out.mp4`
+- Batch directory (mirrors structure): `zyra process video-transcode data/raw_videos --output data/modernized --to mp4 --extra-args "-movflags +faststart"`
+- Globbed JPG stack → MP4: `zyra process video-transcode "frames/*/*.jpg" --fps 30 --pix-fmt yuv420p --output data/renders`
+- SOS preset (JPG stack): `zyra process video-transcode frames/frame%04d.jpg --sos-legacy -o legacy.mp4`
+- SOS preset notes: Legacy SOS playlists typically ship `.mp4` files even when encoded with `libxvid`; reach for `--to mpg` only when you knowingly need MPEG-2 playback (the CLI will warn and default to `mpeg2video` to keep the container honest).
+- Metadata JSON: `zyra process video-transcode input.mpg --write-metadata --metadata-out meta.json`

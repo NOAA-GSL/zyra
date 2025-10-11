@@ -474,6 +474,29 @@ class ProcessAudioMetadataArgs(BaseModel):
     output: str | None = None
 
 
+class ProcessVideoTranscodeArgs(BaseModel):
+    """Arguments for ``process video-transcode``."""
+
+    input: str
+    output: str | None = None
+    container: str | None = None
+    codec: str | None = None
+    audio_codec: str | None = None
+    audio_bitrate: str | None = None
+    scale: str | None = None
+    fps: float | None = None
+    bitrate: str | None = None
+    pix_fmt: str | None = None
+    preset: str | None = None
+    crf: int | None = None
+    gop: int | None = None
+    extra_args: list[str] | None = None
+    metadata_out: str | None = None
+    write_metadata: bool | None = None
+    sos_legacy: bool | None = None
+    no_overwrite: bool | None = None
+
+
 class PresetLimitlessAudioArgs(BaseModel):
     """Args for preset endpoint: /v1/presets/limitless/audio.
 
@@ -519,6 +542,8 @@ def resolve_model(stage: str, tool: str) -> type[BaseModel] | None:
         return ProcessAudioTranscodeArgs
     if key == ("process", "audio-metadata"):
         return ProcessAudioMetadataArgs
+    if key == ("process", "video-transcode"):
+        return ProcessVideoTranscodeArgs
     if key == ("visualize", "heatmap"):
         return VisualizeHeatmapArgs
     if key == ("visualize", "contour"):
