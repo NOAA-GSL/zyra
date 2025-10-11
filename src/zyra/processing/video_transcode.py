@@ -477,12 +477,15 @@ def _looks_like_sequence(spec: str) -> bool:
 
 
 def _expand_glob(pattern: str) -> Iterable[str]:
-    from glob import glob
-
     path = Path(pattern)
     if not path.is_absolute():
         return [str(match) for match in Path().glob(pattern)]
-    return glob(pattern, recursive=True)  # noqa: PTH207 - absolute patterns require glob module
+    anchor = path.anchor or os.sep
+    base = Path(anchor)
+    relative = pattern[len(anchor) :].lstrip("/\\")
+    if not relative:
+        relative = "."
+    return [str(match) for match in base.glob(relative)]
 
 
 def _first_stream_of_type(
@@ -517,16 +520,23 @@ def _emit_metadata(
 def _common_root(paths: Sequence[Path]) -> Path | None:
     if not paths:
         return None
-    try:
-        common_str = os.path.commonpath([str(p) for p in paths])
-    except ValueError:
+    parts_lists = [p.parts for p in paths]
+    if not parts_lists:
         return None
-    if not common_str:
+    min_len = min(len(parts) for parts in parts_lists)
+    shared_parts: list[str] = []
+    for idx in range(min_len):
+        segment = parts_lists[0][idx]
+        if all(parts[idx] == segment for parts in parts_lists):
+            shared_parts.append(segment)
+        else:
+            break
+    if not shared_parts:
         return None
-    common_path = Path(common_str)
+    common_path = Path(*shared_parts)
     if len(paths) == 1:
         return paths[0].parent
-    if _is_relative_to(paths[0], common_path) and paths[0] == common_path:
+    if paths[0] == common_path:
         return common_path.parent
     return common_path
 

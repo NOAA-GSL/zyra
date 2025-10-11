@@ -410,6 +410,43 @@ def test_video_transcode_batch_glob_preserves_structure(
     assert ffmpeg_cmd[-1].endswith("nested/clip.mp4")
 
 
+def test_video_transcode_absolute_glob(tmp_path, monkeypatch, _patch_ffmpeg):
+    module = _patch_ffmpeg
+    base = tmp_path / "abs"
+    nested = base / "nested"
+    nested.mkdir(parents=True)
+    (nested / "clip.mpg").write_bytes(b"clip")
+    out_dir = tmp_path / "converted_abs"
+    commands: list[list[str]] = []
+
+    def fake_run(cmd, capture_output=False, text=False, **kwargs):  # noqa: ARG001
+        commands.append(cmd)
+        if cmd[0].endswith("ffmpeg"):
+            Path(cmd[-1]).write_bytes(b"out")
+            return _FakeCompleted(0, "", "")
+        if cmd[0].endswith("ffprobe"):
+            return _FakeCompleted(1, "", "ffprobe unavailable")
+        raise AssertionError(f"Unexpected command: {cmd}")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    pattern = str(base / "*" / "*.mpg")
+    parser = _build_parser()
+    args = parser.parse_args(
+        [
+            "video-transcode",
+            pattern,
+            "--output",
+            str(out_dir),
+        ]
+    )
+    rc = args.func(args)
+    assert rc == 0
+    assert (out_dir / "nested" / "clip.mp4").exists()
+    ffmpeg_cmd = commands[0]
+    assert ffmpeg_cmd[-1].endswith("nested/clip.mp4")
+
+
 def test_video_transcode_extra_args_split(tmp_path, monkeypatch, _patch_ffmpeg):
     module = _patch_ffmpeg
     src = tmp_path / "input.mpg"
