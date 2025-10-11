@@ -25,10 +25,13 @@ from .netcdf_data_processor import (
 )
 from .pad_missing import pad_missing_frames
 from .video_processor import VideoProcessor
+from .video_transcode import VideoTranscoder, run_video_transcode
 
 __all__ = [
     "DataProcessor",
     "VideoProcessor",
+    "VideoTranscoder",
+    "run_video_transcode",
     "DecodedGRIB",
     "VariableNotFoundError",
     "grib_decode",
@@ -828,6 +831,138 @@ def register_cli(subparsers: Any) -> None:
         "--output", default="-", help="Output file path or '-' for stdout"
     )
     p_api_json.set_defaults(func=cmd_api_json)
+
+    # video-transcode (ffmpeg wrapper for modern and legacy outputs)
+    def cmd_video_transcode(args: argparse.Namespace) -> int:
+        import os
+
+        from zyra.utils.cli_helpers import configure_logging_from_env
+
+        if getattr(args, "verbose", False):
+            os.environ["ZYRA_VERBOSITY"] = "debug"
+        elif getattr(args, "quiet", False):
+            os.environ["ZYRA_VERBOSITY"] = "quiet"
+        if getattr(args, "trace", False):
+            os.environ["ZYRA_SHELL_TRACE"] = "1"
+        configure_logging_from_env()
+        return run_video_transcode(args)
+
+    p_vt = subparsers.add_parser(
+        "video-transcode",
+        help="Transcode video files or image sequences via ffmpeg",
+        description=(
+            "Transcode videos or JPG image stacks into modern or legacy formats using FFmpeg. "
+            "Supports SOS presets, metadata capture, and batch processing."
+        ),
+    )
+    p_vt.add_argument(
+        "input", help="Input video path, directory, glob, or frame pattern"
+    )
+    p_vt.add_argument(
+        "-o",
+        "--output",
+        dest="output",
+        help="Output file path (single input) or directory when batching",
+    )
+    p_vt.add_argument(
+        "--to",
+        dest="container",
+        choices=["mp4", "webm", "mov", "mpg"],
+        default="mp4",
+        help="Target container format",
+    )
+    p_vt.add_argument(
+        "--codec",
+        choices=["h264", "hevc", "vp9", "av1", "libxvid", "mpeg2video"],
+        help="Video codec to use (sensible default chosen per container)",
+    )
+    p_vt.add_argument(
+        "--audio-codec",
+        dest="audio_codec",
+        help="Audio codec to use (defaults based on container)",
+    )
+    p_vt.add_argument(
+        "--audio-bitrate",
+        dest="audio_bitrate",
+        help="Optional audio bitrate, e.g. 192k",
+    )
+    p_vt.add_argument("--scale", help="Optional scale filter, e.g. 1920x1080 or 1080")
+    p_vt.add_argument(
+        "--fps",
+        dest="fps",
+        type=float,
+        help="Output frames per second (also used as input framerate for sequences)",
+    )
+    p_vt.add_argument(
+        "--framerate",
+        dest="fps",
+        type=float,
+        help="Alias for --fps, kept for FFmpeg parity",
+    )
+    p_vt.add_argument(
+        "--bitrate",
+        help="Target video bitrate (e.g. 8M, 2500k). Defaults to 8M or SOS preset",
+    )
+    p_vt.add_argument(
+        "--pix-fmt",
+        dest="pix_fmt",
+        help="Pixel format to emit (default yuv420p for compatibility)",
+    )
+    p_vt.add_argument("--preset", help="FFmpeg encoder preset when supported")
+    p_vt.add_argument(
+        "--crf",
+        type=int,
+        help="Constant Rate Factor value for quality-based encoders",
+    )
+    p_vt.add_argument(
+        "--gop",
+        type=int,
+        help="Group-of-pictures interval (keyframe spacing)",
+    )
+    p_vt.add_argument(
+        "--extra-args",
+        action="append",
+        default=None,
+        help="Additional raw FFmpeg arguments (repeatable)",
+    )
+    p_vt.add_argument(
+        "--metadata-out",
+        dest="metadata_out",
+        help="Path to write ffprobe metadata JSON",
+    )
+    p_vt.add_argument(
+        "--write-metadata",
+        dest="write_metadata",
+        action="store_true",
+        help="Emit ffprobe metadata JSON after transcoding",
+    )
+    p_vt.add_argument(
+        "--sos-legacy",
+        dest="sos_legacy",
+        action="store_true",
+        help="Apply SOS defaults: -framerate 30 -b:v 25M -c:v libxvid -pix_fmt yuv420p",
+    )
+    p_vt.add_argument(
+        "--no-overwrite",
+        dest="no_overwrite",
+        action="store_true",
+        help="Do not overwrite existing outputs (passes -n to FFmpeg)",
+    )
+    p_vt.add_argument("--verbose", action="store_true")
+    p_vt.add_argument("--quiet", action="store_true")
+    p_vt.add_argument("--trace", action="store_true")
+
+    def _vt_entry(args: argparse.Namespace) -> int:
+        import shlex
+
+        extra_chunks = getattr(args, "extra_args", None) or []
+        parsed_extra: list[str] = []
+        for chunk in extra_chunks:
+            parsed_extra.extend(shlex.split(chunk))
+        args.extra_args = parsed_extra
+        return cmd_video_transcode(args)
+
+    p_vt.set_defaults(func=_vt_entry)
 
     # audio-transcode (optional helper using ffmpeg)
     def cmd_audio_transcode(args: argparse.Namespace) -> int:

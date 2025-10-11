@@ -1694,6 +1694,159 @@
     },
     "example_args": null
   },
+  "process video-transcode": {
+    "description": "Transcode videos or JPG image stacks into modern or legacy formats using FFmpeg. Supports SOS presets, metadata capture, and batch processing.",
+    "doc": "Transcode videos or JPG image stacks into modern or legacy formats using FFmpeg. Supports SOS presets, metadata capture, and batch processing.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--to",
+          "--codec",
+          "--audio-codec",
+          "--audio-bitrate",
+          "--scale",
+          "--fps",
+          "--framerate",
+          "--bitrate",
+          "--pix-fmt",
+          "--preset",
+          "--crf",
+          "--gop",
+          "--extra-args",
+          "--metadata-out",
+          "--write-metadata",
+          "--sos-legacy",
+          "--no-overwrite",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": {
+        "help": "Output file path (single input) or directory when batching",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--to": {
+        "help": "Target container format",
+        "choices": [
+          "mp4",
+          "webm",
+          "mov",
+          "mpg"
+        ],
+        "type": "str",
+        "default": "mp4"
+      },
+      "--codec": {
+        "help": "Video codec to use (sensible default chosen per container)",
+        "choices": [
+          "h264",
+          "hevc",
+          "vp9",
+          "av1",
+          "libxvid",
+          "mpeg2video"
+        ],
+        "type": "str"
+      },
+      "--audio-codec": "Audio codec to use (defaults based on container)",
+      "--audio-bitrate": "Optional audio bitrate, e.g. 192k",
+      "--scale": "Optional scale filter, e.g. 1920x1080 or 1080",
+      "--fps": {
+        "help": "Output frames per second (also used as input framerate for sequences)",
+        "type": "float"
+      },
+      "--framerate": {
+        "help": "Alias for --fps, kept for FFmpeg parity",
+        "type": "float"
+      },
+      "--bitrate": "Target video bitrate (e.g. 8M, 2500k). Defaults to 8M or SOS preset",
+      "--pix-fmt": "Pixel format to emit (default yuv420p for compatibility)",
+      "--preset": "FFmpeg encoder preset when supported",
+      "--crf": {
+        "help": "Constant Rate Factor value for quality-based encoders",
+        "type": "int"
+      },
+      "--gop": {
+        "help": "Group-of-pictures interval (keyframe spacing)",
+        "type": "int"
+      },
+      "--extra-args": "Additional raw FFmpeg arguments (repeatable)",
+      "--metadata-out": "Path to write ffprobe metadata JSON",
+      "--write-metadata": {
+        "help": "Emit ffprobe metadata JSON after transcoding",
+        "type": "bool",
+        "default": false
+      },
+      "--sos-legacy": {
+        "help": "Apply SOS defaults: -framerate 30 -b:v 25M -c:v libxvid -pix_fmt yuv420p",
+        "type": "bool",
+        "default": false
+      },
+      "--no-overwrite": {
+        "help": "Do not overwrite existing outputs (passes -n to FFmpeg)",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "input",
+        "help": "Input video path, directory, glob, or frame pattern",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "process",
+    "args_schema": {
+      "required": [
+        "input"
+      ],
+      "optional": [
+        "audio_bitrate",
+        "audio_codec",
+        "bitrate",
+        "codec",
+        "container",
+        "crf",
+        "extra_args",
+        "fps",
+        "gop",
+        "metadata_out",
+        "no_overwrite",
+        "output",
+        "pix_fmt",
+        "preset",
+        "scale",
+        "sos_legacy",
+        "write_metadata"
+      ]
+    },
+    "example_args": null
+  },
   "process audio-transcode": {
     "description": "Transcode input audio to a target format using ffmpeg. Requires FFmpeg runtime.",
     "doc": "Transcode input audio to a target format using ffmpeg. Requires FFmpeg runtime.",

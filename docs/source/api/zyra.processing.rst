@@ -24,6 +24,11 @@ Modules
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: zyra.processing.video_transcode
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 .. automodule:: zyra.processing.grib_data_processor
    :members:
    :undoc-members:

@@ -114,6 +114,11 @@ class ProcessAudioMetadataRun(DomainRunRequest):
     args: da.ProcessAudioMetadataArgs  # type: ignore[assignment]
 
 
+class ProcessVideoTranscodeRun(DomainRunRequest):
+    tool: Literal["video-transcode"]
+    args: da.ProcessVideoTranscodeArgs  # type: ignore[assignment]
+
+
 # Decimate
 class DecimateLocalRun(DomainRunRequest):
     tool: Literal["local"]
