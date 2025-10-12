@@ -8,7 +8,9 @@ from zyra.connectors.backends import ftp as ftp_backend
 
 
 def test_parse_ftp_path_warns_on_explicit_override():
-    with pytest.warns(UserWarning, match="username overrides credentials"):
+    with pytest.warns(
+        UserWarning, match="username overrides username embedded in the URL"
+    ):
         host, path, user, pwd = ftp_backend.parse_ftp_path(
             "ftp://urluser:urlpass@ftp.example.com/path/file.bin",
             username="explicit",
