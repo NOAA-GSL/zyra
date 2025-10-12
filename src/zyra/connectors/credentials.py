@@ -16,6 +16,7 @@ masked representation that can be safely logged for debugging.
 from __future__ import annotations
 
 import os
+import warnings
 from dataclasses import dataclass
 from typing import Iterable, Mapping
 
@@ -54,6 +55,20 @@ class ResolvedCredentials:
 
 class CredentialResolutionError(RuntimeError):
     """Raised when credential parsing or resolution fails."""
+
+
+def resolve_basic_auth_credentials(
+    credentials: Mapping[str, str],
+) -> tuple[str | None, str | None]:
+    """Return the best-effort username/password pair from credential aliases."""
+
+    username = (
+        credentials.get("basic_user")
+        or credentials.get("user")
+        or credentials.get("username")
+    )
+    password = credentials.get("basic_password") or credentials.get("password")
+    return username, password
 
 
 def mask_secret(value: str | None, *, visible: int = 4) -> str:
@@ -207,11 +222,16 @@ def apply_auth_header(headers: dict[str, str], auth_value: str | None) -> None:
     elif scheme_l == "basic" and value:
         import base64 as _b64
 
-        try:
-            user, pwd = value.split(":", 1)
-        except ValueError:
+        if ":" not in value:
+            warnings.warn(
+                "Basic auth value did not include ':'; using entire value as username",
+                UserWarning,
+                stacklevel=2,
+            )
             user = value
             pwd = ""
+        else:
+            user, pwd = value.split(":", 1)
         token = _b64.b64encode(f"{user}:{pwd}".encode()).decode("ascii")
         headers.setdefault("Authorization", f"Basic {token}")
     elif scheme_l == "header" and value and ":" in value:
@@ -232,12 +252,7 @@ def apply_http_credentials(
     import base64 as _b64
 
     bearer = credentials.get("token") or credentials.get("bearer")
-    basic_user = (
-        credentials.get("basic_user")
-        or credentials.get("user")
-        or credentials.get("username")
-    )
-    basic_pwd = credentials.get("basic_password") or credentials.get("password")
+    basic_user, basic_pwd = resolve_basic_auth_credentials(credentials)
     if bearer and "Authorization" not in headers:
         headers["Authorization"] = f"Bearer {bearer}"
     if basic_user and basic_pwd and "Authorization" not in headers:

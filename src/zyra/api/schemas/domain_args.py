@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -225,6 +227,30 @@ class AcquireApiArgs(BaseModel):
         return self
 
 
+def _normalize_headers(payload: dict[str, Any]) -> None:
+    header_items: list[str] = []
+    existing_headers = payload.get("header")
+    if isinstance(existing_headers, list):
+        header_items.extend(payload.pop("header") or [])
+    headers_map = payload.pop("headers", None)
+    if isinstance(headers_map, dict):
+        header_items.extend(f"{k}: {v}" for k, v in headers_map.items())
+    if header_items:
+        payload["header"] = header_items
+
+
+def _normalize_credentials(payload: dict[str, Any]) -> None:
+    credential_items: list[str] = []
+    existing_credentials = payload.get("credential")
+    if isinstance(existing_credentials, list):
+        credential_items.extend(payload.pop("credential") or [])
+    credentials_map = payload.pop("credentials", None)
+    if isinstance(credentials_map, dict):
+        credential_items.extend(f"{k}={v}" for k, v in credentials_map.items())
+    if credential_items:
+        payload["credential"] = credential_items
+
+
 def normalize_and_validate(stage: str, tool: str, args: dict) -> dict:
     """Validate known tool args via Pydantic models, else pass through as-is.
 
@@ -251,57 +277,15 @@ def normalize_and_validate(stage: str, tool: str, args: dict) -> dict:
     out = obj.model_dump(exclude_none=True)
 
     if stage == "acquire" and tool == "http":
-        header_items: list[str] = []
-        if isinstance(out.get("header"), list):
-            header_items.extend(out.pop("header") or [])
-        headers_map = out.pop("headers", None)
-        if isinstance(headers_map, dict):
-            header_items.extend(f"{k}: {v}" for k, v in headers_map.items())
-        if header_items:
-            out["header"] = header_items
-        credential_items: list[str] = []
-        if isinstance(out.get("credential"), list):
-            credential_items.extend(out.pop("credential") or [])
-        credentials_map = out.pop("credentials", None)
-        if isinstance(credentials_map, dict):
-            credential_items.extend(f"{k}={v}" for k, v in credentials_map.items())
-        if credential_items:
-            out["credential"] = credential_items
+        _normalize_headers(out)
+        _normalize_credentials(out)
     elif stage == "acquire" and tool == "ftp":
-        credential_items = []
-        if isinstance(out.get("credential"), list):
-            credential_items.extend(out.pop("credential") or [])
-        credentials_map = out.pop("credentials", None)
-        if isinstance(credentials_map, dict):
-            credential_items.extend(f"{k}={v}" for k, v in credentials_map.items())
-        if credential_items:
-            out["credential"] = credential_items
+        _normalize_credentials(out)
     elif stage == "decimate" and tool == "post":
-        header_items: list[str] = []
-        if isinstance(out.get("header"), list):
-            header_items.extend(out.pop("header") or [])
-        headers_map = out.pop("headers", None)
-        if isinstance(headers_map, dict):
-            header_items.extend(f"{k}: {v}" for k, v in headers_map.items())
-        if header_items:
-            out["header"] = header_items
-        credential_items: list[str] = []
-        if isinstance(out.get("credential"), list):
-            credential_items.extend(out.pop("credential") or [])
-        credentials_map = out.pop("credentials", None)
-        if isinstance(credentials_map, dict):
-            credential_items.extend(f"{k}={v}" for k, v in credentials_map.items())
-        if credential_items:
-            out["credential"] = credential_items
+        _normalize_headers(out)
+        _normalize_credentials(out)
     elif stage == "decimate" and tool == "ftp":
-        credential_items = []
-        if isinstance(out.get("credential"), list):
-            credential_items.extend(out.pop("credential") or [])
-        credentials_map = out.pop("credentials", None)
-        if isinstance(credentials_map, dict):
-            credential_items.extend(f"{k}={v}" for k, v in credentials_map.items())
-        if credential_items:
-            out["credential"] = credential_items
+        _normalize_credentials(out)
 
     return out
 

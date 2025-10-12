@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import contextlib
 import re
+import warnings
 from datetime import datetime
 from ftplib import FTP, all_errors
 from io import BytesIO
@@ -68,8 +69,20 @@ def parse_ftp_path(
         raise ValueError("FTP path must be host/path")
     host, path = s.split("/", 1)
     if username is not None:
+        if user is not None and username != user:
+            warnings.warn(
+                "Explicit FTP username overrides credentials embedded in the URL.",
+                UserWarning,
+                stacklevel=2,
+            )
         user = username
     if password is not None:
+        if pwd is not None and password != pwd:
+            warnings.warn(
+                "Explicit FTP password overrides credentials embedded in the URL.",
+                UserWarning,
+                stacklevel=2,
+            )
         pwd = password
     return host, path, user, pwd
 

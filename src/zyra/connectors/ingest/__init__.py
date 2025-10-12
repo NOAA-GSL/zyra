@@ -14,6 +14,7 @@ from zyra.connectors.credentials import (
     apply_auth_header,
     apply_http_credentials,
     parse_header_strings,
+    resolve_basic_auth_credentials,
     resolve_credentials,
 )
 from zyra.utils.cli_helpers import configure_logging_from_env
@@ -215,12 +216,7 @@ def _cmd_ftp(ns: argparse.Namespace) -> int:
             )
         except CredentialResolutionError as exc:
             raise SystemExit(f"Credential error: {exc}") from exc
-        username = (
-            resolved.get("user")
-            or resolved.get("username")
-            or resolved.get("basic_user")
-        )
-        password = resolved.get("password") or resolved.get("basic_password")
+        username, password = resolve_basic_auth_credentials(resolved.values)
     inputs = list(getattr(ns, "inputs", []) or [])
     if getattr(ns, "manifest", None):
         try:

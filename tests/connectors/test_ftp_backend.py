@@ -1,7 +1,56 @@
 # SPDX-License-Identifier: Apache-2.0
+import warnings
 from unittest.mock import patch
 
+import pytest
+
 from zyra.connectors.backends import ftp as ftp_backend
+
+
+def test_parse_ftp_path_warns_on_explicit_override():
+    with pytest.warns(UserWarning, match="username overrides credentials"):
+        host, path, user, pwd = ftp_backend.parse_ftp_path(
+            "ftp://urluser:urlpass@ftp.example.com/path/file.bin",
+            username="explicit",
+        )
+    assert host == "ftp.example.com"
+    assert path == "path/file.bin"
+    assert user == "explicit"
+    assert pwd == "urlpass"
+
+
+def test_parse_ftp_path_warns_on_password_override():
+    with pytest.warns(UserWarning, match="password overrides credentials"):
+        host, path, user, pwd = ftp_backend.parse_ftp_path(
+            "ftp://urluser:urlpass@ftp.example.com/path/file.bin",
+            password="newpass",
+        )
+    assert pwd == "newpass"
+    assert user == "urluser"
+
+
+def test_parse_ftp_path_uses_url_credentials_when_explicit_missing():
+    host, path, user, pwd = ftp_backend.parse_ftp_path(
+        "ftp://urluser:urlpass@ftp.example.com/path/file.bin"
+    )
+    assert (host, path, user, pwd) == (
+        "ftp.example.com",
+        "path/file.bin",
+        "urluser",
+        "urlpass",
+    )
+
+
+def test_parse_ftp_path_no_warning_when_values_match():
+    with warnings.catch_warnings(record=True) as captured:
+        warnings.simplefilter("always")
+        host, path, user, pwd = ftp_backend.parse_ftp_path(
+            "ftp://urluser:urlpass@ftp.example.com/path/file.bin",
+            username="urluser",
+            password="urlpass",
+        )
+    assert not captured
+    assert (user, pwd) == ("urluser", "urlpass")
 
 
 def test_list_files_with_date_filter_and_credentials(monkeypatch):
