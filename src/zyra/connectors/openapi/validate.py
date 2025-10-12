@@ -155,15 +155,13 @@ def find_operation(spec: dict[str, Any], url: str, method: str) -> OperationRef 
     return OperationRef(path=path, method=method, operation=op, path_item=item)
 
 
-_SENSITIVE_TERMS = ("auth", "token", "secret", "key")
-
-
 def _mask_sensitive(where: str, name: str, value: str | None) -> str | None:
     if value is None:
         return None
     if where == "header":
         lname = name.lower()
-        if any(term in lname for term in _SENSITIVE_TERMS):
+        sensitive_terms = ("auth", "token", "secret", "key")
+        if any(term in lname for term in sensitive_terms):
             return "<redacted>"
     return value
 
