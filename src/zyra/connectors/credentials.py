@@ -216,7 +216,12 @@ def apply_auth_header(headers: dict[str, str], auth_value: str | None) -> None:
         headers.setdefault("Authorization", f"Basic {token}")
     elif scheme_l == "header" and value and ":" in value:
         name, v = value.split(":", 1)
-        headers.setdefault(name.strip(), v.strip())
+        name = name.strip()
+        v = v.strip()
+        if v.startswith("$"):
+            v = os.environ.get(v[1:], "")
+        if name and v and name not in headers:
+            headers[name] = v
 
 
 def apply_http_credentials(

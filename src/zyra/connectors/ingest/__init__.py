@@ -364,6 +364,16 @@ def _cmd_api(ns: argparse.Namespace) -> int:
     if getattr(ns, "content_type", None):
         headers.setdefault("Content-Type", ns.content_type)
     body = _load_data_arg(getattr(ns, "data", None))
+    credential_entries = list(getattr(ns, "credential", []) or [])
+    if credential_entries:
+        try:
+            resolved = resolve_credentials(
+                credential_entries,
+                credential_file=getattr(ns, "credential_file", None),
+            )
+        except CredentialResolutionError as exc:
+            raise SystemExit(f"Credential error: {exc}") from exc
+        apply_http_credentials(headers, resolved.values)
     apply_auth_header(headers, getattr(ns, "auth", None))
 
     from zyra.connectors.backends import api as api_backend
@@ -1073,6 +1083,17 @@ def register_cli(acq_subparsers: Any) -> None:
     p_api.add_argument(
         "--params",
         help="URL query parameters as k1=v1&k2=v2",
+    )
+    p_api.add_argument(
+        "--credential",
+        action="append",
+        dest="credential",
+        help="Credential slot resolution (repeatable), e.g., token=$API_TOKEN",
+    )
+    p_api.add_argument(
+        "--credential-file",
+        dest="credential_file",
+        help="Optional dotenv file for resolving @KEY credentials",
     )
     p_api.add_argument(
         "--since",
