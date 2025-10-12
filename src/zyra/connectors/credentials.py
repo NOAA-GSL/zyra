@@ -186,6 +186,7 @@ __all__ = [
     "ResolvedCredentials",
     "mask_secret",
     "resolve_credentials",
+    "resolve_basic_auth_credentials",
     "parse_header_strings",
     "apply_auth_header",
     "apply_http_credentials",
