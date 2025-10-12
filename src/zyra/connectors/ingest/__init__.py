@@ -423,9 +423,10 @@ def _cmd_api(ns: argparse.Namespace) -> int:
                 import sys as _sys
 
                 for it in issues:
-                    _sys.stderr.write(
-                        f"OpenAPI validation: {it.get('loc')} {it.get('name')}: {it.get('message')}\n"
-                    )
+                    loc = it.get("loc")
+                    name = it.get("name")
+                    msg = it.get("message")
+                    _sys.stderr.write(f"OpenAPI validation: {loc} {name}: {msg}\n")
                 if getattr(ns, "openapi_strict", False):
                     raise SystemExit(2)
             else:
