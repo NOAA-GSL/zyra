@@ -17,6 +17,12 @@ class AcquireHttpArgs(BaseModel):
     inputs: list[str] | None = None
     manifest: str | None = None
     output_dir: str | None = None
+    headers: dict[str, str] | None = None
+    header: list[str] | None = None
+    auth: str | None = None
+    credentials: dict[str, str] | None = None
+    credential: list[str] | None = None
+    credential_file: str | None = None
 
     @model_validator(mode="after")
     def _require_source_or_listing(self):  # type: ignore[override]
@@ -111,6 +117,11 @@ class DecimateS3Args(BaseModel):
 class DecimateFtpArgs(BaseModel):
     input: str
     path: str
+    user: str | None = None
+    password: str | None = None
+    credentials: dict[str, str] | None = None
+    credential: list[str] | None = None
+    credential_file: str | None = None
 
 
 class AcquireS3Args(BaseModel):
@@ -150,6 +161,11 @@ class AcquireFtpArgs(BaseModel):
     inputs: list[str] | None = None
     manifest: str | None = None
     output_dir: str | None = None
+    user: str | None = None
+    password: str | None = None
+    credentials: dict[str, str] | None = None
+    credential: list[str] | None = None
+    credential_file: str | None = None
 
     @model_validator(mode="after")
     def _require_path_or_listing(self):  # type: ignore[override]
@@ -232,7 +248,62 @@ def normalize_and_validate(stage: str, tool: str, args: dict) -> dict:
     if model is None:
         return dict(args)
     obj = model(**args)
-    return obj.model_dump(exclude_none=True)
+    out = obj.model_dump(exclude_none=True)
+
+    if stage == "acquire" and tool == "http":
+        header_items: list[str] = []
+        if isinstance(out.get("header"), list):
+            header_items.extend(out.pop("header") or [])
+        headers_map = out.pop("headers", None)
+        if isinstance(headers_map, dict):
+            header_items.extend(f"{k}: {v}" for k, v in headers_map.items())
+        if header_items:
+            out["header"] = header_items
+        credential_items: list[str] = []
+        if isinstance(out.get("credential"), list):
+            credential_items.extend(out.pop("credential") or [])
+        credentials_map = out.pop("credentials", None)
+        if isinstance(credentials_map, dict):
+            credential_items.extend(f"{k}={v}" for k, v in credentials_map.items())
+        if credential_items:
+            out["credential"] = credential_items
+    elif stage == "acquire" and tool == "ftp":
+        credential_items = []
+        if isinstance(out.get("credential"), list):
+            credential_items.extend(out.pop("credential") or [])
+        credentials_map = out.pop("credentials", None)
+        if isinstance(credentials_map, dict):
+            credential_items.extend(f"{k}={v}" for k, v in credentials_map.items())
+        if credential_items:
+            out["credential"] = credential_items
+    elif stage == "decimate" and tool == "post":
+        header_items: list[str] = []
+        if isinstance(out.get("header"), list):
+            header_items.extend(out.pop("header") or [])
+        headers_map = out.pop("headers", None)
+        if isinstance(headers_map, dict):
+            header_items.extend(f"{k}: {v}" for k, v in headers_map.items())
+        if header_items:
+            out["header"] = header_items
+        credential_items: list[str] = []
+        if isinstance(out.get("credential"), list):
+            credential_items.extend(out.pop("credential") or [])
+        credentials_map = out.pop("credentials", None)
+        if isinstance(credentials_map, dict):
+            credential_items.extend(f"{k}={v}" for k, v in credentials_map.items())
+        if credential_items:
+            out["credential"] = credential_items
+    elif stage == "decimate" and tool == "ftp":
+        credential_items = []
+        if isinstance(out.get("credential"), list):
+            credential_items.extend(out.pop("credential") or [])
+        credentials_map = out.pop("credentials", None)
+        if isinstance(credentials_map, dict):
+            credential_items.extend(f"{k}={v}" for k, v in credentials_map.items())
+        if credential_items:
+            out["credential"] = credential_items
+
+    return out
 
 
 # Additional high-value tool schemas
@@ -249,6 +320,12 @@ class DecimatePostArgs(BaseModel):
     input: str
     url: str
     content_type: str | None = None
+    headers: dict[str, str] | None = None
+    header: list[str] | None = None
+    auth: str | None = None
+    credentials: dict[str, str] | None = None
+    credential: list[str] | None = None
+    credential_file: str | None = None
 
 
 class VisualizeAnimateArgs(BaseModel):

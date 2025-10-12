@@ -48,11 +48,18 @@ class FTPConnector(Connector):
 
     def fetch_bytes(self, path: str) -> bytes:
         """Fetch a remote file from this FTP host as bytes."""
-        return ftp_backend.fetch_bytes(self._url(path))
+        return ftp_backend.fetch_bytes(
+            self._url(path), username=self.username, password=self.password
+        )
 
     def upload_bytes(self, data: bytes, path: str) -> bool:
         """Upload bytes to a remote path on this FTP host."""
-        return ftp_backend.upload_bytes(data, self._url(path))
+        return ftp_backend.upload_bytes(
+            data,
+            self._url(path),
+            username=self.username,
+            password=self.password,
+        )
 
     def list_files(
         self,
@@ -70,19 +77,27 @@ class FTPConnector(Connector):
             since=since,
             until=until,
             date_format=date_format,
+            username=self.username,
+            password=self.password,
         )
 
     def exists(self, path: str) -> bool:
         """Return True if the path exists on this FTP host."""
-        return ftp_backend.exists(self._url(path))
+        return ftp_backend.exists(
+            self._url(path), username=self.username, password=self.password
+        )
 
     def delete(self, path: str) -> bool:
         """Delete a remote path on this FTP host."""
-        return ftp_backend.delete(self._url(path))
+        return ftp_backend.delete(
+            self._url(path), username=self.username, password=self.password
+        )
 
     def stat(self, path: str):
         """Return minimal metadata mapping for a remote path."""
-        return ftp_backend.stat(self._url(path))
+        return ftp_backend.stat(
+            self._url(path), username=self.username, password=self.password
+        )
 
     def sync_directory(
         self,
@@ -102,6 +117,8 @@ class FTPConnector(Connector):
             since=since,
             until=until,
             date_format=date_format,
+            username=self.username,
+            password=self.password,
         )
 
 

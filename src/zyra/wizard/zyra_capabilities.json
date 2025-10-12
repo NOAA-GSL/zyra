@@ -20,7 +20,11 @@
           "--output-dir",
           "--verbose",
           "--quiet",
-          "--trace"
+          "--trace",
+          "--header",
+          "--auth",
+          "--credential",
+          "--credential-file"
         ]
       }
     ],
@@ -71,7 +75,11 @@
         "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
-      }
+      },
+      "--header": "Add custom HTTP header 'Name: Value' (repeatable)",
+      "--auth": "Convenience auth helper: 'bearer:$TOKEN' -> Authorization: Bearer <value>, 'basic:user:pass' sets HTTP Basic auth",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'token=$API_TOKEN' or 'header.Authorization=@EUMETSAT_TOKEN'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials"
     },
     "positionals": [
       {
@@ -85,7 +93,13 @@
     "args_schema": {
       "required": [],
       "optional": [
+        "auth",
+        "credential",
+        "credential_file",
+        "credentials",
         "date_format",
+        "header",
+        "headers",
         "inputs",
         "list_mode",
         "manifest",
@@ -234,7 +248,11 @@
           "--output-dir",
           "--verbose",
           "--quiet",
-          "--trace"
+          "--trace",
+          "--user",
+          "--password",
+          "--credential",
+          "--credential-file"
         ]
       }
     ],
@@ -286,7 +304,11 @@
         "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
-      }
+      },
+      "--user": "FTP username (alias for --credential user=...)",
+      "--password": "FTP password (alias for --credential password=...)",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'user=@FTP_USER' or 'password=$FTP_PASS'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials"
     },
     "positionals": [
       {
@@ -300,17 +322,22 @@
     "args_schema": {
       "required": [],
       "optional": [
+        "credential",
+        "credential_file",
+        "credentials",
         "date_format",
         "inputs",
         "list_mode",
         "manifest",
         "output",
         "output_dir",
+        "password",
         "path",
         "pattern",
         "since",
         "since_period",
-        "until"
+        "until",
+        "user"
       ]
     },
     "example_args": null
@@ -655,7 +682,11 @@
           "--output-dir",
           "--verbose",
           "--quiet",
-          "--trace"
+          "--trace",
+          "--header",
+          "--auth",
+          "--credential",
+          "--credential-file"
         ]
       }
     ],
@@ -706,7 +737,11 @@
         "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
-      }
+      },
+      "--header": "Add custom HTTP header 'Name: Value' (repeatable)",
+      "--auth": "Convenience auth helper: 'bearer:$TOKEN' -> Authorization: Bearer <value>, 'basic:user:pass' sets HTTP Basic auth",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'token=$API_TOKEN' or 'header.Authorization=@EUMETSAT_TOKEN'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials"
     },
     "positionals": [
       {
@@ -720,7 +755,13 @@
     "args_schema": {
       "required": [],
       "optional": [
+        "auth",
+        "credential",
+        "credential_file",
+        "credentials",
         "date_format",
+        "header",
+        "headers",
         "inputs",
         "list_mode",
         "manifest",
@@ -848,7 +889,11 @@
           "--output-dir",
           "--verbose",
           "--quiet",
-          "--trace"
+          "--trace",
+          "--user",
+          "--password",
+          "--credential",
+          "--credential-file"
         ]
       }
     ],
@@ -900,7 +945,11 @@
         "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
-      }
+      },
+      "--user": "FTP username (alias for --credential user=...)",
+      "--password": "FTP password (alias for --credential password=...)",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'user=@FTP_USER' or 'password=$FTP_PASS'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials"
     },
     "positionals": [
       {
@@ -4906,7 +4955,11 @@
           "--input",
           "--verbose",
           "--quiet",
-          "--trace"
+          "--trace",
+          "--user",
+          "--password",
+          "--credential",
+          "--credential-file"
         ]
       }
     ],
@@ -4932,7 +4985,11 @@
         "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
-      }
+      },
+      "--user": "FTP username (alias for --credential user=...)",
+      "--password": "FTP password (alias for --credential password=...)",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'user=@FTP_USER'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials"
     },
     "positionals": [
       {
@@ -4948,7 +5005,13 @@
         "input",
         "path"
       ],
-      "optional": []
+      "optional": [
+        "credential",
+        "credential_file",
+        "credentials",
+        "password",
+        "user"
+      ]
     },
     "example_args": null
   },
@@ -4963,6 +5026,10 @@
           "--help",
           "--input",
           "--content-type",
+          "--header",
+          "--auth",
+          "--credential",
+          "--credential-file",
           "--verbose",
           "--quiet",
           "--trace"
@@ -4978,6 +5045,10 @@
         "required": true
       },
       "--content-type": "Content-Type header",
+      "--header": "Add custom HTTP header 'Name: Value' (repeatable)",
+      "--auth": "Convenience auth helper: 'bearer:$TOKEN' -> Authorization: Bearer <value>, 'basic:user:pass' sets HTTP Basic auth",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'token=$API_TOKEN'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials",
       "--verbose": {
         "help": "Verbose logging for this command",
         "type": "bool",
@@ -5009,7 +5080,13 @@
         "url"
       ],
       "optional": [
-        "content_type"
+        "auth",
+        "content_type",
+        "credential",
+        "credential_file",
+        "credentials",
+        "header",
+        "headers"
       ]
     },
     "example_args": null
@@ -5030,7 +5107,12 @@
           "--replace-uri",
           "--verbose",
           "--quiet",
-          "--trace"
+          "--trace",
+          "--vimeo-token",
+          "--vimeo-client-id",
+          "--vimeo-client-secret",
+          "--credential",
+          "--credential-file"
         ]
       }
     ],
@@ -5060,7 +5142,12 @@
         "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
-      }
+      },
+      "--vimeo-token": "Access token (alias for --credential access_token=...)",
+      "--vimeo-client-id": "Client ID (alias for --credential client_id=...)",
+      "--vimeo-client-secret": "Client secret (alias for --credential client_secret=...)",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'access_token=$VIMEO_TOKEN'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials"
     },
     "positionals": [],
     "domain": "disseminate",
@@ -5187,7 +5274,11 @@
           "--input",
           "--verbose",
           "--quiet",
-          "--trace"
+          "--trace",
+          "--user",
+          "--password",
+          "--credential",
+          "--credential-file"
         ]
       }
     ],
@@ -5213,7 +5304,11 @@
         "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
-      }
+      },
+      "--user": "FTP username (alias for --credential user=...)",
+      "--password": "FTP password (alias for --credential password=...)",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'user=@FTP_USER'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials"
     },
     "positionals": [
       {
@@ -5238,6 +5333,10 @@
           "--help",
           "--input",
           "--content-type",
+          "--header",
+          "--auth",
+          "--credential",
+          "--credential-file",
           "--verbose",
           "--quiet",
           "--trace"
@@ -5253,6 +5352,10 @@
         "required": true
       },
       "--content-type": "Content-Type header",
+      "--header": "Add custom HTTP header 'Name: Value' (repeatable)",
+      "--auth": "Convenience auth helper: 'bearer:$TOKEN' -> Authorization: Bearer <value>, 'basic:user:pass' sets HTTP Basic auth",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'token=$API_TOKEN'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials",
       "--verbose": {
         "help": "Verbose logging for this command",
         "type": "bool",
@@ -5297,7 +5400,12 @@
           "--replace-uri",
           "--verbose",
           "--quiet",
-          "--trace"
+          "--trace",
+          "--vimeo-token",
+          "--vimeo-client-id",
+          "--vimeo-client-secret",
+          "--credential",
+          "--credential-file"
         ]
       }
     ],
@@ -5327,7 +5435,12 @@
         "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
-      }
+      },
+      "--vimeo-token": "Access token (alias for --credential access_token=...)",
+      "--vimeo-client-id": "Client ID (alias for --credential client_id=...)",
+      "--vimeo-client-secret": "Client secret (alias for --credential client_secret=...)",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'access_token=$VIMEO_TOKEN'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials"
     },
     "positionals": [],
     "domain": "export",
@@ -5472,7 +5585,11 @@
           "--input",
           "--verbose",
           "--quiet",
-          "--trace"
+          "--trace",
+          "--user",
+          "--password",
+          "--credential",
+          "--credential-file"
         ]
       }
     ],
@@ -5498,7 +5615,11 @@
         "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
-      }
+      },
+      "--user": "FTP username (alias for --credential user=...)",
+      "--password": "FTP password (alias for --credential password=...)",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'user=@FTP_USER'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials"
     },
     "positionals": [
       {
@@ -5514,7 +5635,13 @@
         "input",
         "path"
       ],
-      "optional": []
+      "optional": [
+        "credential",
+        "credential_file",
+        "credentials",
+        "password",
+        "user"
+      ]
     },
     "example_args": null
   },
@@ -5529,6 +5656,10 @@
           "--help",
           "--input",
           "--content-type",
+          "--header",
+          "--auth",
+          "--credential",
+          "--credential-file",
           "--verbose",
           "--quiet",
           "--trace"
@@ -5544,6 +5675,10 @@
         "required": true
       },
       "--content-type": "Content-Type header",
+      "--header": "Add custom HTTP header 'Name: Value' (repeatable)",
+      "--auth": "Convenience auth helper: 'bearer:$TOKEN' -> Authorization: Bearer <value>, 'basic:user:pass' sets HTTP Basic auth",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'token=$API_TOKEN'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials",
       "--verbose": {
         "help": "Verbose logging for this command",
         "type": "bool",
@@ -5575,7 +5710,13 @@
         "url"
       ],
       "optional": [
-        "content_type"
+        "auth",
+        "content_type",
+        "credential",
+        "credential_file",
+        "credentials",
+        "header",
+        "headers"
       ]
     },
     "example_args": null
@@ -5596,7 +5737,12 @@
           "--replace-uri",
           "--verbose",
           "--quiet",
-          "--trace"
+          "--trace",
+          "--vimeo-token",
+          "--vimeo-client-id",
+          "--vimeo-client-secret",
+          "--credential",
+          "--credential-file"
         ]
       }
     ],
@@ -5626,7 +5772,12 @@
         "help": "Shell-style trace of key steps and external commands",
         "type": "bool",
         "default": false
-      }
+      },
+      "--vimeo-token": "Access token (alias for --credential access_token=...)",
+      "--vimeo-client-id": "Client ID (alias for --credential client_id=...)",
+      "--vimeo-client-secret": "Client secret (alias for --credential client_secret=...)",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'access_token=$VIMEO_TOKEN'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials"
     },
     "positionals": [],
     "domain": "decimate",

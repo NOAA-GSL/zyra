@@ -13,6 +13,10 @@ from typing import Any
 
 import requests
 
+from zyra.connectors.credentials import (
+    CredentialResolutionError,
+    resolve_credentials,
+)
 from zyra.utils.env import env_path
 from zyra.utils.iso8601 import iso_to_ms, since_duration_to_range_ms
 
@@ -66,6 +70,9 @@ def download_audio(
     duration: str | None = None,
     audio_source: str | None = None,
     output_dir: str | None = None,
+    credentials: dict[str, str] | None = None,
+    credential: list[str] | None = None,
+    credential_file: str | None = None,
 ) -> dict[str, Any]:
     """Download audio for a provider profile and save under ``DATA_DIR``.
 
@@ -109,7 +116,27 @@ def download_audio(
     )
     url = f"{base}/download-audio"
     headers: dict[str, str] = {}
-    api_key = os.environ.get("LIMITLESS_API_KEY")
+
+    credential_entries: list[str] = []
+    if credential:
+        credential_entries.extend([c for c in credential if c])
+    if credentials:
+        credential_entries.extend(f"{k}={v}" for k, v in credentials.items())
+    resolved_token: str | None = None
+    if credential_entries:
+        try:
+            resolved = resolve_credentials(
+                credential_entries, credential_file=credential_file
+            )
+        except CredentialResolutionError as exc:
+            raise ValueError(str(exc)) from exc
+        resolved_token = (
+            resolved.get("api_key")
+            or resolved.get("token")
+            or resolved.get("bearer")
+            or resolved.get("access_token")
+        )
+    api_key = resolved_token or os.environ.get("LIMITLESS_API_KEY")
     if api_key:
         headers["X-API-Key"] = api_key
     headers.setdefault("Accept", "audio/ogg")

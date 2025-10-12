@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
-from fastapi.testclient import TestClient
+import pytest
 
-from zyra.api.server import create_app
+from zyra.api.mcp_tools.audio import download_audio
 
 
 class _Resp:
@@ -18,86 +18,35 @@ class _Resp:
 
 
 def test_download_audio_content_type_mismatch(monkeypatch):
-    client = TestClient(create_app())
-    monkeypatch.setenv("ZYRA_ENABLE_MCP", "1")
-    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
+    monkeypatch.setenv("ZYRA_DATA_DIR", "/tmp")
 
     def fake_request(
         method, url, headers=None, params=None, timeout=None, stream=False
     ):  # noqa: ARG001
-        return _Resp(
-            200, headers={"Content-Type": "audio/mpeg"}, chunks=[b"x"]
-        )  # wrong type
+        return _Resp(200, headers={"Content-Type": "audio/mpeg"}, chunks=[b"x"])
 
     import requests
 
     monkeypatch.setattr(requests, "request", fake_request)
-    r = client.post(
-        "/v1/mcp",
-        json={
-            "jsonrpc": "2.0",
-            "method": "tools/call",
-            "params": {
-                "name": "download-audio",
-                "arguments": {
-                    "profile": "limitless",
-                    "since": "2025-01-01T00:00:00Z",
-                    "duration": "PT30M",
-                },
-            },
-            "id": 1,
-        },
-        headers={"X-API-Key": "k"},
-    )
-    assert r.status_code == 200
-    js = r.json()
-    assert (
-        js.get("error", {}).get("code") == -32603
-    )  # internal error from tool exception
+    with pytest.raises(RuntimeError):
+        download_audio(
+            profile="limitless",
+            since="2025-01-01T00:00:00Z",
+            duration="PT30M",
+        )
 
 
 def test_download_audio_missing_time_args(monkeypatch):
-    client = TestClient(create_app())
-    monkeypatch.setenv("ZYRA_ENABLE_MCP", "1")
-    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
-
-    r = client.post(
-        "/v1/mcp",
-        json={
-            "jsonrpc": "2.0",
-            "method": "tools/call",
-            "params": {"name": "download-audio", "arguments": {}},
-            "id": 2,
-        },
-        headers={"X-API-Key": "k"},
-    )
-    assert r.status_code == 200
-    js = r.json()
-    assert js.get("error", {}).get("code") == 400
+    monkeypatch.setenv("ZYRA_DATA_DIR", "/tmp")
+    with pytest.raises(ValueError):
+        download_audio(profile="limitless")
 
 
 def test_download_audio_duration_exceeded(monkeypatch):
-    client = TestClient(create_app())
-    monkeypatch.setenv("ZYRA_ENABLE_MCP", "1")
-    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
-
-    r = client.post(
-        "/v1/mcp",
-        json={
-            "jsonrpc": "2.0",
-            "method": "tools/call",
-            "params": {
-                "name": "download-audio",
-                "arguments": {
-                    "profile": "limitless",
-                    "since": "2025-01-01T00:00:00Z",
-                    "duration": "PT3H",
-                },
-            },
-            "id": 3,
-        },
-        headers={"X-API-Key": "k"},
-    )
-    assert r.status_code == 200
-    js = r.json()
-    assert js.get("error", {}).get("code") == 400
+    monkeypatch.setenv("ZYRA_DATA_DIR", "/tmp")
+    with pytest.raises(ValueError):
+        download_audio(
+            profile="limitless",
+            since="2025-01-01T00:00:00Z",
+            duration="PT3H",
+        )

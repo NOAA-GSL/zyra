@@ -465,6 +465,11 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
                         "audio_source"
                     )
                     output_dir = arguments.get("output_dir") or args.get("output_dir")
+                    creds_obj = arguments.get("credentials") or args.get("credentials")
+                    creds_list = arguments.get("credential") or args.get("credential")
+                    cred_file = arguments.get("credential_file") or args.get(
+                        "credential_file"
+                    )
                     res = _dl_audio(
                         profile=prof,
                         start=start,
@@ -473,6 +478,9 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
                         duration=duration,
                         audio_source=audio_source,
                         output_dir=output_dir,
+                        credentials=creds_obj,
+                        credential=creds_list,
+                        credential_file=cred_file,
                     )
                     text = f"download-audio: saved {res.get('path')} ({res.get('size_bytes')} bytes, {res.get('content_type')})"
                     return _ok({"content": [{"type": "text", "text": text}], **res})
@@ -566,11 +574,23 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
                         url=sanitized_url,
                         method=(arguments.get("method") or args.get("method")),
                         headers=(arguments.get("headers") or args.get("headers")),
+                        header=(arguments.get("header") or args.get("header")),
                         params=(arguments.get("params") or args.get("params")),
                         data=(arguments.get("data") or args.get("data")),
                         output_dir=(
                             arguments.get("output_dir") or args.get("output_dir")
                         ),
+                        credentials=(
+                            arguments.get("credentials") or args.get("credentials")
+                        ),
+                        credential=(
+                            arguments.get("credential") or args.get("credential")
+                        ),
+                        credential_file=(
+                            arguments.get("credential_file")
+                            or args.get("credential_file")
+                        ),
+                        auth=(arguments.get("auth") or args.get("auth")),
                     )
                     text = (
                         f"api-fetch: saved {res.get('path')} ({res.get('size_bytes')} bytes, "

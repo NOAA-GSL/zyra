@@ -10,6 +10,13 @@ from zyra.connectors.backends import ftp as ftp_backend
 from zyra.connectors.backends import http as http_backend
 from zyra.connectors.backends import s3 as s3_backend
 from zyra.connectors.backends import vimeo as vimeo_backend
+from zyra.connectors.credentials import (
+    CredentialResolutionError,
+    apply_auth_header,
+    apply_http_credentials,
+    parse_header_strings,
+    resolve_credentials,
+)
 from zyra.utils.cli_helpers import configure_logging_from_env
 from zyra.utils.io_utils import open_input
 
@@ -93,8 +100,29 @@ def _cmd_ftp(ns: argparse.Namespace) -> int:
     if getattr(ns, "trace", False):
         os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
+    credential_entries = list(getattr(ns, "credential", []) or [])
+    if getattr(ns, "user", None):
+        credential_entries.append(f"user={ns.user}")
+    if getattr(ns, "password", None):
+        credential_entries.append(f"password={ns.password}")
+    username: str | None = None
+    password: str | None = None
+    if credential_entries:
+        try:
+            resolved = resolve_credentials(
+                credential_entries,
+                credential_file=getattr(ns, "credential_file", None),
+            )
+        except CredentialResolutionError as exc:
+            raise SystemExit(f"Credential error: {exc}") from exc
+        username = (
+            resolved.get("user")
+            or resolved.get("username")
+            or resolved.get("basic_user")
+        )
+        password = resolved.get("password") or resolved.get("basic_password")
     data = _read_all(ns.input)
-    ftp_backend.upload_bytes(data, ns.path)
+    ftp_backend.upload_bytes(data, ns.path, username=username, password=password)
     return 0
 
 
@@ -107,6 +135,18 @@ def _cmd_post(ns: argparse.Namespace) -> int:
     if getattr(ns, "trace", False):
         os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
+    headers = parse_header_strings(getattr(ns, "header", None))
+    credential_entries = list(getattr(ns, "credential", []) or [])
+    if credential_entries:
+        try:
+            resolved = resolve_credentials(
+                credential_entries,
+                credential_file=getattr(ns, "credential_file", None),
+            )
+        except CredentialResolutionError as exc:
+            raise SystemExit(f"Credential error: {exc}") from exc
+        apply_http_credentials(headers, resolved.values)
+    apply_auth_header(headers, getattr(ns, "auth", None))
     data = _read_all(ns.input)
     if os.environ.get("ZYRA_SHELL_TRACE"):
         import logging as _log
@@ -114,7 +154,12 @@ def _cmd_post(ns: argparse.Namespace) -> int:
         from zyra.utils.cli_helpers import sanitize_for_log
 
         _log.info("+ http post '%s'", sanitize_for_log(ns.url))
-    http_backend.post_bytes(ns.url, data, content_type=ns.content_type)
+    http_backend.post_bytes(
+        ns.url,
+        data,
+        content_type=ns.content_type,
+        headers=headers or None,
+    )
     return 0
 
 
@@ -193,6 +238,21 @@ def register_cli(dec_subparsers: Any) -> None:
         action="store_true",
         help="Shell-style trace of key steps and external commands",
     )
+    p_ftp.add_argument("--user", help="FTP username (alias for --credential user=...)")
+    p_ftp.add_argument(
+        "--password", help="FTP password (alias for --credential password=...)"
+    )
+    p_ftp.add_argument(
+        "--credential",
+        action="append",
+        dest="credential",
+        help="Credential slot resolution (repeatable), e.g., 'user=@FTP_USER'",
+    )
+    p_ftp.add_argument(
+        "--credential-file",
+        dest="credential_file",
+        help="Optional dotenv file for resolving @KEY credentials",
+    )
     p_ftp.set_defaults(func=_cmd_ftp)
 
     # http post
@@ -207,6 +267,28 @@ def register_cli(dec_subparsers: Any) -> None:
     p_post.add_argument("url")
     p_post.add_argument(
         "--content-type", dest="content_type", help="Content-Type header"
+    )
+    p_post.add_argument(
+        "--header",
+        action="append",
+        help="Add custom HTTP header 'Name: Value' (repeatable)",
+    )
+    p_post.add_argument(
+        "--auth",
+        help=(
+            "Convenience auth helper: 'bearer:$TOKEN' -> Authorization: Bearer <value>, 'basic:user:pass' sets HTTP Basic auth"
+        ),
+    )
+    p_post.add_argument(
+        "--credential",
+        action="append",
+        dest="credential",
+        help="Credential slot resolution (repeatable), e.g., 'token=$API_TOKEN'",
+    )
+    p_post.add_argument(
+        "--credential-file",
+        dest="credential_file",
+        help="Optional dotenv file for resolving @KEY credentials",
     )
     p_post.add_argument(
         "--verbose", action="store_true", help="Verbose logging for this command"
@@ -227,6 +309,32 @@ def register_cli(dec_subparsers: Any) -> None:
         import logging
         import sys
 
+        credential_entries = list(getattr(ns, "credential", []) or [])
+        if getattr(ns, "vimeo_token", None):
+            credential_entries.append(f"access_token={ns.vimeo_token}")
+        if getattr(ns, "vimeo_client_id", None):
+            credential_entries.append(f"client_id={ns.vimeo_client_id}")
+        if getattr(ns, "vimeo_client_secret", None):
+            credential_entries.append(f"client_secret={ns.vimeo_client_secret}")
+        resolved_token: str | None = None
+        resolved_client_id: str | None = None
+        resolved_client_secret: str | None = None
+        if credential_entries:
+            try:
+                resolved = resolve_credentials(
+                    credential_entries,
+                    credential_file=getattr(ns, "credential_file", None),
+                )
+            except CredentialResolutionError as exc:
+                raise SystemExit(f"Credential error: {exc}") from exc
+            resolved_token = (
+                resolved.get("access_token")
+                or resolved.get("token")
+                or resolved.get("bearer")
+            )
+            resolved_client_id = resolved.get("client_id")
+            resolved_client_secret = resolved.get("client_secret")
+
         # Resolve description from --description or --description-file
         desc: str | None = getattr(ns, "description", None)
         if not desc and getattr(ns, "description_file", None):
@@ -234,7 +342,6 @@ def register_cli(dec_subparsers: Any) -> None:
                 from pathlib import Path as _P
 
                 data = _P(ns.description_file).read_text(encoding="utf-8")
-                # Truncate overly long descriptions to a safe size
                 max_len = 4800
                 if len(data) > max_len:
                     data = data[: max_len - 12] + "\n...[truncated]"
@@ -244,10 +351,8 @@ def register_cli(dec_subparsers: Any) -> None:
                 desc = None
 
         try:
-            # Upload or replace
             uri: str
             if getattr(ns, "replace_uri", None):
-                # Replace existing video file
                 path = ns.input
                 if path == "-":
                     import tempfile
@@ -256,20 +361,36 @@ def register_cli(dec_subparsers: Any) -> None:
                     with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as tmp:
                         tmp.write(data)
                         tmp.flush()
-                        uri = vimeo_backend.update_video(tmp.name, ns.replace_uri)
+                        uri = vimeo_backend.update_video(
+                            tmp.name,
+                            ns.replace_uri,
+                            token=resolved_token,
+                            client_id=resolved_client_id,
+                            client_secret=resolved_client_secret,
+                        )
                 else:
-                    uri = vimeo_backend.update_video(path, ns.replace_uri)
-                # Optional description update
+                    uri = vimeo_backend.update_video(
+                        path,
+                        ns.replace_uri,
+                        token=resolved_token,
+                        client_id=resolved_client_id,
+                        client_secret=resolved_client_secret,
+                    )
                 if desc:
                     try:
-                        vimeo_backend.update_description(uri, desc)
+                        vimeo_backend.update_description(
+                            uri,
+                            desc,
+                            token=resolved_token,
+                            client_id=resolved_client_id,
+                            client_secret=resolved_client_secret,
+                        )
                         logging.info(
                             "Updated Vimeo description (chars=%d)", len(desc or "")
                         )
                     except Exception as exc:
                         logging.warning("Vimeo description update failed: %s", str(exc))
             else:
-                # Upload new video
                 path = ns.input
                 if path == "-":
                     import tempfile
@@ -279,13 +400,22 @@ def register_cli(dec_subparsers: Any) -> None:
                         tmp.write(data)
                         tmp.flush()
                         uri = vimeo_backend.upload_path(
-                            tmp.name, name=ns.name, description=desc
+                            tmp.name,
+                            name=ns.name,
+                            description=desc,
+                            token=resolved_token,
+                            client_id=resolved_client_id,
+                            client_secret=resolved_client_secret,
                         )
                 else:
                     uri = vimeo_backend.upload_path(
-                        path, name=ns.name, description=desc
+                        path,
+                        name=ns.name,
+                        description=desc,
+                        token=resolved_token,
+                        client_id=resolved_client_id,
+                        client_secret=resolved_client_secret,
                     )
-            # Emit the resulting URI to stdout so pipelines can capture it
             sys.stdout.write(str(uri) + "\n")
             return 0
         except Exception as exc:
@@ -328,5 +458,31 @@ def register_cli(dec_subparsers: Any) -> None:
         "--trace",
         action="store_true",
         help="Shell-style trace of key steps and external commands",
+    )
+    p_vimeo.add_argument(
+        "--vimeo-token",
+        dest="vimeo_token",
+        help="Access token (alias for --credential access_token=...)",
+    )
+    p_vimeo.add_argument(
+        "--vimeo-client-id",
+        dest="vimeo_client_id",
+        help="Client ID (alias for --credential client_id=...)",
+    )
+    p_vimeo.add_argument(
+        "--vimeo-client-secret",
+        dest="vimeo_client_secret",
+        help="Client secret (alias for --credential client_secret=...)",
+    )
+    p_vimeo.add_argument(
+        "--credential",
+        action="append",
+        dest="credential",
+        help="Credential slot resolution (repeatable), e.g., 'access_token=$VIMEO_TOKEN'",
+    )
+    p_vimeo.add_argument(
+        "--credential-file",
+        dest="credential_file",
+        help="Optional dotenv file for resolving @KEY credentials",
     )
     p_vimeo.set_defaults(func=_cmd_vimeo)

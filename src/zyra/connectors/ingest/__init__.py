@@ -9,6 +9,13 @@ from zyra.cli_common import add_output_option
 from zyra.connectors.backends import ftp as ftp_backend
 from zyra.connectors.backends import http as http_backend
 from zyra.connectors.backends import s3 as s3_backend
+from zyra.connectors.credentials import (
+    CredentialResolutionError,
+    apply_auth_header,
+    apply_http_credentials,
+    parse_header_strings,
+    resolve_credentials,
+)
 from zyra.utils.cli_helpers import configure_logging_from_env
 from zyra.utils.date_manager import DateManager
 from zyra.utils.io_utils import open_output
@@ -23,6 +30,18 @@ def _cmd_http(ns: argparse.Namespace) -> int:
     if getattr(ns, "trace", False):
         os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
+    headers = parse_header_strings(getattr(ns, "header", None))
+    credential_entries = list(getattr(ns, "credential", []) or [])
+    if credential_entries:
+        try:
+            resolved = resolve_credentials(
+                credential_entries,
+                credential_file=getattr(ns, "credential_file", None),
+            )
+        except CredentialResolutionError as exc:
+            raise SystemExit(f"Credential error: {exc}") from exc
+        apply_http_credentials(headers, resolved.values)
+    apply_auth_header(headers, getattr(ns, "auth", None))
     inputs = list(getattr(ns, "inputs", []) or [])
     if getattr(ns, "manifest", None):
         try:
@@ -37,7 +56,11 @@ def _cmd_http(ns: argparse.Namespace) -> int:
             raise SystemExit(f"Failed to read manifest: {e}") from e
     # Listing mode
     if getattr(ns, "list", False):
-        urls = http_backend.list_files(ns.url, pattern=getattr(ns, "pattern", None))
+        urls = http_backend.list_files(
+            ns.url,
+            pattern=getattr(ns, "pattern", None),
+            headers=headers or None,
+        )
         # Optional date filter using DateManager on URL basenames
         since = getattr(ns, "since", None)
         until = getattr(ns, "until", None)
@@ -69,7 +92,7 @@ def _cmd_http(ns: argparse.Namespace) -> int:
         outdir = Path(ns.output_dir)
         outdir.mkdir(parents=True, exist_ok=True)
         for u in inputs:
-            data = http_backend.fetch_bytes(u)
+            data = http_backend.fetch_bytes(u, headers=headers or None)
             name = Path(u).name or "download.bin"
             with (outdir / name).open("wb") as f:
                 f.write(data)
@@ -80,7 +103,7 @@ def _cmd_http(ns: argparse.Namespace) -> int:
         from zyra.utils.cli_helpers import sanitize_for_log
 
         _log.info("+ http get '%s'", sanitize_for_log(ns.url))
-    data = http_backend.fetch_bytes(ns.url)
+    data = http_backend.fetch_bytes(ns.url, headers=headers or None)
     with open_output(ns.output) as f:
         f.write(data)
     return 0
@@ -165,6 +188,27 @@ def _cmd_s3(ns: argparse.Namespace) -> int:
 def _cmd_ftp(ns: argparse.Namespace) -> int:
     """Acquire data from FTP and write to stdout or file."""
     configure_logging_from_env()
+    credential_entries = list(getattr(ns, "credential", []) or [])
+    if getattr(ns, "user", None):
+        credential_entries.append(f"user={ns.user}")
+    if getattr(ns, "password", None):
+        credential_entries.append(f"password={ns.password}")
+    username: str | None = None
+    password: str | None = None
+    if credential_entries:
+        try:
+            resolved = resolve_credentials(
+                credential_entries,
+                credential_file=getattr(ns, "credential_file", None),
+            )
+        except CredentialResolutionError as exc:
+            raise SystemExit(f"Credential error: {exc}") from exc
+        username = (
+            resolved.get("user")
+            or resolved.get("username")
+            or resolved.get("basic_user")
+        )
+        password = resolved.get("password") or resolved.get("basic_password")
     inputs = list(getattr(ns, "inputs", []) or [])
     if getattr(ns, "manifest", None):
         try:
@@ -192,6 +236,8 @@ def _cmd_ftp(ns: argparse.Namespace) -> int:
                 )(getattr(ns, "since_period", None), getattr(ns, "since", None)),
                 until=getattr(ns, "until", None),
                 date_format=getattr(ns, "date_format", None),
+                username=username,
+                password=password,
             )
             or []
         )
@@ -214,6 +260,8 @@ def _cmd_ftp(ns: argparse.Namespace) -> int:
             )(getattr(ns, "since_period", None), getattr(ns, "since", None)),
             until=getattr(ns, "until", None),
             date_format=getattr(ns, "date_format", None),
+            username=username,
+            password=password,
         )
         return 0
 
@@ -225,12 +273,12 @@ def _cmd_ftp(ns: argparse.Namespace) -> int:
         outdir = Path(ns.output_dir)
         outdir.mkdir(parents=True, exist_ok=True)
         for p in inputs:
-            data = ftp_backend.fetch_bytes(p)
+            data = ftp_backend.fetch_bytes(p, username=username, password=password)
             name = Path(p).name or "download.bin"
             with (outdir / name).open("wb") as f:
                 f.write(data)
         return 0
-    data = ftp_backend.fetch_bytes(ns.path)
+    data = ftp_backend.fetch_bytes(ns.path, username=username, password=password)
     with open_output(ns.output) as f:
         f.write(data)
     return 0
@@ -260,15 +308,6 @@ def _parse_kv_params(s: str | None) -> dict[str, str]:
             out[k] = v
         else:
             out[pair] = ""
-    return out
-
-
-def _parse_headers(vals: list[str] | None) -> dict[str, str]:
-    out: dict[str, str] = {}
-    for item in vals or []:
-        if ":" in item:
-            k, v = item.split(":", 1)
-            out[k.strip()] = v.lstrip()
     return out
 
 
@@ -320,49 +359,12 @@ def _cmd_api(ns: argparse.Namespace) -> int:
         os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
 
-    headers = _parse_headers(getattr(ns, "header", None))
+    headers = parse_header_strings(getattr(ns, "header", None))
     params = _parse_kv_params(getattr(ns, "params", None))
     if getattr(ns, "content_type", None):
         headers.setdefault("Content-Type", ns.content_type)
     body = _load_data_arg(getattr(ns, "data", None))
-    # Convenience auth helper
-    auth = getattr(ns, "auth", None)
-    if auth:
-        try:
-            scheme, val = auth.split(":", 1)
-            scheme_l = scheme.strip().lower()
-            v = val.strip()
-            if v.startswith("$"):
-                import os as _os
-
-                v = _os.environ.get(v[1:], "")
-            if scheme_l == "bearer" and v and not headers.get("Authorization"):
-                headers["Authorization"] = f"Bearer {v}"
-            elif scheme_l == "basic" and v and not headers.get("Authorization"):
-                # v should be "user:pass" (or provided via env)
-                try:
-                    import base64 as _b64
-
-                    token = _b64.b64encode(v.encode("utf-8")).decode("ascii")
-                    headers["Authorization"] = f"Basic {token}"
-                except Exception:
-                    pass
-            elif scheme_l == "header" and v:
-                # v is expected to be "Name:Value" (Value may be $ENV)
-                try:
-                    name, value = v.split(":", 1)
-                    name = name.strip()
-                    value = value.strip()
-                    if value.startswith("$"):
-                        import os as _os
-
-                        value = _os.environ.get(value[1:], "")
-                    if name and value and name not in headers:
-                        headers[name] = value
-                except Exception:
-                    pass
-        except Exception:
-            pass
+    apply_auth_header(headers, getattr(ns, "auth", None))
 
     from zyra.connectors.backends import api as api_backend
 
@@ -853,6 +855,32 @@ def register_cli(acq_subparsers: Any) -> None:
         action="store_true",
         help="Shell-style trace of key steps and external commands",
     )
+    p_http.add_argument(
+        "--header",
+        action="append",
+        help="Add custom HTTP header 'Name: Value' (repeatable)",
+    )
+    p_http.add_argument(
+        "--auth",
+        help=(
+            "Convenience auth helper: 'bearer:$TOKEN' -> Authorization: Bearer <value>, "
+            "'basic:user:pass' sets HTTP Basic auth"
+        ),
+    )
+    p_http.add_argument(
+        "--credential",
+        action="append",
+        dest="credential",
+        help=(
+            "Credential slot resolution (repeatable), e.g., 'token=$API_TOKEN' or "
+            "'header.Authorization=@EUMETSAT_TOKEN'"
+        ),
+    )
+    p_http.add_argument(
+        "--credential-file",
+        dest="credential_file",
+        help="Optional dotenv file for resolving @KEY credentials",
+    )
     p_http.set_defaults(func=_cmd_http)
 
     # s3
@@ -957,6 +985,28 @@ def register_cli(acq_subparsers: Any) -> None:
         "--trace",
         action="store_true",
         help="Shell-style trace of key steps and external commands",
+    )
+    p_ftp.add_argument(
+        "--user",
+        help="FTP username (alias for --credential user=...)",
+    )
+    p_ftp.add_argument(
+        "--password",
+        help="FTP password (alias for --credential password=...)",
+    )
+    p_ftp.add_argument(
+        "--credential",
+        action="append",
+        dest="credential",
+        help=(
+            "Credential slot resolution (repeatable), e.g., 'user=@FTP_USER' or "
+            "'password=$FTP_PASS'"
+        ),
+    )
+    p_ftp.add_argument(
+        "--credential-file",
+        dest="credential_file",
+        help="Optional dotenv file for resolving @KEY credentials",
     )
     p_ftp.set_defaults(func=_cmd_ftp)
 
