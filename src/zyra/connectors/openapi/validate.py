@@ -155,6 +155,23 @@ def find_operation(spec: dict[str, Any], url: str, method: str) -> OperationRef 
     return OperationRef(path=path, method=method, operation=op, path_item=item)
 
 
+def _mask_sensitive(where: str, name: str, value: str | None) -> str | None:
+    if value is None:
+        return None
+    if where == "header":
+        lname = name.lower()
+        sensitive_terms = {
+            "authorization",
+            "proxy-authorization",
+            "token",
+            "secret",
+            "key",
+        }
+        if lname in sensitive_terms:
+            return "<redacted>"
+    return value
+
+
 def validate_request(
     *,
     spec: dict[str, Any],
@@ -210,11 +227,12 @@ def validate_request(
                 if isinstance(schema.get("enum"), list) and val is not None:
                     allowed = [str(x) for x in schema["enum"]]
                     if str(val) not in allowed:
+                        display_val = _mask_sensitive(where, name, str(val))
                         issues.append(
                             {
                                 "loc": where,
                                 "name": name,
-                                "message": f"Value '{val}' not in enum {allowed}",
+                                "message": f"Value '{display_val}' not in enum {allowed}",
                             }
                         )
                 typ = schema.get("type")

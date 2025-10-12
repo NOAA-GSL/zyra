@@ -27,7 +27,9 @@ except Exception:  # pragma: no cover
     requests = _RequestsProxy()  # type: ignore
 
 
-def fetch_bytes(url: str, *, timeout: int = 60) -> bytes:
+def fetch_bytes(
+    url: str, *, timeout: int = 60, headers: dict[str, str] | None = None
+) -> bytes:
     """Return the raw response body for a GET request.
 
     Parameters
@@ -39,37 +41,44 @@ def fetch_bytes(url: str, *, timeout: int = 60) -> bytes:
     except Exception as exc:  # pragma: no cover - optional dep
         raise RuntimeError("HTTP backend requires the 'requests' extra") from exc
 
-    r = requests.get(url, timeout=timeout)
+    r = requests.get(url, timeout=timeout, headers=headers)
     r.raise_for_status()
     return r.content
 
 
-def fetch_text(url: str, *, timeout: int = 60) -> str:
+def fetch_text(
+    url: str, *, timeout: int = 60, headers: dict[str, str] | None = None
+) -> str:
     """Return the response body as text for a GET request."""
     try:
         import requests  # type: ignore
     except Exception as exc:  # pragma: no cover - optional dep
         raise RuntimeError("HTTP backend requires the 'requests' extra") from exc
 
-    r = requests.get(url, timeout=timeout)
+    r = requests.get(url, timeout=timeout, headers=headers)
     r.raise_for_status()
     return r.text
 
 
-def fetch_json(url: str, *, timeout: int = 60):
+def fetch_json(url: str, *, timeout: int = 60, headers: dict[str, str] | None = None):
     """Return the parsed JSON body for a GET request."""
     try:
         import requests  # type: ignore
     except Exception as exc:  # pragma: no cover - optional dep
         raise RuntimeError("HTTP backend requires the 'requests' extra") from exc
 
-    r = requests.get(url, timeout=timeout)
+    r = requests.get(url, timeout=timeout, headers=headers)
     r.raise_for_status()
     return r.json()
 
 
 def post_data(
-    url: str, data: bytes, *, timeout: int = 60, content_type: str | None = None
+    url: str,
+    data: bytes,
+    *,
+    timeout: int = 60,
+    content_type: str | None = None,
+    headers: dict[str, str] | None = None,
 ) -> int:
     """POST raw bytes to a URL and return the HTTP status code."""
     try:
@@ -77,20 +86,44 @@ def post_data(
     except Exception as exc:  # pragma: no cover - optional dep
         raise RuntimeError("HTTP backend requires the 'requests' extra") from exc
 
-    headers = {"Content-Type": content_type} if content_type else None
-    r = requests.post(url, data=data, headers=headers, timeout=timeout)
+    final_headers = dict(headers or {})
+    if content_type and "Content-Type" not in final_headers:
+        final_headers["Content-Type"] = content_type
+    r = requests.post(
+        url,
+        data=data,
+        headers=final_headers or None,
+        timeout=timeout,
+    )
     r.raise_for_status()
     return r.status_code
 
 
 def post_bytes(
-    url: str, data: bytes, *, timeout: int = 60, content_type: str | None = None
+    url: str,
+    data: bytes,
+    *,
+    timeout: int = 60,
+    content_type: str | None = None,
+    headers: dict[str, str] | None = None,
 ) -> int:
     """Backward-compat wrapper for ``post_data``."""
-    return post_data(url, data, timeout=timeout, content_type=content_type)
+    return post_data(
+        url,
+        data,
+        timeout=timeout,
+        content_type=content_type,
+        headers=headers,
+    )
 
 
-def list_files(url: str, pattern: str | None = None, *, timeout: int = 60) -> list[str]:
+def list_files(
+    url: str,
+    pattern: str | None = None,
+    *,
+    timeout: int = 60,
+    headers: dict[str, str] | None = None,
+) -> list[str]:
     """Best-effort directory listing by scraping anchor tags on index pages.
 
     Returns absolute URLs; optionally filters them via regex ``pattern``.
@@ -100,7 +133,7 @@ def list_files(url: str, pattern: str | None = None, *, timeout: int = 60) -> li
     except Exception as exc:  # pragma: no cover - optional dep
         raise RuntimeError("HTTP backend requires the 'requests' extra") from exc
 
-    r = requests.get(url, timeout=timeout)
+    r = requests.get(url, timeout=timeout, headers=headers)
     r.raise_for_status()
     text = r.text
     hrefs = re.findall(r'href=["\']([^"\']+)["\']', text, re.IGNORECASE)
@@ -115,7 +148,13 @@ def list_files(url: str, pattern: str | None = None, *, timeout: int = 60) -> li
     return results
 
 
-def get_idx_lines(url: str, *, timeout: int = 60, max_retries: int = 3) -> list[str]:
+def get_idx_lines(
+    url: str,
+    *,
+    timeout: int = 60,
+    max_retries: int = 3,
+    headers: dict[str, str] | None = None,
+) -> list[str]:
     """Fetch and parse the GRIB ``.idx`` file for a URL."""
     try:
         import requests  # type: ignore
@@ -131,7 +170,7 @@ def get_idx_lines(url: str, *, timeout: int = 60, max_retries: int = 3) -> list[
     last_exc = None
     while attempt < max_retries:
         try:
-            r = requests.get(idx_url, timeout=timeout)
+            r = requests.get(idx_url, timeout=timeout, headers=headers)
             r.raise_for_status()
             return parse_idx_lines(r.content)
         except ReqExc as e:  # pragma: no cover - simple retry wrapper
@@ -143,7 +182,12 @@ def get_idx_lines(url: str, *, timeout: int = 60, max_retries: int = 3) -> list[
 
 
 def download_byteranges(
-    url: str, byte_ranges: Iterable[str], *, max_workers: int = 10, timeout: int = 60
+    url: str,
+    byte_ranges: Iterable[str],
+    *,
+    max_workers: int = 10,
+    timeout: int = 60,
+    headers: dict[str, str] | None = None,
 ) -> bytes:
     """Download multiple byte ranges and concatenate in the input order."""
     try:
@@ -151,9 +195,12 @@ def download_byteranges(
     except Exception as exc:  # pragma: no cover - optional dep
         raise RuntimeError("HTTP backend requires the 'requests' extra") from exc
 
+    base_headers = dict(headers or {})
+
     def _ranged_get(u: str, range_header: str) -> bytes:
-        headers = {"Range": range_header}
-        r = requests.get(u, headers=headers, timeout=timeout)
+        request_headers = dict(base_headers)
+        request_headers["Range"] = range_header
+        r = requests.get(u, headers=request_headers, timeout=timeout)
         r.raise_for_status()
         return r.content
 
@@ -164,7 +211,9 @@ def download_byteranges(
     )
 
 
-def get_size(url: str, *, timeout: int = 60) -> int | None:
+def get_size(
+    url: str, *, timeout: int = 60, headers: dict[str, str] | None = None
+) -> int | None:
     """Return Content-Length for a URL via HTTP HEAD when provided."""
     try:
         import requests  # type: ignore
@@ -172,7 +221,7 @@ def get_size(url: str, *, timeout: int = 60) -> int | None:
         raise RuntimeError("HTTP backend requires the 'requests' extra") from exc
 
     try:
-        r = requests.head(url, timeout=timeout)
+        r = requests.head(url, timeout=timeout, headers=headers)
         r.raise_for_status()
         val = r.headers.get("Content-Length")
         return int(val) if val is not None else None

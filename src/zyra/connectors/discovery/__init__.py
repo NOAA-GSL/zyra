@@ -29,6 +29,13 @@ import re
 from dataclasses import dataclass
 from typing import Any, Iterable
 
+from zyra.connectors.credentials import (
+    CredentialResolutionError,
+    apply_auth_header,
+    apply_http_credentials,
+    resolve_credentials,
+)
+
 try:  # Prefer standard library importlib.resources
     from importlib import resources as importlib_resources
 except Exception:  # pragma: no cover - fallback for very old Python
@@ -367,7 +374,7 @@ def register_cli(p: argparse.ArgumentParser) -> None:
     p_api.add_argument(
         "--header",
         action="append",
-        help="HTTP header k=v (repeatable)",
+        help="HTTP header `key=value` or `Key: Value` (repeatable)",
     )
     p_api.add_argument(
         "--timeout",
@@ -420,6 +427,42 @@ def register_cli(p: argparse.ArgumentParser) -> None:
         "--json-body",
         help="JSON body as raw string or @/path/to/file.json",
     )
+    p_api.add_argument(
+        "--credential",
+        action="append",
+        dest="credential",
+        help=(
+            "Credential slot (repeatable), e.g., token=$API_TOKEN or header.Authorization=Bearer abc"
+        ),
+    )
+    p_api.add_argument(
+        "--credential-file",
+        help="Optional dotenv file for @NAME credential lookups",
+    )
+    p_api.add_argument(
+        "--auth",
+        help=(
+            "Convenience auth helper (e.g., bearer:$TOKEN, basic:user:pass, header:Name:Value)"
+        ),
+    )
+    p_api.add_argument(
+        "--url-credential",
+        action="append",
+        nargs=2,
+        metavar=("URL", "ENTRY"),
+        help=(
+            "Per-URL credential entry (repeatable), e.g., --url-credential https://api.example token=$TOKEN"
+        ),
+    )
+    p_api.add_argument(
+        "--url-auth",
+        action="append",
+        nargs=2,
+        metavar=("URL", "AUTH"),
+        help=(
+            "Per-URL auth helper (same syntax as --auth), e.g., --url-auth https://api.example bearer:$TOKEN"
+        ),
+    )
     # Output shaping
     p_api.add_argument(
         "--fields",
@@ -453,6 +496,26 @@ def register_cli(p: argparse.ArgumentParser) -> None:
         help="Suggest simple OpenAPI query params that can be passed via --param",
     )
 
+    def _parse_header_args(values: Iterable[str] | None) -> dict[str, str]:
+        parsed: dict[str, str] = {}
+        if not values:
+            return parsed
+        for raw in values:
+            if raw is None:
+                continue
+            s = str(raw)
+            if ":" in s:
+                key, val = s.split(":", 1)
+            elif "=" in s:
+                key, val = s.split("=", 1)
+            else:
+                continue
+            key = key.strip()
+            val = val.strip()
+            if key:
+                parsed[key] = val
+        return parsed
+
     def _cmd_api(ns: argparse.Namespace) -> int:
         try:
             from .api_search import federated_api_search, print_api_table
@@ -484,13 +547,64 @@ def register_cli(p: argparse.ArgumentParser) -> None:
                     )
                 return 0
 
+            header_entries = _parse_header_args(getattr(ns, "header", None))
+            credential_entries = list(getattr(ns, "credential", []) or [])
+            if credential_entries:
+                try:
+                    resolved = resolve_credentials(
+                        credential_entries,
+                        credential_file=getattr(ns, "credential_file", None),
+                    )
+                except CredentialResolutionError as exc:
+                    print(f"error: {exc}", file=__import__("sys").stderr)
+                    return 2
+                apply_http_credentials(header_entries, resolved.values)
+            apply_auth_header(header_entries, getattr(ns, "auth", None))
+
+            scoped_credential_entries: dict[str, list[str]] = {}
+            for scope, entry in getattr(ns, "url_credential", []) or []:
+                if scope and entry:
+                    scoped_credential_entries.setdefault(str(scope), []).append(
+                        str(entry)
+                    )
+
+            headers_by_url: dict[str, dict[str, str]] = {}
+
+            def _ensure_scoped_headers(scope: str) -> dict[str, str]:
+                scoped = headers_by_url.get(scope)
+                if scoped is None:
+                    scoped = header_entries.copy() if header_entries else {}
+                    headers_by_url[scope] = scoped
+                return scoped
+
+            for scope, entries in scoped_credential_entries.items():
+                try:
+                    resolved = resolve_credentials(
+                        entries,
+                        credential_file=getattr(ns, "credential_file", None),
+                    )
+                except CredentialResolutionError as exc:
+                    print(f"error: {exc}", file=__import__("sys").stderr)
+                    return 2
+                scoped_headers = _ensure_scoped_headers(scope)
+                scoped_headers.pop("Authorization", None)
+                apply_http_credentials(scoped_headers, resolved.values)
+
+            for scope, auth_value in getattr(ns, "url_auth", []) or []:
+                if not scope or not auth_value:
+                    continue
+                scoped_headers = _ensure_scoped_headers(str(scope))
+                scoped_headers.pop("Authorization", None)
+                apply_auth_header(scoped_headers, str(auth_value))
+
             rows = federated_api_search(
                 urls,
                 eff_query,
                 limit=int(ns.limit or 10),
                 verbose=bool(ns.verbose),
                 params=list(ns.param or []) if ns.param else None,
-                headers=list(ns.header or []) if ns.header else None,
+                headers=header_entries if header_entries else None,
+                headers_by_url=headers_by_url if headers_by_url else None,
                 timeout=float(ns.timeout or 30.0),
                 retries=int(ns.retries or 0),
                 concurrency=int(ns.concurrency or 4),

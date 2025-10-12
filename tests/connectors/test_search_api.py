@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 from types import SimpleNamespace
+from typing import Any
 from urllib.parse import urlparse
 
 import zyra.connectors.discovery as disco
@@ -14,6 +15,7 @@ def test_parse_helpers(tmp_path):
 
     assert mod._parse_kv_list(["a=1", "b = two"]) == {"a": "1", "b": "two"}
     assert mod._parse_kv_list(["noval", "c=3"]) == {"c": "3"}
+    assert mod._parse_kv_list({"Auth": "Bearer"}) == {"Auth": "Bearer"}
 
     body = mod._parse_json_body('{"x":1, "y":"z"}')
     assert isinstance(body, dict) and body["x"] == 1 and body["y"] == "z"
@@ -85,6 +87,25 @@ def test_query_single_api_get_list_response(monkeypatch):
     assert {"source", "dataset", "description", "link"}.issubset(rows[0].keys())
     # Ensure query param was used
     assert fake.last.get["params"]["q"] == "temperature"
+
+
+def test_query_single_api_headers_mapping(monkeypatch):
+    from zyra.connectors.discovery import api_search as mod
+
+    monkeypatch.setattr(mod, "_ensure_requests", lambda: None)
+    fake = _FakeRequests([])
+    monkeypatch.setitem(__import__("sys").modules, "requests", fake)
+
+    mod.query_single_api(
+        "http://example/api",
+        "wind",
+        limit=1,
+        no_openapi=True,
+        endpoint="/search",
+        qp_name="q",
+        headers={"Authorization": "Bearer abc"},
+    )
+    assert fake.last.get["headers"]["Authorization"] == "Bearer abc"
 
 
 def test_query_single_api_result_key(monkeypatch):
@@ -179,6 +200,127 @@ def test_cli_api_output_shaping_csv(monkeypatch, capsys):
     # After dedupe (keep first L1 -> s2,B) and sort, expect s1,C then s2,B
     assert out[1].startswith("s1,C,")
     assert out[2].startswith("s2,B,")
+
+
+def test_cli_api_applies_credentials(monkeypatch):
+    from zyra.connectors.credentials import ResolvedCredentials
+
+    captured: dict[str, Any] = {}
+
+    def _fake_federated(*args, **kwargs):
+        captured["headers"] = kwargs.get("headers")
+        captured["headers_by_url"] = kwargs.get("headers_by_url")
+        return []
+
+    monkeypatch.setattr(
+        __import__(
+            "zyra.connectors.discovery.api_search", fromlist=["federated_api_search"]
+        ),
+        "federated_api_search",
+        _fake_federated,
+    )
+
+    def _fake_resolve(entries, credential_file=None):
+        values: dict[str, str] = {}
+        for item in entries:
+            if "=" in item:
+                field, value = item.split("=", 1)
+                values[field.strip()] = value.strip()
+        return ResolvedCredentials(
+            values=values,
+            masked={k: "***" for k in values},
+        )
+
+    monkeypatch.setattr(
+        "zyra.connectors.discovery.resolve_credentials",
+        _fake_resolve,
+    )
+
+    parser = argparse.ArgumentParser()
+    disco.register_cli(parser)
+    ns = parser.parse_args(
+        [
+            "api",
+            "--url",
+            "http://auth.example/api",
+            "--query",
+            "q",
+            "--credential",
+            "token=global",
+            "--url-credential",
+            "http://auth.example/api",
+            "token=scoped",
+        ]
+    )
+
+    rc = ns.func(ns)
+    assert rc == 0
+    assert captured["headers"]["Authorization"] == "Bearer global"
+    assert (
+        captured["headers_by_url"]["http://auth.example/api"]["Authorization"]
+        == "Bearer scoped"
+    )
+
+
+def test_cli_api_url_auth(monkeypatch):
+    captured: dict[str, Any] = {}
+
+    def _fake_federated(*args, **kwargs):
+        captured["headers_by_url"] = kwargs.get("headers_by_url")
+        return []
+
+    monkeypatch.setattr(
+        __import__(
+            "zyra.connectors.discovery.api_search", fromlist=["federated_api_search"]
+        ),
+        "federated_api_search",
+        _fake_federated,
+    )
+
+    parser = argparse.ArgumentParser()
+    disco.register_cli(parser)
+    ns = parser.parse_args(
+        [
+            "api",
+            "--url",
+            "http://auth.example/api",
+            "--query",
+            "q",
+            "--url-auth",
+            "http://auth.example/api",
+            "bearer:scoped",
+        ]
+    )
+
+    rc = ns.func(ns)
+    assert rc == 0
+    assert (
+        captured["headers_by_url"]["http://auth.example/api"]["Authorization"]
+        == "Bearer scoped"
+    )
+
+
+def test_federated_api_scoped_headers(monkeypatch):
+    from zyra.connectors.discovery import api_search as mod
+
+    calls: list[tuple[str, dict[str, str] | None]] = []
+
+    def _fake_query_single_api(url, *args, headers=None, **kwargs):
+        calls.append((url, headers))
+        return []
+
+    monkeypatch.setattr(mod, "query_single_api", _fake_query_single_api)
+
+    mod.federated_api_search(
+        ["http://a.test/api", "http://b.test/api"],
+        "q",
+        headers={"Global": "1"},
+        headers_by_url={"http://a.test/api": {"Authorization": "Bearer scoped"}},
+        concurrency=2,
+    )
+
+    assert calls[0][1]["Authorization"] == "Bearer scoped"
+    assert calls[1][1]["Global"] == "1"
 
 
 def test_query_single_api_post_json_body(monkeypatch, tmp_path):

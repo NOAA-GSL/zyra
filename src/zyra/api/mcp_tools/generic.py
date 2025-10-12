@@ -12,6 +12,12 @@ import requests
 
 from zyra.api.models.cli_request import CLIRunRequest
 from zyra.api.routers.cli import run_cli_endpoint
+from zyra.connectors.credentials import (
+    CredentialResolutionError,
+    apply_auth_header,
+    apply_http_credentials,
+    resolve_credentials,
+)
 from zyra.utils.env import env, env_bool, env_int, env_path
 
 
@@ -40,9 +46,14 @@ def api_fetch(
     url: str,
     method: str | None = None,
     headers: dict[str, str] | None = None,
+    header: list[str] | None = None,
     params: dict[str, str] | None = None,
     data: Any | None = None,
     output_dir: str | None = None,
+    credentials: dict[str, str] | None = None,
+    credential: list[str] | None = None,
+    credential_file: str | None = None,
+    auth: str | None = None,
 ) -> dict[str, Any]:
     """Fetch an API endpoint and save response under DATA_DIR.
 
@@ -160,6 +171,27 @@ def api_fetch(
     from zyra.utils.http import strip_hop_headers as _strip
 
     hdrs = _strip(headers or {})
+    if header:
+        for item in header:
+            if ":" in item:
+                name, value = item.split(":", 1)
+                hdrs.setdefault(name.strip(), value.lstrip())
+
+    credential_entries: list[str] = []
+    if credential:
+        credential_entries.extend([c for c in credential if c])
+    if credentials:
+        credential_entries.extend(f"{k}={v}" for k, v in credentials.items())
+    if credential_entries:
+        try:
+            resolved = resolve_credentials(
+                credential_entries, credential_file=credential_file
+            )
+        except CredentialResolutionError as exc:
+            raise ValueError(str(exc)) from exc
+        apply_http_credentials(hdrs, resolved.values)
+    apply_auth_header(hdrs, auth)
+    hdrs = _strip(hdrs)
 
     m = (method or "GET").upper()
     body = json.dumps(data).encode("utf-8") if isinstance(data, (dict, list)) else data

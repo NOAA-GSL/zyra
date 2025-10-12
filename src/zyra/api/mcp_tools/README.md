@@ -7,6 +7,7 @@ download-audio (profile-driven)
   - `since`, `duration`: ISO-8601 (e.g., `PT30M`), used together; enforces ≤ 2 hours
   - `audio_source`: `pendant` (default) or `app` (profile-dependent)
   - `output_dir`: relative directory under `DATA_DIR`
+  - `credentials` / `credential`: optional credential mapping/list (uses the shared resolver; e.g., `{ "token": "$LIMITLESS_API_KEY" }`)
 - Returns: `{ path, content_type, size_bytes }`
 
 Example JSON-RPC
@@ -20,7 +21,7 @@ Notes
 
 api-fetch (generic)
 - Fetch a REST endpoint and save the response under `DATA_DIR`.
-- Args: `url` (required), `method`, `headers` (object), `params` (object), `data` (object), `output_dir`.
+- Args: `url` (required), `method`, `headers` (object), `header` (array of `Name: Value`), `params` (object), `data` (object), `output_dir`, `credentials` / `credential` (same resolver as CLI), `credential_file`, `auth` (e.g., `bearer:$TOKEN`).
 - Returns: `{ path, content_type, size_bytes, status_code }`
 
 api-process-json (generic)

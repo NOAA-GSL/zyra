@@ -11,6 +11,7 @@ HTTP
 - Single file: `zyra acquire http https://host/file.bin -o out.bin`
 - Batch: `zyra acquire http --inputs url1 url2 --output-dir downloads/`
 - List/filter: `zyra acquire http https://host/dir/ --list --pattern '\\.(grib2|nc)$'`
+- Credentials: `--credential token=$EUMETSAT_TOKEN` injects `Authorization: Bearer ...`; combine with `--credential header.X-API-Key=@SERVICE_KEY` or `--auth` helpers as needed.
 
 S3
 - Single object: `zyra acquire s3 --url s3://bucket/key -o out.bin`
@@ -20,6 +21,13 @@ S3
 FTP
 - Fetch: `zyra acquire ftp ftp://host/path/file.bin -o out.bin`
 - List/sync directory: `zyra acquire ftp ftp://host/path/ --list` or `--sync-dir local_dir`
+- Credentials: `--user demo --credential password=$FTP_PASS` (aliases for `--credential user=...` / `password=...`) apply to fetch, list, and sync operations without embedding secrets in the URL.
+
+Credential helper (all connectors opting in)
+- `--credential field=value` (repeatable) resolves secrets via literals, `$ENV`, or `@KEY` (using `CredentialManager` / dotenv). Common slots: `token`, `user`, `password`, and `header.<Name>`.
+- `--credential-file path/to/.env` points to a specific dotenv file when using `@KEY` lookups.
+- Values are masked in logs; prefer this flow over embedding credentials in URLs or shell history.
+- Zyra's API and MCP tooling reuse this helper so REST clients can supply the same credential slots without changing payload schemas.
 
 API (generic REST)
 - Common options
@@ -46,7 +54,7 @@ Presets (API)
 - `--preset limitless-audio` — maps `start/end` or `since+duration` to `startMs/endMs`, sets `Accept: audio/ogg`, prefers `--stream`
 
 Notes
-- Do not hard-code secrets; pass headers via env, e.g., `--header "X-API-Key: $LIMITLESS_API_KEY"`.
+- Do not hard-code secrets; pass headers via env/credential helper, e.g., `--credential token=$LIMITLESS_API_KEY`.
 - For large transfers, prefer `--stream` and `--resume`.
 
 Auth helper

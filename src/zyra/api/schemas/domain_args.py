@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -17,6 +19,12 @@ class AcquireHttpArgs(BaseModel):
     inputs: list[str] | None = None
     manifest: str | None = None
     output_dir: str | None = None
+    headers: dict[str, str] | None = None
+    header: list[str] | None = None
+    auth: str | None = None
+    credentials: dict[str, str] | None = None
+    credential: list[str] | None = None
+    credential_file: str | None = None
 
     @model_validator(mode="after")
     def _require_source_or_listing(self):  # type: ignore[override]
@@ -111,6 +119,11 @@ class DecimateS3Args(BaseModel):
 class DecimateFtpArgs(BaseModel):
     input: str
     path: str
+    user: str | None = None
+    password: str | None = None
+    credentials: dict[str, str] | None = None
+    credential: list[str] | None = None
+    credential_file: str | None = None
 
 
 class AcquireS3Args(BaseModel):
@@ -150,6 +163,11 @@ class AcquireFtpArgs(BaseModel):
     inputs: list[str] | None = None
     manifest: str | None = None
     output_dir: str | None = None
+    user: str | None = None
+    password: str | None = None
+    credentials: dict[str, str] | None = None
+    credential: list[str] | None = None
+    credential_file: str | None = None
 
     @model_validator(mode="after")
     def _require_path_or_listing(self):  # type: ignore[override]
@@ -209,6 +227,42 @@ class AcquireApiArgs(BaseModel):
         return self
 
 
+def _normalize_headers(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return a copy of ``payload`` with header aliases flattened."""
+
+    header_items: list[str] = []
+    existing_headers = payload.get("header")
+    if isinstance(existing_headers, list):
+        header_items.extend(existing_headers)
+    headers_map = payload.get("headers")
+    if isinstance(headers_map, dict):
+        header_items.extend(f"{k}: {v}" for k, v in headers_map.items())
+    result = payload.copy()
+    result.pop("header", None)
+    result.pop("headers", None)
+    if header_items:
+        result["header"] = header_items
+    return result
+
+
+def _normalize_credentials(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return a copy of ``payload`` with credential aliases flattened."""
+
+    credential_items: list[str] = []
+    existing_credentials = payload.get("credential")
+    if isinstance(existing_credentials, list):
+        credential_items.extend(existing_credentials)
+    credentials_map = payload.get("credentials")
+    if isinstance(credentials_map, dict):
+        credential_items.extend(f"{k}={v}" for k, v in credentials_map.items())
+    result = payload.copy()
+    result.pop("credential", None)
+    result.pop("credentials", None)
+    if credential_items:
+        result["credential"] = credential_items
+    return result
+
+
 def normalize_and_validate(stage: str, tool: str, args: dict) -> dict:
     """Validate known tool args via Pydantic models, else pass through as-is.
 
@@ -232,7 +286,20 @@ def normalize_and_validate(stage: str, tool: str, args: dict) -> dict:
     if model is None:
         return dict(args)
     obj = model(**args)
-    return obj.model_dump(exclude_none=True)
+    out = obj.model_dump(exclude_none=True)
+
+    if stage == "acquire" and tool == "http":
+        out = _normalize_headers(out)
+        out = _normalize_credentials(out)
+    elif stage == "acquire" and tool == "ftp":
+        out = _normalize_credentials(out)
+    elif stage == "decimate" and tool == "post":
+        out = _normalize_headers(out)
+        out = _normalize_credentials(out)
+    elif stage == "decimate" and tool == "ftp":
+        out = _normalize_credentials(out)
+
+    return out
 
 
 # Additional high-value tool schemas
@@ -249,6 +316,12 @@ class DecimatePostArgs(BaseModel):
     input: str
     url: str
     content_type: str | None = None
+    headers: dict[str, str] | None = None
+    header: list[str] | None = None
+    auth: str | None = None
+    credentials: dict[str, str] | None = None
+    credential: list[str] | None = None
+    credential_file: str | None = None
 
 
 class VisualizeAnimateArgs(BaseModel):
