@@ -6197,6 +6197,11 @@
           "--post",
           "--json-param",
           "--json-body",
+          "--credential",
+          "--credential-file",
+          "--auth",
+          "--url-credential",
+          "--url-auth",
           "--fields",
           "--limit-total",
           "--dedupe",
@@ -6244,7 +6249,7 @@
         "default": false
       },
       "--param": "Extra query param k=v (repeatable)",
-      "--header": "HTTP header k=v (repeatable)",
+      "--header": "HTTP header `key=value` or `Key: Value` (repeatable)",
       "--timeout": {
         "help": "Request timeout seconds (default: 30)",
         "type": "float",
@@ -6275,6 +6280,11 @@
       },
       "--json-param": "JSON body field k=v (repeatable)",
       "--json-body": "JSON body as raw string or @/path/to/file.json",
+      "--credential": "Credential slot (repeatable), e.g., token=$API_TOKEN or header.Authorization=Bearer abc",
+      "--credential-file": "Optional dotenv file for @NAME credential lookups",
+      "--auth": "Convenience auth helper (e.g., bearer:$TOKEN, basic:user:pass, header:Name:Value)",
+      "--url-credential": "Per-URL credential entry (repeatable), e.g., --url-credential https://api.example token=$TOKEN",
+      "--url-auth": "Per-URL auth helper (same syntax as --auth), e.g., --url-auth https://api.example bearer:$TOKEN",
       "--fields": "Comma-separated output fields for CSV/table (default: source,dataset,link)",
       "--limit-total": {
         "help": "Limit total aggregated results across URLs",

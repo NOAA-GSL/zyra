@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 from urllib.parse import urljoin, urlparse
 
 from zyra.connectors.backends import http as http_backend
@@ -261,10 +261,16 @@ def print_openapi_info(
                 pass
 
 
-def _parse_kv_list(items: Iterable[str] | None) -> dict[str, str]:
+def _parse_kv_list(items: Iterable[str] | Mapping[str, str] | None) -> dict[str, str]:
     """Parse ``k=v`` items into a dictionary, ignoring malformed entries."""
     out: dict[str, str] = {}
     if not items:
+        return out
+    if isinstance(items, Mapping):
+        for key, value in items.items():
+            if key is None:
+                continue
+            out[str(key)] = str(value)
         return out
     for raw in items:
         if raw is None:
@@ -324,7 +330,7 @@ def query_single_api(
     limit: int = 10,
     verbose: bool = False,
     params: Iterable[str] | None = None,
-    headers: Iterable[str] | None = None,
+    headers: Iterable[str] | Mapping[str, str] | None = None,
     timeout: float = 30.0,
     retries: int = 0,
     no_openapi: bool = False,
@@ -472,7 +478,8 @@ def federated_api_search(
     limit: int = 10,
     verbose: bool = False,
     params: Iterable[str] | None = None,
-    headers: Iterable[str] | None = None,
+    headers: Iterable[str] | Mapping[str, str] | None = None,
+    headers_by_url: Mapping[str, Mapping[str, str]] | None = None,
     timeout: float = 30.0,
     retries: int = 0,
     concurrency: int = 4,
@@ -491,11 +498,27 @@ def federated_api_search(
     """
     # Ensure HTTP client available up front to avoid silent empties
     _get_requests()
+    global_headers = _parse_kv_list(headers)
     rows: list[dict[str, Any]] = []
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
     max_workers = max(1, int(concurrency or 1))
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
+
+        def _headers_for_url(url: str) -> dict[str, str] | None:
+            scoped: Mapping[str, str] | None = None
+            if headers_by_url:
+                scoped = headers_by_url.get(url)
+                if scoped is None:
+                    host = urlparse(url).netloc
+                    if host:
+                        scoped = headers_by_url.get(host)
+            if scoped is not None:
+                return dict(scoped)
+            if global_headers:
+                return dict(global_headers)
+            return None
+
         futs = {
             ex.submit(
                 query_single_api,
@@ -504,7 +527,7 @@ def federated_api_search(
                 limit=limit,
                 verbose=verbose,
                 params=params,
-                headers=headers,
+                headers=_headers_for_url(u),
                 timeout=timeout,
                 retries=retries,
                 no_openapi=no_openapi,
