@@ -273,11 +273,11 @@ def apply_http_credentials(
             continue
         header_name: str | None = None
         if lower.startswith("header."):
-            header_name = key[len("header.") :]
+            header_name = key.removeprefix("header.")
         elif lower.startswith("header:"):
-            header_name = key[len("header:") :]
+            header_name = key.removeprefix("header:")
         elif lower.startswith("header_"):
-            header_name = key[len("header_") :]
+            header_name = key.removeprefix("header_")
         else:
             continue
         header_name = header_name.strip() if header_name is not None else ""
