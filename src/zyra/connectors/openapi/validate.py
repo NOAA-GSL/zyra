@@ -160,8 +160,14 @@ def _mask_sensitive(where: str, name: str, value: str | None) -> str | None:
         return None
     if where == "header":
         lname = name.lower()
-        sensitive_terms = ("auth", "token", "secret", "key")
-        if any(term in lname for term in sensitive_terms):
+        sensitive_terms = {
+            "authorization",
+            "proxy-authorization",
+            "token",
+            "secret",
+            "key",
+        }
+        if lname in sensitive_terms:
             return "<redacted>"
     return value
 

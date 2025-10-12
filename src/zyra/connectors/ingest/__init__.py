@@ -23,10 +23,16 @@ from zyra.utils.io_utils import open_output
 
 
 def _sanitize_headers_for_validation(values: dict[str, str]) -> dict[str, str]:
-    sensitive_terms = ("authorization", "token", "secret", "key")
+    sensitive_headers = {
+        "authorization",
+        "proxy-authorization",
+        "token",
+        "secret",
+        "key",
+    }
     sanitized: dict[str, str] = {}
     for name, val in values.items():
-        if any(term in name.lower() for term in sensitive_terms):
+        if name.lower() in sensitive_headers:
             sanitized[name] = "<redacted>"
         else:
             sanitized[name] = val
@@ -438,10 +444,14 @@ def _cmd_api(ns: argparse.Namespace) -> int:
                     if (
                         isinstance(name, str)
                         and isinstance(msg, str)
-                        and any(
-                            term in name.lower()
-                            for term in ("authorization", "token", "secret", "key")
-                        )
+                        and name.lower()
+                        in {
+                            "authorization",
+                            "proxy-authorization",
+                            "token",
+                            "secret",
+                            "key",
+                        }
                     ):
                         msg = "<redacted>"
                     _sys.stderr.write(f"OpenAPI validation: {loc} {name}: {msg}\n")

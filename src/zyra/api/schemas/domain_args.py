@@ -237,7 +237,7 @@ def _normalize_headers(payload: dict[str, Any]) -> dict[str, Any]:
     headers_map = payload.get("headers")
     if isinstance(headers_map, dict):
         header_items.extend(f"{k}: {v}" for k, v in headers_map.items())
-    result = dict(payload)
+    result = payload.copy()
     result.pop("header", None)
     result.pop("headers", None)
     if header_items:
@@ -255,7 +255,7 @@ def _normalize_credentials(payload: dict[str, Any]) -> dict[str, Any]:
     credentials_map = payload.get("credentials")
     if isinstance(credentials_map, dict):
         credential_items.extend(f"{k}={v}" for k, v in credentials_map.items())
-    result = dict(payload)
+    result = payload.copy()
     result.pop("credential", None)
     result.pop("credentials", None)
     if credential_items:
