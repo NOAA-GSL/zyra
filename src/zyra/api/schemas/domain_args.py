@@ -243,7 +243,8 @@ def _normalize_credentials(payload: dict[str, Any]) -> None:
     credential_items: list[str] = []
     existing_credentials = payload.get("credential")
     if isinstance(existing_credentials, list):
-        credential_items.extend(payload.pop("credential") or [])
+        credential_items.extend(existing_credentials)
+        payload.pop("credential", None)
     credentials_map = payload.pop("credentials", None)
     if isinstance(credentials_map, dict):
         credential_items.extend(f"{k}={v}" for k, v in credentials_map.items())

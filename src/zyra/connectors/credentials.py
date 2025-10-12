@@ -271,12 +271,15 @@ def apply_http_credentials(
             "basic_password",
         }:
             continue
-        if lower.startswith("header.") or lower.startswith("header:"):
-            header_name = key.split(".", 1)[1] if "." in key else key.split(":", 1)[1]
+        header_name: str | None = None
+        if lower.startswith("header."):
+            header_name = key[len("header.") :]
+        elif lower.startswith("header:"):
+            header_name = key[len("header:") :]
         elif lower.startswith("header_"):
-            header_name = key.split("_", 1)[1]
+            header_name = key[len("header_") :]
         else:
             continue
-        header_name = header_name.strip()
+        header_name = header_name.strip() if header_name is not None else ""
         if header_name and header_name not in headers:
             headers[header_name] = value

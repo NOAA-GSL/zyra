@@ -71,7 +71,7 @@ def parse_ftp_path(
     if username is not None:
         if user is not None and username != user:
             warnings.warn(
-                "Explicit FTP username overrides credentials embedded in the URL.",
+                "Explicit FTP username overrides username embedded in the URL.",
                 UserWarning,
                 stacklevel=2,
             )
