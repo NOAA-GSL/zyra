@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import contextlib
 import re
+import warnings
 from datetime import datetime
 from ftplib import FTP, all_errors
 from io import BytesIO
@@ -46,7 +47,12 @@ def _maybe_delegate(method: str, *args, **kwargs):  # pragma: no cover - test ho
         return _DELEGATE_NONE
 
 
-def parse_ftp_path(url_or_path: str) -> tuple[str, str, str | None, str | None]:
+def parse_ftp_path(
+    url_or_path: str,
+    *,
+    username: str | None = None,
+    password: str | None = None,
+) -> tuple[str, str, str | None, str | None]:
     """Return ``(host, remote_path, username, password)`` parsed from an FTP path."""
     s = url_or_path
     if s.startswith("ftp://"):
@@ -62,12 +68,32 @@ def parse_ftp_path(url_or_path: str) -> tuple[str, str, str | None, str | None]:
     if "/" not in s:
         raise ValueError("FTP path must be host/path")
     host, path = s.split("/", 1)
+    if username is not None:
+        if user is not None and username != user:
+            warnings.warn(
+                "Explicit FTP username overrides username embedded in the URL.",
+                UserWarning,
+                stacklevel=2,
+            )
+        user = username
+    if password is not None:
+        if pwd is not None and password != pwd:
+            warnings.warn(
+                "Explicit FTP password overrides credentials embedded in the URL.",
+                UserWarning,
+                stacklevel=2,
+            )
+        pwd = password
     return host, path, user, pwd
 
 
-def fetch_bytes(url_or_path: str) -> bytes:
+def fetch_bytes(
+    url_or_path: str, *, username: str | None = None, password: str | None = None
+) -> bytes:
     """Fetch a remote file as bytes from an FTP server."""
-    host, remote_path, user, pwd = parse_ftp_path(url_or_path)
+    host, remote_path, user, pwd = parse_ftp_path(
+        url_or_path, username=username, password=password
+    )
     ftp = FTP(timeout=30)
     ftp.connect(host)
     ftp.login(user=(user or "anonymous"), passwd=(pwd or "test@test.com"))
@@ -85,9 +111,17 @@ def fetch_bytes(url_or_path: str) -> bytes:
     return buf.getvalue()
 
 
-def upload_bytes(data: bytes, url_or_path: str) -> bool:
+def upload_bytes(
+    data: bytes,
+    url_or_path: str,
+    *,
+    username: str | None = None,
+    password: str | None = None,
+) -> bool:
     """Upload bytes to a remote FTP path."""
-    host, remote_path, user, pwd = parse_ftp_path(url_or_path)
+    host, remote_path, user, pwd = parse_ftp_path(
+        url_or_path, username=username, password=password
+    )
     ftp = FTP(timeout=30)
     ftp.connect(host)
     ftp.login(user=(user or "anonymous"), passwd=(pwd or "test@test.com"))
@@ -112,9 +146,13 @@ def list_files(
     since: str | None = None,
     until: str | None = None,
     date_format: str | None = None,
+    username: str | None = None,
+    password: str | None = None,
 ) -> list[str] | None:
     """List FTP directory contents with optional regex and date filtering."""
-    host, remote_dir, user, pwd = parse_ftp_path(url_or_dir)
+    host, remote_dir, user, pwd = parse_ftp_path(
+        url_or_dir, username=username, password=password
+    )
     ftp = FTP(timeout=30)
     ftp.connect(host)
     ftp.login(user=(user or "anonymous"), passwd=(pwd or "test@test.com"))
@@ -137,9 +175,13 @@ def list_files(
     return names
 
 
-def exists(url_or_path: str) -> bool:
+def exists(
+    url_or_path: str, *, username: str | None = None, password: str | None = None
+) -> bool:
     """Return True if the remote path exists on the FTP server."""
-    host, remote_path, user, pwd = parse_ftp_path(url_or_path)
+    host, remote_path, user, pwd = parse_ftp_path(
+        url_or_path, username=username, password=password
+    )
     ftp = FTP(timeout=30)
     ftp.connect(host)
     ftp.login(user=(user or "anonymous"), passwd=(pwd or "test@test.com"))
@@ -157,9 +199,13 @@ def exists(url_or_path: str) -> bool:
         return False
 
 
-def delete(url_or_path: str) -> bool:
+def delete(
+    url_or_path: str, *, username: str | None = None, password: str | None = None
+) -> bool:
     """Delete a remote FTP path (file)."""
-    host, remote_path, user, pwd = parse_ftp_path(url_or_path)
+    host, remote_path, user, pwd = parse_ftp_path(
+        url_or_path, username=username, password=password
+    )
     ftp = FTP(timeout=30)
     ftp.connect(host)
     ftp.login(user=(user or "anonymous"), passwd=(pwd or "test@test.com"))
@@ -183,9 +229,11 @@ def delete(url_or_path: str) -> bool:
         return False
 
 
-def stat(url_or_path: str):
+def stat(url_or_path: str, *, username: str | None = None, password: str | None = None):
     """Return minimal metadata mapping for a remote path (e.g., size)."""
-    host, remote_path, user, pwd = parse_ftp_path(url_or_path)
+    host, remote_path, user, pwd = parse_ftp_path(
+        url_or_path, username=username, password=password
+    )
     ftp = FTP(timeout=30)
     ftp.connect(host)
     ftp.login(user=(user or "anonymous"), passwd=(pwd or "test@test.com"))
@@ -212,6 +260,8 @@ def sync_directory(
     until: str | None = None,
     date_format: str | None = None,
     clean_zero_bytes: bool = False,
+    username: str | None = None,
+    password: str | None = None,
 ) -> None:
     """Sync files from a remote FTP directory to a local directory.
 
@@ -219,14 +269,22 @@ def sync_directory(
     zero-byte files before syncing and deletes local files that are no
     longer present on the server.
     """
-    host, remote_dir, user, pwd = parse_ftp_path(url_or_dir)
+    host, remote_dir, user, pwd = parse_ftp_path(
+        url_or_dir, username=username, password=password
+    )
     if pattern is None and not (since or until):
         # Fast path placeholder reserved for future optimization.
         pass
     # List, filter, then fetch missing/zero-size files
     names = (
         list_files(
-            url_or_dir, pattern, since=since, until=until, date_format=date_format
+            url_or_dir,
+            pattern,
+            since=since,
+            until=until,
+            date_format=date_format,
+            username=username,
+            password=password,
         )
         or []
     )
@@ -268,12 +326,16 @@ def sync_directory(
                 ftp.quit()
 
 
-def get_size(url_or_path: str) -> int | None:
+def get_size(
+    url_or_path: str, *, username: str | None = None, password: str | None = None
+) -> int | None:
     """Return remote file size in bytes via FTP SIZE."""
-    v = _maybe_delegate("get_size", url_or_path)
+    v = _maybe_delegate("get_size", url_or_path, username=username, password=password)
     if v is not _DELEGATE_NONE:
         return v  # type: ignore[return-value]
-    host, remote_path, user, pwd = parse_ftp_path(url_or_path)
+    host, remote_path, user, pwd = parse_ftp_path(
+        url_or_path, username=username, password=password
+    )
     ftp = FTP(timeout=30)
     ftp.connect(host)
     ftp.login(user=(user or "anonymous"), passwd=(pwd or "test@test.com"))
@@ -297,6 +359,8 @@ def get_idx_lines(
     write_to: str | None = None,
     timeout: int = 30,
     max_retries: int = 3,
+    username: str | None = None,
+    password: str | None = None,
 ) -> list[str] | None:
     """Fetch and parse the GRIB ``.idx`` for a remote path via FTP."""
     v = _maybe_delegate(
@@ -305,10 +369,14 @@ def get_idx_lines(
         write_to=write_to,
         timeout=timeout,
         max_retries=max_retries,
+        username=username,
+        password=password,
     )
     if v is not _DELEGATE_NONE:
         return v  # type: ignore[return-value]
-    host, remote_path, user, pwd = parse_ftp_path(url_or_path)
+    host, remote_path, user, pwd = parse_ftp_path(
+        url_or_path, username=username, password=password
+    )
     ftp = FTP(timeout=30)
     ftp.connect(host)
     ftp.login(user=(user or "anonymous"), passwd=(pwd or "test@test.com"))
@@ -337,12 +405,24 @@ def get_idx_lines(
     return lines
 
 
-def get_chunks(url_or_path: str, chunk_size: int = 500 * 1024 * 1024) -> list[str]:
+def get_chunks(
+    url_or_path: str,
+    chunk_size: int = 500 * 1024 * 1024,
+    *,
+    username: str | None = None,
+    password: str | None = None,
+) -> list[str]:
     """Compute contiguous chunk ranges for an FTP file."""
-    v = _maybe_delegate("get_chunks", url_or_path, chunk_size)
+    v = _maybe_delegate(
+        "get_chunks",
+        url_or_path,
+        chunk_size,
+        username=username,
+        password=password,
+    )
     if v is not _DELEGATE_NONE:
         return v  # type: ignore[return-value]
-    size = get_size(url_or_path)
+    size = get_size(url_or_path, username=username, password=password)
     if size is None:
         return []
     return compute_chunks(size, chunk_size)
@@ -354,6 +434,8 @@ def download_byteranges(
     *,
     max_workers: int = 10,
     timeout: int = 30,
+    username: str | None = None,
+    password: str | None = None,
 ) -> bytes:
     """Download multiple ranges via FTP REST and concatenate in the input order."""
     v = _maybe_delegate(
@@ -362,10 +444,14 @@ def download_byteranges(
         byte_ranges,
         max_workers=max_workers,
         timeout=timeout,
+        username=username,
+        password=password,
     )
     if v is not _DELEGATE_NONE:
         return v  # type: ignore[return-value]
-    host, remote_path, user, pwd = parse_ftp_path(url_or_path)
+    host, remote_path, user, pwd = parse_ftp_path(
+        url_or_path, username=username, password=password
+    )
 
     def _worker(_range: str) -> bytes:
         start_end = _range.replace("bytes=", "").split("-")

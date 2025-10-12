@@ -14,19 +14,25 @@ def _mask(val: str | None) -> str:
     return f"{'*' * (len(s) - 6)}{s[-6:]}"
 
 
-def _get_client():
+def _get_client(
+    *,
+    token: str | None = None,
+    client_id: str | None = None,
+    client_secret: str | None = None,
+):
     try:
         import vimeo  # type: ignore
     except Exception as exc:  # pragma: no cover - optional dep
         raise RuntimeError("Vimeo backend requires the 'PyVimeo' extra") from exc
-    token = os.getenv("VIMEO_ACCESS_TOKEN") or os.getenv("VIMEO_TOKEN")
-    key = os.getenv("VIMEO_CLIENT_ID") or os.getenv("VIMEO_KEY")
-    secret = os.getenv("VIMEO_CLIENT_SECRET") or os.getenv("VIMEO_SECRET")
+    token = token or os.getenv("VIMEO_ACCESS_TOKEN") or os.getenv("VIMEO_TOKEN")
+    key = client_id or os.getenv("VIMEO_CLIENT_ID") or os.getenv("VIMEO_KEY")
+    secret = (
+        client_secret or os.getenv("VIMEO_CLIENT_SECRET") or os.getenv("VIMEO_SECRET")
+    )
     if not token and not (key and secret):
         raise RuntimeError(
             "Vimeo credentials missing: set VIMEO_ACCESS_TOKEN or VIMEO_CLIENT_ID/VIMEO_CLIENT_SECRET"
         )
-    # Do not log credential values. Only log the auth mode for diagnostics.
     auth_mode = "access_token" if token else "client_id_secret"
     logging.getLogger(__name__).debug(
         "Vimeo credentials resolved via %s (values not logged)", auth_mode
@@ -87,13 +93,19 @@ def fetch_bytes(video_id: str) -> bytes:  # pragma: no cover - placeholder
 
 
 def upload_path(
-    video_path: str, *, name: str | None = None, description: str | None = None
+    video_path: str,
+    *,
+    name: str | None = None,
+    description: str | None = None,
+    token: str | None = None,
+    client_id: str | None = None,
+    client_secret: str | None = None,
 ) -> str:
     """Upload a local video file to Vimeo using PyVimeo.
 
     Returns the Vimeo video URI on success.
     """
-    client = _get_client()
+    client = _get_client(token=token, client_id=client_id, client_secret=client_secret)
     try:
         uri = client.upload(
             video_path,
@@ -111,9 +123,16 @@ def upload_path(
         raise RuntimeError(_summarize_exception(exc, operation="upload")) from exc
 
 
-def update_video(video_path: str, video_uri: str) -> str:
+def update_video(
+    video_path: str,
+    video_uri: str,
+    *,
+    token: str | None = None,
+    client_id: str | None = None,
+    client_secret: str | None = None,
+) -> str:
     """Replace an existing Vimeo video file and return the URI."""
-    client = _get_client()
+    client = _get_client(token=token, client_id=client_id, client_secret=client_secret)
     try:
         resp = client.replace(video_uri, video_path)
         if isinstance(resp, str):
@@ -133,9 +152,16 @@ def update_video(video_path: str, video_uri: str) -> str:
         raise RuntimeError(_summarize_exception(exc, operation="replace")) from exc
 
 
-def update_description(video_uri: str, text: str) -> str:
+def update_description(
+    video_uri: str,
+    text: str,
+    *,
+    token: str | None = None,
+    client_id: str | None = None,
+    client_secret: str | None = None,
+) -> str:
     """Update the description metadata for a Vimeo video."""
-    client = _get_client()
+    client = _get_client(token=token, client_id=client_id, client_secret=client_secret)
     try:
         resp = client.patch(video_uri, data={"description": text})
         status = getattr(resp, "status_code", 200)

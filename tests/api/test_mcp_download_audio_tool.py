@@ -1,9 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
-from fastapi.testclient import TestClient
-
-from zyra.api.server import create_app
+from zyra.api.mcp_tools.audio import download_audio
 
 
 class _Resp:
@@ -18,18 +16,11 @@ class _Resp:
 
 
 def test_mcp_download_audio_limitless_since_duration(monkeypatch, tmp_path):
-    # Use a fresh app with MCP enabled
-    monkeypatch.setenv("ZYRA_ENABLE_MCP", "1")
-    monkeypatch.setenv("DATAVIZHUB_API_KEY", "k")
-    # Point DATA_DIR to temp dir for file writes
     monkeypatch.setenv("ZYRA_DATA_DIR", str(tmp_path))
-    client = TestClient(create_app())
 
-    # Mock outbound requests streaming
     def fake_request(
         method, url, headers=None, params=None, timeout=None, stream=False
     ):  # noqa: ARG001
-        # Return an Ogg file with a content-disposition
         return _Resp(
             200,
             headers={
@@ -43,26 +34,53 @@ def test_mcp_download_audio_limitless_since_duration(monkeypatch, tmp_path):
 
     monkeypatch.setattr(requests, "request", fake_request)
 
-    payload = {
-        "jsonrpc": "2.0",
-        "method": "tools/call",
-        "params": {
-            "name": "download-audio",
-            "arguments": {
-                "profile": "limitless",
-                "since": "2025-01-01T00:00:00Z",
-                "duration": "PT30M",
-                "audio_source": "pendant",
-                "output_dir": "tests",
-            },
-        },
-        "id": 1,
-    }
-    r = client.post("/v1/mcp", json=payload, headers={"X-API-Key": "k"})
-    assert r.status_code == 200
-    js = r.json()
-    res = js.get("result", {})
-    path = res.get("path")
-    assert isinstance(path, str) and path.endswith("audio.ogg")
-    full = tmp_path / path
+    res = download_audio(
+        profile="limitless",
+        since="2025-01-01T00:00:00Z",
+        duration="PT30M",
+        audio_source="pendant",
+        output_dir="tests",
+    )
+    path_rel = res.get("path")
+    assert isinstance(path_rel, str) and path_rel.endswith("audio.ogg")
+    full = tmp_path / path_rel
     assert full.exists() and full.read_bytes() == b"abcdef"
+
+
+def test_download_audio_credentials_override(monkeypatch, tmp_path):
+    from zyra.api.mcp_tools.audio import download_audio
+
+    monkeypatch.setenv("ZYRA_DATA_DIR", str(tmp_path))
+    monkeypatch.delenv("LIMITLESS_API_KEY", raising=False)
+    monkeypatch.setenv("MY_LIMITLESS_TOKEN", "override")
+
+    captured = {}
+
+    def fake_request(
+        method, url, headers=None, params=None, timeout=None, stream=False
+    ):  # noqa: ARG001
+        captured["headers"] = dict(headers or {})
+        return _Resp(
+            200,
+            headers={
+                "Content-Type": "audio/ogg",
+                "Content-Disposition": 'attachment; filename="clip.ogg"',
+            },
+            chunks=[b"data"],
+        )
+
+    import requests
+
+    monkeypatch.setattr(requests, "request", fake_request)
+
+    res = download_audio(
+        profile="limitless",
+        since="2025-01-01T00:00:00Z",
+        duration="PT5M",
+        audio_source="pendant",
+        output_dir="downloads",
+        credentials={"token": "$MY_LIMITLESS_TOKEN"},
+    )
+
+    assert res["path"].endswith("clip.ogg")
+    assert captured["headers"].get("X-API-Key") == "override"

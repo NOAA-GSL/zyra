@@ -276,3 +276,43 @@ def test_port_policy(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("requests.request", _req)
     res = api_fetch(url="https://example.com:444/")
     assert isinstance(res, dict)
+
+
+def test_api_fetch_credentials_helper(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _set_data_dir(tmp_path, monkeypatch)
+
+    captured: dict[str, Any] = {}
+
+    def _req(
+        method: str,
+        url: str,
+        headers: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,
+        data: Any | None = None,
+        timeout: int = 60,
+        stream: bool = True,
+        allow_redirects: bool = False,
+    ):  # noqa: ARG001
+        captured["headers"] = dict(headers or {})
+        return _MockResponse()
+
+    def _ga(host: str, port: int, proto: int):  # noqa: ARG001
+        return [(0, 0, 0, "", ("93.184.216.34", port))]
+
+    monkeypatch.setenv("ZYRA_MCP_FETCH_HTTPS_ONLY", "false")
+    monkeypatch.setenv("ZYRA_MCP_FETCH_ALLOW_PORTS", "80,443")
+    monkeypatch.setattr("requests.request", _req)
+    monkeypatch.setattr("socket.getaddrinfo", _ga)
+    monkeypatch.setenv("API_TOKEN", "secret")
+
+    api_fetch(
+        url="http://example.com/",
+        headers={"Accept": "*/*"},
+        credential=["token=$API_TOKEN"],
+        auth="bearer:$API_TOKEN",
+    )
+    sent = captured.get("headers", {})
+    assert sent.get("Authorization") == "Bearer secret"
+    assert sent.get("Accept") == "*/*"
