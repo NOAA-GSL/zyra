@@ -31,6 +31,8 @@ def _ns(**kw):
         url="https://api.example/v1/items",
         detect_filename=False,
         auth=None,
+        credential=[],
+        credential_file=None,
     )
     for k, v in kw.items():
         setattr(ns, k, v)
