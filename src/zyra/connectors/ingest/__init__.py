@@ -21,6 +21,17 @@ from zyra.utils.date_manager import DateManager
 from zyra.utils.io_utils import open_output
 
 
+def _sanitize_headers_for_validation(values: dict[str, str]) -> dict[str, str]:
+    sensitive_terms = ("authorization", "token", "secret", "key")
+    sanitized: dict[str, str] = {}
+    for name, val in values.items():
+        if any(term in name.lower() for term in sensitive_terms):
+            sanitized[name] = "<redacted>"
+        else:
+            sanitized[name] = val
+    return sanitized
+
+
 def _cmd_http(ns: argparse.Namespace) -> int:
     """Acquire data over HTTP(S) and write to stdout or file."""
     if getattr(ns, "verbose", False):
@@ -42,6 +53,7 @@ def _cmd_http(ns: argparse.Namespace) -> int:
             raise SystemExit(f"Credential error: {exc}") from exc
         apply_http_credentials(headers, resolved.values)
     apply_auth_header(headers, getattr(ns, "auth", None))
+
     inputs = list(getattr(ns, "inputs", []) or [])
     if getattr(ns, "manifest", None):
         try:
@@ -375,6 +387,7 @@ def _cmd_api(ns: argparse.Namespace) -> int:
             raise SystemExit(f"Credential error: {exc}") from exc
         apply_http_credentials(headers, resolved.values)
     apply_auth_header(headers, getattr(ns, "auth", None))
+    validation_headers = _sanitize_headers_for_validation(headers)
 
     from zyra.connectors.backends import api as api_backend
 
@@ -415,7 +428,7 @@ def _cmd_api(ns: argparse.Namespace) -> int:
                 spec=spec,
                 url=ns.url,
                 method=method,
-                headers=headers,
+                headers=validation_headers,
                 params=params,
                 data=body,
             )
@@ -426,6 +439,15 @@ def _cmd_api(ns: argparse.Namespace) -> int:
                     loc = it.get("loc")
                     name = it.get("name")
                     msg = it.get("message")
+                    if (
+                        isinstance(name, str)
+                        and isinstance(msg, str)
+                        and any(
+                            term in name.lower()
+                            for term in ("authorization", "token", "secret", "key")
+                        )
+                    ):
+                        msg = "<redacted>"
                     _sys.stderr.write(f"OpenAPI validation: {loc} {name}: {msg}\n")
                 if getattr(ns, "openapi_strict", False):
                     raise SystemExit(2)
