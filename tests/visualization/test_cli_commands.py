@@ -34,6 +34,7 @@ def test_visualize_globe_emits_bundle(tmp_path):
     gradient_path.write_bytes(_tiny_png())
     lut_path = tmp_path / "lut.json"
     lut_path.write_text('{"a":1}', encoding="utf-8")
+    data_path = _write_probe_json(tmp_path)
     proc = subprocess.run(
         [
             sys.executable,
@@ -51,6 +52,8 @@ def test_visualize_globe_emits_bundle(tmp_path):
             str(gradient_path),
             "--probe-lut",
             str(lut_path),
+            "--probe-data",
+            str(data_path),
         ],
         capture_output=True,
     )
@@ -63,6 +66,7 @@ def test_visualize_globe_emits_bundle(tmp_path):
     assert config.get("texture") == "assets/textures/dummy.png"
     assert config.get("probe_gradient") == "assets/gradients/gradient.png"
     assert config.get("probe_lut") == "assets/gradients/lut.json"
+    assert config.get("probe_data") == "assets/data/probe.json"
 
 
 def test_visualize_globe_cesium(tmp_path):
@@ -92,6 +96,7 @@ def test_visualize_globe_cesium_with_gradient(tmp_path):
     lut_path = tmp_path / "lut.json"
     gradient_path.write_bytes(_tiny_png())
     lut_path.write_text('{"a":1}', encoding="utf-8")
+    data_path = _write_probe_json(tmp_path)
 
     proc = subprocess.run(
         [
@@ -108,6 +113,8 @@ def test_visualize_globe_cesium_with_gradient(tmp_path):
             str(gradient_path),
             "--probe-lut",
             str(lut_path),
+            "--probe-data",
+            str(data_path),
         ],
         capture_output=True,
     )
@@ -117,6 +124,7 @@ def test_visualize_globe_cesium_with_gradient(tmp_path):
     )
     assert config.get("probe_gradient") == "assets/gradients/gradient.png"
     assert config.get("probe_lut") == "assets/gradients/lut.json"
+    assert config.get("probe_data") == "assets/data/probe.json"
 
 
 def test_visualize_globe_with_frame_pattern(tmp_path):
@@ -158,3 +166,10 @@ def _tiny_png() -> bytes:
     return base64.b64decode(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII="
     )
+
+
+def _write_probe_json(tmp_path):
+    probe_path = tmp_path / "probe.json"
+    data = [{"lat": 0.0, "lon": 0.0, "value": 42.5, "units": "K"}]
+    probe_path.write_text(json.dumps(data), encoding="utf-8")
+    return probe_path

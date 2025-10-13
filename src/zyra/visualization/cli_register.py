@@ -419,6 +419,11 @@ def register_cli(subparsers: Any) -> None:
         help="Lookup table for categorical probe decoding",
     )
     p_glb.add_argument(
+        "--probe-data",
+        dest="probe_data",
+        help="JSON/CSV probe dataset packaged with the bundle",
+    )
+    p_glb.add_argument(
         "--legend-texture",
         dest="legend_texture",
         help="Optional legend image distinct from the probe gradient",

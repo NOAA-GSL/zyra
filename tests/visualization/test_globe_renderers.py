@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import json
+from pathlib import Path
 
 from zyra.visualization.renderers import available, create
 
@@ -96,11 +97,13 @@ def test_webgl_renderer_with_gradient_and_lut(tmp_path) -> None:
     lut_path = tmp_path / "lut.json"
     gradient_path.write_bytes(_tiny_png())
     lut_path.write_text('{"a":1}', encoding="utf-8")
+    probe_path = _write_probe_json(tmp_path)
 
     renderer = create(
         "webgl-sphere",
         probe_gradient=str(gradient_path),
         probe_lut=str(lut_path),
+        probe_data=str(probe_path),
     )
     bundle = renderer.build(output_dir=tmp_path / "bundle_grad")
 
@@ -111,10 +114,13 @@ def test_webgl_renderer_with_gradient_and_lut(tmp_path) -> None:
     )
     assert config.get("probe_gradient") == "assets/gradients/gradient.png"
     assert config.get("probe_lut") == "assets/gradients/lut.json"
+    assert config.get("probe_data") == "assets/data/probe.json"
 
     gradients_dir = bundle.output_dir / "assets" / "gradients"
     assert (gradients_dir / "gradient.png").exists()
     assert (gradients_dir / "lut.json").exists()
+    data_dir = bundle.output_dir / "assets" / "data"
+    assert (data_dir / "probe.json").exists()
 
 
 def test_cesium_renderer_with_gradient_and_lut(tmp_path) -> None:
@@ -122,11 +128,13 @@ def test_cesium_renderer_with_gradient_and_lut(tmp_path) -> None:
     lut_path = tmp_path / "lut.json"
     gradient_path.write_bytes(_tiny_png())
     lut_path.write_text('{"a":1}', encoding="utf-8")
+    probe_path = _write_probe_json(tmp_path)
 
     renderer = create(
         "cesium-globe",
         probe_gradient=str(gradient_path),
         probe_lut=str(lut_path),
+        probe_data=str(probe_path),
     )
     bundle = renderer.build(output_dir=tmp_path / "cesium_bundle")
 
@@ -137,13 +145,23 @@ def test_cesium_renderer_with_gradient_and_lut(tmp_path) -> None:
     )
     assert config.get("probe_gradient") == "assets/gradients/gradient.png"
     assert config.get("probe_lut") == "assets/gradients/lut.json"
+    assert config.get("probe_data") == "assets/data/probe.json"
 
     gradients_dir = bundle.output_dir / "assets" / "gradients"
     assert (gradients_dir / "gradient.png").exists()
     assert (gradients_dir / "lut.json").exists()
+    data_dir = bundle.output_dir / "assets" / "data"
+    assert (data_dir / "probe.json").exists()
 
 
 def _tiny_png() -> bytes:
     return base64.b64decode(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII="
     )
+
+
+def _write_probe_json(tmp_path) -> Path:
+    probe_path = tmp_path / "probe.json"
+    data = [{"lat": 0.0, "lon": 0.0, "value": 42.5, "units": "K"}]
+    probe_path.write_text(json.dumps(data), encoding="utf-8")
+    return probe_path

@@ -35,6 +35,8 @@ def _renderer_options(ns: Any) -> dict[str, Any]:
         options["probe_gradient"] = ns.probe_gradient
     if ns.probe_lut:
         options["probe_lut"] = ns.probe_lut
+    if ns.probe_data:
+        options["probe_data"] = ns.probe_data
     if ns.legend_texture:
         options["legend_texture"] = ns.legend_texture
     if ns.shared_gradient:

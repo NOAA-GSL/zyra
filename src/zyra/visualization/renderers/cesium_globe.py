@@ -57,6 +57,7 @@ class CesiumGlobeRenderer(InteractiveRenderer):
 
         gradients_dir = assets_dir / "gradients"
         textures_dir = assets_dir / "textures"
+        data_dir = assets_dir / "data"
 
         texture = self._options.get("texture")
         if texture:
@@ -76,6 +77,12 @@ class CesiumGlobeRenderer(InteractiveRenderer):
         if probe_lut:
             staged.append(
                 self._copy_asset(Path(probe_lut), gradients_dir, overrides, "probe_lut")
+            )
+
+        probe_data = self._options.get("probe_data")
+        if probe_data:
+            staged.append(
+                self._copy_asset(Path(probe_data), data_dir, overrides, "probe_data")
             )
 
         legend_texture = self._options.get("legend_texture")
@@ -103,7 +110,12 @@ class CesiumGlobeRenderer(InteractiveRenderer):
         dest = target_dir / source.name
         if source.resolve() != dest.resolve():
             dest.write_bytes(source.read_bytes())
-        rel_dir = "gradients" if key in {"probe_gradient", "probe_lut"} else "textures"
+        rel_dir_map = {
+            "probe_gradient": "gradients",
+            "probe_lut": "gradients",
+            "probe_data": "data",
+        }
+        rel_dir = rel_dir_map.get(key, "textures")
         overrides[key] = f"assets/{rel_dir}/{source.name}"
         return dest
 
@@ -120,6 +132,7 @@ class CesiumGlobeRenderer(InteractiveRenderer):
             "texture",
             "probe_gradient",
             "probe_lut",
+            "probe_data",
             "legend_texture",
         }
         filtered = {
@@ -166,15 +179,17 @@ class CesiumGlobeRenderer(InteractiveRenderer):
                   <div id=\"zyra-overlay\">
                     <strong>Zyra Cesium Globe (beta)</strong>
                     <p>Renderer target: <code>{self.slug}</code></p>
-                    <div id=\"zyra-probe\">
-                      <div class=\"probe-header\">Probe</div>
-                      <div class=\"probe-line\"><span class=\"probe-label\">Latitude</span><span data-probe-lat>—</span></div>
-                      <div class=\"probe-line\"><span class=\"probe-label\">Longitude</span><span data-probe-lon>—</span></div>
-                      <div class=\"probe-line\"><span class=\"probe-label\">Height</span><span data-probe-height>—</span></div>
-                      <div class=\"probe-line\"><span class=\"probe-label\">Gradient</span><span data-probe-gradient>—</span></div>
-                      <div class=\"probe-line\"><span class=\"probe-label\">LUT</span><span data-probe-lut>—</span></div>
-                    </div>
+                  <div id=\"zyra-probe\">
+                    <div class=\"probe-header\">Probe</div>
+                    <div class=\"probe-line\"><span class=\"probe-label\">Latitude</span><span data-probe-lat>—</span></div>
+                    <div class=\"probe-line\"><span class=\"probe-label\">Longitude</span><span data-probe-lon>—</span></div>
+                    <div class=\"probe-line\"><span class=\"probe-label\">Height</span><span data-probe-height>—</span></div>
+                    <div class=\"probe-line\"><span class=\"probe-label\">Value</span><span data-probe-value>—</span></div>
+                    <div class=\"probe-line\"><span class=\"probe-label\">Units</span><span data-probe-units>—</span></div>
+                    <div class=\"probe-line\"><span class=\"probe-label\">Gradient</span><span data-probe-gradient>—</span></div>
+                    <div class=\"probe-line\"><span class=\"probe-label\">LUT</span><span data-probe-lut>—</span></div>
                   </div>
+                </div>
                 </div>
                 <script>
                   window.ZYRA_GLOBE_CONFIG = {config_json};
@@ -192,128 +207,305 @@ class CesiumGlobeRenderer(InteractiveRenderer):
         return (
             dedent(
                 """
-            (async function () {
-              const config = window.ZYRA_GLOBE_CONFIG || {};
-              const container = document.getElementById("zyra-cesium");
-              const overlay = document.getElementById("zyra-overlay");
+(async function () {
+  const config = window.ZYRA_GLOBE_CONFIG || {};
+  const container = document.getElementById("zyra-cesium");
+  const overlay = document.getElementById("zyra-overlay");
 
-              if (!window.Cesium) {
-                overlay.innerHTML = "<strong>Cesium failed to load.</strong>";
-                return;
-              }
+  if (!window.Cesium) {
+    overlay.innerHTML = "<strong>Cesium failed to load.</strong>";
+    return;
+  }
 
-              const latEl = document.querySelector("[data-probe-lat]");
-              const lonEl = document.querySelector("[data-probe-lon]");
-              const heightEl = document.querySelector("[data-probe-height]");
-              const gradientEl = document.querySelector("[data-probe-gradient]");
-              const lutEl = document.querySelector("[data-probe-lut]");
+  const latEl = document.querySelector("[data-probe-lat]");
+  const lonEl = document.querySelector("[data-probe-lon]");
+  const heightEl = document.querySelector("[data-probe-height]");
+  const gradientEl = document.querySelector("[data-probe-gradient]");
+  const lutEl = document.querySelector("[data-probe-lut]");
+  const valueEl = document.querySelector("[data-probe-value]");
+  const unitsEl = document.querySelector("[data-probe-units]");
 
-              const width = config.width || window.innerWidth;
-              const height = config.height || window.innerHeight;
-              container.style.width = `${width}px`;
-              container.style.height = `${height}px`;
+  const width = config.width || window.innerWidth;
+  const height = config.height || window.innerHeight;
+  container.style.width = `${width}px`;
+  container.style.height = `${height}px`;
 
-              const animate = config.animate === "time";
+  const animate = config.animate === "time";
 
-              const viewer = new Cesium.Viewer(container, {
-                animation: animate,
-                timeline: animate,
-                baseLayerPicker: false,
-                geocoder: false,
-                homeButton: false,
-                sceneModePicker: false,
-                navigationHelpButton: false,
-                infoBox: false,
-              });
+  const viewer = new Cesium.Viewer(container, {
+    animation: animate,
+    timeline: animate,
+    baseLayerPicker: false,
+    geocoder: false,
+    homeButton: false,
+    sceneModePicker: false,
+    navigationHelpButton: false,
+    infoBox: false,
+  });
 
-              viewer.scene.globe.enableLighting = true;
-              viewer.scene.skyAtmosphere.show = true;
-              viewer.scene.skyBox = new Cesium.SkyBox({ show: true });
+  viewer.scene.globe.enableLighting = true;
+  viewer.scene.skyAtmosphere.show = true;
+  viewer.scene.skyBox = new Cesium.SkyBox({ show: true });
 
-              const imageryProvider = Cesium.createWorldImagery();
-              viewer.imageryLayers.removeAll();
-              viewer.imageryLayers.addImageryProvider(imageryProvider);
+  viewer.imageryLayers.removeAll();
+  viewer.imageryLayers.addImageryProvider(Cesium.createWorldImagery());
 
-              const canvas = viewer.scene.canvas;
-              if (config.probe_enabled) {
-                canvas.style.cursor = "crosshair";
-              }
+  const canvas = viewer.scene.canvas;
+  if (config.probe_enabled) {
+    canvas.style.cursor = "crosshair";
+  }
 
-              function labelFromPath(value) {
-                if (!value || typeof value !== "string") {
-                  return "—";
-                }
-                const parts = value.split("/");
-                return parts[parts.length - 1] || value;
-              }
+  function labelFromPath(value) {
+    if (!value || typeof value !== "string") {
+      return "—";
+    }
+    const parts = value.split("/");
+    return parts[parts.length - 1] || value;
+  }
 
-              if (gradientEl) {
-                gradientEl.textContent = labelFromPath(config.probe_gradient);
-              }
-              if (lutEl) {
-                lutEl.textContent = labelFromPath(config.probe_lut);
-              }
+  if (gradientEl) gradientEl.textContent = labelFromPath(config.probe_gradient);
+  if (lutEl) lutEl.textContent = labelFromPath(config.probe_lut);
 
-              if (!config.probe_enabled && overlay) {
-                overlay.style.opacity = "0.65";
-              }
+  if (!config.probe_enabled && overlay) {
+    overlay.style.opacity = "0.65";
+  }
 
-              function updateProbe(lat, lon, heightMeters) {
-                if (latEl) latEl.textContent = `${lat.toFixed(2)}°`;
-                if (lonEl) lonEl.textContent = `${lon.toFixed(2)}°`;
-                if (heightEl) {
-                  if (Number.isFinite(heightMeters)) {
-                    heightEl.textContent = `${heightMeters.toFixed(0)} m`;
-                  } else {
-                    heightEl.textContent = "—";
-                  }
-                }
-              }
+  async function fetchText(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Fetch failed: ${response.status}`);
+    }
+    return response.text();
+  }
 
-              function clearProbe() {
-                if (latEl) latEl.textContent = "—";
-                if (lonEl) lonEl.textContent = "—";
-                if (heightEl) heightEl.textContent = "—";
-              }
+  async function loadJson(url) {
+    try {
+      const text = await fetchText(url);
+      return JSON.parse(text);
+    } catch (error) {
+      console.warn("Cesium probe: failed to load JSON", url, error);
+      return null;
+    }
+  }
 
-              const ellipsoid = viewer.scene.globe.ellipsoid;
-              const handler = new Cesium.ScreenSpaceEventHandler(canvas);
+  function parseCsvDataset(text) {
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (!lines.length) {
+      return null;
+    }
+    const headers = lines[0]
+      .split(",")
+      .map((h) => h.trim().toLowerCase());
+    const latIdx = headers.findIndex((h) => h === "lat" || h === "latitude");
+    const lonIdx = headers.findIndex((h) => h === "lon" || h === "lng" || h === "long" || h === "longitude");
+    const valueIdx = headers.findIndex((h) => h === "value" || h === "val" || h === "data");
+    const unitsIdx = headers.findIndex((h) => h === "units" || h === "unit");
+    if (latIdx === -1 || lonIdx === -1 || valueIdx === -1) {
+      return null;
+    }
+    const points = [];
+    for (let i = 1; i < lines.length; i += 1) {
+      const parts = lines[i].split(",").map((p) => p.trim());
+      if (parts.length < headers.length) {
+        continue;
+      }
+      const lat = Number(parts[latIdx]);
+      const lon = Number(parts[lonIdx]);
+      const value = Number(parts[valueIdx]);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isFinite(value)) {
+        continue;
+      }
+      const entry = { lat, lon, value };
+      if (unitsIdx !== -1 && parts[unitsIdx]) {
+        entry.units = parts[unitsIdx];
+      }
+      points.push(entry);
+    }
+    return points.length ? { points } : null;
+  }
 
-              if (config.probe_enabled) {
-                handler.setInputAction((movement) => {
-                  const cartesian = viewer.camera.pickEllipsoid(
-                    movement.endPosition,
-                    ellipsoid,
-                  );
-                  if (!Cesium.defined(cartesian)) {
-                    clearProbe();
-                    return;
-                  }
-                  const cartographic = ellipsoid.cartesianToCartographic(cartesian);
-                  const lat = Cesium.Math.toDegrees(cartographic.latitude);
-                  const lon = Cesium.Math.toDegrees(cartographic.longitude);
-                  let heightMeters = viewer.scene.globe.getHeight(cartographic);
-                  if (!Number.isFinite(heightMeters)) {
-                    heightMeters = cartographic.height;
-                  }
-                  updateProbe(lat, lon, heightMeters);
-                }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+  function normalizeProbeArray(raw) {
+    if (!Array.isArray(raw)) {
+      return null;
+    }
+    const points = [];
+    for (const entry of raw) {
+      if (typeof entry !== "object" || entry == null) {
+        continue;
+      }
+      const lat = Number(entry.lat ?? entry.latitude);
+      const lon = Number(entry.lon ?? entry.lng ?? entry.long ?? entry.longitude);
+      const value = Number(entry.value ?? entry.val ?? entry.data);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isFinite(value)) {
+        continue;
+      }
+      points.push({
+        lat,
+        lon,
+        value,
+        units: entry.units ?? entry.unit ?? null,
+      });
+    }
+    return points.length ? { points } : null;
+  }
 
-                canvas.addEventListener("mouseleave", clearProbe);
-                clearProbe();
-              }
+  async function loadProbeDataset(url) {
+    try {
+      const text = await fetchText(url);
+      try {
+        const parsed = JSON.parse(text);
+        const normalized = normalizeProbeArray(parsed);
+        if (normalized) {
+          return normalized;
+        }
+      } catch (jsonError) {
+        // fall through to CSV parser
+      }
+      const csv = parseCsvDataset(text);
+      if (csv) {
+        return csv;
+      }
+      console.warn("Cesium probe: unsupported dataset format", url);
+    } catch (error) {
+      console.warn("Cesium probe: failed to load dataset", url, error);
+    }
+    return null;
+  }
 
-              window.addEventListener("resize", () => {
-                const w = config.width || window.innerWidth;
-                const h = config.height || window.innerHeight;
-                container.style.width = `${w}px`;
-                container.style.height = `${h}px`;
-                viewer.resize();
-              });
-            })().catch((error) => {
-              console.error("Zyra Cesium bootstrap failed", error);
-            });
-            """
+  function nearestProbe(lat, lon, dataset) {
+    if (!dataset || !dataset.points || !dataset.points.length) {
+      return null;
+    }
+    const latRad = Cesium.Math.toRadians(lat);
+    const lonRad = Cesium.Math.toRadians(lon);
+    let best = null;
+    let bestScore = Infinity;
+    for (const point of dataset.points) {
+      const pLat = Cesium.Math.toRadians(point.lat);
+      const pLon = Cesium.Math.toRadians(point.lon);
+      const dLat = latRad - pLat;
+      const dLon = lonRad - pLon;
+      const sinLat = Math.sin(dLat / 2);
+      const sinLon = Math.sin(dLon / 2);
+      const a =
+        sinLat * sinLat +
+        Math.cos(latRad) * Math.cos(pLat) * sinLon * sinLon;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      if (c < bestScore) {
+        bestScore = c;
+        best = point;
+      }
+    }
+    return best;
+  }
+
+  function formatValue(value) {
+    if (!Number.isFinite(value)) {
+      return "—";
+    }
+    if (Math.abs(value) >= 1000 || Math.abs(value) < 0.01) {
+      return value.toExponential(2);
+    }
+    return value.toFixed(2);
+  }
+
+  const probeDataset = config.probe_data
+    ? await loadProbeDataset(config.probe_data)
+    : null;
+
+  const handler = new Cesium.ScreenSpaceEventHandler(canvas);
+  const ellipsoid = viewer.scene.globe.ellipsoid;
+
+  function updateProbeDisplay(payload) {
+    if (!latEl || !lonEl) {
+      return;
+    }
+    if (!payload) {
+      latEl.textContent = "—";
+      lonEl.textContent = "—";
+      if (heightEl) heightEl.textContent = "—";
+      if (valueEl) valueEl.textContent = "—";
+      if (unitsEl) unitsEl.textContent = "—";
+      return;
+    }
+    latEl.textContent = `${payload.lat.toFixed(2)}°`;
+    lonEl.textContent = `${payload.lon.toFixed(2)}°`;
+    if (heightEl) {
+      if (Number.isFinite(payload.height)) {
+        heightEl.textContent = `${payload.height.toFixed(0)} m`;
+      } else {
+        heightEl.textContent = "—";
+      }
+    }
+    if (valueEl) {
+      valueEl.textContent =
+        payload.dataValue != null ? formatValue(payload.dataValue) : "—";
+    }
+    if (unitsEl) {
+      unitsEl.textContent = payload.dataUnits ?? "—";
+    }
+  }
+
+  function clearProbe() {
+    updateProbeDisplay(null);
+  }
+
+  if (config.probe_enabled) {
+    handler.setInputAction((movement) => {
+      const cartesian = viewer.camera.pickEllipsoid(
+        movement.endPosition,
+        ellipsoid,
+      );
+      if (!Cesium.defined(cartesian)) {
+        clearProbe();
+        return;
+      }
+      const cartographic = ellipsoid.cartesianToCartographic(cartesian);
+      const lat = Cesium.Math.toDegrees(cartographic.latitude);
+      let lon = Cesium.Math.toDegrees(cartographic.longitude);
+      if (lon > 180) lon -= 360;
+      if (lon < -180) lon += 360;
+      let heightMeters = viewer.scene.globe.getHeight(cartographic);
+      if (!Number.isFinite(heightMeters)) {
+        heightMeters = cartographic.height;
+      }
+
+      let dataValue = null;
+      let dataUnits = null;
+      if (probeDataset) {
+        const nearest = nearestProbe(lat, lon, probeDataset);
+        if (nearest) {
+          dataValue = nearest.value;
+          dataUnits = nearest.units ?? config.probe_units ?? null;
+        }
+      }
+
+      updateProbeDisplay({
+        lat,
+        lon,
+        height: heightMeters,
+        dataValue,
+        dataUnits,
+      });
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+    canvas.addEventListener("mouseleave", clearProbe);
+    clearProbe();
+  }
+
+  window.addEventListener("resize", () => {
+    const w = config.width || window.innerWidth;
+    const h = config.height || window.innerHeight;
+    container.style.width = `${w}px`;
+    container.style.height = `${h}px`;
+    viewer.resize();
+  });
+})();
+
+"""
             ).strip()
             + "\n"
         )
