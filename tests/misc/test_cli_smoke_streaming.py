@@ -45,6 +45,46 @@ def test_decode_grib2_raw_passthrough_netcdf(monkeypatch, capsysbinary):
     assert captured.err == b""
 
 
+def test_decode_grib2_idx_pattern_uses_http_ranges(monkeypatch, capsysbinary):
+    from zyra.cli import main
+
+    captured: dict[str, list[str]] = {}
+
+    def fake_get_idx_lines(url, *_, **__):
+        return [
+            "1:0:d=20250314:TMP:2 m above ground:anl:",
+            "2:1234:d=20250314:MASSDEN:8 m above ground:",
+            "3:5678:d=20250314:COLMD:entire atmosphere (considered as a single layer):",
+        ]
+
+    def fake_download_byteranges(url, byte_ranges, *_, **__):
+        captured["ranges"] = list(byte_ranges)
+        return b"subset"
+
+    monkeypatch.setattr(
+        "zyra.connectors.backends.http.get_idx_lines", fake_get_idx_lines
+    )
+    monkeypatch.setattr(
+        "zyra.connectors.backends.http.download_byteranges",
+        fake_download_byteranges,
+    )
+
+    rc = main(
+        [
+            "process",
+            "decode-grib2",
+            "https://example.invalid/hrrr.t12z.wrfsfcf03.grib2",
+            "--raw",
+            "--pattern",
+            ":MASSDEN:8 m above ground:",
+        ]
+    )
+    assert rc == 0
+    out = capsysbinary.readouterr()
+    assert out.out == b"subset"
+    assert captured.get("ranges") == ["bytes=1234-5677"]
+
+
 def test_extract_variable_stdout_netcdf_simulated(monkeypatch, capsysbinary):
     # Simulate wgrib2 producing NetCDF bytes for the selected variable
     from types import SimpleNamespace
