@@ -56,6 +56,45 @@ zyra disseminate ftp -i artifact.bin ftp://dataserver.example.com/outbox/artifac
   --credential password=@FTP_PASS
 ```
 
+### Discovery Search APIs
+
+```bash
+# Query an authenticated search endpoint with the same credential semantics
+zyra search api --url https://catalog.example/api \
+  --query "hrrr" \
+  --credential token=$CATALOG_TOKEN \
+  --auth bearer:$CATALOG_TOKEN
+
+# Override credentials for a specific endpoint while keeping global defaults
+zyra search api \
+  --url https://catalog.example/api \
+  --url https://staging.example/api \
+  --query "wind" \
+  --credential token=$GLOBAL_TOKEN \
+  --url-credential https://staging.example/api token=$STAGING_TOKEN
+
+# Echo a header end-to-end (httpbin)
+zyra acquire api \
+  --url https://httpbin.org/anything \
+  --method GET \
+  --auth bearer:demo-token \
+  --output - | head
+
+# Authenticated discovery against GitHub
+export GITHUB_USER="your-username"
+export GITHUB_TOKEN="ghp_yourtoken"
+zyra search api \
+  --url https://api.github.com \
+  --query placeholder \
+  --endpoint search/repositories \
+  --qp q \
+  --param q=language:python \
+  --result-key items \
+  --auth basic:$GITHUB_USER:$GITHUB_TOKEN \
+  --limit 3 \
+  --json
+```
+
 ## API & MCP Integration
 
 - **Domain args normalization** – REST clients can POST either `{"headers": {"X-Api-Key": "..."}}` or the CLI-style list `{"header": ["X-Api-Key: ..."]}`. The API layer flattens both into the same list before invoking the worker, so credentials resolve exactly like the CLI.
