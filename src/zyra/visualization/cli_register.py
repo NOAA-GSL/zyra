@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
+import argparse
 from typing import Any
 
 # Import only lightweight CLI handler modules. Heavy managers are imported lazily
@@ -8,6 +9,7 @@ from typing import Any
 from .cli_animate import handle_animate
 from .cli_compose_video import handle_compose_video
 from .cli_contour import handle_contour
+from .cli_globe import handle_globe
 from .cli_heatmap import handle_heatmap
 from .cli_interactive import handle_interactive
 from .cli_timeseries import handle_timeseries
@@ -351,6 +353,118 @@ def register_cli(subparsers: Any) -> None:
         help="Shell-style trace of key steps and external commands",
     )
     p_cv.set_defaults(func=handle_compose_video)
+
+    # globe renderers (WebGL/Cesium)
+    from zyra.visualization import renderers as _globe_renderers
+
+    renderer_slugs = sorted(r.slug for r in _globe_renderers.available())
+
+    p_glb = subparsers.add_parser(
+        "globe",
+        help="Interactive globe renderers (WebGL/Cesium)",
+        description=(
+            "Generate interactive globe bundles using modular renderers such as "
+            "webgl-sphere or cesium-globe."
+        ),
+    )
+    p_glb.add_argument(
+        "--target",
+        required=True,
+        choices=renderer_slugs,
+        help="Renderer backend to use (e.g., webgl-sphere, cesium-globe)",
+    )
+    p_glb.add_argument(
+        "--output",
+        required=True,
+        help="Directory for the generated bundle (index.html + assets)",
+    )
+    p_glb.add_argument("--texture", help="Primary texture image for the globe surface")
+    p_glb.add_argument(
+        "--texture-pattern",
+        dest="texture_pattern",
+        help="Glob pattern for frame textures (animated sequences)",
+    )
+    p_glb.add_argument(
+        "--frame-list",
+        dest="frame_list",
+        help="Text file listing frame paths (optional timestamps)",
+    )
+    p_glb.add_argument(
+        "--frame-cache",
+        dest="frame_cache",
+        help="Directory to stage frames extracted from remote sources",
+    )
+    p_glb.add_argument("--width", type=int, help="Preferred viewport width in pixels")
+    p_glb.add_argument("--height", type=int, help="Preferred viewport height in pixels")
+    p_glb.add_argument(
+        "--animate",
+        choices=["none", "time"],
+        default="none",
+        help="Animation mode for multi-frame inputs",
+    )
+    p_glb.add_argument(
+        "--probe",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Toggle probe UI in the generated viewer",
+    )
+    p_glb.add_argument(
+        "--probe-gradient",
+        dest="probe_gradient",
+        help="Gradient asset for imagery-backed probe decoding",
+    )
+    p_glb.add_argument(
+        "--probe-lut",
+        dest="probe_lut",
+        help="Lookup table for categorical probe decoding",
+    )
+    p_glb.add_argument(
+        "--legend-texture",
+        dest="legend_texture",
+        help="Optional legend image distinct from the probe gradient",
+    )
+    p_glb.add_argument(
+        "--shared-gradient",
+        dest="shared_gradient",
+        help="Reference to a shared gradient definition",
+    )
+    p_glb.add_argument(
+        "--time-key",
+        dest="time_key",
+        help="Metadata key that maps inputs to timestamps",
+    )
+    p_glb.add_argument(
+        "--time-format",
+        dest="time_format",
+        help="Format string for rendering timestamps",
+    )
+    p_glb.add_argument(
+        "--credential",
+        action="append",
+        metavar="KEY=VALUE",
+        help="Inline credential assignment (repeatable)",
+    )
+    p_glb.add_argument(
+        "--credential-file",
+        dest="credential_file",
+        help="Credential file resolved by the shared helper",
+    )
+    p_glb.add_argument(
+        "--auth",
+        help="Auth helper shorthands (e.g., bearer:token, basic:user:pass)",
+    )
+    p_glb.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_glb.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
+    p_glb.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
+    p_glb.set_defaults(func=handle_globe)
 
     # interactive
     p_int = subparsers.add_parser(
