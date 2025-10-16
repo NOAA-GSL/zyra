@@ -380,6 +380,11 @@ def register_cli(subparsers: Any) -> None:
     )
     p_glb.add_argument("--texture", help="Primary texture image for the globe surface")
     p_glb.add_argument(
+        "--pattern",
+        dest="texture_pattern",
+        help="Glob pattern for frame textures (animated sequences)",
+    )
+    p_glb.add_argument(
         "--texture-pattern",
         dest="texture_pattern",
         help="Glob pattern for frame textures (animated sequences)",
@@ -394,6 +399,61 @@ def register_cli(subparsers: Any) -> None:
         dest="frame_cache",
         help="Directory to stage frames extracted from remote sources",
     )
+    p_glb.add_argument(
+        "--video-source",
+        dest="video_source",
+        help="Video file or URI used to derive frame textures (supports Vimeo URIs)",
+    )
+    p_glb.add_argument(
+        "--start",
+        dest="start",
+        help="ISO-8601 timestamp for the first frame of the video",
+    )
+    p_glb.add_argument(
+        "--end",
+        dest="end",
+        help="ISO-8601 timestamp for the final frame (optional; defaults to start + duration)",
+    )
+    p_glb.add_argument(
+        "--fps",
+        dest="fps",
+        type=float,
+        help="Sampling rate when extracting frames from video sources (frames per second)",
+    )
+    p_glb.add_argument(
+        "--period-seconds",
+        dest="period_seconds",
+        type=float,
+        help="Override cadence between frames (seconds) for timeline metadata",
+    )
+    p_glb.add_argument(
+        "--frames-meta",
+        dest="frames_meta",
+        help="Frames metadata JSON (from transform metadata/scan-frames)",
+    )
+    p_glb.add_argument(
+        "--date-format",
+        dest="date_format",
+        help="strftime-style format used to parse timestamps from frame filenames",
+    )
+    p_glb.add_argument(
+        "--frame-duration",
+        dest="frame_duration",
+        type=float,
+        help="Seconds per frame when animating sequences (default 0.25)",
+    )
+    p_glb.add_argument(
+        "--show-controls",
+        dest="show_controls",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Toggle playback controls overlay for animated sequences",
+    )
+    p_glb.add_argument("--title", help="Optional overlay title for the globe viewer")
+    p_glb.add_argument(
+        "--description",
+        help="Optional descriptive text shown under the globe title",
+    )
     p_glb.add_argument("--width", type=int, help="Preferred viewport width in pixels")
     p_glb.add_argument("--height", type=int, help="Preferred viewport height in pixels")
     p_glb.add_argument(
@@ -403,10 +463,28 @@ def register_cli(subparsers: Any) -> None:
         help="Animation mode for multi-frame inputs",
     )
     p_glb.add_argument(
+        "--auto-rotate",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Enable continuous auto-rotation (default uses drag-to-rotate)",
+    )
+    p_glb.add_argument(
+        "--auto-rotate-speed",
+        dest="auto_rotate_speed",
+        type=float,
+        help="Auto-rotation speed in degrees per second when enabled",
+    )
+    p_glb.add_argument(
         "--probe",
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Toggle probe UI in the generated viewer",
+    )
+    p_glb.add_argument(
+        "--lighting",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Enable lighting/shading for the globe (default off for unlit texture)",
     )
     p_glb.add_argument(
         "--probe-gradient",
@@ -424,14 +502,104 @@ def register_cli(subparsers: Any) -> None:
         help="JSON/CSV probe dataset packaged with the bundle",
     )
     p_glb.add_argument(
-        "--legend-texture",
-        dest="legend_texture",
-        help="Optional legend image distinct from the probe gradient",
+        "--probe-var",
+        dest="probe_var",
+        help="Variable name used when sampling structured probe datasets",
+    )
+    p_glb.add_argument(
+        "--probe-units",
+        dest="probe_units",
+        help="Units label rendered with probe values (e.g., Ma, °C)",
+    )
+    p_glb.add_argument(
+        "--legend",
+        help="Legend image path (pkg:, local file, or http/https URL)",
+    )
+    p_glb.add_argument(
+        "--tile-url",
+        dest="tile_url",
+        help=(
+            "ArcGIS MapServer/ImageServer endpoint or URL template providing tiled imagery "
+            "(overrides --texture when supplied)"
+        ),
+    )
+    p_glb.add_argument(
+        "--tile-type",
+        dest="tile_type",
+        choices=["arcgis", "template"],
+        help="Provider type for --tile-url (default: arcgis)",
+    )
+    p_glb.add_argument(
+        "--tile-scheme",
+        dest="tile_scheme",
+        choices=["webmercator", "geographic"],
+        help="Tiling scheme for --tile-url when using template sources (default: webmercator)",
+    )
+    p_glb.add_argument(
+        "--tile-min-level",
+        dest="tile_min_level",
+        type=int,
+        help="Minimum level for tiled imagery providers",
+    )
+    p_glb.add_argument(
+        "--tile-max-level",
+        dest="tile_max_level",
+        type=int,
+        help="Maximum level for tiled imagery providers",
+    )
+    p_glb.add_argument(
+        "--tile-credit",
+        dest="tile_credit",
+        help="Attribution string shown for tiled imagery providers",
+    )
+    p_glb.add_argument(
+        "--tile-token",
+        dest="tile_token",
+        help="Access token passed through to the tiled imagery provider",
+    )
+    p_glb.add_argument(
+        "--tile-param",
+        dest="tile_param",
+        metavar="KEY=VALUE",
+        action="append",
+        help="Placeholder substitutions for template tile URLs (repeatable)",
+    )
+    p_glb.add_argument(
+        "--tile-time-key",
+        dest="tile_time_key",
+        help="Placeholder key in the tile URL that should be driven by time (e.g., 'time')",
+    )
+    p_glb.add_argument(
+        "--tile-time-value",
+        "--tile-time-values",
+        dest="tile_time_values",
+        action="append",
+        metavar="ISO_DATE",
+        help="ISO-8601 timestamps used to populate the time placeholder (repeatable)",
+    )
+    p_glb.add_argument(
+        "--tile-time-start",
+        dest="tile_time_start",
+        help="Start of the time range (inclusive, ISO-8601)",
+    )
+    p_glb.add_argument(
+        "--tile-time-end",
+        dest="tile_time_end",
+        help="End of the time range (inclusive, ISO-8601)",
+    )
+    p_glb.add_argument(
+        "--tile-time-period",
+        dest="tile_time_period",
+        help="Step between time samples (e.g., '1d', '6h', '3600s'; default 1d)",
     )
     p_glb.add_argument(
         "--shared-gradient",
         dest="shared_gradient",
-        help="Reference to a shared gradient definition",
+        action="append",
+        help=(
+            "Name-to-path mapping for reusable gradients (repeatable; format NAME=PATH "
+            "or NAME|PATH; supports local files, pkg: refs, or URLs)"
+        ),
     )
     p_glb.add_argument(
         "--time-key",
