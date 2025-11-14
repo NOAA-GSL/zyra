@@ -9,8 +9,12 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-import xarray as xr
 from PIL import Image
+
+try:  # pragma: no cover - optional dependency check
+    import xarray as xr
+except ModuleNotFoundError:  # pragma: no cover - optional dependency missing
+    pytest.skip("xarray is required for visualization tests", allow_module_level=True)
 
 from zyra.processing.video_processor import VideoProcessor
 from zyra.visualization.renderers import available, create

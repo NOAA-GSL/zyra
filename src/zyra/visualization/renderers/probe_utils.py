@@ -8,7 +8,11 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-import xarray as xr
+
+try:  # optional dependency
+    import xarray as xr
+except ImportError:  # pragma: no cover - optional dependency
+    xr = None  # type: ignore
 
 LAT_NAMES = {"lat", "latitude", "y", "ylat"}
 LON_NAMES = {"lon", "longitude", "x", "xlon"}
@@ -50,6 +54,11 @@ def prepare_probe_dataset_file(
         When the dataset cannot be converted.
     """
 
+    if xr is None:  # pragma: no cover - requires optional dep
+        raise ProbeDatasetError(
+            "xarray is required for probe datasets. Install with `pip install xarray` or use the `visualization` extra."
+        )
+
     source = source.expanduser()
     suffix = source.suffix.lower()
     if suffix not in {".nc", ".nc4", ".cdf"}:
@@ -72,6 +81,10 @@ def _extract_points_from_netcdf(
     variable: str | None,
     max_points: int = MAX_PROBE_POINTS,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if xr is None:  # pragma: no cover - requires optional dep
+        raise ProbeDatasetError(
+            "xarray is required for probe datasets. Install with `pip install xarray` or use the `visualization` extra."
+        )
     ds = xr.open_dataset(source)
     try:
         data_var = variable or _select_default_variable(ds)
