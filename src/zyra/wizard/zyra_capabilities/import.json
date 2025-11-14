@@ -1,0 +1,627 @@
+{
+  "import api": {
+    "description": "Call a REST API endpoint with headers/params/body. Supports cursor/page pagination.",
+    "doc": "Call a REST API endpoint with headers/params/body. Supports cursor/page pagination.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--preset",
+          "--url",
+          "--method",
+          "--output",
+          "--header",
+          "--content-type",
+          "--auth",
+          "--params",
+          "--credential",
+          "--credential-file",
+          "--since",
+          "--data",
+          "--paginate",
+          "--page-param",
+          "--page-start",
+          "--page-size-param",
+          "--page-size",
+          "--empty-json-path",
+          "--cursor-param",
+          "--next-cursor-json-path",
+          "--link-rel",
+          "--newline-json",
+          "--pretty",
+          "--stream",
+          "--detect-filename",
+          "--accept",
+          "--expect-content-type",
+          "--head-first",
+          "--resume",
+          "--progress",
+          "--openapi-help",
+          "--openapi-validate",
+          "--openapi-strict",
+          "--openapi-url",
+          "--start",
+          "--end",
+          "--duration",
+          "--audio-source",
+          "--timeout",
+          "--max-retries",
+          "--retry-backoff",
+          "--allow-non-2xx",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--preset": {
+        "help": "Apply provider-specific defaults (e.g., Limitless lifelogs cursor mapping; Limitless audio download)",
+        "choices": [
+          "limitless-lifelogs",
+          "limitless-audio"
+        ],
+        "type": "str"
+      },
+      "--url": "Target endpoint URL (may be set by preset)",
+      "--method": {
+        "help": "HTTP method (GET, POST, DELETE, PUT, PATCH)",
+        "type": "str",
+        "default": "GET"
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--header": "Custom header 'K: V' (repeatable)",
+      "--content-type": "Content-Type header (e.g., application/json)",
+      "--auth": "Convenience auth helper: 'bearer:$TOKEN' -> Authorization: Bearer <value>, 'basic:user:pass' -> Authorization: Basic <base64(user:pass)>",
+      "--params": "URL query parameters as k1=v1&k2=v2",
+      "--credential": "Credential slot resolution (repeatable), e.g., token=$API_TOKEN",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials",
+      "--since": "Convenience ISO start time; may map to provider param under presets",
+      "--data": "Inline JSON string or @path/to/file (JSON or raw)",
+      "--paginate": {
+        "help": "Pagination mode",
+        "choices": [
+          "none",
+          "page",
+          "cursor",
+          "link"
+        ],
+        "type": "str",
+        "default": "none"
+      },
+      "--page-param": {
+        "help": "",
+        "type": "str",
+        "default": "page"
+      },
+      "--page-start": {
+        "help": "",
+        "type": "int",
+        "default": 1
+      },
+      "--page-size-param": "",
+      "--page-size": {
+        "help": "",
+        "type": "int"
+      },
+      "--empty-json-path": "Dot path for list to detect empty page (stops when empty)",
+      "--cursor-param": {
+        "help": "",
+        "type": "str",
+        "default": "cursor"
+      },
+      "--next-cursor-json-path": {
+        "help": "Dot path to next cursor in response",
+        "type": "str",
+        "default": "next"
+      },
+      "--link-rel": {
+        "help": "Link relation to follow when --paginate link (default: next)",
+        "type": "str",
+        "default": "next"
+      },
+      "--newline-json": {
+        "help": "Write each page as one JSON line (NDJSON)",
+        "type": "bool",
+        "default": false
+      },
+      "--pretty": {
+        "help": "Pretty-print JSON for single response",
+        "type": "bool",
+        "default": true
+      },
+      "--stream": {
+        "help": "Stream large/binary responses to output",
+        "type": "bool",
+        "default": false
+      },
+      "--detect-filename": {
+        "help": "When output is a directory, infer filename from headers/content-type",
+        "type": "bool",
+        "default": false
+      },
+      "--accept": "Set Accept header (e.g., audio/ogg)",
+      "--expect-content-type": "Fail if response Content-Type does not contain this value",
+      "--head-first": {
+        "help": "Send a HEAD request before GET to validate type/size",
+        "type": "bool",
+        "default": false
+      },
+      "--resume": {
+        "help": "Attempt HTTP Range resume when possible",
+        "type": "bool",
+        "default": false
+      },
+      "--progress": {
+        "help": "Show simple byte progress when Content-Length is available",
+        "type": "bool",
+        "default": false
+      },
+      "--openapi-help": {
+        "help": "Fetch OpenAPI and print required params/headers/body for the resolved operation",
+        "type": "bool",
+        "default": false
+      },
+      "--openapi-validate": {
+        "help": "Validate provided params/headers/body against OpenAPI (prints issues)",
+        "type": "bool",
+        "default": false
+      },
+      "--openapi-strict": {
+        "help": "Exit non-zero when --openapi-validate finds issues",
+        "type": "bool",
+        "default": false
+      },
+      "--openapi-url": "Explicit OpenAPI spec URL (json/yaml). Overrides automatic discovery based on --url",
+      "--start": "ISO-8601 start time (e.g., 2025-08-01T00:00:00Z)",
+      "--end": "ISO-8601 end time (e.g., 2025-08-01T02:00:00Z)",
+      "--duration": "ISO-8601 duration for limitless-audio preset (e.g., PT2H, PT30M)",
+      "--audio-source": {
+        "help": "Limitless audio source (maps to audioSource)",
+        "choices": [
+          "pendant",
+          "app"
+        ],
+        "type": "str"
+      },
+      "--timeout": {
+        "help": "",
+        "type": "int",
+        "default": 60
+      },
+      "--max-retries": {
+        "help": "",
+        "type": "int",
+        "default": 3
+      },
+      "--retry-backoff": {
+        "help": "",
+        "type": "float",
+        "default": 0.5
+      },
+      "--allow-non-2xx": {
+        "help": "Do not exit non-zero for HTTP >= 400",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "import",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "accept",
+        "audio_source",
+        "auth",
+        "content_type",
+        "cursor_param",
+        "data",
+        "detect_filename",
+        "duration",
+        "empty_json_path",
+        "end",
+        "expect_content_type",
+        "head_first",
+        "headers",
+        "link_rel",
+        "method",
+        "newline_json",
+        "next_cursor_json_path",
+        "openapi_strict",
+        "openapi_validate",
+        "output",
+        "page_param",
+        "page_size",
+        "page_size_param",
+        "page_start",
+        "paginate",
+        "params",
+        "preset",
+        "progress",
+        "resume",
+        "since",
+        "start",
+        "stream",
+        "url"
+      ]
+    },
+    "example_args": null
+  },
+  "import ftp": {
+    "description": "Fetch files via FTP (single path or batch). Optionally list or sync directories to a local folder.",
+    "doc": "Fetch files via FTP (single path or batch). Optionally list or sync directories to a local folder.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--list",
+          "--sync-dir",
+          "--pattern",
+          "--since",
+          "--since-period",
+          "--until",
+          "--date-format",
+          "--inputs",
+          "--manifest",
+          "--output-dir",
+          "--verbose",
+          "--quiet",
+          "--trace",
+          "--user",
+          "--password",
+          "--credential",
+          "--credential-file"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--list": {
+        "help": "List files in an FTP directory",
+        "type": "bool",
+        "default": false
+      },
+      "--sync-dir": "Sync FTP directory to a local directory",
+      "--pattern": "Regex to filter list/sync",
+      "--since": "ISO date filter for list/sync",
+      "--since-period": "ISO-8601 duration for lookback (e.g., P1Y, P6M, P7D, PT24H)",
+      "--until": "ISO date filter for list/sync",
+      "--date-format": "Filename date format for filtering (e.g., YYYYMMDD)",
+      "--inputs": {
+        "help": "Multiple FTP paths to fetch",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--manifest": {
+        "help": "Path to a file listing FTP paths (one per line)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      },
+      "--user": "FTP username (alias for --credential user=...)",
+      "--password": "FTP password (alias for --credential password=...)",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'user=@FTP_USER' or 'password=$FTP_PASS'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials"
+    },
+    "positionals": [
+      {
+        "name": "path",
+        "help": "ftp://host/path or host/path",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "import",
+    "args_schema": null,
+    "example_args": null
+  },
+  "import http": {
+    "description": "Fetch a file via HTTP(S) to a local path. Optionally list/filter directory pages, or fetch multiple URLs with --inputs/--manifest.",
+    "doc": "Fetch a file via HTTP(S) to a local path. Optionally list/filter directory pages, or fetch multiple URLs with --inputs/--manifest.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--list",
+          "--pattern",
+          "--since",
+          "--since-period",
+          "--until",
+          "--date-format",
+          "--inputs",
+          "--manifest",
+          "--output-dir",
+          "--verbose",
+          "--quiet",
+          "--trace",
+          "--header",
+          "--auth",
+          "--credential",
+          "--credential-file"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--list": {
+        "help": "List links on a directory page",
+        "type": "bool",
+        "default": false
+      },
+      "--pattern": "Regex to filter listed links",
+      "--since": "ISO date filter for list mode",
+      "--since-period": "ISO-8601 duration for lookback (e.g., P1Y, P6M, P7D, PT24H)",
+      "--until": "ISO date filter for list mode",
+      "--date-format": "Filename date format for list filtering (e.g., YYYYMMDD)",
+      "--inputs": {
+        "help": "Multiple HTTP URLs to fetch",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--manifest": {
+        "help": "Path to a file listing URLs (one per line)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      },
+      "--header": "Add custom HTTP header 'Name: Value' (repeatable)",
+      "--auth": "Convenience auth helper: 'bearer:$TOKEN' -> Authorization: Bearer <value>, 'basic:user:pass' sets HTTP Basic auth",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'token=$API_TOKEN' or 'header.Authorization=@EUMETSAT_TOKEN'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials"
+    },
+    "positionals": [
+      {
+        "name": "url",
+        "help": "",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "import",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "auth",
+        "credential",
+        "credential_file",
+        "credentials",
+        "date_format",
+        "header",
+        "headers",
+        "inputs",
+        "list_mode",
+        "manifest",
+        "output",
+        "output_dir",
+        "pattern",
+        "since",
+        "since_period",
+        "until",
+        "url"
+      ]
+    },
+    "example_args": null
+  },
+  "import s3": {
+    "description": "Fetch objects from Amazon S3 via s3:// URL or bucket/key. Supports unsigned access, listing prefixes, and batch via --inputs/--manifest.",
+    "doc": "Fetch objects from Amazon S3 via s3:// URL or bucket/key. Supports unsigned access, listing prefixes, and batch via --inputs/--manifest.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--url",
+          "--bucket",
+          "--key",
+          "--unsigned",
+          "--list",
+          "--pattern",
+          "--since",
+          "--since-period",
+          "--until",
+          "--date-format",
+          "--inputs",
+          "--manifest",
+          "--output-dir",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--url": "Full URL s3://bucket/key",
+      "--bucket": "Bucket name",
+      "--key": "Object key (when using --bucket)",
+      "--unsigned": {
+        "help": "Use unsigned access for public buckets",
+        "type": "bool",
+        "default": false
+      },
+      "--list": {
+        "help": "List keys under a prefix",
+        "type": "bool",
+        "default": false
+      },
+      "--pattern": "Regex to filter listed keys",
+      "--since": "ISO date filter for list mode",
+      "--since-period": "ISO-8601 duration for lookback (e.g., P1Y, P6M, P7D, PT24H)",
+      "--until": "ISO date filter for list mode",
+      "--date-format": "Filename date format for list filtering (e.g., YYYYMMDD)",
+      "--inputs": {
+        "help": "Multiple s3:// URLs to fetch",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--manifest": {
+        "help": "Path to a file listing s3:// URLs (one per line)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "import",
+    "args_schema": null,
+    "example_args": null
+  },
+  "import vimeo": {
+    "description": "Placeholder for fetching Vimeo videos by id. Not implemented yet.",
+    "doc": "Placeholder for fetching Vimeo videos by id. Not implemented yet.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "video_id",
+        "help": "",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "import",
+    "args_schema": null,
+    "example_args": null
+  }
+}

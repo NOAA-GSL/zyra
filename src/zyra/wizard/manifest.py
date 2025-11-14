@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -547,9 +548,111 @@ def build_manifest() -> dict[str, Any]:
     return _traverse(parser)
 
 
-def save_manifest(path: str) -> None:
-    data = build_manifest()
-    p = Path(path)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    with p.open("w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+def group_manifest_by_domain(manifest: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Return manifest entries grouped by their domain prefix."""
+
+    grouped: dict[str, dict[str, Any]] = {}
+    for command, meta in manifest.items():
+        if not isinstance(command, str):
+            continue
+        domain = command.split(" ", 1)[0]
+        grouped.setdefault(domain, {})[command] = meta
+    return grouped
+
+
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, ensure_ascii=False)
+        handle.write("\n")
+
+
+def write_domain_manifests(
+    destination: Path,
+    grouped_manifest: dict[str, dict[str, Any]],
+    *,
+    metadata: dict[str, Any] | None = None,
+) -> None:
+    """Persist per-domain manifest files plus an index."""
+
+    destination = destination.expanduser()
+    destination.mkdir(parents=True, exist_ok=True)
+
+    for domain, entries in sorted(grouped_manifest.items()):
+        ordered = {k: entries[k] for k in sorted(entries.keys())}
+        _write_json(destination / f"{domain}.json", ordered)
+
+    def _load_existing_index() -> dict[str, Any] | None:
+        idx = destination / "zyra_capabilities_index.json"
+        if not idx.exists():
+            return None
+        try:
+            return json.loads(idx.read_text(encoding="utf-8"))
+        except Exception:
+            return None
+
+    existing_index = _load_existing_index()
+    meta = dict(metadata or {})
+    # Preserve existing metadata fields when unspecified so regeneration is stable
+    for key in ("generated_at", "version", "generator", "aliases"):
+        if (
+            meta.get(key) is None
+            and existing_index
+            and existing_index.get(key) is not None
+        ):
+            meta[key] = existing_index.get(key)
+
+    generated_at = str(
+        meta.get("generated_at")
+        or datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+    index: dict[str, Any] = {
+        "version": str(meta.get("version") or "1.0"),
+        "generated_at": generated_at,
+        "generator": str(meta.get("generator") or "zyra.wizard.manifest"),
+        "domains": {domain: f"{domain}.json" for domain in sorted(grouped_manifest)},
+    }
+    aliases = meta.get("aliases")
+    if isinstance(aliases, dict) and aliases:
+        index["aliases"] = aliases
+    _write_json(destination / "zyra_capabilities_index.json", index)
+
+
+def save_manifest(
+    path: str,
+    *,
+    include_legacy: bool | None = None,
+    legacy_path: str | None = None,
+) -> None:
+    """Save the manifest to a directory (split) or JSON file (legacy)."""
+
+    manifest = build_manifest()
+    target = Path(path).expanduser()
+
+    def _write_legacy(dest: Path) -> None:
+        _write_json(dest, manifest)
+
+    # Legacy JSON path (explicit file)
+    if target.suffix.lower() == ".json" or target.name.endswith(".json"):
+        _write_legacy(target)
+        if (
+            include_legacy
+            and legacy_path
+            and Path(legacy_path).resolve() != target.resolve()
+        ):
+            _write_legacy(Path(legacy_path))
+        return
+
+    grouped = group_manifest_by_domain(manifest)
+    write_domain_manifests(target, grouped)
+
+    if include_legacy:
+        legacy_dest = (
+            Path(legacy_path).expanduser()
+            if legacy_path
+            else target.parent / "zyra_capabilities.json"
+        )
+        _write_legacy(legacy_dest)

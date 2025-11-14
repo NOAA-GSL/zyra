@@ -41,3 +41,21 @@ def test_optional_positional_convert_format(monkeypatch) -> None:
         (p.get("name") == "file_or_url" and bool(p.get("required")) is False)
         for p in pos
     ), f"file_or_url should be optional for {key}"
+
+
+def test_commands_domain_filter(monkeypatch) -> None:
+    client = _client(monkeypatch)
+    r = client.get("/v1/commands?domain=visualize", headers={"X-API-Key": "k"})
+    assert r.status_code == 200
+    body = r.json()
+    cmds = body.get("commands") or {}
+    assert "visualize heatmap" in cmds
+    assert "acquire http" not in cmds
+
+
+def test_commands_hash_endpoint(monkeypatch) -> None:
+    client = _client(monkeypatch)
+    r = client.get("/v1/commands/hash", headers={"X-API-Key": "k"})
+    assert r.status_code == 200
+    data = r.json()
+    assert isinstance(data.get("sha256"), str) and len(data["sha256"]) == 64

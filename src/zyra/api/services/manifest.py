@@ -3,11 +3,20 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import json
 import time
+from datetime import datetime, timezone
+from importlib.util import find_spec as _find_spec
+from pathlib import Path
 from typing import Any
 
 from zyra.api.schemas.domain_args import resolve_model
-from zyra.utils.env import env_int
+from zyra.core.capabilities_loader import (
+    INDEX_FILENAME,
+    compute_capabilities_hash,
+    load_capabilities,
+)
+from zyra.utils.env import env, env_int
 
 # Percentage-to-decimal divisor constant (e.g., 50 -> 0.5)
 PERCENT_TO_DECIMAL_DIVISOR = 100.0
@@ -29,6 +38,7 @@ def percentage_to_decimal(percent: int | float) -> float:
 # In-memory cache for the computed manifest
 _CACHE: dict[str, Any] | None = None
 _CACHE_TS: float | None = None
+_CACHE_META: dict[str, Any] | None = None
 
 
 def _type_name(t: Any) -> str | None:
@@ -294,6 +304,65 @@ def _compute_manifest() -> dict[str, Any]:
     return manifest
 
 
+def _default_capabilities_path() -> Path | None:
+    spec = _find_spec("zyra.wizard")
+    if (
+        spec
+        and getattr(spec, "origin", None)
+        and not str(spec.origin).startswith("alias:")
+    ):
+        base = Path(spec.origin).resolve().parent
+    else:
+        base = Path(__file__).resolve().parents[2] / "wizard"
+    directory = base / "zyra_capabilities"
+    if directory.exists():
+        return directory
+    legacy = base / "zyra_capabilities.json"
+    if legacy.exists():
+        return legacy
+    return None
+
+
+def _load_packaged_manifest() -> tuple[dict[str, Any], dict[str, Any]] | None:
+    candidates: list[tuple[str, Path]] = []
+    override = env("CAPABILITIES_PATH")
+    if override:
+        candidates.append(("override", Path(override).expanduser()))
+    default = _default_capabilities_path()
+    if default:
+        candidates.append(("packaged", default))
+    for source, path in candidates:
+        try:
+            data = load_capabilities(path)
+        except FileNotFoundError:
+            continue
+        except ValueError:
+            continue
+        meta: dict[str, Any] = {
+            "source": source,
+            "path": str(path),
+            "sha256": compute_capabilities_hash(data),
+        }
+        if path.is_dir():
+            index_path = path / INDEX_FILENAME
+            if index_path.exists():
+                try:
+                    idx = json.loads(index_path.read_text(encoding="utf-8"))
+                    meta["generated_at"] = idx.get("generated_at")
+                    meta["version"] = idx.get("version")
+                except Exception:
+                    pass
+        return data, meta
+    return None
+
+
+def _set_cache(payload: dict[str, Any], meta: dict[str, Any]) -> None:
+    global _CACHE, _CACHE_TS, _CACHE_META
+    _CACHE = payload
+    _CACHE_TS = time.time()
+    _CACHE_META = meta
+
+
 def _cache_ttl_seconds() -> int:
     # env_int reads ZYRA_<KEY> and already returns an int with defaults
     return env_int("MANIFEST_CACHE_TTL", 300)
@@ -303,14 +372,52 @@ def get_manifest(force_refresh: bool = False) -> dict[str, Any]:
     global _CACHE, _CACHE_TS
     now = time.time()
     ttl = _cache_ttl_seconds()
-    if force_refresh or _CACHE is None or _CACHE_TS is None or (now - _CACHE_TS) > ttl:
-        _CACHE = _compute_manifest()
-        _CACHE_TS = now
-    return _CACHE
+    if (
+        not force_refresh
+        and _CACHE is not None
+        and _CACHE_TS is not None
+        and (now - _CACHE_TS) <= ttl
+    ):
+        return _CACHE
+
+    if not force_refresh:
+        packaged = _load_packaged_manifest()
+        if packaged is not None:
+            data, meta = packaged
+            _set_cache(data, meta)
+            return data
+
+    data = _compute_manifest()
+    meta = {
+        "source": "dynamic",
+        "generated_at": datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z"),
+        "sha256": compute_capabilities_hash(data),
+    }
+    _set_cache(data, meta)
+    return data
 
 
 def refresh_manifest() -> dict[str, Any]:
     return get_manifest(force_refresh=True)
+
+
+def manifest_digest(refresh: bool = False) -> dict[str, Any]:
+    global _CACHE_META
+    data = get_manifest(force_refresh=refresh)
+    meta = dict(_CACHE_META or {})
+    if not meta.get("sha256"):
+        meta["sha256"] = compute_capabilities_hash(data)
+        _CACHE_META = meta
+    return {
+        "sha256": meta.get("sha256"),
+        "source": meta.get("source"),
+        "path": meta.get("path"),
+        "generated_at": meta.get("generated_at"),
+        "version": meta.get("version"),
+    }
 
 
 def list_commands(

@@ -7,6 +7,7 @@ include = [
     # Packaged assets in the Zyra namespace
     "src/zyra/assets/**",
     "src/zyra/wizard/*.json",
+    "src/zyra/wizard/zyra_capabilities/**",
 ]
 license = "Apache-2.0"
 readme = "README.md"

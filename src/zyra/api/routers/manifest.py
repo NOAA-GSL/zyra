@@ -16,7 +16,20 @@ def commands(
     command_name: str | None = None,
     details: str | None = Query(None, pattern="^(options|example)$"),
     stage: str | None = Query(
-        None, pattern="^(acquire|process|visualize|transform|decimate|run)$"
+        None,
+        pattern=(
+            "^(acquire|import|process|transform|visualize|render|"
+            "disseminate|export|decimate|simulate|decide|optimize|"
+            "narrate|verify|run|search)$"
+        ),
+    ),
+    domain: str | None = Query(
+        None,
+        pattern=(
+            "^(acquire|import|process|transform|visualize|render|"
+            "disseminate|export|decimate|simulate|decide|optimize|"
+            "narrate|verify|run|search)$"
+        ),
     ),
     q: str | None = None,
     fuzzy_cutoff: float | None = None,
@@ -27,11 +40,12 @@ def commands(
     - format: json (default), list, or summary
     - command_name: fuzzy-matched command key (e.g., "visualize heatmap")
     - details: when command_name given, return only options or an example
-    - stage: filter by stage for list/summary views
+    - stage/domain: filter commands by domain (stage aliases supported)
     - q: substring filter across names/descriptions for list/summary views
     - fuzzy_cutoff: 0..1 similarity cutoff (default 0.5)
     - refresh: force cache rebuild
     """
+    stage_filter = domain or stage
     if command_name:
         return svc.get_command(
             command_name=command_name,
@@ -39,11 +53,13 @@ def commands(
             fuzzy_cutoff=fuzzy_cutoff,
             refresh=refresh,
         )
-    data = svc.list_commands(format="json", stage=stage, q=q, refresh=refresh)
+    data = svc.list_commands(format="json", stage=stage_filter, q=q, refresh=refresh)
     if format == "json":
         return data
     if format in {"list", "summary"}:
-        return svc.list_commands(format=format, stage=stage, q=q, refresh=refresh)
+        return svc.list_commands(
+            format=format, stage=stage_filter, q=q, refresh=refresh
+        )
     if format == "grouped":
         # Group by domain from enriched entries
         cmds = data.get("commands", {})
@@ -63,3 +79,10 @@ def commands(
                 k: {"tools": sorted(v.get("tools", []))} for k, v in grouped.items()
             }
         }
+
+
+@router.get("/commands/hash")
+def commands_hash(refresh: bool = False) -> dict[str, Any]:
+    """Return SHA-256 digest + metadata for the capabilities manifest."""
+
+    return svc.manifest_digest(refresh=refresh)

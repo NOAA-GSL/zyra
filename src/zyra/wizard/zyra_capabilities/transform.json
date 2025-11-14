@@ -1,0 +1,379 @@
+{
+  "transform enrich-datasets": {
+    "description": "zyra transform enrich-datasets",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--items-file",
+          "--profile",
+          "--profile-file",
+          "--enrich",
+          "--enrich-timeout",
+          "--enrich-workers",
+          "--cache-ttl",
+          "--offline",
+          "--https-only",
+          "--allow-host",
+          "--deny-host",
+          "--max-probe-bytes",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--items-file": {
+        "help": "Path to items JSON",
+        "type": "str",
+        "required": true
+      },
+      "--profile": "Bundled profile name under zyra.assets.profiles",
+      "--profile-file": "External profile JSON path",
+      "--enrich": {
+        "help": "Enrichment level",
+        "choices": [
+          "shallow",
+          "capabilities",
+          "probe"
+        ],
+        "type": "str",
+        "required": true
+      },
+      "--enrich-timeout": {
+        "help": "Per-item timeout (s)",
+        "type": "float",
+        "default": 3.0
+      },
+      "--enrich-workers": {
+        "help": "Concurrency (workers)",
+        "type": "int",
+        "default": 4
+      },
+      "--cache-ttl": {
+        "help": "Cache TTL seconds",
+        "type": "int",
+        "default": 86400
+      },
+      "--offline": {
+        "help": "Disable network during enrichment",
+        "type": "bool",
+        "default": false
+      },
+      "--https-only": {
+        "help": "Require HTTPS for remote probing",
+        "type": "bool",
+        "default": false
+      },
+      "--allow-host": "Allow host suffix (repeatable)",
+      "--deny-host": "Deny host suffix (repeatable)",
+      "--max-probe-bytes": {
+        "help": "Skip probing when larger than this size",
+        "type": "int"
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "transform",
+    "args_schema": null,
+    "example_args": null
+  },
+  "transform enrich-metadata": {
+    "description": "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin.",
+    "doc": "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--frames-meta",
+          "--read-frames-meta-stdin",
+          "--dataset-id",
+          "--vimeo-uri",
+          "--read-vimeo-uri",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--frames-meta": {
+        "help": "Path to frames metadata JSON",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--read-frames-meta-stdin": {
+        "help": "Read frames metadata JSON from stdin",
+        "type": "bool",
+        "default": false
+      },
+      "--dataset-id": "Dataset identifier to embed",
+      "--vimeo-uri": "Vimeo video URI to embed in metadata",
+      "--read-vimeo-uri": {
+        "help": "Read Vimeo URI from stdin (first line)",
+        "type": "bool",
+        "default": false
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "transform",
+    "args_schema": null,
+    "example_args": null
+  },
+  "transform metadata": {
+    "description": "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence.",
+    "doc": "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--frames-dir",
+          "--pattern",
+          "--datetime-format",
+          "--period-seconds",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--frames-dir": {
+        "help": "Directory containing frames",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--pattern": "Regex filter for frame filenames",
+      "--datetime-format": "Datetime format used in filenames (e.g., %Y%m%d%H%M%S)",
+      "--period-seconds": {
+        "help": "Expected cadence to compute missing frames",
+        "type": "int"
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "transform",
+    "args_schema": null,
+    "example_args": null
+  },
+  "transform scan-frames": {
+    "description": "Alias of 'metadata'. Scan a frames directory and report timestamps, counts, and missing frames.",
+    "doc": "Alias of 'metadata'. Scan a frames directory and report timestamps, counts, and missing frames.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--frames-dir",
+          "--pattern",
+          "--datetime-format",
+          "--period-seconds",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--frames-dir": {
+        "help": "Directory containing frames",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--pattern": "Regex filter for frame filenames",
+      "--datetime-format": "Datetime format used in filenames (e.g., %Y%m%d%H%M%S)",
+      "--period-seconds": {
+        "help": "Expected cadence to compute missing frames",
+        "type": "int"
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "transform",
+    "args_schema": null,
+    "example_args": null
+  },
+  "transform update-dataset-json": {
+    "description": "Update a dataset.json entry by id using metadata (start/end and Vimeo URI) from a file, stdin, or args.",
+    "doc": "Update a dataset.json entry by id using metadata (start/end and Vimeo URI) from a file, stdin, or args.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input-url",
+          "--input-file",
+          "--dataset-id",
+          "--meta",
+          "--read-meta-stdin",
+          "--start",
+          "--end",
+          "--vimeo-uri",
+          "--no-set-data-link",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input-url": {
+        "help": "HTTP(S) or s3:// URL of dataset.json",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--input-file": {
+        "help": "Local dataset.json path",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--dataset-id": {
+        "help": "Dataset id to update",
+        "type": "str",
+        "required": true
+      },
+      "--meta": "Path to metadata JSON containing start_datetime/end_datetime/vimeo_uri",
+      "--read-meta-stdin": {
+        "help": "Read metadata JSON from stdin",
+        "type": "bool",
+        "default": false
+      },
+      "--start": "Explicit startTime override (ISO)",
+      "--end": "Explicit endTime override (ISO)",
+      "--vimeo-uri": "Explicit Vimeo URI (e.g., /videos/12345)",
+      "--no-set-data-link": {
+        "help": "Do not update dataLink from Vimeo URI",
+        "type": "bool",
+        "default": true
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "transform",
+    "args_schema": null,
+    "example_args": null
+  }
+}

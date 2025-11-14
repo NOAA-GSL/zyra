@@ -1,0 +1,1144 @@
+{
+  "process api-json": {
+    "description": "Read a JSON or NDJSON file/stream, select fields via dot paths, optionally flatten nested objects, explode arrays into multiple rows, and write CSV or JSONL.",
+    "doc": "Read a JSON or NDJSON file/stream, select fields via dot paths, optionally flatten nested objects, explode arrays into multiple rows, and write CSV or JSONL.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--records-path",
+          "--preset",
+          "--fields",
+          "--flatten",
+          "--explode",
+          "--derived",
+          "--format",
+          "--strict",
+          "--output"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--records-path": "Dot path to array of records (e.g., data.lifelogs or data.chat.messages)",
+      "--preset": {
+        "help": "Apply provider-specific defaults (e.g., Limitless lifelogs records path)",
+        "choices": [
+          "limitless-lifelogs"
+        ],
+        "type": "str"
+      },
+      "--fields": "Comma-separated field list (dot paths). If omitted, use first row keys",
+      "--flatten": {
+        "help": "Flatten nested objects",
+        "type": "bool",
+        "default": false
+      },
+      "--explode": "Repeatable: dot path to array to explode into multiple rows",
+      "--derived": "Comma-separated derived columns: word_count,sentence_count,tool_calls_count",
+      "--format": {
+        "help": "Output format",
+        "choices": [
+          "csv",
+          "jsonl"
+        ],
+        "type": "str",
+        "default": "csv"
+      },
+      "--strict": {
+        "help": "Error on missing fields instead of emitting empty strings",
+        "type": "bool",
+        "default": false
+      },
+      "--output": {
+        "help": "Output file path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      }
+    },
+    "positionals": [
+      {
+        "name": "file_or_url",
+        "help": "",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "process",
+    "args_schema": {
+      "required": [
+        "file_or_url"
+      ],
+      "optional": [
+        "derived",
+        "explode",
+        "fields",
+        "flatten",
+        "format",
+        "output",
+        "preset",
+        "records_path"
+      ]
+    },
+    "example_args": null
+  },
+  "process audio-metadata": {
+    "description": "Run ffprobe to extract duration, bitrate, channels, sample rate, codec, and size; writes JSON.",
+    "doc": "Run ffprobe to extract duration, bitrate, channels, sample rate, codec, and size; writes JSON.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "input",
+        "help": "Input audio file path",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "process",
+    "args_schema": {
+      "required": [
+        "input"
+      ],
+      "optional": [
+        "output"
+      ]
+    },
+    "example_args": null
+  },
+  "process audio-transcode": {
+    "description": "Transcode input audio to a target format using ffmpeg. Requires FFmpeg runtime.",
+    "doc": "Transcode input audio to a target format using ffmpeg. Requires FFmpeg runtime.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--to",
+          "--sample-rate",
+          "--mono",
+          "--stereo",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": {
+        "help": "Output file path",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--to": {
+        "help": "",
+        "choices": [
+          "wav",
+          "mp3",
+          "ogg"
+        ],
+        "type": "str",
+        "default": "wav"
+      },
+      "--sample-rate": {
+        "help": "",
+        "type": "int",
+        "default": 16000
+      },
+      "--mono": {
+        "help": "Force mono output",
+        "type": "bool",
+        "default": true
+      },
+      "--stereo": {
+        "help": "Force stereo output (overrides --mono)",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "input",
+        "help": "Input audio file path",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "process",
+    "args_schema": {
+      "required": [
+        "input",
+        "output"
+      ],
+      "optional": [
+        "mono",
+        "sample_rate",
+        "stereo",
+        "to"
+      ]
+    },
+    "example_args": null
+  },
+  "process convert-format": {
+    "description": "Convert decoded GRIB2 data to NetCDF or GeoTIFF. Supports single input or batch via --inputs.",
+    "doc": "Convert decoded GRIB2 data to NetCDF or GeoTIFF. Supports single input or batch via --inputs.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--stdout",
+          "--inputs",
+          "--output-dir",
+          "--backend",
+          "--var",
+          "--pattern",
+          "--unsigned",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": {
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--stdout": {
+        "help": "Write binary output to stdout instead of a file",
+        "type": "bool",
+        "default": false
+      },
+      "--inputs": {
+        "help": "Multiple input paths or URLs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--backend": {
+        "help": "",
+        "choices": [
+          "cfgrib",
+          "pygrib",
+          "wgrib2"
+        ],
+        "type": "str",
+        "default": "cfgrib"
+      },
+      "--var": "Variable name or regex for multi-var datasets",
+      "--pattern": "Regex for .idx-based subsetting when using HTTP/S3",
+      "--unsigned": {
+        "help": "Use unsigned S3 access for public buckets",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "file_or_url",
+        "help": "Single input when not using --inputs",
+        "type": "str",
+        "required": false,
+        "nargs": "?"
+      },
+      {
+        "name": "format",
+        "help": "",
+        "type": "str",
+        "required": true,
+        "choices": [
+          "netcdf",
+          "geotiff"
+        ]
+      }
+    ],
+    "domain": "process",
+    "args_schema": {
+      "required": [
+        "format"
+      ],
+      "optional": [
+        "backend",
+        "file_or_url",
+        "inputs",
+        "output",
+        "output_dir",
+        "pattern",
+        "stdout",
+        "unsigned",
+        "var"
+      ]
+    },
+    "example_args": {
+      "file_or_url": "samples/demo.grib2",
+      "format": "netcdf",
+      "stdout": true
+    }
+  },
+  "process decode-grib2": {
+    "description": "Decode a GRIB2 file or URL using cfgrib/pygrib/wgrib2 and log basic metadata. Optionally emit raw bytes (with optional .idx subset) to stdout.",
+    "doc": "Decode a GRIB2 file or URL using cfgrib/pygrib/wgrib2 and log basic metadata. Optionally emit raw bytes (with optional .idx subset) to stdout.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--backend",
+          "--pattern",
+          "--unsigned",
+          "--raw",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--backend": {
+        "help": "",
+        "choices": [
+          "cfgrib",
+          "pygrib",
+          "wgrib2"
+        ],
+        "type": "str",
+        "default": "cfgrib"
+      },
+      "--pattern": "Regex for .idx-based subsetting when using HTTP/S3",
+      "--unsigned": {
+        "help": "Use unsigned S3 access for public buckets",
+        "type": "bool",
+        "default": false
+      },
+      "--raw": {
+        "help": "Emit raw (optionally .idx-subset) GRIB2 bytes to stdout",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "file_or_url",
+        "help": "",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "process",
+    "args_schema": {
+      "required": [
+        "file_or_url"
+      ],
+      "optional": [
+        "backend",
+        "pattern",
+        "raw",
+        "unsigned"
+      ]
+    },
+    "example_args": null
+  },
+  "process enrich-datasets": {
+    "description": "zyra process enrich-datasets",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--items-file",
+          "--profile",
+          "--profile-file",
+          "--enrich",
+          "--enrich-timeout",
+          "--enrich-workers",
+          "--cache-ttl",
+          "--offline",
+          "--https-only",
+          "--allow-host",
+          "--deny-host",
+          "--max-probe-bytes",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--items-file": {
+        "help": "Path to items JSON",
+        "type": "str",
+        "required": true
+      },
+      "--profile": "Bundled profile name under zyra.assets.profiles",
+      "--profile-file": "External profile JSON path",
+      "--enrich": {
+        "help": "Enrichment level",
+        "choices": [
+          "shallow",
+          "capabilities",
+          "probe"
+        ],
+        "type": "str",
+        "required": true
+      },
+      "--enrich-timeout": {
+        "help": "Per-item timeout (s)",
+        "type": "float",
+        "default": 3.0
+      },
+      "--enrich-workers": {
+        "help": "Concurrency (workers)",
+        "type": "int",
+        "default": 4
+      },
+      "--cache-ttl": {
+        "help": "Cache TTL seconds",
+        "type": "int",
+        "default": 86400
+      },
+      "--offline": {
+        "help": "Disable network during enrichment",
+        "type": "bool",
+        "default": false
+      },
+      "--https-only": {
+        "help": "Require HTTPS for remote probing",
+        "type": "bool",
+        "default": false
+      },
+      "--allow-host": "Allow host suffix (repeatable)",
+      "--deny-host": "Deny host suffix (repeatable)",
+      "--max-probe-bytes": {
+        "help": "Skip probing when larger than this size",
+        "type": "int"
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "process",
+    "args_schema": null,
+    "example_args": null
+  },
+  "process enrich-metadata": {
+    "description": "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin.",
+    "doc": "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--frames-meta",
+          "--read-frames-meta-stdin",
+          "--dataset-id",
+          "--vimeo-uri",
+          "--read-vimeo-uri",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--frames-meta": {
+        "help": "Path to frames metadata JSON",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--read-frames-meta-stdin": {
+        "help": "Read frames metadata JSON from stdin",
+        "type": "bool",
+        "default": false
+      },
+      "--dataset-id": "Dataset identifier to embed",
+      "--vimeo-uri": "Vimeo video URI to embed in metadata",
+      "--read-vimeo-uri": {
+        "help": "Read Vimeo URI from stdin (first line)",
+        "type": "bool",
+        "default": false
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "process",
+    "args_schema": null,
+    "example_args": null
+  },
+  "process extract-variable": {
+    "description": "Extract a variable from GRIB2 by regex pattern. Output selected variable as NetCDF/GRIB2 to stdout when requested, or log the matched variable name.",
+    "doc": "Extract a variable from GRIB2 by regex pattern. Output selected variable as NetCDF/GRIB2 to stdout when requested, or log the matched variable name.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--backend",
+          "--stdout",
+          "--format",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--backend": {
+        "help": "",
+        "choices": [
+          "cfgrib",
+          "pygrib",
+          "wgrib2"
+        ],
+        "type": "str",
+        "default": "cfgrib"
+      },
+      "--stdout": {
+        "help": "Write selected variable as bytes to stdout",
+        "type": "bool",
+        "default": false
+      },
+      "--format": {
+        "help": "Output format for --stdout",
+        "choices": [
+          "netcdf",
+          "grib2"
+        ],
+        "type": "str",
+        "default": "netcdf"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "file_or_url",
+        "help": "",
+        "type": "str",
+        "required": true
+      },
+      {
+        "name": "pattern",
+        "help": "",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "process",
+    "args_schema": {
+      "required": [
+        "file_or_url",
+        "pattern"
+      ],
+      "optional": [
+        "backend",
+        "format",
+        "stdout"
+      ]
+    },
+    "example_args": null
+  },
+  "process metadata": {
+    "description": "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence.",
+    "doc": "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--frames-dir",
+          "--pattern",
+          "--datetime-format",
+          "--period-seconds",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--frames-dir": {
+        "help": "Directory containing frames",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--pattern": "Regex filter for frame filenames",
+      "--datetime-format": "Datetime format used in filenames (e.g., %Y%m%d%H%M%S)",
+      "--period-seconds": {
+        "help": "Expected cadence to compute missing frames",
+        "type": "int"
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "process",
+    "args_schema": null,
+    "example_args": null
+  },
+  "process pad-missing": {
+    "description": "Read frames metadata JSON from 'transform metadata/scan-frames' and generate placeholder images for each missing timestamp using blank, solid color, basemap, or nearest-frame strategies.",
+    "doc": "Read frames metadata JSON from 'transform metadata/scan-frames' and generate placeholder images for each missing timestamp using blank, solid color, basemap, or nearest-frame strategies.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--frames-meta",
+          "--read-frames-meta-stdin",
+          "--output-dir",
+          "--fill-mode",
+          "--basemap",
+          "--indicator",
+          "--overwrite",
+          "--dry-run",
+          "--json-report",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--frames-meta": {
+        "help": "Path to frames metadata JSON (from transform metadata/scan-frames)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--read-frames-meta-stdin": {
+        "help": "Read frames metadata JSON from stdin",
+        "type": "bool",
+        "default": false
+      },
+      "--output-dir": {
+        "help": "Directory where placeholder frames will be written",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--fill-mode": {
+        "help": "Strategy for filling gaps (default: blank)",
+        "choices": [
+          "blank",
+          "solid",
+          "basemap",
+          "nearest"
+        ],
+        "type": "str",
+        "default": "blank"
+      },
+      "--basemap": "Basemap image, package reference, or color (solid/basemap modes)",
+      "--indicator": "Optional overlay indicator, e.g., watermark:MISSING or badge:pkg:...",
+      "--overwrite": {
+        "help": "Replace existing files when output paths already exist",
+        "type": "bool",
+        "default": false
+      },
+      "--dry-run": {
+        "help": "Report planned outputs without writing files",
+        "type": "bool",
+        "default": false
+      },
+      "--json-report": "Optional path to write a JSON summary report",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "process",
+    "args_schema": null,
+    "example_args": null
+  },
+  "process scan-frames": {
+    "description": "Alias of 'metadata'. Scan a frames directory and report timestamps, counts, and missing frames.",
+    "doc": "Alias of 'metadata'. Scan a frames directory and report timestamps, counts, and missing frames.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--frames-dir",
+          "--pattern",
+          "--datetime-format",
+          "--period-seconds",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--frames-dir": {
+        "help": "Directory containing frames",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--pattern": "Regex filter for frame filenames",
+      "--datetime-format": "Datetime format used in filenames (e.g., %Y%m%d%H%M%S)",
+      "--period-seconds": {
+        "help": "Expected cadence to compute missing frames",
+        "type": "int"
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "process",
+    "args_schema": null,
+    "example_args": null
+  },
+  "process update-dataset-json": {
+    "description": "Update a dataset.json entry by id using metadata (start/end and Vimeo URI) from a file, stdin, or args.",
+    "doc": "Update a dataset.json entry by id using metadata (start/end and Vimeo URI) from a file, stdin, or args.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input-url",
+          "--input-file",
+          "--dataset-id",
+          "--meta",
+          "--read-meta-stdin",
+          "--start",
+          "--end",
+          "--vimeo-uri",
+          "--no-set-data-link",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input-url": {
+        "help": "HTTP(S) or s3:// URL of dataset.json",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--input-file": {
+        "help": "Local dataset.json path",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--dataset-id": {
+        "help": "Dataset id to update",
+        "type": "str",
+        "required": true
+      },
+      "--meta": "Path to metadata JSON containing start_datetime/end_datetime/vimeo_uri",
+      "--read-meta-stdin": {
+        "help": "Read metadata JSON from stdin",
+        "type": "bool",
+        "default": false
+      },
+      "--start": "Explicit startTime override (ISO)",
+      "--end": "Explicit endTime override (ISO)",
+      "--vimeo-uri": "Explicit Vimeo URI (e.g., /videos/12345)",
+      "--no-set-data-link": {
+        "help": "Do not update dataLink from Vimeo URI",
+        "type": "bool",
+        "default": true
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "process",
+    "args_schema": null,
+    "example_args": null
+  },
+  "process video-transcode": {
+    "description": "Transcode videos or JPG image stacks into modern or legacy formats using FFmpeg. Supports SOS presets, metadata capture, and batch processing.",
+    "doc": "Transcode videos or JPG image stacks into modern or legacy formats using FFmpeg. Supports SOS presets, metadata capture, and batch processing.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--to",
+          "--codec",
+          "--audio-codec",
+          "--audio-bitrate",
+          "--scale",
+          "--fps",
+          "--framerate",
+          "--bitrate",
+          "--pix-fmt",
+          "--preset",
+          "--crf",
+          "--gop",
+          "--extra-args",
+          "--metadata-out",
+          "--write-metadata",
+          "--sos-legacy",
+          "--no-overwrite",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": {
+        "help": "Output file path (single input) or directory when batching",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--to": {
+        "help": "Target container format",
+        "choices": [
+          "mp4",
+          "webm",
+          "mov",
+          "mpg"
+        ],
+        "type": "str",
+        "default": "mp4"
+      },
+      "--codec": {
+        "help": "Video codec to use (sensible default chosen per container)",
+        "choices": [
+          "h264",
+          "hevc",
+          "vp9",
+          "av1",
+          "libxvid",
+          "mpeg2video"
+        ],
+        "type": "str"
+      },
+      "--audio-codec": "Audio codec to use (defaults based on container)",
+      "--audio-bitrate": "Optional audio bitrate, e.g. 192k",
+      "--scale": "Optional scale filter, e.g. 1920x1080 or 1080",
+      "--fps": {
+        "help": "Output frames per second (also used as input framerate for sequences)",
+        "type": "float"
+      },
+      "--framerate": {
+        "help": "Alias for --fps, kept for FFmpeg parity",
+        "type": "float"
+      },
+      "--bitrate": "Target video bitrate (e.g. 8M, 2500k). Defaults to 8M or SOS preset",
+      "--pix-fmt": "Pixel format to emit (default yuv420p for compatibility)",
+      "--preset": "FFmpeg encoder preset when supported",
+      "--crf": {
+        "help": "Constant Rate Factor value for quality-based encoders",
+        "type": "int"
+      },
+      "--gop": {
+        "help": "Group-of-pictures interval (keyframe spacing)",
+        "type": "int"
+      },
+      "--extra-args": "Additional raw FFmpeg arguments (repeatable)",
+      "--metadata-out": "Path to write ffprobe metadata JSON",
+      "--write-metadata": {
+        "help": "Emit ffprobe metadata JSON after transcoding",
+        "type": "bool",
+        "default": false
+      },
+      "--sos-legacy": {
+        "help": "Apply SOS defaults: -framerate 30 -b:v 25M -c:v libxvid -pix_fmt yuv420p",
+        "type": "bool",
+        "default": false
+      },
+      "--no-overwrite": {
+        "help": "Do not overwrite existing outputs (passes -n to FFmpeg)",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "input",
+        "help": "Input video path, directory, glob, or frame pattern",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "process",
+    "args_schema": {
+      "required": [
+        "input"
+      ],
+      "optional": [
+        "audio_bitrate",
+        "audio_codec",
+        "bitrate",
+        "codec",
+        "container",
+        "crf",
+        "extra_args",
+        "fps",
+        "gop",
+        "metadata_out",
+        "no_overwrite",
+        "output",
+        "pix_fmt",
+        "preset",
+        "scale",
+        "sos_legacy",
+        "write_metadata"
+      ]
+    },
+    "example_args": null
+  }
+}

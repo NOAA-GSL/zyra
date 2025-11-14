@@ -1,0 +1,148 @@
+{
+  "run": {
+    "description": "zyra run",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--set",
+          "--print-argv",
+          "--print-argv-format",
+          "--dry-run",
+          "--trace",
+          "--continue-on-error",
+          "--start",
+          "--end",
+          "--only",
+          "--verbose",
+          "--quiet",
+          "--strict-env",
+          "--max-workers",
+          "--watch",
+          "--export-cron",
+          "--state-file",
+          "--run-on-first",
+          "--watch-interval",
+          "--watch-count",
+          "--log-file",
+          "--log-dir",
+          "--log-file-mode"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--set": {
+        "help": "Override key=value in args across stages",
+        "type": "str",
+        "default": []
+      },
+      "--print-argv": {
+        "help": "Print argv per stage before running",
+        "type": "bool",
+        "default": false
+      },
+      "--print-argv-format": {
+        "help": "",
+        "choices": [
+          "text",
+          "json"
+        ],
+        "type": "str",
+        "default": "text"
+      },
+      "--dry-run": {
+        "help": "Only print argv; do not execute stages",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace: print '+ <command>' and working directory per stage",
+        "type": "bool",
+        "default": false
+      },
+      "--continue-on-error": {
+        "help": "Continue executing remaining stages even if one fails",
+        "type": "bool",
+        "default": false
+      },
+      "--start": {
+        "help": "1-based index of first stage to run",
+        "type": "int"
+      },
+      "--end": {
+        "help": "1-based index of last stage to run",
+        "type": "int"
+      },
+      "--only": "Run only stages matching this alias (import/acquire/process/transform/visualize/render/simulate/decide/optimize/narrate/verify/export/disseminate/decimate)",
+      "--verbose": {
+        "help": "Verbose runner output (prints stage headings)",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Suppress runner messages when possible",
+        "type": "bool",
+        "default": false
+      },
+      "--strict-env": {
+        "help": "Fail if ${VAR} placeholders are not set in environment",
+        "type": "bool",
+        "default": false
+      },
+      "--max-workers": {
+        "help": "When config is a workflow.yml, run up to N jobs in parallel",
+        "type": "int"
+      },
+      "--watch": {
+        "help": "When config is a workflow.yml, evaluate triggers and run if active",
+        "type": "bool",
+        "default": false
+      },
+      "--export-cron": {
+        "help": "When config is a workflow.yml, print crontab lines for schedule triggers",
+        "type": "bool",
+        "default": false
+      },
+      "--state-file": "State file for --watch (workflow.yml)",
+      "--run-on-first": {
+        "help": "Trigger a run when no prior state exists (workflow.yml watch)",
+        "type": "bool",
+        "default": false
+      },
+      "--watch-interval": {
+        "help": "When --watch is set, poll every N seconds (default: single poll)",
+        "type": "float"
+      },
+      "--watch-count": {
+        "help": "When --watch is set with --watch-interval, stop after N iterations",
+        "type": "int"
+      },
+      "--log-file": "Write runner and stage logs to the given file",
+      "--log-dir": "Write logs under this directory as workflow.log",
+      "--log-file-mode": {
+        "help": "Log file write mode (default: append)",
+        "choices": [
+          "append",
+          "overwrite"
+        ],
+        "type": "str",
+        "default": "append"
+      }
+    },
+    "positionals": [
+      {
+        "name": "config",
+        "help": "",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "run",
+    "args_schema": null,
+    "example_args": null
+  }
+}

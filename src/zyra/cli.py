@@ -914,13 +914,39 @@ def main(argv: list[str] | None = None) -> int:
         p_gen.add_argument(
             "-o",
             "--output",
+            default=str(Path(__file__).parent / "wizard" / "zyra_capabilities"),
+            help=(
+                "Directory for split manifests (default). Provide a .json path to emit a legacy single-file manifest."
+            ),
+        )
+        p_gen.add_argument(
+            "--legacy-output",
             default=str(Path(__file__).parent / "wizard" / "zyra_capabilities.json"),
-            help="Output path for capabilities manifest JSON",
+            help="Path for legacy zyra_capabilities.json when --legacy-json is enabled",
+        )
+        p_gen.add_argument(
+            "--legacy-json",
+            dest="legacy_json",
+            action="store_true",
+            default=True,
+            help="Also write legacy zyra_capabilities.json (default)",
+        )
+        p_gen.add_argument(
+            "--no-legacy-json",
+            dest="legacy_json",
+            action="store_false",
+            help="Skip writing the legacy zyra_capabilities.json",
         )
 
         def _cmd_gen(ns: argparse.Namespace) -> int:
-            _save_manifest(ns.output)
-            print(ns.output)
+            _save_manifest(
+                ns.output,
+                include_legacy=ns.legacy_json,
+                legacy_path=ns.legacy_output,
+            )
+            print(f"Capabilities written to {ns.output}")
+            if ns.legacy_json:
+                print(f"Legacy manifest written to {ns.legacy_output}")
             return 0
 
         p_gen.set_defaults(func=_cmd_gen)
@@ -1028,13 +1054,39 @@ def main(argv: list[str] | None = None) -> int:
         p_gen.add_argument(
             "-o",
             "--output",
+            default=str(Path(__file__).parent / "wizard" / "zyra_capabilities"),
+            help=(
+                "Directory for split manifests (default). Provide a .json path to emit a legacy single-file manifest."
+            ),
+        )
+        p_gen.add_argument(
+            "--legacy-output",
             default=str(Path(__file__).parent / "wizard" / "zyra_capabilities.json"),
-            help="Output path for capabilities manifest JSON",
+            help="Path for legacy zyra_capabilities.json when --legacy-json is enabled",
+        )
+        p_gen.add_argument(
+            "--legacy-json",
+            dest="legacy_json",
+            action="store_true",
+            default=True,
+            help="Also write legacy zyra_capabilities.json (default)",
+        )
+        p_gen.add_argument(
+            "--no-legacy-json",
+            dest="legacy_json",
+            action="store_false",
+            help="Skip writing the legacy zyra_capabilities.json",
         )
 
         def _cmd_gen(ns: argparse.Namespace) -> int:
-            _save_manifest(ns.output)
-            print(ns.output)
+            _save_manifest(
+                ns.output,
+                include_legacy=ns.legacy_json,
+                legacy_path=ns.legacy_output,
+            )
+            print(f"Capabilities written to {ns.output}")
+            if ns.legacy_json:
+                print(f"Legacy manifest written to {ns.legacy_output}")
             return 0
 
         p_gen.set_defaults(func=_cmd_gen)

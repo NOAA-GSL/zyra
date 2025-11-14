@@ -16,6 +16,8 @@ from pathlib import Path
 from pathlib import Path as _Path
 from typing import Any
 
+from zyra.core.capabilities_loader import load_capabilities
+
 from .llm_client import LLMClient
 from .prompts import SYSTEM_PROMPT, load_semantic_search_prompt
 from .resolver import MissingArgsError, MissingArgumentResolver
@@ -267,8 +269,17 @@ def _load_capabilities_manifest() -> dict | None:
     global _CAP_MANIFEST_CACHE
     if _CAP_MANIFEST_CACHE is not None:
         return _CAP_MANIFEST_CACHE
-    try:
-        # Open manifest relative to this file to avoid issues with alias loaders
+
+    def _candidate_paths() -> list[Path]:
+        paths: list[Path] = []
+        try:
+            from zyra.utils.env import env as _env
+
+            override = _env("CAPABILITIES_PATH")
+            if override:
+                paths.append(Path(override).expanduser())
+        except Exception:
+            pass
         spec = _find_spec("zyra.wizard")
         if (
             spec
@@ -278,10 +289,27 @@ def _load_capabilities_manifest() -> dict | None:
             base = _Path(spec.origin).resolve().parent
         else:
             base = _Path(__file__).resolve().parent
-        mpath = base / MANIFEST_FILENAME
-        with mpath.open("r", encoding="utf-8") as f:
-            _CAP_MANIFEST_CACHE = json.load(f)
-            return _CAP_MANIFEST_CACHE
+        paths.append(base / "zyra_capabilities")
+        paths.append(base / MANIFEST_FILENAME)
+        # Preserve order while removing duplicates
+        unique: list[Path] = []
+        seen: set[str] = set()
+        for p in paths:
+            key = str(p)
+            if key not in seen:
+                unique.append(p)
+                seen.add(key)
+        return unique
+
+    try:
+        for candidate in _candidate_paths():
+            try:
+                _CAP_MANIFEST_CACHE = load_capabilities(candidate)
+                return _CAP_MANIFEST_CACHE
+            except FileNotFoundError:
+                continue
+            except ValueError:
+                continue
     except Exception:
         # Fallback: build manifest dynamically to ensure availability in tests
         try:
