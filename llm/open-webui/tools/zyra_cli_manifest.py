@@ -4,11 +4,12 @@ import difflib
 import json
 import os
 from typing import Any
+from urllib.parse import urljoin
 
 import requests
 
 # Public GitHub raw (fallback for public access)
-DEFAULT_GITHUB_CAPS_URL = "https://raw.githubusercontent.com/NOAA-GSL/zyra/main/src/zyra/wizard/zyra_capabilities.json"
+DEFAULT_GITHUB_CAPS_URL = "https://raw.githubusercontent.com/NOAA-GSL/zyra/main/src/zyra/wizard/zyra_capabilities/zyra_capabilities_index.json"
 
 # Default timeouts (seconds)
 DEFAULT_API_TIMEOUT = 1.5
@@ -88,7 +89,7 @@ VALVES = [
         "label": "Capabilities URL (override)",
         "type": "string",
         "value": "",
-        "help": "Optional direct URL to zyra_capabilities.json; used if API is unreachable.",
+        "help": "Optional direct URL to the capabilities assets (legacy zyra_capabilities.json or zyra_capabilities_index.json). Used if the API is unreachable.",
         "required": False,
         "optional": True,
     },
@@ -208,6 +209,64 @@ def _load_manifest_via_api(
         return None
 
 
+def _normalize_manifest_payload(
+    payload: Any, source_url: str, valves: Any
+) -> dict[str, Any] | None:
+    if not isinstance(payload, dict):
+        return None
+    if isinstance(payload.get("commands"), dict):
+        return payload["commands"]
+    if isinstance(payload.get("domains"), dict):
+        return _load_split_manifest(payload, source_url, valves)
+    return payload
+
+
+def _load_split_manifest(
+    index_payload: dict[str, Any], index_url: str, valves: Any
+) -> dict[str, Any] | None:
+    domains = index_payload.get("domains")
+    if not isinstance(domains, dict):
+        return None
+    base = index_url
+    if base.endswith(".json"):
+        base = base.rsplit("/", 1)[0]
+    if not base.endswith("/"):
+        base = base + "/"
+    manifest: dict[str, Any] = {}
+    cto, rto = _timeouts(valves, "net")
+    for _domain, entry in sorted(domains.items()):
+        rel: str | None
+        if isinstance(entry, str):
+            rel = entry
+        elif isinstance(entry, dict):
+            rel = entry.get("file") or entry.get("path")
+        else:
+            rel = None
+        if not rel:
+            continue
+        domain_url = urljoin(base, rel)
+        try:
+            resp = requests.get(domain_url, timeout=(cto, rto))
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception:
+            continue
+        if isinstance(data, dict):
+            manifest.update(data)
+    return manifest
+
+
+def _fetch_caps_url(url: str, valves: Any) -> dict[str, Any] | None:
+    try:
+        cto, rto = _timeouts(valves, "net")
+        resp = requests.get(url, timeout=(cto, rto))
+        resp.raise_for_status()
+        obj = resp.json()
+        return _normalize_manifest_payload(obj, resp.url, valves)
+    except Exception:
+        return None
+
+
 def _load_manifest(valves: Any = None) -> dict[str, Any] | None:
     """Resolve the Zyra CLI capabilities manifest.
 
@@ -225,32 +284,16 @@ def _load_manifest(valves: Any = None) -> dict[str, Any] | None:
     # 2) Optional URL override
     url_env = _valve_value(valves, "caps_url", os.getenv("ZYRA_CAPABILITIES_URL"))
     if url_env and str(url_env).strip():
-        try:
-            cto, rto = _timeouts(valves, "net")
-            r = requests.get(url_env, timeout=(cto, rto))
-            r.raise_for_status()
-            obj = r.json()
-            if isinstance(obj, dict) and isinstance(obj.get("commands"), dict):
-                return obj["commands"]
-            return obj
-        except Exception:
-            pass
+        merged = _fetch_caps_url(url_env, valves)
+        if merged:
+            return merged
 
     # 3) Fallback to default GitHub URL (skip if offline is requested)
     if str(
         _valve_value(valves, "offline", os.getenv("ZYRA_OFFLINE", "0"))
     ).strip().lower() in {"1", "true", "yes"}:
         return None
-    try:
-        cto, rto = _timeouts(valves, "net")
-        r = requests.get(DEFAULT_GITHUB_CAPS_URL, timeout=(cto, rto))
-        r.raise_for_status()
-        obj = r.json()
-        if isinstance(obj, dict) and isinstance(obj.get("commands"), dict):
-            return obj["commands"]
-        return obj
-    except Exception:
-        return None
+    return _fetch_caps_url(DEFAULT_GITHUB_CAPS_URL, valves)
 
 
 class Tools:
@@ -298,7 +341,7 @@ class Tools:
         )
         caps_url: str = Field(
             default="",
-            description="Optional direct URL to zyra_capabilities.json; used if API is unreachable.",
+            description="Optional direct URL to the packaged capabilities assets (legacy zyra_capabilities.json or the split zyra_capabilities_index.json). Used if the API is unreachable.",
         )
         offline: bool = Field(
             default=False,

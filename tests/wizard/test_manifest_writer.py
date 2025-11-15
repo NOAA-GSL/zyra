@@ -3,7 +3,11 @@ from __future__ import annotations
 
 import json
 
-from zyra.wizard.manifest import save_manifest
+from zyra.wizard.manifest import (
+    CANONICAL_DOMAINS,
+    DOMAIN_ALIAS_MAP,
+    save_manifest,
+)
 
 
 def test_save_manifest_directory_and_legacy(tmp_path):
@@ -36,3 +40,23 @@ def test_generated_at_stable_across_runs(tmp_path):
     save_manifest(str(out_dir))
     second = json.loads(index_path.read_text())
     assert first.get("generated_at") == second.get("generated_at")
+
+
+def test_only_canonical_domains_written(tmp_path):
+    out_dir = tmp_path / "canonical_caps"
+    save_manifest(str(out_dir))
+    domain_files = {
+        p.name
+        for p in out_dir.glob("*.json")
+        if p.name != "zyra_capabilities_index.json"
+    }
+    expected_files = {f"{dom}.json" for dom in CANONICAL_DOMAINS}
+    assert domain_files == expected_files
+
+    index = json.loads((out_dir / "zyra_capabilities_index.json").read_text())
+    aliases = index.get("aliases") or {}
+    for alias, canonical in DOMAIN_ALIAS_MAP.items():
+        assert aliases.get(alias) == canonical
+        dom_entry = index.get("domains", {}).get(canonical)
+        if isinstance(dom_entry, dict):
+            assert alias in dom_entry.get("aliases", [])

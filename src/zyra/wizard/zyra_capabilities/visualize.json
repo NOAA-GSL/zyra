@@ -1,4 +1,1122 @@
 {
+  "render animate": {
+    "description": "zyra render animate",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--inputs",
+          "--output",
+          "--output-dir",
+          "--mode",
+          "--var",
+          "--uvar",
+          "--vvar",
+          "--u",
+          "--v",
+          "--density",
+          "--scale",
+          "--color",
+          "--basemap",
+          "--extent",
+          "--width",
+          "--height",
+          "--dpi",
+          "--cmap",
+          "--levels",
+          "--vmin",
+          "--vmax",
+          "--colorbar",
+          "--label",
+          "--units",
+          "--show-timestamp",
+          "--timestamps-csv",
+          "--timestamp-loc",
+          "--map-type",
+          "--tile-source",
+          "--tile-zoom",
+          "--xarray-engine",
+          "--crs",
+          "--reproject",
+          "--to-video",
+          "--fps",
+          "--grid-mode",
+          "--grid-cols",
+          "--combine-to",
+          "--seed",
+          "--particles",
+          "--custom-seed",
+          "--dt",
+          "--steps-per-frame",
+          "--method",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output": {
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--mode": {
+        "help": "",
+        "choices": [
+          "heatmap",
+          "contour",
+          "vector",
+          "particles"
+        ],
+        "type": "str",
+        "default": "heatmap"
+      },
+      "--var": "",
+      "--uvar": "",
+      "--vvar": "",
+      "--u": "",
+      "--v": "",
+      "--density": {
+        "help": "",
+        "type": "float",
+        "default": 0.2
+      },
+      "--scale": "",
+      "--color": {
+        "help": "",
+        "type": "str",
+        "default": "#333333"
+      },
+      "--basemap": "Basemap (path, bare image name, or pkg:ref)",
+      "--extent": {
+        "help": "",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
+      },
+      "--width": {
+        "help": "",
+        "type": "int",
+        "default": 1024
+      },
+      "--height": {
+        "help": "",
+        "type": "int",
+        "default": 512
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--cmap": {
+        "help": "",
+        "type": "str",
+        "default": "YlOrBr"
+      },
+      "--levels": "",
+      "--vmin": "",
+      "--vmax": "",
+      "--colorbar": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--label": "",
+      "--units": "",
+      "--show-timestamp": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--timestamps-csv": "",
+      "--timestamp-loc": {
+        "help": "",
+        "choices": [
+          "upper_left",
+          "upper_right",
+          "lower_left",
+          "lower_right"
+        ],
+        "type": "str",
+        "default": "lower_right"
+      },
+      "--map-type": {
+        "help": "",
+        "choices": [
+          "image",
+          "tile"
+        ],
+        "type": "str",
+        "default": "image"
+      },
+      "--tile-source": "",
+      "--tile-zoom": {
+        "help": "",
+        "type": "int",
+        "default": 3
+      },
+      "--xarray-engine": "",
+      "--crs": "",
+      "--reproject": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--to-video": "",
+      "--fps": {
+        "help": "",
+        "type": "int",
+        "default": 30
+      },
+      "--grid-mode": {
+        "help": "",
+        "choices": [
+          "grid",
+          "hstack",
+          "vstack"
+        ],
+        "type": "str",
+        "default": "grid"
+      },
+      "--grid-cols": {
+        "help": "",
+        "type": "int",
+        "default": 2
+      },
+      "--combine-to": "",
+      "--seed": {
+        "help": "",
+        "type": "int",
+        "default": 0
+      },
+      "--particles": {
+        "help": "",
+        "type": "int",
+        "default": 2000
+      },
+      "--custom-seed": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--dt": {
+        "help": "",
+        "type": "float",
+        "default": 0.5
+      },
+      "--steps-per-frame": {
+        "help": "",
+        "type": "int",
+        "default": 1
+      },
+      "--method": {
+        "help": "",
+        "choices": [
+          "RK4-SPH",
+          "RK4-Grid"
+        ],
+        "type": "str",
+        "default": "RK4-SPH"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "render",
+    "args_schema": null,
+    "example_args": null
+  },
+  "render compose-video": {
+    "description": "zyra render compose-video",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--frames",
+          "--output",
+          "--glob",
+          "--fps",
+          "--basemap",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--frames": {
+        "help": "Frames directory",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--output": {
+        "help": "Output MP4 path",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--glob": "Filename glob within frames dir (e.g., '*.png'); defaults to first extension found",
+      "--fps": {
+        "help": "",
+        "type": "int",
+        "default": 30
+      },
+      "--basemap": "Basemap (path, bare image name, or pkg:ref)",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "render",
+    "args_schema": null,
+    "example_args": null
+  },
+  "render contour": {
+    "description": "zyra render contour",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--inputs",
+          "--output-dir",
+          "--var",
+          "--basemap",
+          "--extent",
+          "--output",
+          "--width",
+          "--height",
+          "--dpi",
+          "--cmap",
+          "--filled",
+          "--levels",
+          "--colorbar",
+          "--label",
+          "--units",
+          "--features",
+          "--xarray-engine",
+          "--map-type",
+          "--tile-source",
+          "--tile-zoom",
+          "--timestamp",
+          "--crs",
+          "--reproject",
+          "--timestamp-loc",
+          "--no-coastline",
+          "--no-borders",
+          "--no-gridlines",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Path to .nc or .npy input",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "Multiple inputs for batch rendering",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--var": "Variable name for NetCDF inputs",
+      "--basemap": "Basemap (path, bare image name, or pkg:ref)",
+      "--extent": {
+        "help": "west east south north",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
+      },
+      "--output": {
+        "help": "Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--width": {
+        "help": "",
+        "type": "int",
+        "default": 1024
+      },
+      "--height": {
+        "help": "",
+        "type": "int",
+        "default": 512
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--cmap": {
+        "help": "",
+        "type": "str",
+        "default": "YlOrBr"
+      },
+      "--filled": {
+        "help": "Use filled contours",
+        "type": "bool",
+        "default": false
+      },
+      "--levels": {
+        "help": "Count or comma-separated levels",
+        "type": "str",
+        "default": 10
+      },
+      "--colorbar": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--label": "",
+      "--units": "",
+      "--features": "Comma-separated features: coastline,borders,gridlines",
+      "--xarray-engine": "xarray engine for NetCDF inputs (e.g., netcdf4, h5netcdf, scipy)",
+      "--map-type": {
+        "help": "",
+        "choices": [
+          "image",
+          "tile"
+        ],
+        "type": "str",
+        "default": "image"
+      },
+      "--tile-source": "Contextily tile source (when --map-type=tile)",
+      "--tile-zoom": {
+        "help": "",
+        "type": "int",
+        "default": 3
+      },
+      "--timestamp": "Overlay timestamp string",
+      "--crs": "Force input CRS (e.g., EPSG:3857)",
+      "--reproject": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--timestamp-loc": {
+        "help": "Timestamp placement (axes-relative)",
+        "choices": [
+          "upper_left",
+          "upper_right",
+          "lower_left",
+          "lower_right"
+        ],
+        "type": "str",
+        "default": "lower_right"
+      },
+      "--no-coastline": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--no-borders": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--no-gridlines": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "render",
+    "args_schema": null,
+    "example_args": null
+  },
+  "render heatmap": {
+    "description": "zyra render heatmap",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--var",
+          "--basemap",
+          "--extent",
+          "--output",
+          "--inputs",
+          "--output-dir",
+          "--width",
+          "--height",
+          "--dpi",
+          "--cmap",
+          "--colorbar",
+          "--label",
+          "--units",
+          "--features",
+          "--xarray-engine",
+          "--map-type",
+          "--tile-source",
+          "--tile-zoom",
+          "--timestamp",
+          "--crs",
+          "--reproject",
+          "--timestamp-loc",
+          "--no-coastline",
+          "--no-borders",
+          "--no-gridlines",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Path to .nc or .npy input",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--var": "Variable name for NetCDF inputs",
+      "--basemap": "Basemap (path, bare image name, or pkg:ref)",
+      "--extent": {
+        "help": "west east south north",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
+      },
+      "--output": {
+        "help": "Output PNG path (required when using --input; for --inputs use --output-dir)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "Multiple input paths for batch rendering",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--width": {
+        "help": "",
+        "type": "int",
+        "default": 1024
+      },
+      "--height": {
+        "help": "",
+        "type": "int",
+        "default": 512
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--cmap": {
+        "help": "",
+        "type": "str",
+        "default": "YlOrBr"
+      },
+      "--colorbar": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--label": "",
+      "--units": "",
+      "--features": "Comma-separated features: coastline,borders,gridlines",
+      "--xarray-engine": "xarray engine for NetCDF inputs (e.g., netcdf4, h5netcdf, scipy)",
+      "--map-type": {
+        "help": "Basemap type: image (default) or tile",
+        "choices": [
+          "image",
+          "tile"
+        ],
+        "type": "str",
+        "default": "image"
+      },
+      "--tile-source": "Contextily tile source name or URL (when --map-type=tile)",
+      "--tile-zoom": {
+        "help": "Tile source zoom level",
+        "type": "int",
+        "default": 3
+      },
+      "--timestamp": "Overlay timestamp string",
+      "--crs": "Force input CRS (e.g., EPSG:3857)",
+      "--reproject": {
+        "help": "Attempt reprojection to EPSG:4326 (limited support)",
+        "type": "bool",
+        "default": false
+      },
+      "--timestamp-loc": {
+        "help": "Timestamp placement (axes-relative)",
+        "choices": [
+          "upper_left",
+          "upper_right",
+          "lower_left",
+          "lower_right"
+        ],
+        "type": "str",
+        "default": "lower_right"
+      },
+      "--no-coastline": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--no-borders": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--no-gridlines": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "render",
+    "args_schema": null,
+    "example_args": null
+  },
+  "render interactive": {
+    "description": "zyra render interactive",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--var",
+          "--mode",
+          "--engine",
+          "--cmap",
+          "--colorbar",
+          "--label",
+          "--units",
+          "--timestamp",
+          "--timestamp-loc",
+          "--tiles",
+          "--zoom",
+          "--extent",
+          "--width",
+          "--height",
+          "--output",
+          "--uvar",
+          "--vvar",
+          "--u",
+          "--v",
+          "--density",
+          "--scale",
+          "--color",
+          "--streamlines",
+          "--features",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--var": "",
+      "--mode": {
+        "help": "",
+        "choices": [
+          "heatmap",
+          "vector",
+          "points"
+        ],
+        "type": "str",
+        "default": "heatmap"
+      },
+      "--engine": {
+        "help": "",
+        "choices": [
+          "plotly",
+          "folium"
+        ],
+        "type": "str",
+        "default": "plotly"
+      },
+      "--cmap": {
+        "help": "",
+        "type": "str",
+        "default": "YlOrBr"
+      },
+      "--colorbar": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--label": "",
+      "--units": "",
+      "--timestamp": "",
+      "--timestamp-loc": {
+        "help": "",
+        "type": "str",
+        "default": "lower_right"
+      },
+      "--tiles": {
+        "help": "",
+        "type": "str",
+        "default": "OpenStreetMap"
+      },
+      "--zoom": {
+        "help": "",
+        "type": "int",
+        "default": 3
+      },
+      "--extent": {
+        "help": "",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
+      },
+      "--width": {
+        "help": "",
+        "type": "int",
+        "default": 1024
+      },
+      "--height": {
+        "help": "",
+        "type": "int",
+        "default": 512
+      },
+      "--output": {
+        "help": "",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--uvar": "",
+      "--vvar": "",
+      "--u": "",
+      "--v": "",
+      "--density": {
+        "help": "",
+        "type": "float",
+        "default": 0.2
+      },
+      "--scale": {
+        "help": "",
+        "type": "float",
+        "default": 1.0
+      },
+      "--color": {
+        "help": "",
+        "type": "str",
+        "default": "#333333"
+      },
+      "--streamlines": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--features": "",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "render",
+    "args_schema": null,
+    "example_args": null
+  },
+  "render timeseries": {
+    "description": "zyra render timeseries",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--x",
+          "--y",
+          "--var",
+          "--output",
+          "--title",
+          "--xlabel",
+          "--ylabel",
+          "--style",
+          "--width",
+          "--height",
+          "--dpi",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--x": "",
+      "--y": "",
+      "--var": "",
+      "--output": {
+        "help": "",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--title": "",
+      "--xlabel": "",
+      "--ylabel": "",
+      "--style": {
+        "help": "",
+        "choices": [
+          "line",
+          "scatter"
+        ],
+        "type": "str",
+        "default": "line"
+      },
+      "--width": {
+        "help": "",
+        "type": "int",
+        "default": 1024
+      },
+      "--height": {
+        "help": "",
+        "type": "int",
+        "default": 512
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "render",
+    "args_schema": null,
+    "example_args": null
+  },
+  "render vector": {
+    "description": "zyra render vector",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--inputs",
+          "--output",
+          "--output-dir",
+          "--uvar",
+          "--vvar",
+          "--u",
+          "--v",
+          "--basemap",
+          "--extent",
+          "--width",
+          "--height",
+          "--dpi",
+          "--crs",
+          "--reproject",
+          "--map-type",
+          "--tile-source",
+          "--tile-zoom",
+          "--density",
+          "--scale",
+          "--color",
+          "--streamlines",
+          "--features",
+          "--no-coastline",
+          "--no-borders",
+          "--no-gridlines",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output": {
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--uvar": "",
+      "--vvar": "",
+      "--u": "",
+      "--v": "",
+      "--basemap": "Basemap (path, bare image name, or pkg:ref)",
+      "--extent": {
+        "help": "",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
+      },
+      "--width": {
+        "help": "",
+        "type": "int",
+        "default": 1024
+      },
+      "--height": {
+        "help": "",
+        "type": "int",
+        "default": 512
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--crs": "",
+      "--reproject": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--map-type": {
+        "help": "",
+        "choices": [
+          "image",
+          "tile"
+        ],
+        "type": "str",
+        "default": "image"
+      },
+      "--tile-source": "",
+      "--tile-zoom": {
+        "help": "",
+        "type": "int",
+        "default": 3
+      },
+      "--density": {
+        "help": "",
+        "type": "float",
+        "default": 0.2
+      },
+      "--scale": {
+        "help": "",
+        "type": "float"
+      },
+      "--color": {
+        "help": "",
+        "type": "str",
+        "default": "#333333"
+      },
+      "--streamlines": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--features": "",
+      "--no-coastline": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--no-borders": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--no-gridlines": {
+        "help": "",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "render",
+    "args_schema": null,
+    "example_args": null
+  },
   "visualize animate": {
     "description": "zyra visualize animate",
     "doc": "",

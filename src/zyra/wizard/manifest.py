@@ -12,6 +12,32 @@ from typing import Any
 # These are internal helpers or would cause recursion/noise in the manifest.
 EXCLUDED_ROOT_COMMANDS: set[str] = {"wizard", "generate-manifest"}
 
+# Canonical domains published as separate manifest files.
+CANONICAL_DOMAINS: set[str] = {
+    "acquire",
+    "process",
+    "visualize",
+    "disseminate",
+    "transform",
+    "search",
+    "run",
+    "simulate",
+    "decide",
+    "narrate",
+    "verify",
+}
+
+# Stage aliases mapped to canonical domains.
+INDEX_FILENAME = "zyra_capabilities_index.json"
+
+DOMAIN_ALIAS_MAP: dict[str, str] = {
+    "import": "acquire",
+    "render": "visualize",
+    "export": "disseminate",
+    "decimate": "disseminate",
+    "optimize": "decide",
+}
+
 
 def _safe_add_group(
     sub: argparse._SubParsersAction,
@@ -548,16 +574,27 @@ def build_manifest() -> dict[str, Any]:
     return _traverse(parser)
 
 
-def group_manifest_by_domain(manifest: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    """Return manifest entries grouped by their domain prefix."""
+def _canonical_domain(name: str) -> str:
+    return DOMAIN_ALIAS_MAP.get(name, name)
+
+
+def group_manifest_by_domain(
+    manifest: dict[str, Any],
+) -> tuple[dict[str, dict[str, Any]], dict[str, list[str]]]:
+    """Return manifest grouped by canonical domain plus alias metadata."""
 
     grouped: dict[str, dict[str, Any]] = {}
+    alias_map: dict[str, set[str]] = {}
     for command, meta in manifest.items():
         if not isinstance(command, str):
             continue
         domain = command.split(" ", 1)[0]
-        grouped.setdefault(domain, {})[command] = meta
-    return grouped
+        canonical = _canonical_domain(domain)
+        grouped.setdefault(canonical, {})[command] = meta
+        if canonical != domain:
+            alias_map.setdefault(canonical, set()).add(domain)
+    alias_out = {k: sorted(v) for k, v in alias_map.items()}
+    return grouped, alias_out
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -571,12 +608,19 @@ def write_domain_manifests(
     destination: Path,
     grouped_manifest: dict[str, dict[str, Any]],
     *,
+    alias_map: dict[str, list[str]] | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> None:
     """Persist per-domain manifest files plus an index."""
 
     destination = destination.expanduser()
     destination.mkdir(parents=True, exist_ok=True)
+
+    # Remove stale domain files (aliases, etc.) before writing new ones.
+    for existing in destination.glob("*.json"):
+        if existing.name == INDEX_FILENAME:
+            continue
+        existing.unlink(missing_ok=True)
 
     for domain, entries in sorted(grouped_manifest.items()):
         ordered = {k: entries[k] for k in sorted(entries.keys())}
@@ -594,7 +638,7 @@ def write_domain_manifests(
     existing_index = _load_existing_index()
     meta = dict(metadata or {})
     # Preserve existing metadata fields when unspecified so regeneration is stable
-    for key in ("generated_at", "version", "generator", "aliases"):
+    for key in ("generated_at", "version", "generator"):
         if (
             meta.get(key) is None
             and existing_index
@@ -609,15 +653,34 @@ def write_domain_manifests(
         .isoformat()
         .replace("+00:00", "Z")
     )
+    alias_lookup: dict[str, str] = {}
+    domains_entry: dict[str, Any] = {}
+    for domain in sorted(grouped_manifest):
+        entry: Any = f"{domain}.json"
+        aliases_for_domain = (alias_map or {}).get(domain) or []
+        if aliases_for_domain:
+            entry = {"file": f"{domain}.json", "aliases": aliases_for_domain}
+            for alias in aliases_for_domain:
+                alias_lookup[alias] = domain
+        domains_entry[domain] = entry
+
     index: dict[str, Any] = {
         "version": str(meta.get("version") or "1.0"),
         "generated_at": generated_at,
         "generator": str(meta.get("generator") or "zyra.wizard.manifest"),
-        "domains": {domain: f"{domain}.json" for domain in sorted(grouped_manifest)},
+        "domains": domains_entry,
     }
-    aliases = meta.get("aliases")
-    if isinstance(aliases, dict) and aliases:
-        index["aliases"] = aliases
+
+    # Merge existing alias metadata with the newly computed map.
+    existing_aliases = {}
+    if existing_index:
+        existing_aliases = existing_index.get("aliases") or {}
+    if isinstance(meta.get("aliases"), dict):
+        existing_aliases.update(meta["aliases"])
+    existing_aliases.update(alias_lookup)
+    if existing_aliases:
+        index["aliases"] = existing_aliases
+
     _write_json(destination / "zyra_capabilities_index.json", index)
 
 
@@ -646,8 +709,8 @@ def save_manifest(
             _write_legacy(Path(legacy_path))
         return
 
-    grouped = group_manifest_by_domain(manifest)
-    write_domain_manifests(target, grouped)
+    grouped, aliases = group_manifest_by_domain(manifest)
+    write_domain_manifests(target, grouped, alias_map=aliases)
 
     if include_legacy:
         legacy_dest = (

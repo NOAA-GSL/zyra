@@ -4,61 +4,193 @@ info:
   title: Zyra CLI Manifest API
   version: "1.0.0"
   description: |
-    Exposes the Zyra CLI command manifest (`zyra_capabilities.json`)
-    directly from the NOAA-GSL/zyra repository.
+    Exposes the Zyra CLI command manifests (one JSON per domain, indexed by
+    `zyra_capabilities/zyra_capabilities_index.json`) directly from the
+    NOAA-GSL/zyra repository.
 
     ⚠️ Note: An `/execute` endpoint is included as a placeholder but is currently disabled.
-    Only the `/zyra_capabilities.json` endpoint is active.
+    Only the `/zyra_capabilities/zyra_capabilities_index.json` endpoint is active.
 
 servers:
   - url: https://raw.githubusercontent.com/NOAA-GSL/zyra/main/src/zyra/wizard
 
 paths:
-  /zyra_capabilities.json:
+  /zyra_capabilities/acquire.json:
     get:
-      summary: Retrieve available CLI commands
-      operationId: listCommands
-      description: |
-        Fetch the latest Zyra CLI command manifest (`zyra_capabilities.json`)
-        from the main branch of the repository.
+      summary: Acquire/import commands
+      operationId: acquireCommands
+      description: Fetch the CLI manifest entries for acquire/import (data ingress) commands.
       responses:
         '200':
-          description: A JSON object describing all available CLI commands.
+          description: Acquire/import command metadata (includes the `import` alias).
           content:
             application/json:
               schema:
                 type: object
-                properties:
-                  commands:
-                    type: array
-                    description: List of CLI commands
-                    items:
-                      type: object
-                      properties:
-                        name:
-                          type: string
-                          description: Command name
-                          example: "generate-plot"
-                        description:
-                          type: string
-                          description: Human-readable description
-                          example: "Generate a visualization from a dataset"
-                        options:
-                          type: array
-                          description: CLI flags/options for the command
-                          items:
-                            type: object
-                            properties:
-                              flag:
-                                type: string
-                                example: "--input"
-                              description:
-                                type: string
-                                example: "Path to the input dataset"
-                              type:
-                                type: string
-                                enum: [string, integer, boolean, array, object]
-                                example: "string"
+                description: Mapping of CLI commands to metadata.
+                properties: {}
+                additionalProperties:
+                  type: object
+  /zyra_capabilities/process.json:
+    get:
+      summary: Process/transform commands
+      operationId: processCommands
+      description: Fetch CLI manifest entries for processing and transform stages.
+      responses:
+        '200':
+          description: Process/transform command metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Mapping of CLI commands to metadata.
+                properties: {}
+                additionalProperties:
+                  type: object
+  /zyra_capabilities/visualize.json:
+    get:
+      summary: Visualize/render commands
+      operationId: visualizeCommands
+      description: Fetch CLI manifest entries for visualization/render stages (includes the `render` alias).
+      responses:
+        '200':
+          description: Visualize/render command metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Mapping of CLI commands to metadata.
+                properties: {}
+                additionalProperties:
+                  type: object
+  /zyra_capabilities/disseminate.json:
+    get:
+      summary: Disseminate/export commands
+      operationId: disseminateCommands
+      description: Fetch CLI manifest entries for disseminate/export stages (includes the `export` and `decimate` aliases).
+      responses:
+        '200':
+          description: Disseminate/export command metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Mapping of CLI commands to metadata.
+                properties: {}
+                additionalProperties:
+                  type: object
+  /zyra_capabilities/transform.json:
+    get:
+      summary: Transform helper commands
+      operationId: transformCommands
+      description: Fetch CLI manifest entries for the transform helper stage.
+      responses:
+        '200':
+          description: Transform command metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Mapping of CLI commands to metadata.
+                properties: {}
+                additionalProperties:
+                  type: object
+  /zyra_capabilities/search.json:
+    get:
+      summary: Search commands
+      operationId: searchCommands
+      description: Fetch CLI manifest entries for `zyra search`.
+      responses:
+        '200':
+          description: Search command metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Mapping of CLI commands to metadata.
+                properties: {}
+                additionalProperties:
+                  type: object
+  /zyra_capabilities/run.json:
+    get:
+      summary: Run commands
+      operationId: runCommands
+      description: Fetch CLI manifest entries for `zyra run` (workflow executor).
+      responses:
+        '200':
+          description: Run command metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Mapping of CLI commands to metadata.
+                properties: {}
+                additionalProperties:
+                  type: object
+  /zyra_capabilities/simulate.json:
+    get:
+      summary: Simulate commands
+      operationId: simulateCommands
+      description: Fetch CLI manifest entries for simulate stage.
+      responses:
+        '200':
+          description: Simulate command metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Mapping of CLI commands to metadata.
+                properties: {}
+                additionalProperties:
+                  type: object
+  /zyra_capabilities/decide.json:
+    get:
+      summary: Decide commands
+      operationId: decideCommands
+      description: Fetch CLI manifest entries for decide/optimize stage (includes the `optimize` alias).
+      responses:
+        '200':
+          description: Decide command metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Mapping of CLI commands to metadata.
+                properties: {}
+                additionalProperties:
+                  type: object
+  /zyra_capabilities/narrate.json:
+    get:
+      summary: Narrate commands
+      operationId: narrateCommands
+      description: Fetch CLI manifest entries for narrate stage.
+      responses:
+        '200':
+          description: Narrate command metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Mapping of CLI commands to metadata.
+                properties: {}
+                additionalProperties:
+                  type: object
+  /zyra_capabilities/verify.json:
+    get:
+      summary: Verify commands
+      operationId: verifyCommands
+      description: Fetch CLI manifest entries for verify stage.
+      responses:
+        '200':
+          description: Verify command metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Mapping of CLI commands to metadata.
+                properties: {}
+                additionalProperties:
+                  type: object
 
   /execute:
     post:
@@ -102,4 +234,3 @@ paths:
                   error:
                     type: string
                     example: "This endpoint is disabled. Command execution is not available."
-

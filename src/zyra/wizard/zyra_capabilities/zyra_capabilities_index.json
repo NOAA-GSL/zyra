@@ -3,21 +3,44 @@
   "generated_at": "2025-11-14T23:27:53Z",
   "generator": "zyra.wizard.manifest",
   "domains": {
-    "acquire": "acquire.json",
-    "decide": "decide.json",
-    "decimate": "decimate.json",
-    "disseminate": "disseminate.json",
-    "export": "export.json",
-    "import": "import.json",
+    "acquire": {
+      "file": "acquire.json",
+      "aliases": [
+        "import"
+      ]
+    },
+    "decide": {
+      "file": "decide.json",
+      "aliases": [
+        "optimize"
+      ]
+    },
+    "disseminate": {
+      "file": "disseminate.json",
+      "aliases": [
+        "decimate",
+        "export"
+      ]
+    },
     "narrate": "narrate.json",
-    "optimize": "optimize.json",
     "process": "process.json",
-    "render": "render.json",
     "run": "run.json",
     "search": "search.json",
     "simulate": "simulate.json",
     "transform": "transform.json",
     "verify": "verify.json",
-    "visualize": "visualize.json"
+    "visualize": {
+      "file": "visualize.json",
+      "aliases": [
+        "render"
+      ]
+    }
+  },
+  "aliases": {
+    "import": "acquire",
+    "optimize": "decide",
+    "decimate": "disseminate",
+    "export": "disseminate",
+    "render": "visualize"
   }
 }
