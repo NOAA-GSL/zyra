@@ -279,6 +279,7 @@ def _load_capabilities_manifest() -> dict | None:
             if override:
                 paths.append(Path(override).expanduser())
         except Exception:
+            # Environment helper may not be available in some runtimes; ignore and fall back.
             pass
         spec = _find_spec("zyra.wizard")
         if (

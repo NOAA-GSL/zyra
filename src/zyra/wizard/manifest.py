@@ -520,6 +520,7 @@ def _traverse(parser: argparse.ArgumentParser, *, prefix: str = "") -> dict[str,
                     except Exception:
                         req, opt = None, None
             except Exception:
+                # Domain models are optional; fall back to manifest inspection when resolution fails.
                 model = None
                 req, opt = None, None
 

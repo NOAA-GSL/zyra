@@ -351,6 +351,7 @@ def _load_packaged_manifest() -> tuple[dict[str, Any], dict[str, Any]] | None:
                     meta["generated_at"] = idx.get("generated_at")
                     meta["version"] = idx.get("version")
                 except Exception:
+                    # Corrupt index metadata shouldn't block manifest usage; ignore and continue.
                     pass
         return data, meta
     return None
@@ -472,6 +473,7 @@ def _example_for(cmd: str, info: dict[str, Any]) -> str:
             name = str(chosen_pos.get("name") or "arg")
             example += f" <{name}>"
     except Exception:
+        # Manifest entries may be missing positionals; ignore and continue building example.
         pass
 
     # Choose a representative option flag
@@ -512,6 +514,7 @@ def _example_for(cmd: str, info: dict[str, Any]) -> str:
                         placeholder = "<url>"
                     example += f" {flag} {placeholder}"
     except Exception:
+        # Option metadata may be incomplete; skip and return the partial example.
         pass
 
     return example
