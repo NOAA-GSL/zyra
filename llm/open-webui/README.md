@@ -17,9 +17,9 @@ Recommended Workflows
 Tool: zyra_cli_manifest
 - File: `llm/open-webui/tools/zyra_cli_manifest.py` (paste-ready, single file)
 - Provides: `Tools.zyra_cli_manifest(command_name=None, format="json", details=None)`
-  - `format="list"` → just command names
-  - `format="summary"` → names + descriptions
-  - `format="json"` (default) → raw manifest JSON
+  - `format="list"` → just command names (via API when available)
+  - `format="summary"` → names + descriptions (via API when available)
+  - `format="json"` (default) → merged manifest assembled from the canonical per-domain JSON files under `src/zyra/wizard/zyra_capabilities/`
   - Per-command: `command_name="..."` with `details="options" | "example"`
 
 Tool: github_repo_access
@@ -47,7 +47,7 @@ Dependencies
 Configuration (optional)
 - `ZYRA_API_BASE`: base URL for the Zyra API. Defaults to `http://localhost:8000` implicitly; the tool will try
   calling `/commands` first with a short timeout and fall back if unreachable.
-- `ZYRA_CAPABILITIES_URL`: optional URL to fetch the manifest JSON if you want to bypass the API and GitHub.
+- `ZYRA_CAPABILITIES_URL`: optional URL pointing either to the canonical index (`.../zyra_capabilities/zyra_capabilities_index.json`) or the legacy `zyra_capabilities.json`. The tool auto-detects which format it received and merges the per-domain files.
 - `ZYRA_API_BASE`: base URL for the Zyra API. If set, the tool calls the `/commands` endpoint for list/summary/json
   and command details. Ideal when Open WebUI runs on the same machine or network as the API.
 - `ZYRA_API_KEY`: API key for authenticated access (if your API enforces it).
