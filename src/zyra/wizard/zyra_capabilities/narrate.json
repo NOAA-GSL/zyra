@@ -1,0 +1,136 @@
+{
+  "narrate describe": {
+    "description": "zyra narrate describe",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--topic"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--topic": "Topic to narrate (placeholder)"
+    },
+    "positionals": [],
+    "domain": "narrate",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "topic"
+      ]
+    },
+    "example_args": null
+  },
+  "narrate swarm": {
+    "description": "Run a lightweight narration swarm with presets and YAML merging. When audiences are provided, an internal audience_adapter agent emits <aud>_version outputs. Provenance is recorded per agent with started/model/prompt_ref/duration_ms and included in the Narrative Pack.",
+    "doc": "Run a lightweight narration swarm with presets and YAML merging. When audiences are provided, an internal audience_adapter agent emits <aud>_version outputs. Provenance is recorded per agent with started/model/prompt_ref/duration_ms and included in the Narrative Pack.",
+    "epilog": "Provenance fields: agent, model, started (RFC3339), prompt_ref, duration_ms. Use '-P help' to list presets. Unknown preset exits 2 with suggestions.",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--preset",
+          "--list-presets",
+          "--swarm-config",
+          "--agents",
+          "--audiences",
+          "--style",
+          "--provider",
+          "--model",
+          "--base-url",
+          "--max-workers",
+          "--max-rounds",
+          "--pack",
+          "--rubric",
+          "--verbose",
+          "--quiet",
+          "--input",
+          "--critic-structured",
+          "--attach-images",
+          "--strict-grounding"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--preset": "Preset template name (use '-P help' to list presets)",
+      "--list-presets": {
+        "help": "List available presets and exit",
+        "type": "bool",
+        "default": false
+      },
+      "--swarm-config": "YAML config with agents/graph/settings",
+      "--agents": "Comma-separated agent IDs (e.g., summary,critic)",
+      "--audiences": "Comma-separated audiences (e.g., kids,policy)",
+      "--style": "Target writing style (e.g., journalistic)",
+      "--provider": "LLM provider (mock|openai|ollama)",
+      "--model": "Model name (provider-specific)",
+      "--base-url": "Provider base URL override",
+      "--max-workers": {
+        "help": "Max concurrent agents (optional)",
+        "type": "int"
+      },
+      "--max-rounds": {
+        "help": "Review rounds (0 disables critic/editor loop)",
+        "type": "int"
+      },
+      "--pack": "Output file for Narrative Pack (yaml or json); '-' for stdout",
+      "--rubric": "Path to critic rubric YAML (defaults to packaged critic rubric)",
+      "--verbose": {
+        "help": "Verbose logging (shows per-agent dialog)",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging (errors only)",
+        "type": "bool",
+        "default": false
+      },
+      "--input": {
+        "help": "Optional input file path or '-' for stdin (JSON/YAML autodetect; falls back to text)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--critic-structured": {
+        "help": "Emit structured critic output (critic_notes as {notes: ...})",
+        "type": "bool",
+        "default": false
+      },
+      "--attach-images": {
+        "help": "Attach images from input_data.images to LLM calls (multimodal models only)",
+        "type": "bool",
+        "default": false
+      },
+      "--strict-grounding": {
+        "help": "Fail the run if critic flags ungrounded content",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "narrate",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "agents",
+        "audiences",
+        "base_url",
+        "max_rounds",
+        "max_workers",
+        "model",
+        "pack",
+        "preset",
+        "provider",
+        "style",
+        "swarm_config"
+      ]
+    },
+    "example_args": null
+  }
+}

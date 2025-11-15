@@ -1,0 +1,29 @@
+{
+  "verify evaluate": {
+    "description": "zyra verify evaluate",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--metric"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--metric": "Metric name (placeholder)"
+    },
+    "positionals": [],
+    "domain": "verify",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "metric"
+      ]
+    },
+    "example_args": null
+  }
+}

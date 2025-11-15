@@ -1,12 +1,13 @@
 [tool.poetry]
 name = "zyra"
-version = "0.1.38"
+version = "0.1.39"
 description = "A tool to ingest data from various sources and formats, create imagery or video based on that data, and send the results to various locations for dissemination."
 authors = ["Eric Hackathorn <eric.j.hackathorn@noaa.gov>"]
 include = [
     # Packaged assets in the Zyra namespace
     "src/zyra/assets/**",
     "src/zyra/wizard/*.json",
+    "src/zyra/wizard/zyra_capabilities/**",
 ]
 license = "Apache-2.0"
 readme = "README.md"

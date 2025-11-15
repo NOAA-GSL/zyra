@@ -1,0 +1,39 @@
+{
+  "simulate sample": {
+    "description": "zyra simulate sample",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--seed",
+          "--trials"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--seed": {
+        "help": "Random seed",
+        "type": "int"
+      },
+      "--trials": {
+        "help": "Number of trials",
+        "type": "int",
+        "default": 1
+      }
+    },
+    "positionals": [],
+    "domain": "simulate",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "seed",
+        "trials"
+      ]
+    },
+    "example_args": null
+  }
+}
