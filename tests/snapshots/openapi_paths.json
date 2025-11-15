@@ -10,6 +10,7 @@
   "/v1/cli/examples",
   "/v1/cli/run",
   "/v1/commands",
+  "/v1/commands/hash",
   "/v1/decide",
   "/v1/decimate",
   "/v1/disseminate",

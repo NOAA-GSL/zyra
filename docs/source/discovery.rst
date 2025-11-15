@@ -99,10 +99,12 @@ Each command entry includes:
 - ``args_schema``: simple required/optional fields derived from Pydantic models (when available).
 - ``example_args``: a brief example body for common tools.
 
-Generate a static capabilities manifest for assistant workflows:
+Generate static capabilities assets for assistant workflows (one JSON per CLI domain plus an index):
 
 ::
 
-  poetry run zyra generate-manifest -o src/zyra/wizard/zyra_capabilities.json
+  poetry run zyra generate-manifest
 
-This file mirrors ``/commands`` so assistants can ground suggestions without calling the API.
+The command above writes to ``src/zyra/wizard/zyra_capabilities/`` and produces
+``zyra_capabilities_index.json``. Include ``--legacy-json`` (the default) to mirror
+the merged manifest back to ``src/zyra/wizard/zyra_capabilities.json`` for older tools.

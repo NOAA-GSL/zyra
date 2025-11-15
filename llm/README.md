@@ -20,7 +20,7 @@ Open WebUI Tool Settings (Valves)
   - `zyra_api_key`: Optional API key; may be left blank.
   - `api_key_header`: Header to send the API key (default `X-API-Key`).
   - `api_timeout` / `net_timeout`: Short timeouts (seconds) for API and other HTTP fetches.
-  - `caps_url`: Optional direct URL to `zyra_capabilities.json`; used if the API is unreachable. May be blank.
+  - `caps_url`: Optional direct URL to the packaged capabilities assets (either the legacy `zyra_capabilities.json` or the new `zyra_capabilities/zyra_capabilities_index.json`). Used if the API is unreachable. May be blank.
   - `offline`: If true, skip all network fetches.
 - If Settings doesn’t reflect new fields or optional status after a code update, re‑save (or remove/re‑add) the tool
   and refresh the page — some builds cache the previous schema.

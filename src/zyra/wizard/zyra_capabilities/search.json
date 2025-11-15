@@ -1,0 +1,148 @@
+{
+  "search api": {
+    "description": "zyra search api",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--url",
+          "--query",
+          "--limit",
+          "--json",
+          "--csv",
+          "--table",
+          "--verbose",
+          "--param",
+          "--header",
+          "--timeout",
+          "--retries",
+          "--concurrency",
+          "--no-openapi",
+          "--endpoint",
+          "--qp",
+          "--result-key",
+          "--post",
+          "--json-param",
+          "--json-body",
+          "--credential",
+          "--credential-file",
+          "--auth",
+          "--url-credential",
+          "--url-auth",
+          "--fields",
+          "--limit-total",
+          "--dedupe",
+          "--sort",
+          "--print-openapi",
+          "--suggest-flags"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--url": {
+        "help": "Base API URL (repeatable). Examples: https://zyra.noaa.gov/api",
+        "type": "str",
+        "required": true
+      },
+      "--query": {
+        "help": "Search query to pass to remote APIs",
+        "type": "str",
+        "required": true
+      },
+      "--limit": {
+        "help": "Maximum results per source (default: 10)",
+        "type": "int",
+        "default": 10
+      },
+      "--json": {
+        "help": "Output in JSON (default)",
+        "type": "bool",
+        "default": false
+      },
+      "--csv": {
+        "help": "Output in CSV (columns: source,dataset,description,link)",
+        "type": "bool",
+        "default": false
+      },
+      "--table": {
+        "help": "Pretty table output to the terminal",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Print debug info about requests and response shapes",
+        "type": "bool",
+        "default": false
+      },
+      "--param": "Extra query param k=v (repeatable)",
+      "--header": "HTTP header `key=value` or `Key: Value` (repeatable)",
+      "--timeout": {
+        "help": "Request timeout seconds (default: 30)",
+        "type": "float",
+        "default": 30.0
+      },
+      "--retries": {
+        "help": "Retry attempts for transient failures (default: 0)",
+        "type": "int",
+        "default": 0
+      },
+      "--concurrency": {
+        "help": "Parallel requests across URLs (default: 4)",
+        "type": "int",
+        "default": 4
+      },
+      "--no-openapi": {
+        "help": "Skip OpenAPI discovery and use /search",
+        "type": "bool",
+        "default": false
+      },
+      "--endpoint": "Override endpoint path (e.g., /search/items)",
+      "--qp": "Override query parameter name (default: q)",
+      "--result-key": "Read array from this key when response is an object (e.g., items)",
+      "--post": {
+        "help": "Use POST /search with JSON body instead of GET",
+        "type": "bool",
+        "default": false
+      },
+      "--json-param": "JSON body field k=v (repeatable)",
+      "--json-body": "JSON body as raw string or @/path/to/file.json",
+      "--credential": "Credential slot (repeatable), e.g., token=$API_TOKEN or header.Authorization=Bearer abc",
+      "--credential-file": "Optional dotenv file for @NAME credential lookups",
+      "--auth": "Convenience auth helper (e.g., bearer:$TOKEN, basic:user:pass, header:Name:Value)",
+      "--url-credential": "Per-URL credential entry (repeatable), e.g., --url-credential https://api.example token=$TOKEN",
+      "--url-auth": "Per-URL auth helper (same syntax as --auth), e.g., --url-auth https://api.example bearer:$TOKEN",
+      "--fields": "Comma-separated output fields for CSV/table (default: source,dataset,link)",
+      "--limit-total": {
+        "help": "Limit total aggregated results across URLs",
+        "type": "int"
+      },
+      "--dedupe": {
+        "help": "Drop duplicates by key (dataset or link)",
+        "choices": [
+          "dataset",
+          "link"
+        ],
+        "type": "str"
+      },
+      "--sort": "Sort by comma-separated keys (e.g., source,dataset)",
+      "--print-openapi": {
+        "help": "Print discovered endpoint and query params for each URL",
+        "type": "bool",
+        "default": false
+      },
+      "--suggest-flags": {
+        "help": "Suggest simple OpenAPI query params that can be passed via --param",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "search",
+    "args_schema": null,
+    "example_args": null
+  }
+}

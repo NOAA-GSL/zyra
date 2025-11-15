@@ -169,20 +169,27 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
             # Alias of namespaced tools/list
             refresh = bool(params.get("refresh", False))
             tools = _mcp_tools_list(refresh=refresh)
+            digest = manifest_svc.manifest_digest(refresh=refresh)
+            payload = {"tools": tools}
+            if digest.get("sha256"):
+                payload["capabilitiesHash"] = digest.get("sha256")
             with suppress(Exception):
                 log_mcp_call(method, params, _t0, status="ok")
-            return _ok({"tools": tools})
+            return _ok(payload)
 
         # MCP initialize handshake
         if method == "initialize":
             # Per MCP spec, capabilities should be structured (not bare booleans).
             # Advertise tools with listChanged support, allowing clients to
             # subscribe to changes in tool listings.
+            digest = manifest_svc.manifest_digest(refresh=False)
             result = {
                 "protocolVersion": PROTOCOL_VERSION,
                 "serverInfo": {"name": "zyra", "version": dvh_version},
                 "capabilities": {"tools": {"listChanged": True}},
             }
+            if digest.get("sha256"):
+                result["capabilitiesHash"] = digest.get("sha256")
             with suppress(Exception):
                 log_mcp_call(method, params, _t0, status="ok")
             return _ok(result)
@@ -195,9 +202,13 @@ def mcp_rpc(req: JSONRPCRequest, request: Request, bg: BackgroundTasks):
         if method == "tools/list":
             refresh = bool(params.get("refresh", False))
             tools = _mcp_tools_list(refresh=refresh)
+            digest = manifest_svc.manifest_digest(refresh=refresh)
+            payload = {"tools": tools}
+            if digest.get("sha256"):
+                payload["capabilitiesHash"] = digest.get("sha256")
             with suppress(Exception):
                 log_mcp_call(method, params, _t0, status="ok")
-            return _ok({"tools": tools})
+            return _ok(payload)
 
         # MCP prompts and resources (minimal stubs for compliance)
         if method == "prompts/list":
@@ -1007,12 +1018,16 @@ def _mcp_discovery_payload(refresh: bool = False) -> dict[str, Any]:
         }
     )
 
-    return {
+    digest = manifest_svc.manifest_digest(refresh=refresh)
+    payload = {
         "mcp_version": "0.1",
         "name": "zyra",
         "description": "Zyra MCP server for domain-specific data visualization",
         "capabilities": {"commands": commands},
     }
+    if digest.get("sha256"):
+        payload["capabilitiesHash"] = digest.get("sha256")
+    return payload
 
 
 def _mcp_tools_list(refresh: bool = False) -> list[dict[str, Any]]:

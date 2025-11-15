@@ -1,0 +1,67 @@
+{
+  "decide optimize": {
+    "description": "zyra decide optimize",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--strategy"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--strategy": {
+        "help": "Optimization strategy (placeholder)",
+        "choices": [
+          "greedy",
+          "random",
+          "grid"
+        ],
+        "type": "str"
+      }
+    },
+    "positionals": [],
+    "domain": "decide",
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "strategy"
+      ]
+    },
+    "example_args": null
+  },
+  "optimize optimize": {
+    "description": "zyra optimize optimize",
+    "doc": "",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--strategy"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--strategy": {
+        "help": "Optimization strategy (placeholder)",
+        "choices": [
+          "greedy",
+          "random",
+          "grid"
+        ],
+        "type": "str"
+      }
+    },
+    "positionals": [],
+    "domain": "optimize",
+    "args_schema": null,
+    "example_args": null
+  }
+}
