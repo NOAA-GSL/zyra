@@ -20,7 +20,8 @@ from importlib import resources as ir
 from typing import Any
 
 from zyra.narrate.schemas import NarrativePack
-from zyra.narrate.swarm import Agent, AgentSpec, SwarmOrchestrator
+from zyra.narrate.swarm import Agent, AgentSpec
+from zyra.swarm import SwarmOrchestrator
 from zyra.wizard import _select_provider as _wiz_select_provider
 
 
