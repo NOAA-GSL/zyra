@@ -7,7 +7,8 @@ This document explains the end-to-end lifecycle of contributions to Zyra, from r
 - **Where:** Papers, datasets, GitHub Discussions, Zyra Wiki.
 - **Purpose:** Identify gaps, validate ethical/educational impact, and survey existing CLI commands.
 - **Tools:**
-  - [`zyra_capabilities.json`](https://github.com/NOAA-GSL/zyra/blob/main/zyra_capabilities.json) → check if commands exist.
+  - [`zyra_capabilities/`](https://github.com/NOAA-GSL/zyra/tree/main/src/zyra/wizard/zyra_capabilities) → canonical per-domain manifest files (see `zyra_capabilities_index.json` for aliases).
+  - [`zyra_capabilities.json`](https://github.com/NOAA-GSL/zyra/blob/main/src/zyra/wizard/zyra_capabilities.json) → legacy merged manifest (still updated for compatibility).
   - [Issues](https://github.com/NOAA-GSL/zyra/issues) → see if bugs or enhancements are already reported.
   - [Discussions](https://github.com/NOAA-GSL/zyra/discussions) → explore community design threads.
 
