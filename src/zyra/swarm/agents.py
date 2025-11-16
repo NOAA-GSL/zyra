@@ -116,7 +116,11 @@ class MockStageAgent(StageAgent):
             for d in self.spec.depends_on or []:
                 if ctx_outputs.get(d) is not None:
                     depends.append(d)
-        message = template.format(stage=self.spec.stage, id=self.spec.id)
+        message = template.format(
+            stage=self.spec.stage,
+            id=self.spec.id,
+            depends_on=",".join(depends) or "",
+        )
         payload: dict[str, Any] = {
             "stage": self.spec.stage,
             "agent_id": self.spec.id,

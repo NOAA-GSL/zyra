@@ -55,6 +55,11 @@ See module-level READMEs under `src/zyra/` for focused examples and options:
 ## Stage Map
 - Overview: https://github.com/NOAA-GSL/zyra/wiki/Workflow-Stages
 
+### Swarm Orchestration
+- `zyra swarm --plan samples/swarm/mock_basic.yaml --dry-run` prints the instantiated agents.
+- Remove `--dry-run` to execute mock simulate→narrate agents; use `--memory provenance.db` to persist provenance and `--guardrails schema.rail` to enforce structured outputs.
+- Plans are YAML/JSON manifests listing agents, dependencies (`depends_on`), and CLI args; see `samples/swarm/` to get started.
+
 ### Import (acquire/ingest)
 - Docs: https://noaa-gsl.github.io/zyra/api/zyra.connectors.html
 - Examples: https://github.com/NOAA-GSL/zyra/wiki/Stage-Examples

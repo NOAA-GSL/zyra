@@ -23,6 +23,7 @@ class CLIRunRequest(BaseModel):
         "narrate",
         "verify",
         "run",
+        "swarm",
     ]
     command: str = Field(..., description="Subcommand within the selected stage")
     args: dict[str, Any] = Field(

@@ -44,6 +44,7 @@ class StageAgentSpec:
     parallel_ok: bool = True
     behavior: str = "cli"
     metadata: dict[str, Any] = field(default_factory=dict)
+    prompt_ref: str | None = None
 
     def __post_init__(self) -> None:
         if not self.id:
@@ -99,6 +100,12 @@ class StageAgentSpec:
         parallel_ok = bool(data.get("parallel_ok", True))
         behavior = str(data.get("behavior") or "cli").strip() or "cli"
         metadata = dict(data.get("metadata") or {})
+        prompt_ref = (
+            str(data.get("prompt_ref")).strip()
+            if isinstance(data.get("prompt_ref"), str)
+            and str(data.get("prompt_ref")).strip()
+            else None
+        )
         return cls(
             id=spec_id,
             stage=stage,
@@ -113,6 +120,7 @@ class StageAgentSpec:
             parallel_ok=parallel_ok,
             behavior=behavior,
             metadata=metadata,
+            prompt_ref=prompt_ref,
         )
 
     def to_stage_mapping(self) -> dict[str, Any]:

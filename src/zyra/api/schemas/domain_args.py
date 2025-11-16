@@ -512,6 +512,45 @@ class NarrateSwarmArgs(BaseModel):
     pack: str | None = Field(
         default=None, description="Output pack path ('-' for stdout)"
     )
+    memory: str | None = Field(
+        default=None,
+        description="Provenance store path (use '-' for in-memory only)",
+    )
+    guardrails: str | None = Field(
+        default=None,
+        description="Guardrails (.rail) schema to validate outputs",
+    )
+    strict_guardrails: bool | None = Field(
+        default=None,
+        description="Fail run when guardrails validation fails",
+    )
+
+
+class SwarmRunArgs(BaseModel):
+    """Arguments for ``zyra swarm``."""
+
+    plan: str = Field(..., description="Manifest path (YAML or JSON)")
+    max_workers: int | None = Field(
+        default=None, description="Max concurrent agents (auto when omitted)"
+    )
+    max_rounds: int | None = Field(default=1, description="Review rounds")
+    memory: str | None = Field(
+        default=None,
+        description="Provenance store path (SQLite) or '-' for in-memory",
+    )
+    guardrails: str | None = Field(
+        default=None, description="Guardrails (.rail) schema for validation"
+    )
+    strict_guardrails: bool | None = Field(
+        default=None, description="Fail run if guardrails validation fails"
+    )
+    output: str | None = Field(
+        default=None,
+        description="Output JSON path ('-' for stdout; default prints summary)",
+    )
+    dry_run: bool | None = Field(
+        default=None, description="Print plan summary without running"
+    )
 
 
 class VerifyEvaluateArgs(BaseModel):
@@ -663,6 +702,8 @@ def resolve_model(stage: str, tool: str) -> type[BaseModel] | None:
         return NarrateDescribeArgs
     if key == ("narrate", "swarm"):
         return NarrateSwarmArgs
+    if key == ("swarm", "run"):
+        return SwarmRunArgs
     if key == ("verify", "evaluate"):
         return VerifyEvaluateArgs
     return None
