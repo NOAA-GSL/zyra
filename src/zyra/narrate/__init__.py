@@ -21,7 +21,11 @@ from typing import Any
 
 from zyra.narrate.schemas import NarrativePack
 from zyra.narrate.swarm import Agent, AgentSpec
-from zyra.swarm import SwarmOrchestrator
+from zyra.swarm import (
+    SwarmOrchestrator,
+    build_guardrails_adapter,
+    open_provenance_store,
+)
 from zyra.wizard import _select_provider as _wiz_select_provider
 
 
@@ -117,6 +121,19 @@ def _add_swarm_flags(p: argparse.ArgumentParser) -> None:
         "--strict-grounding",
         action="store_true",
         help="Fail the run if critic flags ungrounded content",
+    )
+    p.add_argument(
+        "--guardrails",
+        help="Guardrails (.rail) schema applied to stage outputs (optional)",
+    )
+    p.add_argument(
+        "--strict-guardrails",
+        action="store_true",
+        help="Fail the run if guardrails validation fails",
+    )
+    p.add_argument(
+        "--memory",
+        help="Provenance store path (SQLite). Use '-' for in-memory/no file.",
     )
     p.epilog = (
         "Provenance fields: agent, model, started (RFC3339), prompt_ref, duration_ms. "
@@ -373,13 +390,27 @@ def _build_execution_context(
 def _execute_orchestrator(
     agents: list[Agent], cfg: dict[str, Any], context: dict[str, Any]
 ) -> tuple[dict[str, Any], SwarmOrchestrator]:
-    orch = SwarmOrchestrator(
-        agents,
-        max_workers=cfg.get("max_workers"),
-        max_rounds=int(cfg.get("max_rounds") or 1),
+    metadata = {"command": "narrate-swarm"}
+    if cfg.get("preset"):
+        metadata["preset"] = cfg.get("preset")
+    if cfg.get("agents"):
+        metadata["agents"] = cfg.get("agents")
+    guardrails_adapter = build_guardrails_adapter(
+        cfg.get("guardrails"), strict=bool(cfg.get("strict_guardrails"))
     )
-    outputs = asyncio.run(orch.execute(context))
-    return outputs, orch
+    store = open_provenance_store(cfg.get("memory"), metadata=metadata)
+    try:
+        orch = SwarmOrchestrator(
+            agents,
+            max_workers=cfg.get("max_workers"),
+            max_rounds=int(cfg.get("max_rounds") or 1),
+            event_hook=store.as_event_hook(),
+            guardrails=guardrails_adapter,
+        )
+        outputs = asyncio.run(orch.execute(context))
+        return outputs, orch
+    finally:
+        store.close()
 
 
 def _build_pack_structure(
@@ -744,12 +775,17 @@ def _resolve_swarm_config(ns: argparse.Namespace) -> dict[str, Any]:
     _merge_cli("input", getattr(ns, "input", None))
     _merge_cli("max_workers", ns.max_workers)
     _merge_cli("max_rounds", ns.max_rounds)
+    _merge_cli("memory", getattr(ns, "memory", None))
     if getattr(ns, "critic_structured", False):
         _merge_cli("critic_structured", True)
     if getattr(ns, "attach_images", False):
         _merge_cli("attach_images", True)
     if getattr(ns, "strict_grounding", False):
         _merge_cli("strict_grounding", True)
+    if getattr(ns, "guardrails", None):
+        _merge_cli("guardrails", ns.guardrails)
+    if getattr(ns, "strict_guardrails", False):
+        _merge_cli("strict_guardrails", True)
     if ns.agents:
         _merge_cli("agents", _split_csv(ns.agents))
     if ns.audiences:
@@ -788,6 +824,9 @@ def _normalize_cfg(d: dict[str, Any]) -> dict[str, Any]:
         "strict_grounding",
         "critic_structured",
         "attach_images",
+        "memory",
+        "guardrails",
+        "strict_guardrails",
     ):
         if k in d:
             out[k] = d[k]

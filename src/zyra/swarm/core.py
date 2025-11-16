@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Iterator, Protocol, runtime_checkable
 
+from .guardrails import BaseGuardrailsAdapter, NullGuardrailsAdapter
+
 LOG = logging.getLogger("zyra.swarm.core")
 DEFAULT_MAX_WORKERS = 8
 
@@ -78,6 +80,7 @@ class SwarmOrchestrator:
         max_workers: int | None = None,
         max_rounds: int = 1,
         event_hook: Callable[[str, dict[str, Any]], None] | None = None,
+        guardrails: BaseGuardrailsAdapter | None = None,
     ) -> None:
         self.agents = list(agents)
         self.max_workers = max_workers
@@ -86,6 +89,7 @@ class SwarmOrchestrator:
         self.errors: list[dict[str, Any]] = []
         self.failed_agents: list[str] = []
         self._event_hook = event_hook
+        self._guardrails = guardrails or NullGuardrailsAdapter()
 
     def _emit_event(self, name: str, payload: dict[str, Any]) -> None:
         if not self._event_hook:
@@ -154,6 +158,10 @@ class SwarmOrchestrator:
                 )
                 try:
                     res = await self._run_agent_with_retries(agent, context)
+                    if isinstance(res, dict):
+                        res = self._guardrails.validate(agent, res)
+                    else:
+                        res = {}
                 except Exception as exc:  # pragma: no cover
                     self.errors.append(
                         {
@@ -268,7 +276,11 @@ class SwarmOrchestrator:
         if not self.agents:
             return outputs
 
-        self._emit_event("run_started", {"agent_count": len(self.agents)})
+        started_ts = datetime.now(timezone.utc).isoformat()
+        self._emit_event(
+            "run_started",
+            {"agent_count": len(self.agents), "started": started_ts},
+        )
 
         if any(agent.spec.depends_on for agent in self.agents):
             outputs.update(await self._execute_dag(ctx))
@@ -286,8 +298,14 @@ class SwarmOrchestrator:
                     break
                 outputs.update(await self._run_round(review_agents, ctx))
 
+        completed_ts = datetime.now(timezone.utc).isoformat()
         self._emit_event(
             "run_completed",
-            {"agent_count": len(self.agents), "errors": list(self.errors)},
+            {
+                "agent_count": len(self.agents),
+                "errors": list(self.errors),
+                "failed_agents": list(self.failed_agents),
+                "completed": completed_ts,
+            },
         )
         return outputs
