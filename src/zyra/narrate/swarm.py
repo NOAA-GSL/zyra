@@ -4,6 +4,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from zyra.swarm import SwarmOrchestrator as _BaseSwarmOrchestrator
+
+SwarmOrchestrator = _BaseSwarmOrchestrator
+
 IMAGE_MAX_BYTES = 1_500_000
 
 
