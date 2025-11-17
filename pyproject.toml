@@ -29,10 +29,10 @@ Tracker = "https://github.com/NOAA-GSL/zyra/issues"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-python-dotenv = "^0.19.1"
+python-dotenv = "^1.0.0"
 pyyaml = "^6.0.2"
 numpy = "^1.26"
-fastapi = { version = "^0.115.0", optional = true }
+fastapi = { version = "^0.121.2", optional = true }
 uvicorn = { version = "^0.30.0", optional = true }
 python-multipart = { version = ">=0.0.18", optional = true }
 redis = { version = "^5.0.0", optional = true }
