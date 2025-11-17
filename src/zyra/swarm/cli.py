@@ -4,6 +4,8 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import sqlite3
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +24,7 @@ def register_cli(parser: argparse.ArgumentParser) -> None:
     """Attach swarm CLI arguments to an argparse parser."""
     parser.add_argument(
         "--plan",
-        required=True,
+        required=False,
         help="YAML or JSON manifest describing stage agents",
     )
     parser.add_argument(
@@ -58,10 +60,24 @@ def register_cli(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Print the resolved agents/graph without running",
     )
+    parser.add_argument(
+        "--log-events",
+        action="store_true",
+        help="Print provenance events to stdout as they are recorded",
+    )
+    parser.add_argument(
+        "--dump-memory",
+        help="Inspect an existing provenance DB (no execution performed)",
+    )
     parser.set_defaults(func=_cmd_swarm)
 
 
 def _cmd_swarm(ns: argparse.Namespace) -> int:
+    if ns.dump_memory:
+        return _dump_memory(ns.dump_memory)
+    if not ns.plan:
+        print("--plan is required when not using --dump-memory", file=sys.stderr)
+        return 2
     try:
         plan = _load_plan(ns.plan)
     except ValueError as exc:
@@ -85,6 +101,7 @@ def _cmd_swarm(ns: argparse.Namespace) -> int:
             memory=ns.memory,
             guardrails=ns.guardrails,
             strict_guardrails=bool(ns.strict_guardrails),
+            log_events=bool(ns.log_events),
         )
     except ValueError as exc:
         print(str(exc))
@@ -143,6 +160,7 @@ def _execute_specs(
     memory: str | None,
     guardrails: str | None,
     strict_guardrails: bool,
+    log_events: bool = False,
 ) -> dict[str, Any]:
     agents = [build_stage_agent(spec) for spec in specs]
     ctx = StageContext(
@@ -155,17 +173,69 @@ def _execute_specs(
     )
     adapter = build_guardrails_adapter(guardrails, strict=strict_guardrails)
     try:
+        base_hook = store.as_event_hook()
+
+        if log_events:
+
+            def _log_and_store(name: str, payload: dict[str, Any]) -> None:
+                print(f"[event {name}] {json.dumps(payload, sort_keys=True)}")
+                base_hook(name, payload)
+
+            hook = _log_and_store
+        else:
+            hook = base_hook
+
         orch = SwarmOrchestrator(
             agents,
             max_workers=max_workers,
             max_rounds=int(max_rounds or 1),
-            event_hook=store.as_event_hook(),
+            event_hook=hook,
             guardrails=adapter,
         )
         outputs = asyncio.run(orch.execute(ctx))
     finally:
         store.close()
     return outputs
+
+
+def _dump_memory(path: str) -> int:
+    target = Path(path)
+    if not target.exists():
+        print(f"provenance DB not found: {path}", file=sys.stderr)
+        return 2
+    conn = sqlite3.connect(str(target))
+    try:
+        conn.row_factory = sqlite3.Row
+        runs = conn.execute(
+            "SELECT run_id, started, completed, status, metadata FROM runs ORDER BY started DESC"
+        ).fetchall()
+        if not runs:
+            print("No runs recorded.")
+            return 0
+        for run in runs:
+            status = run["status"]
+            meta = run["metadata"]
+            print(
+                f"Run {run['run_id']} started={run['started']} completed={run['completed']}"
+            )
+            if meta:
+                print(f"  metadata: {meta}")
+            if status:
+                print(f"  status: {status}")
+            events = conn.execute(
+                "SELECT event, agent, created, payload FROM events WHERE run_id=? ORDER BY id",
+                (run["run_id"],),
+            ).fetchall()
+            for evt in events:
+                payload = evt["payload"] or "{}"
+                print(
+                    f"    [{evt['created']}] {evt['event']}"
+                    + (f" agent={evt['agent']}" if evt["agent"] else "")
+                    + f" payload={payload}"
+                )
+    finally:
+        conn.close()
+    return 0
 
 
 def _format_dry_run(specs: list[StageAgentSpec]) -> str:
