@@ -63,6 +63,7 @@ See module-level READMEs under `src/zyra/` for focused examples and options:
   `poetry run zyra swarm --plan samples/swarm/drought_animation.yaml --memory drought.db`.
   Create `data/drought/` ahead of time, place `earth_vegetation.jpg` in your working directory (or adjust the manifest),
   and ensure Pillow is installed for `process pad-missing`.
+- Preview planner output (JSON manifest with augmentation suggestions) before running: `poetry run zyra plan --intent "mock swarm plan"`.
 - Plans are YAML/JSON manifests listing agents, dependencies (`depends_on`), and CLI args; see `samples/swarm/` to get started.
 
 ### Import (acquire/ingest)

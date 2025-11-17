@@ -856,6 +856,14 @@ def main(argv: list[str] | None = None) -> int:
             help="Run the multi-stage swarm orchestrator",
         )
         _swarm_cli.register_cli(p_swarm)
+    elif first_non_flag == "plan":
+        from zyra.swarm import planner as _swarm_planner
+
+        p_plan = sub.add_parser(
+            "plan",
+            help="Generate a swarm manifest from user intent (planner preview)",
+        )
+        _swarm_planner.register_cli(p_plan)
     elif first_non_flag == "simulate":
         import zyra.simulate as _simulate_mod
 

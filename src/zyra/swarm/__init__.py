@@ -22,6 +22,7 @@ from .memory import (
     open_provenance_store,
 )
 from .spec import StageAgentSpec, load_stage_agent_specs
+from .value_engine import suggest as suggest_augmentations
 
 __all__ = [
     "DEFAULT_MAX_WORKERS",
@@ -42,4 +43,5 @@ __all__ = [
     "SQLiteProvenanceStore",
     "NullProvenanceStore",
     "open_provenance_store",
+    "suggest_augmentations",
 ]
