@@ -848,6 +848,22 @@ def main(argv: list[str] | None = None) -> int:
         p_export = sub.add_parser("export", help=argparse.SUPPRESS)
         exp_sub = p_export.add_subparsers(dest="decimate_cmd", required=True)
         _egress_mod.register_cli(exp_sub)
+    elif first_non_flag == "swarm":
+        from zyra.swarm import cli as _swarm_cli
+
+        p_swarm = sub.add_parser(
+            "swarm",
+            help="Run the multi-stage swarm orchestrator",
+        )
+        _swarm_cli.register_cli(p_swarm)
+    elif first_non_flag == "plan":
+        from zyra.swarm import planner as _swarm_planner
+
+        p_plan = sub.add_parser(
+            "plan",
+            help="Generate a swarm manifest from user intent (planner preview)",
+        )
+        _swarm_planner.register_cli(p_plan)
     elif first_non_flag == "simulate":
         import zyra.simulate as _simulate_mod
 

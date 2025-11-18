@@ -6617,7 +6617,10 @@
           "--input",
           "--critic-structured",
           "--attach-images",
-          "--strict-grounding"
+          "--strict-grounding",
+          "--guardrails",
+          "--strict-guardrails",
+          "--memory"
         ]
       }
     ],
@@ -6675,7 +6678,14 @@
         "help": "Fail the run if critic flags ungrounded content",
         "type": "bool",
         "default": false
-      }
+      },
+      "--guardrails": "Guardrails (.rail) schema applied to stage outputs (optional)",
+      "--strict-guardrails": {
+        "help": "Fail the run if guardrails validation fails",
+        "type": "bool",
+        "default": false
+      },
+      "--memory": "Provenance store path (SQLite). Use '-' for in-memory/no file."
     },
     "positionals": [],
     "domain": "narrate",
@@ -6685,12 +6695,15 @@
         "agents",
         "audiences",
         "base_url",
+        "guardrails",
         "max_rounds",
         "max_workers",
+        "memory",
         "model",
         "pack",
         "preset",
         "provider",
+        "strict_guardrails",
         "style",
         "swarm_config"
       ]

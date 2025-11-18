@@ -1,0 +1,68 @@
+# SPDX-License-Identifier: Apache-2.0
+metadata:
+  name: NOAA Drought Animation
+  description: >
+    Download the last year of Weekly Drought Risk PNG frames from FTP, fill missing frames,
+    compose an MP4 animation, and save to disk.
+
+# Directory layout (relative to repo root or current working dir):
+#   data/drought/frames_raw     → raw frames synced from FTP
+#   data/drought/frames_meta.json → metadata describing cadence
+#   data/drought/drought_animation.mp4 → final animation
+# Basemap requirement:
+#   Place earth_vegetation.jpg in the working directory (or update the basemap path below).
+
+agents:
+  - id: download_frames
+    stage: import
+    command: ftp
+    depends_on: []
+    args:
+      path: "ftp://ftp.nnvl.noaa.gov/SOS/DroughtRisk_Weekly"
+      sync_dir: "data/drought/frames_raw"
+      pattern: "^DroughtRisk_Weekly_[0-9]{8}\\.png$"
+      since_period: "P1Y"
+      date_format: "%Y%m%d"
+
+  - id: scan_frames
+    stage: transform
+    command: scan-frames
+    depends_on:
+      - download_frames
+    args:
+      frames_dir: "data/drought/frames_raw"
+      pattern: "^DroughtRisk_Weekly_[0-9]{8}\\.png$"
+      datetime_format: "%Y%m%d"
+      period_seconds: 604800
+      output: "data/drought/frames_meta.json"
+
+  - id: fill_missing
+    stage: process
+    command: pad-missing
+    depends_on:
+      - scan_frames
+    args:
+      frames_meta: "data/drought/frames_meta.json"
+      output_dir: "data/drought/frames_raw"
+      fill_mode: "basemap"
+      basemap: "earth_vegetation.jpg"
+      overwrite: true
+
+  - id: compose_animation
+    stage: visualize
+    command: compose-video
+    depends_on:
+      - fill_missing
+    args:
+      frames: "data/drought/frames_raw"
+      output: "data/drought/drought_animation.mp4"
+      fps: 4
+
+  - id: save_local
+    stage: disseminate
+    command: local
+    depends_on:
+      - compose_animation
+    args:
+      input: "data/drought/drought_animation.mp4"
+      path: "data/drought/drought_animation.mp4"

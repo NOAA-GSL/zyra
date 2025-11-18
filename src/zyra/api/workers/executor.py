@@ -221,7 +221,10 @@ def _args_dict_to_argv(stage: str, command: str, args: dict[str, Any]) -> list[s
     # Resolve uploaded file_id references into absolute paths
     args, _resolved_paths, _unresolved = resolve_upload_placeholders(args)
 
-    argv: list[str] = [stage, command]
+    if stage == "swarm":
+        argv: list[str] = ["swarm"]
+    else:
+        argv = [stage, command]
 
     # Normalize friendly names to strict CLI names
     norm_args = _normalize_args(stage, command, args)
@@ -232,6 +235,8 @@ def _args_dict_to_argv(stage: str, command: str, args: dict[str, Any]) -> list[s
         if cfg is not None:
             argv = ["run"]  # ignore provided command; CLI only has 'run'
             argv.append(str(cfg))
+    if stage == "swarm":
+        norm_args.pop("command", None)
 
     # Known positional layouts per command for better UX
     positional_map: dict[tuple[str, str], list[str]] = {

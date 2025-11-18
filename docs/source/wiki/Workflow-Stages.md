@@ -5,6 +5,11 @@ This page outlines Zyra’s eight workflow stages with preferred names, common a
 ## Pipeline at a Glance
 
 - import → process → simulate → decide → visualize → narrate → verify → export
+- `zyra swarm --plan plan.yaml` runs these as cooperating agents; a starter plan lives at `samples/swarm/mock_basic.yaml`.
+- Use `--log-events` to watch provenance events live and `--dump-memory path/to.db` to inspect prior runs.
+- For a real FTP → pad-missing → compose-video pipeline, try `samples/swarm/drought_animation.yaml`
+  (requires Pillow, write access to `data/drought/`, and the `earth_vegetation.jpg` basemap in your working directory).
+- Use `zyra plan --intent "<request>"` to preview planner-generated manifests (plus heuristic augmentation suggestions) before running `zyra swarm`.
 
 ## Stages
 

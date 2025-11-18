@@ -12,6 +12,7 @@ The URL parser supports anonymous and credentialed forms, e.g.:
 from __future__ import annotations
 
 import contextlib
+import logging
 import re
 import warnings
 from datetime import datetime
@@ -288,6 +289,24 @@ def sync_directory(
         )
         or []
     )
+    if not names and (since or until):
+        logging.warning(
+            "FTP sync found no files for date range (since=%s until=%s); retrying without date filter",
+            since,
+            until,
+        )
+        names = (
+            list_files(
+                url_or_dir,
+                pattern,
+                since=None,
+                until=None,
+                date_format=date_format,
+                username=username,
+                password=password,
+            )
+            or []
+        )
     if since or until:
         dm = DateManager([date_format] if date_format else None)
         start = datetime.min if not since else datetime.fromisoformat(since)

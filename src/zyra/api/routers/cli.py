@@ -21,10 +21,8 @@ from typing import Any
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
-from zyra.api.models.cli_request import (
-    CLIRunRequest,
-    CLIRunResponse,
-)
+import zyra.swarm.cli as swarm_cli
+from zyra.api.models.cli_request import CLIRunRequest, CLIRunResponse
 from zyra.api.workers import jobs as jobs_backend
 from zyra.api.workers.executor import resolve_upload_placeholders, run_cli
 from zyra.utils.env import env
@@ -200,6 +198,19 @@ def _compute_cli_matrix() -> dict[str, Any]:
     canonical_groups.append(("decide", parsers_from_register(decide.register_cli)))
     canonical_groups.append(("narrate", parsers_from_register(narrate.register_cli)))
     canonical_groups.append(("verify", parsers_from_register(verify.register_cli)))
+    # swarm (single command; attach args directly)
+    swarm_parser = argparse.ArgumentParser(prog="zyra swarm")
+    swarm_cli.register_cli(swarm_parser)
+    result["swarm"] = {
+        "commands": ["run"],
+        "schema": {
+            "run": _with_examples(
+                "swarm",
+                "run",
+                _extract_parser_schema(swarm_parser),
+            )
+        },
+    }
 
     for stage, parsers in canonical_groups:
         cmds = sorted(list(parsers.keys()))
@@ -399,6 +410,22 @@ def list_cli_examples() -> dict[str, Any]:
                 "command": "run",
                 "mode": "sync",
                 "args": {"config": "samples/pipelines/ftp_to_s3.yaml", "dry_run": True},
+            },
+        }
+    )
+
+    examples.append(
+        {
+            "name": "swarm_mock_plan",
+            "description": "Dry-run the mock simulate→narrate swarm manifest.",
+            "request": {
+                "stage": "swarm",
+                "command": "run",
+                "mode": "sync",
+                "args": {
+                    "plan": "samples/swarm/mock_basic.yaml",
+                    "dry_run": True,
+                },
             },
         }
     )
