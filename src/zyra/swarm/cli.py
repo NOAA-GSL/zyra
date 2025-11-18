@@ -178,13 +178,15 @@ def _execute_specs(
         if log_events:
 
             def _log_and_store(name: str, payload: dict[str, Any]) -> None:
-                print(f"[event {name}] {json.dumps(payload, sort_keys=True)}")
+                print(f"[event {name}] {_format_event_payload(name, payload)}")
                 base_hook(name, payload)
 
             hook = _log_and_store
         else:
             hook = base_hook
 
+        ctx.event_hook = hook
+        ctx.state["event_hook"] = hook
         orch = SwarmOrchestrator(
             agents,
             max_workers=max_workers,
@@ -227,12 +229,13 @@ def _dump_memory(path: str) -> int:
                 (run["run_id"],),
             ).fetchall()
             for evt in events:
-                payload = evt["payload"] or "{}"
-                print(
-                    f"    [{evt['created']}] {evt['event']}"
-                    + (f" agent={evt['agent']}" if evt["agent"] else "")
-                    + f" payload={payload}"
-                )
+                payload_raw = evt["payload"] or "{}"
+                try:
+                    payload_obj = json.loads(payload_raw)
+                except Exception:  # pragma: no cover - corrupt payload
+                    payload_obj = {"raw": payload_raw}
+                body = _format_event_payload(evt["event"], payload_obj)
+                print(f"    [{evt['created']}] [event {evt['event']}] {body}")
     finally:
         conn.close()
     return 0
@@ -258,3 +261,70 @@ def _write_outputs(path: str, outputs: dict[str, Any]) -> None:
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def _format_event_payload(name: str, payload: dict[str, Any]) -> str:
+    if not isinstance(payload, dict):
+        return json.dumps(payload, sort_keys=True)
+    if name == "run_completed":
+        base = (
+            f"agent_count={payload.get('agent_count')} "
+            f"errors={len(payload.get('errors') or [])} "
+            f"failed={len(payload.get('failed_agents') or [])}"
+        )
+        proposals = payload.get("proposals")
+        if isinstance(proposals, dict) and proposals:
+            summary = ", ".join(
+                f"{agent}:{info.get('command')}"
+                for agent, info in proposals.items()
+                if isinstance(info, dict)
+            )
+            return f"{base} proposals={summary}"
+        return base
+    if name.startswith("agent_proposal_"):
+        agent = payload.get("agent") or "?"
+        stage = payload.get("stage") or "?"
+        inner = payload.get("payload") or {}
+        if name == "agent_proposal_request":
+            options = inner.get("options")
+            defaults = inner.get("defaults") or {}
+            intent = (inner.get("context") or {}).get("intent")
+            extras = []
+            if options:
+                extras.append(f"options={options}")
+            if defaults:
+                extras.append(f"defaults={defaults}")
+            if intent:
+                extras.append(f"intent={intent!r}")
+            extra_str = " ".join(extras) if extras else "no details"
+            return f"agent={agent} stage={stage} {extra_str}"
+        if name == "agent_proposal_generated":
+            command = inner.get("command")
+            args = inner.get("args")
+            return (
+                f"agent={agent} stage={stage} proposed command={command} "
+                f"args={_render_short(args)}"
+            )
+        if name == "agent_proposal_validated":
+            command = inner.get("command")
+            args = inner.get("args")
+            return (
+                f"agent={agent} stage={stage} validated command={command} "
+                f"args={_render_short(args)}"
+            )
+        if name == "agent_proposal_invalid":
+            error = inner.get("error") or payload.get("error")
+            command = inner.get("command") or payload.get("command")
+            return (
+                f"agent={agent} stage={stage} rejected command={command} "
+                f"reason={error}"
+            )
+    return json.dumps(payload, sort_keys=True)
+
+
+def _render_short(value: Any) -> str:
+    try:
+        text = json.dumps(value, sort_keys=True)
+    except Exception:  # pragma: no cover - fallback for unserializable
+        text = str(value)
+    return text if len(text) <= 180 else text[:177] + "..."

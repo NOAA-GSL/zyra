@@ -1,9 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
+
 from __future__ import annotations
+
+import json
+import sqlite3
 
 import pytest
 
 from zyra.swarm import StageAgentSpec
+from zyra.swarm import agents as agents_module
 from zyra.swarm.cli import (
     _dump_memory,
     _execute_specs,
@@ -111,3 +116,61 @@ def test_log_events_and_dump_memory(tmp_path, capsys) -> None:
     _dump_memory(str(db))
     dump_out = capsys.readouterr().out
     assert "Run" in dump_out
+
+
+def test_proposal_events_recorded(tmp_path, monkeypatch, capsys) -> None:
+    plan = {
+        "metadata": {"description": "proposal-e2e"},
+        "agents": [
+            {
+                "id": "story",
+                "stage": "narrate",
+                "behavior": "proposal",
+                "metadata": {
+                    "proposal_options": ["describe"],
+                    "proposal_defaults": {"topic": "Weekly drought animation"},
+                },
+                "outputs": ["summary"],
+            }
+        ],
+    }
+    specs = _resolve_specs(plan)
+
+    async def fake_cli_run(self, context):
+        return {self.spec.stdout_key or self.spec.id: {"stage": self.spec.stage}}
+
+    monkeypatch.setattr(agents_module.CliStageAgent, "run", fake_cli_run, raising=False)
+    db_path = tmp_path / "proposal.db"
+    outputs = _execute_specs(
+        specs,
+        plan=plan,
+        plan_path="memory",
+        max_workers=None,
+        max_rounds=1,
+        memory=str(db_path),
+        guardrails=None,
+        strict_guardrails=False,
+        log_events=False,
+    )
+    assert outputs["story"]["stage"] == "narrate"
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute("SELECT event, payload FROM events ORDER BY id").fetchall()
+    finally:
+        conn.close()
+    events = [row["event"] for row in rows]
+    assert "agent_proposal_request" in events
+    assert "agent_proposal_generated" in events
+    assert "agent_proposal_validated" in events
+    request_row = next(row for row in rows if row["event"] == "agent_proposal_request")
+    payload = json.loads(request_row["payload"])
+    assert payload["payload"]["stage"] == "narrate"
+    completed_row = next(row for row in rows if row["event"] == "run_completed")
+    completed_payload = json.loads(completed_row["payload"])
+    assert completed_payload["proposals"]["story"]["command"] == "describe"
+    _dump_memory(str(db_path))
+    dump = capsys.readouterr().out
+    assert "agent=story stage=narrate options" in dump
+    assert "validated command=describe" in dump
+    assert "proposals=story:describe" in dump

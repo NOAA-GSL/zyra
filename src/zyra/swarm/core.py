@@ -43,6 +43,7 @@ class StageContext(MutableMapping[str, Any]):
     state: dict[str, Any] = field(default_factory=dict)
     inputs: dict[str, Any] | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    event_hook: Callable[[str, dict[str, Any]], None] | None = None
 
     def __getitem__(self, key: str) -> Any:
         return self.state[key]
@@ -299,6 +300,11 @@ class SwarmOrchestrator:
                 outputs.update(await self._run_round(review_agents, ctx))
 
         completed_ts = datetime.now(timezone.utc).isoformat()
+        proposals = {}
+        if isinstance(ctx, MutableMapping):
+            raw_log = ctx.get("proposal_log")
+            if isinstance(raw_log, dict):
+                proposals = raw_log
         self._emit_event(
             "run_completed",
             {
@@ -306,6 +312,7 @@ class SwarmOrchestrator:
                 "errors": list(self.errors),
                 "failed_agents": list(self.failed_agents),
                 "completed": completed_ts,
+                "proposals": proposals,
             },
         )
         return outputs

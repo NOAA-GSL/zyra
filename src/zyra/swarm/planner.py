@@ -168,28 +168,77 @@ _PLACEHOLDER_PATTERNS = [
 _ARG_RESOLVERS: list[dict[str, Any]] = []
 _PLANNER_VERBOSE = False
 _CURRENT_ANSWER_CACHE: dict[tuple[str, str, str], Any] | None = None
+_CURRENT_CONFIRM_CACHE: dict[tuple[str, str, str], Any] | None = None
+
+
+def _make_verify_template() -> dict[str, Any]:
+    return {
+        "stage": "verify",
+        "behavior": "proposal",
+        "depends_on_stage": ["visualize", "process", "transform", "acquire"],
+        "metadata": {
+            "proposal_options": ["evaluate"],
+            "proposal_defaults": {
+                "metric": "completeness",
+            },
+            "proposal_instructions": (
+                "Choose a verification/evaluation routine (e.g., completeness, RMSE, coverage) "
+                "that inspects the upstream artifact(s). Include any CLI flags needed to run the "
+                "selected metric."
+            ),
+        },
+    }
+
+
 _SUGGESTION_TEMPLATES: dict[str, dict[str, Any]] = {
     "narrate": {
         "stage": "narrate",
-        "command": "swarm",
+        "behavior": "proposal",
         "depends_on_stage": ["visualize"],
-        "args": {
-            "preset": "kids_policy_basic",
-            "pack": "narrative_summary.yaml",
-        },
         "inherit": [
-            {
-                "target": "input",
-                "source": "dependency",
-                "keys": ["output", "path"],
-            }
+            {"target": "input", "source": "dependency", "keys": ["output", "path"]}
         ],
+        "metadata": {
+            "proposal_options": ["swarm", "describe"],
+            "proposal_defaults": {
+                "preset": "kids_policy_basic",
+                "pack": "narrative_summary.yaml",
+            },
+            "proposal_instructions": (
+                "Review the upstream visualization/animation output and generate a concise summary "
+                "for downstream users. Include any preset/pack or narration settings needed."
+            ),
+        },
     },
-    "verify": {
-        "stage": "verify",
-        "command": None,
-    },
+    "verify": _make_verify_template(),
+    "diagnostics": _make_verify_template(),
 }
+
+_PROPOSAL_STAGE_CONFIG = {
+    "narrate": _SUGGESTION_TEMPLATES["narrate"],
+    "verify": _SUGGESTION_TEMPLATES["verify"],
+}
+_VISUAL_DEP_KEYWORDS = {
+    "visual",
+    "visualize",
+    "visualization",
+    "animation",
+    "video",
+    "render",
+    "compose",
+    "frame",
+}
+
+
+def _proposal_metadata_for_stage(stage: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    template = _PROPOSAL_STAGE_CONFIG.get(stage)
+    if not template:
+        return {}, {}
+    return (
+        deepcopy(template.get("metadata") or {}),
+        deepcopy(template.get("args") or {}),
+    )
+
 
 _COMMAND_RULES: dict[str, dict[str, Any]] = {
     "process pad-missing": {
@@ -313,18 +362,30 @@ class Planner:
                 "fields": ["id", "stage", "command", "depends_on", "args"],
                 "stage_choices": prompt_caps.get("stage_order", _STAGE_SEQUENCE),
             },
+            "stage_behavior_hints": {
+                stage: cfg.get("metadata", {})
+                for stage, cfg in _PROPOSAL_STAGE_CONFIG.items()
+            },
         }
+        example_manifest = prompt_caps.get("example_manifest")
+        if example_manifest:
+            manifest_hint["example_manifest"] = example_manifest
         system_prompt = (
-            "You are the Zyra swarm planner. Generate a JSON object with an 'agents' array following the provided "
-            "schema and catalog. Only use canonical stage names and command names from the catalog. Preserve logical "
-            "stage ordering (acquire → process → simulate → decide → visualize → narrate → verify → decimate) and "
-            "set depends_on to enforce data dependencies."
+            "You are the Zyra swarm planner. Generate a JSON object with an 'agents' array matching the schema "
+            "and mirroring the example manifest. For each agent include id, stage, command, depends_on, and args. "
+            "Only use canonical stage names from catalog.stage_order (acquire → process → simulate → decide → "
+            "visualize → narrate → verify → decimate) and commands listed under catalog.stages[].commands. "
+            "Do not invent stages or commands. Use depends_on to preserve the DAG ordering and only emit args that "
+            "map to real CLI flags (no placeholders). When catalog.stage_behavior_hints lists a stage (e.g., narrate "
+            "or verify), emit that agent with behavior='proposal' and omit the command field; the executor will run "
+            "the structured proposal loop using the provided metadata."
         )
         user_prompt = json.dumps(manifest_hint, indent=2, sort_keys=True)
         try:
             raw = client.generate(system_prompt, user_prompt)
         except Exception:
             return []
+        _log_verbose(f"planner: LLM response snippet {raw[:400]!r}")
         data = _parse_llm_json(raw)
         specs: list[StageAgentSpec] = []
         entries = data if isinstance(data, list) else data.get("agents", [])
@@ -414,7 +475,9 @@ def _cmd_plan(ns: argparse.Namespace) -> int:
     accepted_history: list[dict[str, Any]] = []
     accepted_stages: set[str] = set()
     answer_cache: dict[tuple[str, str, str], Any] = {}
+    confirm_cache: dict[tuple[str, str, str], Any] = {}
     global _CURRENT_ANSWER_CACHE
+    global _CURRENT_CONFIRM_CACHE
     pending_manifest: dict[str, Any] | None = None
 
     while True:
@@ -429,6 +492,7 @@ def _cmd_plan(ns: argparse.Namespace) -> int:
                 return 2
 
         _CURRENT_ANSWER_CACHE = answer_cache
+        _CURRENT_CONFIRM_CACHE = confirm_cache
         _apply_cached_answers(manifest, answer_cache)
         manifest = _maybe_prompt_for_followups(
             manifest, allow_prompt=not getattr(ns, "no_clarify", False)
@@ -456,7 +520,7 @@ def _cmd_plan(ns: argparse.Namespace) -> int:
         suggestions = [
             s
             for s in suggest_augmentations(manifest, intent=intent_text)
-            if s.get("stage") not in accepted_stages
+            if str(s.get("stage") or "").lower() not in accepted_stages
         ]
         accepted = _prompt_accept_suggestions(
             suggestions,
@@ -478,6 +542,7 @@ def _cmd_plan(ns: argparse.Namespace) -> int:
         break
 
     _CURRENT_ANSWER_CACHE = None
+    _CURRENT_CONFIRM_CACHE = None
     if final_manifest is None:
         return 2
 
@@ -495,10 +560,15 @@ def _cmd_plan(ns: argparse.Namespace) -> int:
         )
         store.close()
     final_manifest["suggestions"] = [
-        s for s in final_suggestions if s.get("stage") not in accepted_stages
+        s
+        for s in final_suggestions
+        if str(s.get("stage") or "").lower() not in accepted_stages
     ]
     if accepted_history:
         final_manifest["accepted_suggestions"] = accepted_history
+    final_manifest["intent"] = intent_text
+    meta = final_manifest.setdefault("metadata", {})
+    meta.setdefault("intent", intent_text)
     _strip_internal_fields(final_manifest)
     payload = json.dumps(final_manifest, indent=2, sort_keys=True)
     if ns.output and ns.output != "-":
@@ -694,7 +764,47 @@ def _propagate_inferred_args(manifest: dict[str, Any]) -> dict[str, Any]:
                     or _is_example_pattern(current)
                 ):
                     args["pattern"] = propagated
+        if stage in {"acquire", "import"} and command == "ftp":
+            _ensure_sync_dir(agent, agents)
+            _ensure_date_format(agent, agents)
+        if stage in {"process", "transform"} and command == "pad-missing":
+            _ensure_pad_output_dir(agent, by_id)
+        if stage in {"visualize", "render"} and command == "compose-video":
+            source = _frames_source_for_compose(agent, by_id)
+            if source:
+                args["frames"] = source
+    _ensure_proposal_dependencies(manifest)
     return manifest
+
+
+def _ensure_proposal_dependencies(manifest: dict[str, Any]) -> None:
+    agents = manifest.get("agents")
+    if not isinstance(agents, list):  # pragma: no cover - defensive
+        return
+    for agent in agents:
+        if not isinstance(agent, dict):
+            continue
+        if str(agent.get("behavior") or "") != "proposal":
+            continue
+        stage = str(agent.get("stage") or "")
+        template = _PROPOSAL_STAGE_CONFIG.get(stage)
+        if not template:
+            continue
+        depends = agent.setdefault("depends_on", [])
+        if depends is None:
+            depends = agent["depends_on"] = []
+        if not isinstance(depends, list):
+            depends = list(depends)
+            agent["depends_on"] = depends
+        if not depends:
+            dep_stages = template.get("depends_on_stage")
+            if isinstance(dep_stages, str):
+                dep_stages = [dep_stages]
+            for dep_stage in dep_stages or []:
+                dep_id = _find_last_agent_id_by_stage(agents, dep_stage)
+                if dep_id and dep_id not in depends:
+                    depends.append(dep_id)
+        _inherit_template_args(agent, template, manifest)
 
 
 def _apply_suggestion_templates(
@@ -706,14 +816,19 @@ def _apply_suggestion_templates(
         template = _SUGGESTION_TEMPLATES.get(stage)
         if not template:
             continue
-        new_agent = _build_agent_from_template(manifest, template, stage)
+        new_agent = _build_agent_from_template(
+            manifest, template, stage, suggestion=suggestion
+        )
         if new_agent:
             agents.append(new_agent)
     return manifest
 
 
 def _build_agent_from_template(
-    manifest: dict[str, Any], template: dict[str, Any], fallback_stage: str
+    manifest: dict[str, Any],
+    template: dict[str, Any],
+    fallback_stage: str,
+    suggestion: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     agents = manifest.setdefault("agents", [])
     stage = template.get("stage") or fallback_stage
@@ -728,8 +843,9 @@ def _build_agent_from_template(
         "stage": stage,
         "command": command,
         "args": deepcopy(template.get("args") or {}),
+        "behavior": template.get("behavior"),
         "depends_on": [],
-        "metadata": {},
+        "metadata": deepcopy(template.get("metadata") or {}),
         "outputs": [],
         "parallel_ok": True,
         "params": {},
@@ -743,7 +859,12 @@ def _build_agent_from_template(
         dep_id = _find_last_agent_id_by_stage(agents, dep_stage)
         if dep_id:
             depends.append(dep_id)
+    if not depends and _should_link_visual_stage(stage, suggestion):
+        visual_dep = _find_last_agent_id_by_stage(agents, "visualize")
+        if visual_dep:
+            depends.append(visual_dep)
     new_agent["depends_on"] = depends
+    new_agent["metadata"] = deepcopy(template.get("metadata") or {})
     _inherit_template_args(new_agent, template, manifest)
     return new_agent
 
@@ -850,7 +971,12 @@ def _command_rule_gaps(
             )
     confirm_fields = rule.get("confirm") or []
     for field in confirm_fields:
-        if args.get(field) and not _field_is_manual(agent, field):
+        current_value = args.get(field)
+        if current_value and not (
+            _field_is_manual(agent, field)
+            or _cached_answer_matches(stage, command, field, current_value)
+            or _confirmed_choice_matches(stage, command, field, current_value)
+        ):
             gaps.append(
                 _gap_entry(
                     agent_ref=agent,
@@ -895,12 +1021,40 @@ def _field_is_manual(agent: dict[str, Any], field: str) -> bool:
     return field in manual
 
 
+def _cached_answer_matches(stage: str, command: str, field: str, current: Any) -> bool:
+    if _CURRENT_ANSWER_CACHE is None:
+        return False
+    cached = _CURRENT_ANSWER_CACHE.get((stage, command, field))
+    if cached is None:
+        return False
+    return cached == current
+
+
 def _remember_answer(stage: str, command: str, field: str, value: Any) -> None:
     if not (stage and command and field):
         return
     if _CURRENT_ANSWER_CACHE is None:
         return
     _CURRENT_ANSWER_CACHE[(stage, command, field)] = value
+
+
+def _confirmed_choice_matches(
+    stage: str, command: str, field: str, current: Any
+) -> bool:
+    if _CURRENT_CONFIRM_CACHE is None:
+        return False
+    cached = _CURRENT_CONFIRM_CACHE.get((stage, command, field))
+    if cached is None:
+        return False
+    return cached == current
+
+
+def _remember_confirmation(stage: str, command: str, field: str, value: Any) -> None:
+    if not (stage and command and field):
+        return
+    if _CURRENT_CONFIRM_CACHE is None:
+        return
+    _CURRENT_CONFIRM_CACHE[(stage, command, field)] = value
 
 
 def _copy_pattern_from_dependencies(
@@ -915,6 +1069,173 @@ def _copy_pattern_from_dependencies(
         if isinstance(pattern, str) and pattern.strip():
             return pattern
     return None
+
+
+def _ensure_sync_dir(agent: dict[str, Any], agents: list[Any]) -> None:
+    args = agent.setdefault("args", {})
+    current = args.get("sync_dir")
+    if isinstance(current, str) and current.strip():
+        return
+    target = _frames_dir_from_dependents(agent.get("id"), agents)
+    args["sync_dir"] = target
+
+
+def _frames_dir_from_dependents(agent_id: Any, agents: list[Any]) -> str:
+    if not agent_id:
+        return "data/frames_raw"
+    for other in agents:
+        if not isinstance(other, dict):
+            continue
+        depends = other.get("depends_on") or []
+        if agent_id not in depends:
+            continue
+        other_args = other.get("args") or {}
+        for key in ("frames_dir", "output_dir", "sync_dir"):
+            val = other_args.get(key)
+            if (
+                isinstance(val, str)
+                and val.strip()
+                and not _looks_like_placeholder(val)
+            ):
+                return val
+    return "data/frames_raw"
+
+
+def _should_link_visual_stage(stage: str, suggestion: dict[str, Any] | None) -> bool:
+    if stage != "narrate" or not isinstance(suggestion, dict):
+        return False
+    text_parts: list[str] = []
+    for key in ("intent_text", "description"):
+        val = suggestion.get(key)
+        if isinstance(val, str) and val.strip():
+            text_parts.append(val.lower())
+    if not text_parts:
+        return False
+    text = " ".join(text_parts)
+    return any(keyword in text for keyword in _VISUAL_DEP_KEYWORDS)
+
+
+def _ensure_date_format(agent: dict[str, Any], agents: list[Any]) -> None:
+    args = agent.setdefault("args", {})
+    current = args.get("date_format") or args.get("datetime_format")
+    if isinstance(current, str) and current.strip():
+        return
+    fmt = _datetime_format_from_dependents(agent.get("id"), agents)
+    if fmt:
+        args["date_format"] = fmt
+
+
+def _datetime_format_from_dependents(agent_id: Any, agents: list[Any]) -> str | None:
+    if not agent_id:
+        return "%Y%m%d"
+    for other in agents:
+        if not isinstance(other, dict):
+            continue
+        depends = other.get("depends_on") or []
+        if agent_id not in depends:
+            continue
+        other_args = other.get("args") or {}
+        for key in ("datetime_format", "date_format"):
+            val = other_args.get(key)
+            if isinstance(val, str) and val.strip():
+                return val
+    return "%Y%m%d"
+
+
+def _ensure_pad_output_dir(
+    agent: dict[str, Any], by_id: dict[str, dict[str, Any]]
+) -> None:
+    args = agent.setdefault("args", {})
+    current = args.get("output_dir")
+    candidate = _frames_dir_from_dependencies(agent, by_id)
+    if candidate and (
+        not isinstance(current, str)
+        or not current.strip()
+        or _is_default_pad_output_dir(current)
+    ):
+        args["output_dir"] = candidate
+
+
+def _frames_dir_from_dependencies(
+    agent: dict[str, Any], by_id: dict[str, dict[str, Any]]
+) -> str | None:
+    for dep in agent.get("depends_on") or []:
+        source = by_id.get(dep)
+        if not isinstance(source, dict):
+            continue
+        src_args = source.get("args") or {}
+        for key in ("frames_dir", "output_dir", "sync_dir"):
+            val = src_args.get(key)
+            if isinstance(val, str) and val.strip():
+                return val
+    return None
+
+
+def _normalize_dir_value(value: str) -> str:
+    normalized = value.strip().replace("\\", "/")
+    normalized = normalized.rstrip("/")
+    if normalized.startswith("./"):
+        normalized = normalized[2:]
+    return normalized.lower()
+
+
+def _is_default_pad_output_dir(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    normalized = _normalize_dir_value(value)
+    return normalized in {"data/frames_filled", "frames_filled"}
+
+
+def _frames_source_for_compose(
+    agent: dict[str, Any], by_id: dict[str, dict[str, Any]]
+) -> str:
+    for dep in agent.get("depends_on") or []:
+        source = by_id.get(dep)
+        if not isinstance(source, dict):
+            continue
+        stage = str(source.get("stage") or "")
+        command = str(source.get("command") or "")
+        args = source.get("args") or {}
+        if command == "pad-missing":
+            out = args.get("output_dir")
+            if isinstance(out, str) and out.strip():
+                return out
+        if stage in {"process", "transform"} and command == "scan-frames":
+            frames = args.get("frames_dir")
+            if isinstance(frames, str) and frames.strip():
+                return frames
+        if stage in {"acquire", "import"} and command == "ftp":
+            sync = args.get("sync_dir")
+            if isinstance(sync, str) and sync.strip():
+                return sync
+    return "data/frames_raw"
+
+
+def _ensure_date_format(agent: dict[str, Any], agents: list[Any]) -> None:
+    args = agent.setdefault("args", {})
+    current = args.get("date_format") or args.get("datetime_format")
+    if isinstance(current, str) and current.strip():
+        return
+    fmt = _datetime_format_from_dependents(agent.get("id"), agents)
+    if fmt:
+        args["date_format"] = fmt
+
+
+def _datetime_format_from_dependents(agent_id: Any, agents: list[Any]) -> str | None:
+    if not agent_id:
+        return "%Y%m%d"
+    for other in agents:
+        if not isinstance(other, dict):
+            continue
+        depends = other.get("depends_on") or []
+        if agent_id not in depends:
+            continue
+        other_args = other.get("args") or {}
+        for key in ("datetime_format", "date_format"):
+            val = other_args.get(key)
+            if isinstance(val, str) and val.strip():
+                return val
+    return "%Y%m%d"
 
 
 def _maybe_prompt_for_followups(
@@ -967,6 +1288,12 @@ def _maybe_prompt_for_followups(
         except EOFError:  # pragma: no cover - depends on shell piping
             break
         value = response.strip()
+        if not value and gap.get("reason") == "confirm_choice":
+            _mark_manual_field(agent_ref, field)
+            if current is not None:
+                _remember_confirmation(stage, command, field, current)
+            _remember_answer(stage, command, field, current)
+            continue
         if not value:
             skipped.add(_gap_key(gap))
             continue
@@ -974,6 +1301,8 @@ def _maybe_prompt_for_followups(
         args[field] = value
         _mark_manual_field(agent_ref, field)
         _remember_answer(stage, command, field, value)
+        if gap.get("reason") == "confirm_choice":
+            _remember_confirmation(stage, command, field, value)
     return manifest
 
 
@@ -1274,6 +1603,11 @@ def _parse_llm_json(raw: str) -> Any:
     raw = (raw or "").strip()
     if not raw:
         return []
+    if raw.startswith("```"):
+        fence = raw.split("\n", 1)[0]
+        raw = raw[len(fence) :].strip("` \n")
+        if raw.endswith("```"):
+            raw = raw[: -len("```")].strip()
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
@@ -1291,6 +1625,35 @@ def _map_to_capabilities(entry: dict[str, Any], caps: dict[str, Any]) -> dict[st
     stage = _resolve_stage(entry.get("stage"), caps)
     if not stage:
         return {}
+    if stage in _PROPOSAL_STAGE_CONFIG:
+        metadata, defaults = _proposal_metadata_for_stage(stage)
+        entry_args = entry.get("args") or {}
+        if isinstance(entry_args, dict):
+            defaults.update(entry_args)
+        defaults = _drop_placeholder_args(defaults)
+        entry_meta = entry.get("metadata")
+        if isinstance(entry_meta, dict):
+            metadata.update(entry_meta)
+        agent: dict[str, Any] = {
+            "id": entry.get("id") or stage,
+            "stage": stage,
+            "behavior": "proposal",
+            "depends_on": entry.get("depends_on") or [],
+            "args": defaults,
+            "metadata": metadata,
+        }
+        for key in (
+            "stdin_from",
+            "stdout_key",
+            "outputs",
+            "params",
+            "prompt_ref",
+            "role",
+            "parallel_ok",
+        ):
+            if key in entry:
+                agent[key] = entry[key]
+        return agent
     command_info = _resolve_command(stage, entry.get("command"), caps)
     if not command_info:
         return {}
@@ -1526,7 +1889,11 @@ def _resolve_ftp_pattern_from_listing(gap: dict[str, Any]) -> bool:
     args["pattern"] = pattern
     _remember_answer("acquire", "ftp", "pattern", pattern)
     _log_verbose(f"planner: inferred pattern '{pattern}' from FTP listing")
-    _print_listing_preview(listing, "FTP listing preview")
+    _print_listing_preview(
+        listing,
+        "FTP listing preview",
+        verbose_only=not _PLANNER_VERBOSE,
+    )
     return True
 
 
@@ -1632,6 +1999,7 @@ def _infer_pattern_via_llm(samples: list[str]) -> str | None:
     user_prompt = json.dumps({"filenames": samples[:20]}, indent=2)
     try:
         raw = client.generate(system_prompt, user_prompt)
+        _log_verbose(f"planner: LLM response (truncated) {raw[:400]!r}")
     except Exception:
         return None
     if not raw:

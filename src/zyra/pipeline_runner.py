@@ -271,6 +271,9 @@ def _build_argv_for_stage(stage: dict[str, Any]) -> list[str]:
     return argv
 
 
+_ASYNCIO_ISOLATED = {("narrate", "swarm"), ("narrate", "describe")}
+
+
 def _run_cli(argv: list[str], input_bytes: bytes | None) -> tuple[int, bytes, str]:
     """Execute a CLI stage in-process, passing stdin bytes and capturing stdout."""
     import sys
@@ -337,6 +340,9 @@ def _run_cli(argv: list[str], input_bytes: bytes | None) -> tuple[int, bytes, st
         # Fall back to normal path on any detection error
         pass
 
+    if len(argv) >= 2 and (argv[0], argv[1]) in _ASYNCIO_ISOLATED:
+        return _run_cli_subprocess(argv, input_bytes)
+
     # Preserve and swap stdin/stdout
     old_stdin = sys.stdin
     old_stdout = sys.stdout
@@ -370,6 +376,21 @@ def _run_cli(argv: list[str], input_bytes: bytes | None) -> tuple[int, bytes, st
     finally:
         sys.stdin = old_stdin
         sys.stdout = old_stdout
+
+
+def _run_cli_subprocess(
+    argv: list[str], input_bytes: bytes | None
+) -> tuple[int, bytes, str]:
+    import subprocess
+    import sys
+
+    proc = subprocess.run(
+        [sys.executable, "-m", "zyra.cli", *argv],
+        input=input_bytes or b"",
+        capture_output=True,
+    )
+    stderr = (proc.stderr or b"").decode("utf-8", errors="ignore")
+    return int(proc.returncode), proc.stdout or b"", stderr
 
 
 def run_pipeline(

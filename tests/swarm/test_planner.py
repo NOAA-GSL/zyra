@@ -7,6 +7,8 @@ from argparse import Namespace
 import zyra.swarm.value_engine as value_engine
 from zyra.swarm import planner as planner_cli
 from zyra.swarm.planner import (
+    _EXAMPLE_MANIFEST,
+    _STAGE_SEQUENCE,
     _apply_suggestion_templates,
     _collect_arg_gaps,
     _detect_clarifications,
@@ -205,6 +207,45 @@ def test_map_to_capabilities_stage_alias():
     assert mapped["command"] == "ftp"
 
 
+def test_map_to_capabilities_narrate_proposal():
+    caps = {
+        "stage_commands": {"narrate": {"describe": {"positionals": []}}},
+        "stage_aliases": {"narrate": "narrate"},
+        "command_aliases": {"narrate": {"describe": "describe"}},
+    }
+    entry = {
+        "id": "narrate_1",
+        "stage": "narrate",
+        "command": "describe",
+        "depends_on": ["viz"],
+        "args": {"input": "data/out.mp4"},
+    }
+    mapped = _map_to_capabilities(entry, caps)
+    assert mapped["behavior"] == "proposal"
+    assert mapped["stage"] == "narrate"
+    assert mapped["depends_on"] == ["viz"]
+    assert mapped["args"]["input"] == "data/out.mp4"
+    assert "proposal_options" in mapped["metadata"]
+
+
+def test_map_to_capabilities_verify_proposal():
+    caps = {
+        "stage_commands": {"verify": {"evaluate": {"positionals": []}}},
+        "stage_aliases": {"verify": "verify"},
+        "command_aliases": {"verify": {"evaluate": "evaluate"}},
+    }
+    entry = {
+        "id": "verify_1",
+        "stage": "verify",
+        "command": "evaluate",
+        "depends_on": ["proc"],
+    }
+    mapped = _map_to_capabilities(entry, caps)
+    assert mapped["behavior"] == "proposal"
+    assert mapped["metadata"].get("proposal_options") == ["evaluate"]
+    assert mapped["depends_on"] == ["proc"]
+
+
 def test_collect_arg_gaps_includes_optional_resolver(monkeypatch):
     fake_caps = {
         "stage_commands": {
@@ -288,6 +329,30 @@ def test_pad_missing_fill_mode_manual_skip():
     assert not any(g["field"] == "fill_mode" for g in gaps)
 
 
+def test_pad_missing_fill_mode_confirm_cache():
+    manifest = {
+        "agents": [
+            {
+                "id": "fill",
+                "stage": "process",
+                "command": "pad-missing",
+                "args": {"fill_mode": "basemap"},
+            }
+        ]
+    }
+    confirm_cache: dict[tuple[str, str, str], str] = {}
+    previous_cache = planner_cli._CURRENT_CONFIRM_CACHE
+    try:
+        planner_cli._CURRENT_CONFIRM_CACHE = confirm_cache
+        planner_cli._remember_confirmation(
+            "process", "pad-missing", "fill_mode", "basemap"
+        )
+        gaps = planner_cli._collect_arg_gaps(manifest)
+        assert not any(g["field"] == "fill_mode" for g in gaps)
+    finally:
+        planner_cli._CURRENT_CONFIRM_CACHE = previous_cache
+
+
 def test_apply_suggestion_template_adds_narrate():
     manifest = {
         "agents": [
@@ -306,6 +371,59 @@ def test_apply_suggestion_template_adds_narrate():
     assert narrate_agent["stage"] == "narrate"
     assert narrate_agent["depends_on"] == ["viz"]
     assert narrate_agent["args"].get("input") == "videos/out.mp4"
+    assert narrate_agent["metadata"]["proposal_options"] == ["swarm", "describe"]
+
+
+def test_apply_suggestion_template_adds_verify():
+    manifest = {
+        "agents": [
+            {"id": "fetch", "stage": "acquire", "command": "ftp"},
+            {
+                "id": "proc",
+                "stage": "process",
+                "command": "scan-frames",
+                "depends_on": ["fetch"],
+            },
+        ]
+    }
+    suggestions = [{"stage": "verify", "description": "Add verify"}]
+    updated = _apply_suggestion_templates(manifest, suggestions)
+    verify_agent = updated["agents"][-1]
+    assert verify_agent["stage"] == "verify"
+    assert verify_agent["behavior"] == "proposal"
+    assert set(verify_agent["depends_on"]) == {"fetch", "proc"}
+    metadata = verify_agent["metadata"]
+    assert metadata["proposal_options"] == ["evaluate"]
+    assert "proposal_instructions" in metadata
+
+
+def test_apply_suggestion_template_diagnostics_alias():
+    manifest = {"agents": [{"id": "fetch", "stage": "acquire", "command": "ftp"}]}
+    updated = _apply_suggestion_templates(
+        manifest, [{"stage": "diagnostics", "description": "Add diagnostics"}]
+    )
+    diag_agent = updated["agents"][-1]
+    assert diag_agent["stage"] == "verify"
+    assert diag_agent["behavior"] == "proposal"
+
+
+def test_apply_suggestion_template_links_visual_dependency():
+    manifest = {
+        "agents": [
+            {
+                "id": "viz",
+                "stage": "visualize",
+                "command": "compose-video",
+                "args": {"output": "videos/out.mp4"},
+            }
+        ]
+    }
+    suggestions = [
+        {"stage": "narrate", "description": "Summarize the animation video output."}
+    ]
+    updated = _apply_suggestion_templates(manifest, suggestions)
+    narrate_agent = updated["agents"][-1]
+    assert narrate_agent["depends_on"] == ["viz"]
 
 
 def test_propagate_inferred_pattern(monkeypatch):
@@ -329,3 +447,170 @@ def test_propagate_inferred_pattern(monkeypatch):
     updated = _propagate_inferred_args(manifest)
     scan_args = updated["agents"][1]["args"]
     assert scan_args["pattern"] == "^DroughtRisk_Weekly_[0-9]{8}\\.png$"
+
+
+def test_propagate_ftp_args():
+    manifest = {
+        "agents": [
+            {"id": "fetch", "stage": "acquire", "command": "ftp", "args": {}},
+            {
+                "id": "scan",
+                "stage": "process",
+                "command": "scan-frames",
+                "depends_on": ["fetch"],
+                "args": {
+                    "datetime_format": "%Y%m%d",
+                    "frames_dir": "data/frames_raw",
+                },
+            },
+        ]
+    }
+    updated = _propagate_inferred_args(manifest)
+    ftp_args = updated["agents"][0]["args"]
+    assert ftp_args["sync_dir"] == "data/frames_raw"
+    assert ftp_args["date_format"] == "%Y%m%d"
+
+
+def test_pad_output_dir_and_compose_frames():
+    manifest = {
+        "agents": [
+            {
+                "id": "fetch",
+                "stage": "acquire",
+                "command": "ftp",
+                "args": {"sync_dir": "data/raw_frames"},
+            },
+            {
+                "id": "scan",
+                "stage": "process",
+                "command": "scan-frames",
+                "depends_on": ["fetch"],
+                "args": {"frames_dir": "data/raw_frames"},
+            },
+            {
+                "id": "pad",
+                "stage": "process",
+                "command": "pad-missing",
+                "depends_on": ["scan"],
+                "args": {},
+            },
+            {
+                "id": "compose",
+                "stage": "visualize",
+                "command": "compose-video",
+                "depends_on": ["pad"],
+                "args": {},
+            },
+        ]
+    }
+    updated = _propagate_inferred_args(manifest)
+    pad_args = next(a for a in updated["agents"] if a["id"] == "pad")["args"]
+    assert pad_args["output_dir"] == "data/raw_frames"
+    compose_args = next(a for a in updated["agents"] if a["id"] == "compose")["args"]
+    assert compose_args["frames"] == "data/raw_frames"
+
+
+def test_pad_output_dir_replaced_when_default_placeholder():
+    manifest = {
+        "agents": [
+            {
+                "id": "scan",
+                "stage": "process",
+                "command": "scan-frames",
+                "args": {"frames_dir": "data/downloaded"},
+            },
+            {
+                "id": "pad",
+                "stage": "process",
+                "command": "pad-missing",
+                "depends_on": ["scan"],
+                "args": {"output_dir": "data/frames_filled"},
+            },
+            {
+                "id": "compose",
+                "stage": "visualize",
+                "command": "compose-video",
+                "depends_on": ["pad"],
+                "args": {},
+            },
+        ]
+    }
+    updated = _propagate_inferred_args(manifest)
+    pad_args = next(a for a in updated["agents"] if a["id"] == "pad")["args"]
+    assert pad_args["output_dir"] == "data/downloaded"
+    compose_args = next(a for a in updated["agents"] if a["id"] == "compose")["args"]
+    assert compose_args["frames"] == "data/downloaded"
+
+
+def test_proposal_narrate_links_visual_dependency_and_input():
+    manifest = {
+        "agents": [
+            {
+                "id": "compose",
+                "stage": "visualize",
+                "command": "compose-video",
+                "args": {"output": "data/movie.mp4"},
+            },
+            {
+                "id": "story",
+                "stage": "narrate",
+                "behavior": "proposal",
+                "args": {},
+            },
+        ]
+    }
+    updated = _propagate_inferred_args(manifest)
+    story_agent = next(a for a in updated["agents"] if a["id"] == "story")
+    assert story_agent["depends_on"] == ["compose"]
+    assert story_agent["args"]["input"] == "data/movie.mp4"
+
+
+def test_llm_plan_mock(monkeypatch):
+    class FakeClient:
+        def generate(self, system_prompt, user_prompt):
+            assert "stage_behavior_hints" in user_prompt
+            return json.dumps(
+                {
+                    "agents": [
+                        {
+                            "id": "fetch",
+                            "stage": "acquire",
+                            "command": "ftp",
+                            "args": {"path": "ftp://example.com/data"},
+                        },
+                        {
+                            "id": "tell_story",
+                            "stage": "narrate",
+                            "command": "describe",
+                            "depends_on": ["fetch"],
+                            "args": {"input": "data/out.mp4"},
+                        },
+                    ]
+                }
+            )
+
+    monkeypatch.setattr(planner_cli, "_load_llm_client", lambda: FakeClient())
+
+    class FakeCaps:
+        stage_commands = {
+            "acquire": {"ftp": {"positionals": [{"name": "path", "required": True}]}},
+            "narrate": {"describe": {"positionals": []}},
+        }
+
+    fake_caps = {
+        "stage_commands": FakeCaps.stage_commands,
+        "stage_aliases": {"acquire": "acquire", "narrate": "narrate"},
+        "command_aliases": {
+            "acquire": {"ftp": "ftp"},
+            "narrate": {"describe": "describe"},
+        },
+        "prompt": {
+            "stage_order": _STAGE_SEQUENCE,
+            "example_manifest": _EXAMPLE_MANIFEST,
+        },
+    }
+    monkeypatch.setattr(planner_cli, "_load_capabilities", lambda: fake_caps)
+    specs = planner_cli.Planner()._llm_plan("please narrate")
+    assert specs[0].command == "ftp"
+    assert specs[1].behavior == "proposal"
+    assert specs[1].metadata["proposal_options"] == ["swarm", "describe"]
