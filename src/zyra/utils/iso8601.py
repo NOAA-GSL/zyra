@@ -9,6 +9,12 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timedelta, timezone
+from typing import Any
+
+try:  # NumPy is an optional dependency in a few lightweight environments
+    import numpy as _np
+except Exception:  # pragma: no cover - fallback when numpy unavailable
+    _np = None
 
 
 def iso_to_ms(s: str) -> int:
@@ -22,6 +28,48 @@ def iso_to_ms(s: str) -> int:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return int(dt.timestamp() * 1000)
+
+
+def to_datetime(value: Any) -> datetime | None:
+    """Coerce ``value`` into a timezone-aware ``datetime`` where possible.
+
+    Accepts ``datetime`` objects (naive assumed UTC), ISO strings with optional
+    ``Z`` suffix, and ``numpy.datetime64`` values. Returns ``None`` when the
+    input is empty or cannot be interpreted as a timestamp.
+    """
+
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    if isinstance(value, str):
+        token = value.strip()
+        if not token:
+            return None
+        if token.endswith("Z"):
+            token = token[:-1] + "+00:00"
+        try:
+            dt = datetime.fromisoformat(token)
+        except ValueError:
+            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
+                try:
+                    dt = datetime.strptime(token, fmt)
+                    break
+                except ValueError:
+                    continue
+            else:
+                return None
+        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    if _np is not None and isinstance(value, _np.datetime64):  # pragma: no cover
+        # Use nanosecond precision to preserve sub-second detail when present
+        ts = value.astype("datetime64[ns]").astype("int64")
+        return datetime.fromtimestamp(ts / 1_000_000_000, tz=timezone.utc)
+    if hasattr(value, "item"):
+        try:
+            return to_datetime(value.item())
+        except Exception:
+            return None
+    return None
 
 
 # Supported duration subset: P[nD]T[nH][nM][nS]
