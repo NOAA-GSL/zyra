@@ -41,10 +41,6 @@ Poetry equivalents (dev env)
 - visualization: `poetry install --with dev -E visualization`
 - interactive: `poetry install --with dev -E interactive`
 - api: `poetry install --with dev -E api`
-- guardrails validation (for `--guardrails schema.rail`):
-  - Pip: `pip install "zyra[guardrails]"`
-  - Poetry: `poetry install --with dev -E guardrails`
-- all: `poetry install --with dev --all-extras`
 - all: `poetry install --with dev --all-extras`
 
 ## Focused Extras
@@ -64,6 +60,6 @@ Poetry equivalents (dev env)
   - `zyra acquire s3 --url s3://bucket/key -o - | zyra export s3 --url s3://other/key -i -`
 
 ## Notes
-- Optional deps are large; install only what you need. Guardrails adds `guardrails-ai` for schema validation during `zyra swarm --guardrails …`.
+- Optional deps are large; install only what you need.
 - Many commands support `-` for stdin/stdout to enable streaming pipelines.
 - Legacy terms: `datatransfer` (alias of `connectors`), `decimate` (alias of `export`). Prefer the primary names in new docs.
