@@ -177,3 +177,36 @@ def test_transform_scan_frames_alias(tmp_path: Path) -> None:
     assert exit_code == 0
     data = json.loads(output.read_text(encoding="utf-8"))
     assert data["frame_count_actual"] == 1
+
+
+def test_scan_frames_analysis_block(tmp_path: Path) -> None:
+    frames_dir = tmp_path / "frames"
+    frames_dir.mkdir()
+    _make_frame(frames_dir / "frame_202401010000.png", "#00ff00")
+    _make_frame(frames_dir / "frame_202401010005.png", "#00ff00")
+    _make_frame(frames_dir / "frame_202401010005.jpg", "#00ff00")
+    output = tmp_path / "analysis.json"
+
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="cmd", required=True)
+    register_transform_cli(subparsers)
+
+    args = parser.parse_args(
+        [
+            "scan-frames",
+            "--frames-dir",
+            str(frames_dir),
+            "--datetime-format",
+            "%Y%m%d%H%M",
+            "-o",
+            str(output),
+        ]
+    )
+    exit_code = args.func(args)
+    assert exit_code == 0
+    data = json.loads(output.read_text(encoding="utf-8"))
+    analysis = data.get("analysis") or {}
+    assert analysis["frame_count_unique"] == 2
+    assert analysis["duplicate_timestamps"]
+    assert analysis["sample_frames"]
+    assert "span_seconds" in analysis

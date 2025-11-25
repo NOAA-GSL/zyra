@@ -1,18 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
-import asyncio
-import logging
-import os
-import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, Iterable
+from pathlib import Path
+from typing import Any
 
-# Default worker cap used when no explicit limit is provided via CLI/env.
-# Eight threads keeps concurrency modest on laptops/CI while still exercising
-# parallel behaviour in tests.
-DEFAULT_MAX_WORKERS = 8
+from zyra.swarm import SwarmOrchestrator as _BaseSwarmOrchestrator
+
+SwarmOrchestrator = _BaseSwarmOrchestrator
+
 IMAGE_MAX_BYTES = 1_500_000
 
 
@@ -143,6 +139,9 @@ class Agent:
             except Exception:
                 pass
 
+        frames_context = _summarize_frames_context(idata)
+        verify_context = _summarize_verify_context(idata)
+
         for name in self.spec.outputs or []:
             if role == "critic":
                 sample = "; ".join(
@@ -182,10 +181,15 @@ class Agent:
                     if image_list_for_prompt
                     else ""
                 )
+                frames_clause = f" Frames: {frames_context}." if frames_context else ""
+                verify_clause = (
+                    f" Verification: {verify_context}." if verify_context else ""
+                )
                 user_prompt = (
                     f"Role: {role}. Output: {name}. Style: {self.style or 'journalistic'}. "
                     f"Audiences: {', '.join(self.audience) or 'general'}."
-                    f"{seed_clause}{h_clause}{img_clause} Write exactly one sentence grounded in the seed if present."
+                    f"{seed_clause}{h_clause}{img_clause}{frames_clause}{verify_clause}"
+                    " Write exactly one sentence grounded in the seed if present."
                 )
             text: str
             outval: Any
@@ -227,212 +231,122 @@ class Agent:
         return outs
 
 
-class SwarmOrchestrator:
-    def __init__(
-        self,
-        agents: Iterable[Agent],
-        *,
-        max_workers: int | None = None,
-        max_rounds: int = 1,
-    ) -> None:
-        self.agents = list(agents)
-        self.max_workers = max_workers
-        self.max_rounds = max_rounds
-        self.provenance: list[dict[str, Any]] = []
-        self.errors: list[dict[str, Any]] = []
-        self.failed_agents: list[str] = []
+def _summarize_frames_context(input_data: Any) -> str:
+    if not isinstance(input_data, dict):
+        return ""
+    meta = input_data.get("frames_metadata")
+    if not isinstance(meta, dict):
+        raw_meta = input_data.get("metadata")
+        meta = raw_meta if isinstance(raw_meta, dict) else None
+    analysis = input_data.get("frames_analysis")
+    if not isinstance(analysis, dict) and isinstance(meta, dict):
+        raw_analysis = meta.get("analysis")
+        analysis = raw_analysis if isinstance(raw_analysis, dict) else None
+    parts: list[str] = []
+    start = meta.get("start_datetime") if isinstance(meta, dict) else None
+    end = meta.get("end_datetime") if isinstance(meta, dict) else None
+    count = meta.get("frame_count_actual") if isinstance(meta, dict) else None
+    missing = meta.get("missing_count") if isinstance(meta, dict) else None
+    missing_list: list[str] = []
+    if isinstance(meta, dict):
+        miss = meta.get("missing_timestamps")
+        if isinstance(miss, list):
+            missing_list = [str(x) for x in miss if isinstance(x, str)]
+    if count is not None:
+        parts.append(f"{count} frames")
+    if start and end:
+        parts.append(f"{start} → {end}")
+    if isinstance(analysis, dict):
+        span = analysis.get("span_seconds")
+        if isinstance(span, (int, float)) and span > 0:
+            parts.append(_format_human_span(int(span)))
+        missing_detail = analysis.get("missing_timestamps")
+        if isinstance(missing_detail, list):
+            missing_list = missing_list or [
+                str(x) for x in missing_detail if isinstance(x, str)
+            ]
+            if missing is None:
+                missing = len(missing_detail)
+        samples = analysis.get("sample_frames")
+        if isinstance(samples, list) and samples:
+            labels: list[str] = []
+            for entry in samples[:3]:
+                label = entry.get("label") if isinstance(entry, dict) else None
+                path = entry.get("path") if isinstance(entry, dict) else None
+                if isinstance(label, str) and label:
+                    labels.append(label)
+                elif isinstance(path, str) and path:
+                    labels.append(Path(path).stem)
+            if labels:
+                parts.append(f"samples {', '.join(labels)}")
+    if missing and missing > 0:
+        snippet = f"missing {missing}"
+        if missing_list:
+            snippet += f" (examples: {', '.join(missing_list[:3])})"
+        parts.append(snippet)
+    elif missing == 0:
+        parts.append("no missing frames")
+    return "; ".join(parts)
 
-    def _auto_pool_size(self, n: int) -> int:
-        env_cap = int(
-            os.getenv("ZYRA_SWARM_MAX_WORKERS_CAP", str(DEFAULT_MAX_WORKERS))
-            or DEFAULT_MAX_WORKERS
-        )
-        cores = os.cpu_count() or DEFAULT_MAX_WORKERS
-        pool = max(1, min(n, cores, env_cap))
-        return pool
 
-    async def _run_agent_with_retries(
-        self, a: Agent, context: dict[str, Any]
-    ) -> dict[str, Any]:
-        p = a.spec.params or {}
-        max_retries = int(p.get("max_retries", 0) or 0)
-        backoff_ms = int(p.get("backoff_ms", 50) or 0)
-        backoff_factor = float(p.get("backoff_factor", 2.0) or 2.0)
-        max_backoff_ms = int(p.get("max_backoff_ms", 500) or 500)
+def _format_human_span(seconds: int) -> str:
+    minutes, sec = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    days, hours = divmod(hours, 24)
+    parts: list[str] = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    if sec and not parts:
+        parts.append(f"{sec}s")
+    return "span " + "".join(parts)
 
-        attempt = 0
-        while True:
-            try:
-                return await a.run(context)
-            except Exception:
-                if attempt >= max_retries:
-                    raise
-                delay_ms = int(
-                    min(max_backoff_ms, backoff_ms * (backoff_factor**attempt))
-                )
-                if delay_ms > 0:
-                    await asyncio.sleep(delay_ms / 1000.0)
-                attempt += 1
 
-    async def _run_round(
-        self, agents: list[Agent], context: dict[str, Any]
-    ) -> dict[str, Any]:
-        outputs: dict[str, Any] = {}
-        pool_size = (
-            self.max_workers
-            if self.max_workers and self.max_workers > 0
-            else self._auto_pool_size(len(agents))
-        )
-        sem = asyncio.Semaphore(pool_size)
-        log = logging.getLogger("zyra.narrate.swarm")
-        debug = (os.environ.get("ZYRA_VERBOSITY") or "").lower() == "debug"
-        if debug:
-            log.debug("[swarm] running %d agents (pool=%d)", len(agents), pool_size)
+def _summarize_verify_context(input_data: Any) -> str:
+    if not isinstance(input_data, dict):
+        return ""
+    verify = input_data.get("verify_results")
+    if not isinstance(verify, list):
+        meta = input_data.get("metadata")
+        if isinstance(meta, dict):
+            verify = meta.get("verify_results")
+    if not isinstance(verify, list):
+        return ""
+    summaries: list[str] = []
+    for entry in verify:
+        if not isinstance(entry, dict):
+            continue
+        message = entry.get("message") or entry.get("text")
+        verdict = entry.get("verdict")
+        metric = entry.get("metric")
+        snippet_parts = []
+        if isinstance(metric, str) and metric:
+            snippet_parts.append(metric)
+        if isinstance(verdict, str) and verdict:
+            snippet_parts.append(verdict)
+        snippet = " ".join(snippet_parts).strip()
+        detail = _clean_verify_message(message) if message else ""
+        if snippet and detail:
+            summaries.append(f"{snippet}: {detail}")
+        elif snippet:
+            summaries.append(snippet)
+        elif detail:
+            summaries.append(detail)
+        if len(summaries) >= 2:
+            break
+    return "; ".join(summaries)
 
-        async def run_one(a: Agent) -> dict[str, Any]:
-            async with sem:
-                t0 = time.perf_counter()
-                started = datetime.now(timezone.utc).isoformat()
-                # Agent start
-                if debug:
-                    log.debug("[agent %s] start", a.spec.id)
-                try:
-                    res = await self._run_agent_with_retries(a, context)
-                except Exception as exc:  # pragma: no cover
-                    self.errors.append(
-                        {
-                            "agent": a.spec.id,
-                            "message": str(exc) or "agent failed",
-                            "retried": int(
-                                (a.spec.params or {}).get("max_retries", 0) or 0
-                            ),
-                        }
-                    )
-                    if a.spec.id not in self.failed_agents:
-                        self.failed_agents.append(a.spec.id)
-                    if debug:
-                        log.warning("[agent %s] fail: %s", a.spec.id, exc)
-                    res = {}
-                dt_ms = int((time.perf_counter() - t0) * 1000)
-                if dt_ms < 0:
-                    dt_ms = 0
-                # Conversational trace: show agent outputs (redacted) in debug mode
-                if debug and isinstance(res, dict) and res:
-                    try:
-                        from zyra.utils.cli_helpers import (
-                            sanitize_for_log,
-                        )  # lazy import
 
-                        for k, v in res.items():
-                            s = v if isinstance(v, str) else str(v)
-                            s = sanitize_for_log(s)
-                            preview = s[:160] + ("…" if len(s) > 160 else "")
-                            log.info(
-                                "[agent %s:%s] -> %s: %s",
-                                a.spec.id,
-                                a.spec.role,
-                                k,
-                                preview,
-                            )
-                    except Exception:
-                        # Never fail the run on logging/preview issues
-                        pass
-                # Derive a simple prompt reference path based on id/role
-                if a.spec.prompt_ref:
-                    ref = a.spec.prompt_ref
-                else:
-                    known_ids = {
-                        "summary",
-                        "context",
-                        "critic",
-                        "editor",
-                        "audience_adapter",
-                    }
-                    base_name = (
-                        a.spec.id
-                        if a.spec.id in known_ids
-                        else (a.spec.role or "specialist")
-                    )
-                    ref = f"zyra.assets/llm/prompts/narrate/{base_name}.md"
-                self.provenance.append(
-                    {
-                        "agent": a.spec.id,
-                        "model": getattr(a.llm or context.get("llm"), "model", None),
-                        "started": started,
-                        "prompt_ref": ref,
-                        "duration_ms": dt_ms,
-                    }
-                )
-                if debug:
-                    log.debug("[agent %s] done in %d ms", a.spec.id, dt_ms)
-                return res
-
-        results = await asyncio.gather(*(run_one(a) for a in agents))
-        for res in results:
-            outputs.update(res)
-        # Update context's outputs so subsequent rounds can see prior results
-        try:
-            if isinstance(context, dict):
-                context.setdefault("outputs", {})
-                context["outputs"].update(outputs)
-        except Exception:
-            pass
-        return outputs
-
-    async def _execute_dag(self, context: dict[str, Any]) -> dict[str, Any]:
-        id_to_agent = {a.spec.id: a for a in self.agents}
-        deps: dict[str, set[str]] = {
-            aid: set(id_to_agent[aid].spec.depends_on or []) for aid in id_to_agent
-        }
-        remaining = set(id_to_agent.keys())
-        outputs: dict[str, Any] = {}
-        while remaining:
-            ready_ids = [aid for aid in remaining if not deps.get(aid)]
-            if not ready_ids:
-                # cycle or unmet deps
-                for aid in sorted(remaining):
-                    if aid not in self.failed_agents:
-                        self.failed_agents.append(aid)
-                        self.errors.append(
-                            {
-                                "agent": aid,
-                                "message": "skipped due to unmet dependencies",
-                                "retried": 0,
-                            }
-                        )
-                break
-            ready = [id_to_agent[aid] for aid in ready_ids]
-            outputs.update(await self._run_round(ready, context))
-            # Remove completed nodes (that did not fail) and drop their deps
-            for aid in ready_ids:
-                remaining.discard(aid)
-                if aid not in self.failed_agents:
-                    for s in deps.values():
-                        s.discard(aid)
-        return outputs
-
-    async def execute(self, context: dict[str, Any]) -> dict[str, Any]:
-        outputs: dict[str, Any] = {}
-        if not self.agents:
-            return outputs
-
-        # If any dependencies are declared, prefer DAG execution (critic/editor
-        # agents will be skipped when prerequisites fail). This aligns with tests
-        # expecting unmet deps to block dependents.
-        if any(a.spec.depends_on for a in self.agents):
-            outputs.update(await self._execute_dag(context))
-            return outputs
-
-        review_agents = [a for a in self.agents if a.spec.role in {"critic", "editor"}]
-
-        # Round 1: run all agents once
-        outputs.update(await self._run_round(self.agents, context))
-
-        # Subsequent rounds: run only critic/editor agents (rounds - 1 times)
-        rounds = max(0, int(self.max_rounds or 0))
-        extra = max(0, rounds - 1)
-        for _ in range(extra):
-            if not review_agents:
-                break
-            outputs.update(await self._run_round(review_agents, context))
-        return outputs
+def _clean_verify_message(message: Any) -> str:
+    text = str(message or "").strip()
+    if not text:
+        return ""
+    lower = text.lower()
+    if lower.startswith("verify "):
+        idx = text.find(":")
+        if idx != -1:
+            text = text[idx + 1 :].strip()
+    return text

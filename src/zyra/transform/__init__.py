@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import re
@@ -44,19 +45,25 @@ def _compute_frames_metadata(
     names.sort()
 
     # Parse timestamps from filenames
+    entries: list[tuple[datetime, Path]] = []
     timestamps: list[datetime] = []
     if datetime_format:
         dm = DateManager([datetime_format])
-        timestamps = dm.parse_timestamps_from_filenames(names, datetime_format)
+        parsed = dm.parse_timestamps_from_filenames(names, datetime_format)
+        for name, dt in zip(names, parsed):
+            if dt is not None:
+                entries.append((dt, p / name))
+                timestamps.append(dt)
     else:
         dm = DateManager()
         for n in names:
             s = dm.extract_date_time(n)
             if s:
-                from contextlib import suppress
-
-                with suppress(Exception):
-                    timestamps.append(datetime.fromisoformat(s))
+                with contextlib.suppress(Exception):
+                    dt = datetime.fromisoformat(s)
+                    entries.append((dt, p / n))
+                    timestamps.append(dt)
+    entries.sort(key=lambda item: item[0])
     timestamps.sort()
 
     start_dt = timestamps[0] if timestamps else None
@@ -91,6 +98,50 @@ def _compute_frames_metadata(
         out["frame_count_expected"] = None
         out["missing_count"] = None
         out["missing_timestamps"] = []
+
+    analysis: dict[str, Any] = {}
+    if start_dt and end_dt:
+        analysis["span_seconds"] = int((end_dt - start_dt).total_seconds())
+    if entries:
+        unique_seen: set[str] = set()
+        duplicates: list[str] = []
+        for dt, _ in entries:
+            iso = dt.isoformat()
+            if iso in unique_seen:
+                duplicates.append(iso)
+            else:
+                unique_seen.add(iso)
+        analysis["frame_count_unique"] = len(unique_seen)
+        analysis["duplicate_timestamps"] = duplicates
+        sample_indexes = sorted({0, len(entries) // 2, len(entries) - 1})
+        samples: list[dict[str, Any]] = []
+        for idx in sample_indexes:
+            if idx < 0 or idx >= len(entries):
+                continue
+            dt, file_path = entries[idx]
+            sample: dict[str, Any] = {
+                "timestamp": dt.isoformat(),
+                "path": str(file_path),
+            }
+            with contextlib.suppress(OSError, ValueError):
+                stat = file_path.stat()
+                sample["size_bytes"] = stat.st_size
+            samples.append(sample)
+        analysis["sample_frames"] = samples
+
+        sizes = []
+        for _, fp in entries:
+            with contextlib.suppress(OSError, ValueError):
+                sizes.append(fp.stat().st_size)
+        if sizes:
+            analysis["file_size_summary"] = {
+                "min_bytes": min(sizes),
+                "max_bytes": max(sizes),
+                "total_bytes": sum(sizes),
+            }
+
+    if analysis:
+        out["analysis"] = analysis
 
     return out
 
