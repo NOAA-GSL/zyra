@@ -49,8 +49,8 @@ class GuardrailsAdapter(BaseGuardrailsAdapter):
     def _load_guard(self):
         if self._guard:
             return self._guard
-        text = Path(self.schema_path).read_text(encoding="utf-8")
-        self._guard = _guardrails.Guard.from_rail(text)  # type: ignore[attr-defined]
+        path = Path(self.schema_path)
+        self._guard = _guardrails.Guard.from_rail(str(path))  # type: ignore[attr-defined]
         return self._guard
 
     def validate(
