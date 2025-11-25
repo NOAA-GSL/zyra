@@ -41,6 +41,6 @@ def test_guardrails_adapter_validates(tmp_path):
     )
     adapter = GuardrailsAdapter(str(schema_path))
     agent = _make_dummy_agent("narrate")
-    outputs = {"summary": "Short summary"}
+    outputs = {"summary": '"Short summary"'}
     validated = adapter.validate(agent, outputs)
     assert validated["summary"] == "Short summary"
