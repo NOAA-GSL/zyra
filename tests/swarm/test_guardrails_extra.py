@@ -25,7 +25,9 @@ def test_guardrails_adapter_validates(tmp_path):
 <rail version="0.1">
 
 <output>
-    <string name="summary" />
+    <object name="result">
+        <string name="summary" />
+    </object>
 </output>
 
 <prompt>
@@ -41,6 +43,7 @@ def test_guardrails_adapter_validates(tmp_path):
     )
     adapter = GuardrailsAdapter(str(schema_path))
     agent = _make_dummy_agent("narrate")
-    outputs = {"summary": '"Short summary"'}
+    outputs = {"summary": '{"summary":"Short summary"}'}
     validated = adapter.validate(agent, outputs)
-    assert validated["summary"] == "Short summary"
+    assert isinstance(validated.get("summary"), dict)
+    assert validated["summary"]["summary"] == "Short summary"
