@@ -1,7 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
+import os
+
 import pytest
+
+os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
 from zyra.swarm.guardrails import GuardrailsAdapter
 
@@ -25,7 +29,9 @@ def test_guardrails_adapter_validates(tmp_path):
 <rail version="0.1">
 
 <output>
-    <string name="summary" description="summary text" />
+    <object name="result">
+        <string name="summary" />
+    </object>
 </output>
 
 <prompt>
@@ -41,6 +47,7 @@ def test_guardrails_adapter_validates(tmp_path):
     )
     adapter = GuardrailsAdapter(str(schema_path))
     agent = _make_dummy_agent("narrate")
-    outputs = {"summary": '"Short summary"'}
+    outputs = {"summary": '{"result":{"summary":"Short summary"}}'}
     validated = adapter.validate(agent, outputs)
-    assert validated["summary"] == "Short summary"
+    assert isinstance(validated.get("summary"), dict)
+    assert validated["summary"]["result"]["summary"] == "Short summary"
