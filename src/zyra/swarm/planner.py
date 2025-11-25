@@ -1576,33 +1576,6 @@ def _frames_source_for_compose(
     return "data/frames_raw"
 
 
-def _ensure_date_format(agent: dict[str, Any], agents: list[Any]) -> None:
-    args = agent.setdefault("args", {})
-    current = args.get("date_format") or args.get("datetime_format")
-    if isinstance(current, str) and current.strip():
-        return
-    fmt = _datetime_format_from_dependents(agent.get("id"), agents)
-    if fmt:
-        args["date_format"] = fmt
-
-
-def _datetime_format_from_dependents(agent_id: Any, agents: list[Any]) -> str | None:
-    if not agent_id:
-        return "%Y%m%d"
-    for other in agents:
-        if not isinstance(other, dict):
-            continue
-        depends = other.get("depends_on") or []
-        if agent_id not in depends:
-            continue
-        other_args = other.get("args") or {}
-        for key in ("datetime_format", "date_format"):
-            val = other_args.get(key)
-            if isinstance(val, str) and val.strip():
-                return val
-    return "%Y%m%d"
-
-
 def _maybe_prompt_for_followups(
     manifest: dict[str, Any], allow_prompt: bool = True
 ) -> dict[str, Any]:
