@@ -180,10 +180,11 @@ Saved 2 command(s) to /path/to/history.txt
 The Wizard can ground suggestions using a structured capabilities manifest that lists available commands and their options.
 
 - Generation:
-  - `poetry run zyra generate-manifest` (writes to `src/zyra/wizard/zyra_capabilities.json` by default).
-  - Use `-o /path/to/file.json` to write elsewhere.
-  - Note: When new CLI commands or options are added (e.g., `search` flags), regenerate the manifest so assistants and tools stay in sync.
-- Packaging: The manifest under `src/zyra/wizard/zyra_capabilities.json` is bundled with the package.
+  - `poetry run zyra generate-manifest` (writes canonical per-domain files under `src/zyra/wizard/zyra_capabilities/`).
+  - Pass `--legacy-json` (default) to also refresh `src/zyra/wizard/zyra_capabilities.json` for older tools.
+  - Use `-o /path/to/dir` or `-o /path/to/file.json` to override destinations.
+  - Note: Regenerate whenever CLI commands or options change so assistants/tools stay in sync.
+- Packaging: The manifest directory `src/zyra/wizard/zyra_capabilities/` (plus the optional legacy JSON when enabled) is bundled with the package.
 - Usage in Wizard: On each turn, Wizard loads the manifest (if present), selects relevant entries by keyword match against the user prompt, and prepends a short context like:
   - `- Relevant commands:`
   - `  - visualize heatmap: Generate heatmap images. Options: --input, --var, --output`
