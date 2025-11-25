@@ -9,10 +9,13 @@ from zyra.swarm import planner as planner_cli
 from zyra.swarm.planner import (
     _EXAMPLE_MANIFEST,
     _STAGE_SEQUENCE,
+    _agent_reasoning,
     _apply_suggestion_templates,
     _collect_arg_gaps,
     _detect_clarifications,
     _drop_placeholder_args,
+    _ensure_auto_verify_agent,
+    _ensure_verify_agents_materialized,
     _field_help_text,
     _map_to_capabilities,
     _normalize_args_for_command,
@@ -28,6 +31,14 @@ def test_mock_rule_produces_manifest():
     assert manifest["agents"][0]["id"] == "simulate"
     assert manifest["agents"][1]["depends_on"] == ["simulate"]
     assert manifest["agents"][1]["stage"] == "narrate"
+
+
+def test_example_fallback_manifest(monkeypatch):
+    monkeypatch.setattr(planner_cli, "_load_llm_client", lambda: None)
+    manifest = planner.plan("fallback manifest please")
+    agents = manifest["agents"]
+    assert agents[0]["id"] == "fetch_frames"
+    assert any(agent["stage"] == "visualize" for agent in agents)
 
 
 def test_cli_dump(capsys):
@@ -47,6 +58,7 @@ def test_cli_dump(capsys):
     payload = json.loads(out)
     assert payload["agents"][0]["stage"] == "simulate"
     assert payload.get("suggestions") is not None
+    assert isinstance(payload.get("plan_summary"), str)
 
 
 def test_validation_detects_duplicate():
@@ -133,6 +145,131 @@ def test_drop_placeholder_args_removes_example_path():
     }
     clean = _drop_placeholder_args(args)
     assert "path" not in clean
+
+
+def test_friendly_gap_message_fallback(monkeypatch):
+    monkeypatch.setattr(planner_cli, "_load_llm_client", lambda: None)
+    gap = {
+        "stage": "acquire",
+        "command": "ftp",
+        "field": "path",
+        "reason": "missing_arg",
+    }
+    message = planner_cli._friendly_gap_message(gap, "Provide an FTP URL.")
+    assert "acquire" in message
+    assert "path" in message
+
+
+def test_friendly_gap_message_with_llm(monkeypatch):
+    class FakeClient:
+        def generate(self, system_prompt, payload):
+            data = json.loads(payload)
+            return f"Please share {data['field']} for {data['stage']}"
+
+    monkeypatch.setattr(planner_cli, "_load_llm_client", lambda: FakeClient())
+    gap = {
+        "stage": "narrate",
+        "command": "describe",
+        "field": "input",
+        "reason": "missing_arg",
+    }
+    message = planner_cli._friendly_gap_message(gap, None)
+    assert message == "Please share input for narrate"
+
+
+def test_scan_frames_reasoning_includes_stats(tmp_path):
+    frames_dir = tmp_path / "frames"
+    frames_dir.mkdir()
+    (frames_dir / "frame_202401010000.png").write_bytes(b"a")
+    (frames_dir / "frame_202401010010.png").write_bytes(b"b")
+    agent = {
+        "id": "scan",
+        "stage": "process",
+        "command": "scan-frames",
+        "args": {
+            "frames_dir": str(frames_dir),
+            "datetime_format": "%Y%m%d%H%M",
+        },
+    }
+    text = _agent_reasoning(agent, "download")
+    assert "Stats" in text
+
+
+def test_apply_suggestion_template_inserts_custom_agent():
+    manifest = {"agents": []}
+    suggestion = {
+        "stage": "verify",
+        "description": "Add completeness check",
+        "agent_template": {
+            "stage": "verify",
+            "behavior": "cli",
+            "command": "evaluate",
+            "args": {"metric": "completeness"},
+        },
+    }
+    updated = planner_cli._apply_suggestion_templates(manifest, [suggestion])
+    verify_agent = next(a for a in updated["agents"] if a["stage"] == "verify")
+    assert verify_agent["command"] == "evaluate"
+
+
+def test_auto_verify_agent_inserted(tmp_path):
+    frames_dir = tmp_path / "frames"
+    frames_dir.mkdir()
+    (frames_dir / "frame_202401010000.png").write_bytes(b"a")
+    (frames_dir / "frame_202401010100.png").write_bytes(b"b")
+    manifest = {
+        "agents": [
+            {
+                "id": "scan",
+                "stage": "process",
+                "command": "scan-frames",
+                "args": {
+                    "frames_dir": str(frames_dir),
+                    "datetime_format": "%Y%m%d%H%M",
+                    "period_seconds": 1800,
+                    "output": str(tmp_path / "meta.json"),
+                },
+            }
+        ]
+    }
+    _ensure_auto_verify_agent(manifest)
+    verify_agent = next(a for a in manifest["agents"] if a["stage"] == "verify")
+    assert verify_agent["command"] == "evaluate"
+    assert verify_agent["behavior"] == "cli"
+    assert verify_agent["args"].get("input") == str(tmp_path / "meta.json")
+
+
+def test_verify_proposal_materialized(tmp_path):
+    frames_dir = tmp_path / "frames2"
+    frames_dir.mkdir()
+    (frames_dir / "frame_202401010000.png").write_bytes(b"a")
+    manifest = {
+        "agents": [
+            {
+                "id": "scan_custom",
+                "stage": "process",
+                "command": "scan-frames",
+                "args": {
+                    "frames_dir": str(frames_dir),
+                    "output": str(tmp_path / "meta2.json"),
+                },
+            },
+            {
+                "id": "verify_animation",
+                "stage": "verify",
+                "behavior": "proposal",
+                "command": None,
+                "depends_on": [],
+                "args": {},
+            },
+        ]
+    }
+    _ensure_verify_agents_materialized(manifest)
+    verify_agent = next(a for a in manifest["agents"] if a["stage"] == "verify")
+    assert verify_agent["behavior"] == "cli"
+    assert verify_agent["command"] == "evaluate"
+    assert verify_agent["args"]["input"] == str(tmp_path / "meta2.json")
+    assert "scan_custom" in verify_agent["depends_on"]
 
 
 def test_normalize_args_drops_pattern_without_path():

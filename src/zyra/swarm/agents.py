@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import re
+import tempfile
 from dataclasses import asdict
 from functools import lru_cache
 from pathlib import Path
@@ -183,10 +184,14 @@ class ProposalStageAgent(StageAgent):
             raise ValueError(
                 f"{self.spec.id}: proposal stage requires proposal_options"
             )
-        ctx_meta = context.get("metadata") if isinstance(context, dict) else None
+        ctx_meta = _extract_metadata(context)
         request_ctx: dict[str, Any] = {}
-        if isinstance(ctx_meta, dict) and ctx_meta.get("intent"):
-            request_ctx["intent"] = ctx_meta["intent"]
+        intent_text = ctx_meta.get("intent")
+        if isinstance(intent_text, str) and intent_text.strip():
+            request_ctx["intent"] = intent_text
+        plan_summary = ctx_meta.get("plan_summary")
+        if isinstance(plan_summary, str) and plan_summary.strip():
+            request_ctx["plan_summary"] = plan_summary
         return ToolProposalRequest(
             stage_id=self.spec.id,
             stage=self.spec.stage,
@@ -258,6 +263,7 @@ class ProposalStageAgent(StageAgent):
             )
             raise
         resolved_spec = self._proposal_to_spec(canonical_command, proposal.args)
+        resolved_spec = self._augment_resolved_spec(resolved_spec, context)
         self._log_event(
             context,
             "proposal_validated",
@@ -267,6 +273,59 @@ class ProposalStageAgent(StageAgent):
         # Reuse the CLI agent with resolved spec
         cli_agent = CliStageAgent(resolved_spec)
         return await cli_agent.run(context)
+
+    def _augment_resolved_spec(
+        self, spec: StageAgentSpec, context: MutableMapping[str, Any]
+    ) -> StageAgentSpec:
+        if spec.stage != "narrate":
+            return spec
+        metadata = _extract_metadata(context)
+        if not metadata:
+            return spec
+        payload: dict[str, Any] = {}
+        intent_text = metadata.get("intent")
+        if isinstance(intent_text, str) and intent_text.strip():
+            payload["intent"] = intent_text
+        plan_summary = metadata.get("plan_summary")
+        if isinstance(plan_summary, str) and plan_summary.strip():
+            payload["plan_summary"] = plan_summary
+        visual_ctx = metadata.get("visual_context") or {}
+        video_path = visual_ctx.get("video")
+        if not video_path and isinstance(spec.args.get("input"), str):
+            video_path = spec.args.get("input")
+        if isinstance(video_path, str) and video_path:
+            payload["video_path"] = video_path
+        frames_dir = visual_ctx.get("frames_dir")
+        if isinstance(frames_dir, str) and frames_dir:
+            payload["frames_dir"] = frames_dir
+        samples = metadata.get("visual_samples") or []
+        if isinstance(samples, list) and samples:
+            payload["images"] = samples
+        frames_meta = metadata.get("scan_frames_metadata")
+        if isinstance(frames_meta, dict):
+            payload["frames_metadata"] = frames_meta
+        frames_analysis = metadata.get("scan_frames_analysis")
+        if isinstance(frames_analysis, dict):
+            payload["frames_analysis"] = frames_analysis
+        verify_results = metadata.get("verify_results")
+        if isinstance(verify_results, list) and verify_results:
+            payload["verify_results"] = verify_results
+        verify_summary = metadata.get("verify_summary")
+        if isinstance(verify_summary, dict):
+            payload.setdefault("verify_summary", verify_summary)
+        if not payload:
+            return spec
+        if plan_summary and not payload.get("narrative"):
+            payload["narrative"] = plan_summary
+        elif intent_text and not payload.get("narrative"):
+            payload["narrative"] = intent_text
+        if plan_summary and not payload.get("description"):
+            payload["description"] = plan_summary
+        temp_path = _write_temp_input(self.spec.id, payload)
+        spec.args["input"] = str(temp_path)
+        if isinstance(samples, list) and samples:
+            spec.args.setdefault("attach_images", True)
+        return spec
 
     def _ensure_supported_command(self, command: str) -> tuple[str, dict[str, Any]]:
         entry = _command_entry(self.spec.stage, command)
@@ -325,6 +384,24 @@ class ProposalStageAgent(StageAgent):
                     "payload": _safe_jsonable(payload),
                 },
             )
+
+
+def _write_temp_input(stage_id: str, payload: dict[str, Any]) -> Path:
+    tmp_dir = Path(tempfile.mkdtemp(prefix=f"zyra_narrate_{stage_id}_"))
+    target = tmp_dir / "input.json"
+    target.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return target
+
+
+def _extract_metadata(context: Any) -> dict[str, Any]:
+    meta = getattr(context, "metadata", None)
+    if isinstance(meta, dict):
+        return meta
+    if isinstance(context, MutableMapping):
+        candidate = context.get("metadata")
+        if isinstance(candidate, dict):
+            return candidate
+    return {}
 
 
 def _extract_event_hook(context: Any) -> Callable[[str, dict[str, Any]], None] | None:

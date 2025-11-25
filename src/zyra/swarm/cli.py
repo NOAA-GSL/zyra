@@ -4,10 +4,14 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import sqlite3
 import sys
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable, Sequence
+
+from zyra.pipeline_runner import _stage_group_alias
 
 from . import (
     StageAgentSpec,
@@ -26,6 +30,13 @@ def register_cli(parser: argparse.ArgumentParser) -> None:
         "--plan",
         required=False,
         help="YAML or JSON manifest describing stage agents",
+    )
+    parser.add_argument(
+        "--agents",
+        help=(
+            "Comma-separated list of stages to run (e.g., 'acquire,visualize'); "
+            "defaults to all stages declared in the plan."
+        ),
     )
     parser.add_argument(
         "--max-workers",
@@ -69,6 +80,31 @@ def register_cli(parser: argparse.ArgumentParser) -> None:
         "--dump-memory",
         help="Inspect an existing provenance DB (no execution performed)",
     )
+    parser.add_argument(
+        "--parallel",
+        dest="parallel",
+        action="store_true",
+        help="Allow independent agents to run concurrently (default).",
+    )
+    parser.add_argument(
+        "--no-parallel",
+        dest="parallel",
+        action="store_false",
+        help="Force sequential execution (sets max-workers=1).",
+    )
+    parser.add_argument(
+        "--provider",
+        help="Override the LLM provider for proposal/narrate agents (openai|ollama|mock)",
+    )
+    parser.add_argument(
+        "--model",
+        help="Override the LLM model name for proposal/narrate agents",
+    )
+    parser.add_argument(
+        "--base-url",
+        dest="base_url",
+        help="Override the LLM provider base URL (e.g., Ollama endpoint)",
+    )
     parser.set_defaults(func=_cmd_swarm)
 
 
@@ -83,26 +119,36 @@ def _cmd_swarm(ns: argparse.Namespace) -> int:
     except ValueError as exc:
         print(str(exc))
         return 2
+    stage_filter = _parse_stage_filter(ns.agents)
     try:
-        specs = _resolve_specs(plan)
+        specs = _resolve_specs(plan, allowed_stages=stage_filter)
     except ValueError as exc:
         print(str(exc))
         return 2
     if ns.dry_run:
         print(_format_dry_run(specs))
         return 0
+    effective_workers = ns.max_workers
+    if ns.parallel is False:
+        effective_workers = 1
     try:
-        outputs = _execute_specs(
-            specs,
-            plan=plan,
-            plan_path=ns.plan,
-            max_workers=ns.max_workers,
-            max_rounds=ns.max_rounds,
-            memory=ns.memory,
-            guardrails=ns.guardrails,
-            strict_guardrails=bool(ns.strict_guardrails),
-            log_events=bool(ns.log_events),
-        )
+        with _temporary_llm_env(ns.provider, ns.model, ns.base_url):
+            outputs = _execute_specs(
+                specs,
+                plan=plan,
+                plan_path=ns.plan,
+                max_workers=effective_workers,
+                max_rounds=ns.max_rounds,
+                memory=ns.memory,
+                guardrails=ns.guardrails,
+                strict_guardrails=bool(ns.strict_guardrails),
+                log_events=bool(ns.log_events),
+                llm_overrides={
+                    "provider": ns.provider,
+                    "model": ns.model,
+                    "base_url": ns.base_url,
+                },
+            )
     except ValueError as exc:
         print(str(exc))
         return 2
@@ -137,7 +183,9 @@ def _load_plan(path: str) -> dict[str, Any]:
     return data
 
 
-def _resolve_specs(plan: dict[str, Any]) -> list[StageAgentSpec]:
+def _resolve_specs(
+    plan: dict[str, Any], allowed_stages: set[str] | None = None
+) -> list[StageAgentSpec]:
     specs = load_stage_agent_specs(plan)
     if not specs:
         raise ValueError("plan must include an 'agents' list with at least one entry")
@@ -147,6 +195,23 @@ def _resolve_specs(plan: dict[str, Any]) -> list[StageAgentSpec]:
             custom = depends_map.get(spec.id)
             if isinstance(custom, list) and not spec.depends_on:
                 spec.depends_on = [str(v) for v in custom if isinstance(v, str)]
+    if allowed_stages:
+        filtered: list[StageAgentSpec] = [
+            spec for spec in specs if spec.stage in allowed_stages
+        ]
+        if not filtered:
+            raise ValueError(
+                "No agents remain after applying --agents filter "
+                f"(requested: {', '.join(sorted(allowed_stages))})"
+            )
+        available = {spec.stage for spec in specs}
+        missing = allowed_stages - available
+        if missing:
+            plural = "s" if len(missing) > 1 else ""
+            raise ValueError(
+                f"Unknown stage{plural} in --agents filter: {', '.join(sorted(missing))}"
+            )
+        specs = filtered
     return specs
 
 
@@ -161,12 +226,24 @@ def _execute_specs(
     guardrails: str | None,
     strict_guardrails: bool,
     log_events: bool = False,
+    llm_overrides: dict[str, str | None] | None = None,
 ) -> dict[str, Any]:
     agents = [build_stage_agent(spec) for spec in specs]
+    plan_meta = dict(plan.get("metadata") or {})
+    intent_text = plan.get("intent")
+    if intent_text and not plan_meta.get("intent"):
+        plan_meta["intent"] = intent_text
+    summary_text = plan.get("plan_summary")
+    if summary_text:
+        plan_meta["plan_summary"] = summary_text
+    if llm_overrides:
+        llm_meta = {k: v for k, v in llm_overrides.items() if v}
+        if llm_meta:
+            plan_meta.setdefault("llm", {}).update(llm_meta)
     ctx = StageContext(
         state={"outputs": {}},
         inputs=plan.get("inputs"),
-        metadata=plan.get("metadata") or {},
+        metadata=plan_meta,
     )
     store = open_provenance_store(
         memory, metadata={"plan": plan_path, "agent_count": len(agents)}
@@ -319,6 +396,22 @@ def _format_event_payload(name: str, payload: dict[str, Any]) -> str:
                 f"agent={agent} stage={stage} rejected command={command} "
                 f"reason={error}"
             )
+    if name == "agent_verify_result":
+        agent = payload.get("agent") or "?"
+        stage = payload.get("stage") or "?"
+        verdict = payload.get("verdict") or "unknown"
+        metric = payload.get("metric")
+        message = payload.get("message") or ""
+        bits = [
+            f"agent={agent}",
+            f"stage={stage}",
+            f"verdict={verdict}",
+        ]
+        if metric:
+            bits.append(f"metric={metric}")
+        if message:
+            bits.append(f"message={message}")
+        return " ".join(bits)
     return json.dumps(payload, sort_keys=True)
 
 
@@ -328,3 +421,47 @@ def _render_short(value: Any) -> str:
     except Exception:  # pragma: no cover - fallback for unserializable
         text = str(value)
     return text if len(text) <= 180 else text[:177] + "..."
+
+
+def _parse_stage_filter(value: str | None) -> set[str] | None:
+    if not value:
+        return None
+    if isinstance(value, (list, tuple)):
+        items: Iterable[str] = value
+    else:
+        items = value.split(",")
+    normalized: set[str] = set()
+    for item in items:
+        token = item.strip()
+        if not token:
+            continue
+        normalized.add(_stage_group_alias(token.lower()))
+    return normalized or None
+
+
+@contextmanager
+def _temporary_llm_env(
+    provider: str | None, model: str | None, base_url: str | None
+) -> Sequence[str]:
+    overrides: dict[str, str] = {}
+    if provider:
+        overrides["LLM_PROVIDER"] = provider
+        overrides["DATAVIZHUB_LLM_PROVIDER"] = provider
+    if model:
+        overrides["LLM_MODEL"] = model
+        overrides["DATAVIZHUB_LLM_MODEL"] = model
+    if base_url:
+        overrides["LLM_BASE_URL"] = base_url
+        overrides["DATAVIZHUB_LLM_BASE_URL"] = base_url
+    previous: dict[str, str | None] = {}
+    for key, value in overrides.items():
+        previous[key] = os.environ.get(key)
+        os.environ[key] = value
+    try:
+        yield overrides.keys()
+    finally:
+        for key, old in previous.items():
+            if old is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = old

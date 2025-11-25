@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from zyra.swarm import SwarmOrchestrator as _BaseSwarmOrchestrator
@@ -138,6 +139,9 @@ class Agent:
             except Exception:
                 pass
 
+        frames_context = _summarize_frames_context(idata)
+        verify_context = _summarize_verify_context(idata)
+
         for name in self.spec.outputs or []:
             if role == "critic":
                 sample = "; ".join(
@@ -177,10 +181,15 @@ class Agent:
                     if image_list_for_prompt
                     else ""
                 )
+                frames_clause = f" Frames: {frames_context}." if frames_context else ""
+                verify_clause = (
+                    f" Verification: {verify_context}." if verify_context else ""
+                )
                 user_prompt = (
                     f"Role: {role}. Output: {name}. Style: {self.style or 'journalistic'}. "
                     f"Audiences: {', '.join(self.audience) or 'general'}."
-                    f"{seed_clause}{h_clause}{img_clause} Write exactly one sentence grounded in the seed if present."
+                    f"{seed_clause}{h_clause}{img_clause}{frames_clause}{verify_clause}"
+                    " Write exactly one sentence grounded in the seed if present."
                 )
             text: str
             outval: Any
@@ -220,3 +229,124 @@ class Agent:
                 outval = text
             outs[name] = outval
         return outs
+
+
+def _summarize_frames_context(input_data: Any) -> str:
+    if not isinstance(input_data, dict):
+        return ""
+    meta = input_data.get("frames_metadata")
+    if not isinstance(meta, dict):
+        raw_meta = input_data.get("metadata")
+        meta = raw_meta if isinstance(raw_meta, dict) else None
+    analysis = input_data.get("frames_analysis")
+    if not isinstance(analysis, dict) and isinstance(meta, dict):
+        raw_analysis = meta.get("analysis")
+        analysis = raw_analysis if isinstance(raw_analysis, dict) else None
+    parts: list[str] = []
+    start = meta.get("start_datetime") if isinstance(meta, dict) else None
+    end = meta.get("end_datetime") if isinstance(meta, dict) else None
+    count = meta.get("frame_count_actual") if isinstance(meta, dict) else None
+    missing = meta.get("missing_count") if isinstance(meta, dict) else None
+    missing_list: list[str] = []
+    if isinstance(meta, dict):
+        miss = meta.get("missing_timestamps")
+        if isinstance(miss, list):
+            missing_list = [str(x) for x in miss if isinstance(x, str)]
+    if count is not None:
+        parts.append(f"{count} frames")
+    if start and end:
+        parts.append(f"{start} → {end}")
+    if isinstance(analysis, dict):
+        span = analysis.get("span_seconds")
+        if isinstance(span, (int, float)) and span > 0:
+            parts.append(_format_human_span(int(span)))
+        missing_detail = analysis.get("missing_timestamps")
+        if isinstance(missing_detail, list):
+            missing_list = missing_list or [
+                str(x) for x in missing_detail if isinstance(x, str)
+            ]
+            if missing is None:
+                missing = len(missing_detail)
+        samples = analysis.get("sample_frames")
+        if isinstance(samples, list) and samples:
+            labels: list[str] = []
+            for entry in samples[:3]:
+                label = entry.get("label") if isinstance(entry, dict) else None
+                path = entry.get("path") if isinstance(entry, dict) else None
+                if isinstance(label, str) and label:
+                    labels.append(label)
+                elif isinstance(path, str) and path:
+                    labels.append(Path(path).stem)
+            if labels:
+                parts.append(f"samples {', '.join(labels)}")
+    if missing and missing > 0:
+        snippet = f"missing {missing}"
+        if missing_list:
+            snippet += f" (examples: {', '.join(missing_list[:3])})"
+        parts.append(snippet)
+    elif missing == 0:
+        parts.append("no missing frames")
+    return "; ".join(parts)
+
+
+def _format_human_span(seconds: int) -> str:
+    minutes, sec = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    days, hours = divmod(hours, 24)
+    parts: list[str] = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    if sec and not parts:
+        parts.append(f"{sec}s")
+    return "span " + "".join(parts)
+
+
+def _summarize_verify_context(input_data: Any) -> str:
+    if not isinstance(input_data, dict):
+        return ""
+    verify = input_data.get("verify_results")
+    if not isinstance(verify, list):
+        meta = input_data.get("metadata")
+        if isinstance(meta, dict):
+            verify = meta.get("verify_results")
+    if not isinstance(verify, list):
+        return ""
+    summaries: list[str] = []
+    for entry in verify:
+        if not isinstance(entry, dict):
+            continue
+        message = entry.get("message") or entry.get("text")
+        verdict = entry.get("verdict")
+        metric = entry.get("metric")
+        snippet_parts = []
+        if isinstance(metric, str) and metric:
+            snippet_parts.append(metric)
+        if isinstance(verdict, str) and verdict:
+            snippet_parts.append(verdict)
+        snippet = " ".join(snippet_parts).strip()
+        detail = _clean_verify_message(message) if message else ""
+        if snippet and detail:
+            summaries.append(f"{snippet}: {detail}")
+        elif snippet:
+            summaries.append(snippet)
+        elif detail:
+            summaries.append(detail)
+        if len(summaries) >= 2:
+            break
+    return "; ".join(summaries)
+
+
+def _clean_verify_message(message: Any) -> str:
+    text = str(message or "").strip()
+    if not text:
+        return ""
+    lower = text.lower()
+    if lower.startswith("verify "):
+        idx = text.find(":")
+        if idx != -1:
+            text = text[idx + 1 :].strip()
+    return text

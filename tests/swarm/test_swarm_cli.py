@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 
 import pytest
@@ -14,7 +15,9 @@ from zyra.swarm.cli import (
     _execute_specs,
     _format_dry_run,
     _load_plan,
+    _parse_stage_filter,
     _resolve_specs,
+    _temporary_llm_env,
 )
 
 
@@ -174,3 +177,32 @@ def test_proposal_events_recorded(tmp_path, monkeypatch, capsys) -> None:
     assert "agent=story stage=narrate options" in dump
     assert "validated command=describe" in dump
     assert "proposals=story:describe" in dump
+
+
+def test_resolve_specs_allows_stage_filter(tmp_path) -> None:
+    plan = {
+        "agents": [
+            {"id": "fetch", "stage": "acquire"},
+            {"id": "viz", "stage": "visualize"},
+        ]
+    }
+    specs = _resolve_specs(plan, allowed_stages={"visualize"})
+    assert [spec.id for spec in specs] == ["viz"]
+    with pytest.raises(ValueError):
+        _resolve_specs(plan, allowed_stages={"narrate"})
+
+
+def test_parse_stage_filter_normalizes_aliases():
+    stages = _parse_stage_filter("Import, VISUALIZATION , decide")
+    assert stages is not None
+    assert stages.issuperset({"acquire", "visualize", "decide"})
+    assert _parse_stage_filter("") is None
+
+
+def test_temporary_llm_env_sets_and_restores(monkeypatch):
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    with _temporary_llm_env("ollama", "gemma", "http://localhost:11434"):
+        assert os.environ["LLM_PROVIDER"] == "ollama"
+        assert os.environ["LLM_MODEL"] == "gemma"
+        assert os.environ["LLM_BASE_URL"] == "http://localhost:11434"
+    assert "LLM_PROVIDER" not in os.environ

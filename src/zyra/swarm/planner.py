@@ -19,6 +19,11 @@ from zyra.pipeline_runner import _stage_group_alias
 from zyra.swarm import open_provenance_store, suggest_augmentations
 from zyra.swarm.spec import StageAgentSpec
 
+try:  # pragma: no cover - optional import
+    from zyra.transform import _compute_frames_metadata
+except Exception:  # pragma: no cover - imported at runtime only
+    _compute_frames_metadata = None
+
 _STAGE_SEQUENCE = [
     "acquire",
     "process",
@@ -89,6 +94,14 @@ _STAGE_SYNONYMS = {
 _STAGE_OVERRIDES = {
     "search": "acquire",
     "run": "simulate",
+}
+
+_COMMAND_INTENT_HINTS = {
+    "ftp": ["ftp", "download", "fetch", "frame"],
+    "scan-frames": ["scan", "frame", "png", "metadata"],
+    "pad-missing": ["fill", "gap", "missing"],
+    "compose-video": ["compose", "video", "mp4", "animation"],
+    "local": ["save", "disk", "export"],
 }
 
 _EXAMPLE_MANIFEST = {
@@ -169,6 +182,285 @@ _ARG_RESOLVERS: list[dict[str, Any]] = []
 _PLANNER_VERBOSE = False
 _CURRENT_ANSWER_CACHE: dict[tuple[str, str, str], Any] | None = None
 _CURRENT_CONFIRM_CACHE: dict[tuple[str, str, str], Any] | None = None
+
+
+class _ReasoningTracer:
+    def __init__(self, intent: str) -> None:
+        self.intent = intent
+        self.entries: list[dict[str, Any]] = []
+
+    def add(self, event: str, detail: Any | None = None) -> None:
+        self.entries.append({"event": event, "detail": detail})
+
+    def dump(self) -> None:
+        if not _PLANNER_VERBOSE or not self.entries:
+            return
+        print("Planner reasoning trace:", file=sys.stderr)
+        for idx, entry in enumerate(self.entries, start=1):
+            label = entry.get("event") or "event"
+            detail = entry.get("detail")
+            formatted = _format_trace_detail(detail)
+            if formatted:
+                print(f"  {idx}. {label}: {formatted}", file=sys.stderr)
+            else:
+                print(f"  {idx}. {label}", file=sys.stderr)
+
+
+def _format_trace_detail(detail: Any | None) -> str:
+    if detail is None:
+        return ""
+    if isinstance(detail, dict):
+        parts = [f"{k}={detail[k]}" for k in sorted(detail)]
+        return ", ".join(parts)
+    if isinstance(detail, (list, tuple, set)):
+        return ", ".join(str(item) for item in detail)
+    return str(detail)
+
+
+_CURRENT_TRACE: _ReasoningTracer | None = None
+
+
+def _trace(event: str, detail: Any | None = None) -> None:
+    if _CURRENT_TRACE is not None:
+        _CURRENT_TRACE.add(event, detail)
+
+
+def _stage_breakdown(manifest: dict[str, Any]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for agent in manifest.get("agents") or []:
+        if not isinstance(agent, dict):
+            continue
+        stage = str(agent.get("stage") or "unknown").strip() or "unknown"
+        counts[stage] = counts.get(stage, 0) + 1
+    return counts
+
+
+_FRIENDLY_REASON_TEXT = {
+    "missing_arg": "so the CLI command has every required parameter",
+    "placeholder": "because the current value still looks like a template placeholder",
+    "resolver_hint": "so I can infer or reuse the related settings",
+    "confirm_choice": "just to confirm that you're happy with the suggested default",
+}
+
+
+def _friendly_gap_message(gap: dict[str, Any], help_text: str | None) -> str:
+    stage = gap.get("stage") or gap.get("agent_id") or "this stage"
+    command = gap.get("command") or "command"
+    field = gap.get("field") or "value"
+    reason = gap.get("reason")
+    reason_text = _FRIENDLY_REASON_TEXT.get(reason, "to keep this workflow runnable")
+    base = f"I still need a value for '{field}' in the {stage} {command} step {reason_text}."
+    if help_text:
+        base = f"{base} {help_text}"
+    client = _load_llm_client()
+    if not client:
+        return base
+    payload = {
+        "stage": stage,
+        "command": command,
+        "field": field,
+        "reason": reason,
+        "hint": help_text,
+        "default_text": base,
+    }
+    system_prompt = (
+        "You rewrite planner clarification prompts."
+        " Respond with a friendly sentence that explains what input is needed and why."
+        " Avoid numbered lists and keep it under 30 words."
+    )
+    try:
+        response = client.generate(system_prompt, json.dumps(payload))
+    except Exception:
+        return base
+    text = (response or "").strip().splitlines()[0] if response else ""
+    return text or base
+
+
+def _intent_snippet(intent: str, keywords: list[str]) -> str:
+    lowered = intent.lower()
+    for keyword in keywords:
+        if keyword in lowered:
+            return keyword
+    return ""
+
+
+def _agent_reasoning(agent: dict[str, Any], intent: str) -> str:
+    stage = str(agent.get("stage") or "stage")
+    command = str(agent.get("command") or agent.get("behavior") or "step")
+    description = _STAGE_DESCRIPTIONS.get(stage, stage)
+    snippet = _intent_snippet(intent, _COMMAND_INTENT_HINTS.get(command, []))
+    args = agent.get("args") or {}
+    highlights: list[str] = []
+    for key in ("path", "frames", "output", "input", "metric"):
+        value = args.get(key)
+        if isinstance(value, str) and value.strip():
+            highlights.append(f"{key}={value}")
+    highlight_text = f" ({', '.join(highlights)})" if highlights else ""
+    extra = ""
+    if stage == "process" and command == "scan-frames":
+        summary, _ = _scan_frames_plan_details(agent)
+        if summary:
+            extra = f" {summary}"
+    if snippet:
+        return (
+            f"Given the intent mentions '{snippet}', plan '{agent.get('id')}' will {description.lower()}"
+            f" using '{command}'{highlight_text}.{extra}"
+        ).strip()
+    return (
+        f"Plan '{agent.get('id')}' covers {description.lower()} via '{command}'"
+        f"{highlight_text} to satisfy the user request.{extra}"
+    ).strip()
+
+
+def _scan_frames_plan_details(
+    agent: dict[str, Any],
+) -> tuple[str | None, dict[str, Any] | None]:
+    args = agent.get("args") or {}
+    frames_dir = args.get("frames_dir")
+    if not frames_dir or _compute_frames_metadata is None:
+        return None, None
+    try:
+        meta = _compute_frames_metadata(
+            frames_dir,
+            pattern=args.get("pattern"),
+            datetime_format=args.get("datetime_format"),
+            period_seconds=args.get("period_seconds"),
+        )
+    except Exception:
+        return None, None
+    count = meta.get("frame_count_actual")
+    start = meta.get("start_datetime")
+    end = meta.get("end_datetime")
+    missing = meta.get("missing_count")
+    analysis = meta.get("analysis") or {}
+    span = analysis.get("span_seconds")
+    parts: list[str] = []
+    if count is not None:
+        parts.append(f"{count} frame{'s' if count != 1 else ''}")
+    if start and end:
+        parts.append(f"{start} → {end}")
+    if span:
+        parts.append(_format_span(span))
+    if missing:
+        parts.append(f"missing {missing}")
+    elif missing == 0:
+        parts.append("no missing frames")
+    summary = "Stats: " + ", ".join(parts) if parts else None
+    meta["analysis"] = analysis
+    meta["_frames_metadata_path"] = (
+        args.get("output") or args.get("frames_meta") or args.get("frames_metadata")
+    )
+    meta["_scan_agent_id"] = agent.get("id")
+    return summary, meta
+
+
+def _format_span(seconds: int) -> str:
+    if seconds <= 0:
+        return "span 0s"
+    minutes, sec = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    days, hours = divmod(hours, 24)
+    parts = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    if sec and not parts:
+        parts.append(f"{sec}s")
+    return "span " + "".join(parts)
+
+
+def _trace_agent_reasoning(manifest: dict[str, Any], intent: str) -> list[str]:
+    summaries: list[str] = []
+    for agent in manifest.get("agents") or []:
+        if not isinstance(agent, dict):
+            continue
+        explanation = _agent_reasoning(agent, intent)
+        _trace(
+            "agent_reasoning",
+            {
+                "id": agent.get("id"),
+                "stage": agent.get("stage"),
+                "command": agent.get("command"),
+                "text": explanation,
+            },
+        )
+        summaries.append(explanation)
+    return summaries
+
+
+def _ensure_auto_verify_agent(manifest: dict[str, Any]) -> None:
+    agents = manifest.get("agents") or []
+    if any(str(a.get("stage") or "").lower() == "verify" for a in agents):
+        return
+    stats = _first_scan_frames_stats(agents)
+    if not stats:
+        return
+    missing = stats.get("missing_count")
+    duplicates = stats.get("analysis", {}).get("duplicate_timestamps")
+    if not missing and not duplicates:
+        return
+    meta_path = stats.get("_frames_metadata_path")
+    scan_agent_id = stats.get("_scan_agent_id")
+    new_agent = {
+        "id": _next_agent_id(manifest, "verify"),
+        "stage": "verify",
+        "command": "evaluate",
+        "behavior": "cli",
+        "depends_on": [scan_agent_id or "scan_frames"],
+        "args": {"metric": "completeness"},
+    }
+    if isinstance(meta_path, str) and meta_path:
+        new_agent["args"]["input"] = meta_path
+    agents.append(new_agent)
+    _trace(
+        "auto_verify_inserted",
+        {"agent_id": new_agent["id"], "reason": "scan_frames_analysis"},
+    )
+
+
+def _ensure_verify_agents_materialized(manifest: dict[str, Any]) -> None:
+    agents = manifest.get("agents") or []
+    stats = _first_scan_frames_stats(agents)
+    if not stats:
+        return
+    meta_path = stats.get("_frames_metadata_path")
+    scan_agent_id = stats.get("_scan_agent_id")
+    for agent in agents:
+        if not isinstance(agent, dict):
+            continue
+        if str(agent.get("stage") or "").lower() != "verify":
+            continue
+        args = agent.setdefault("args", {})
+        agent["behavior"] = "cli"
+        agent["command"] = agent.get("command") or "evaluate"
+        args.setdefault("metric", "completeness")
+        if meta_path and not args.get("input"):
+            args["input"] = meta_path
+        if scan_agent_id:
+            deps = agent.get("depends_on")
+            if isinstance(deps, list):
+                if scan_agent_id not in deps:
+                    deps.append(scan_agent_id)
+            elif deps:
+                agent["depends_on"] = [scan_agent_id]
+            else:
+                agent["depends_on"] = [scan_agent_id]
+
+
+def _first_scan_frames_stats(agents: list[dict[str, Any]]) -> dict[str, Any] | None:
+    for agent in agents:
+        if not isinstance(agent, dict):
+            continue
+        stage = str(agent.get("stage") or "").lower()
+        command = str(agent.get("command") or "").lower()
+        if stage == "process" and command == "scan-frames":
+            _, meta = _scan_frames_plan_details(agent)
+            if meta:
+                return meta
+    return None
 
 
 def _make_verify_template() -> dict[str, Any]:
@@ -338,12 +630,20 @@ class Planner:
 
     def plan(self, intent: str) -> dict[str, Any]:
         for rule in self._rules:
+            rule_name = getattr(rule, "__name__", repr(rule))
+            _trace("rule_checked", {"rule": rule_name})
             specs = rule(intent)
             if specs:
+                _trace("rule_matched", {"rule": rule_name, "agents": len(specs)})
                 return {"intent": intent, "agents": [asdict(spec) for spec in specs]}
         specs = self._llm_plan(intent)
         if specs:
+            _trace("llm_manifest_ready", {"agents": len(specs)})
             return {"intent": intent, "agents": [asdict(spec) for spec in specs]}
+        fallback = _example_manifest_specs()
+        if fallback:
+            _trace("fallback_manifest", {"agents": len(fallback)})
+            return {"intent": intent, "agents": [asdict(spec) for spec in fallback]}
         raise ValueError("planner: no rule matched the provided intent")
 
     def _llm_plan(self, intent: str) -> list[StageAgentSpec]:
@@ -354,6 +654,7 @@ class Planner:
         stage_commands = caps.get("stage_commands") or {}
         if not stage_commands:
             return []
+        _trace("llm_invoked", {"intent": intent, "stage_catalog": len(stage_commands)})
         prompt_caps = caps.get("prompt") or {}
         manifest_hint = {
             "intent": intent,
@@ -384,6 +685,7 @@ class Planner:
         try:
             raw = client.generate(system_prompt, user_prompt)
         except Exception:
+            _trace("llm_failed", None)
             return []
         _log_verbose(f"planner: LLM response snippet {raw[:400]!r}")
         data = _parse_llm_json(raw)
@@ -398,6 +700,7 @@ class Planner:
                     specs.append(StageAgentSpec.from_mapping(mapped))
                 except Exception:
                     continue
+        _trace("llm_response_processed", {"agents": len(specs)})
         return specs
 
 
@@ -468,114 +771,159 @@ def _cmd_plan(ns: argparse.Namespace) -> int:
     global _PLANNER_VERBOSE
     _PLANNER_VERBOSE = bool(getattr(ns, "verbose", False))
     stripped_intent = intent.strip()
-    intent_text = stripped_intent
-    final_manifest: dict[str, Any] | None = None
-    final_clarifications: list[str] = []
-    final_suggestions: list[dict[str, Any]] = []
-    accepted_history: list[dict[str, Any]] = []
-    accepted_stages: set[str] = set()
-    answer_cache: dict[tuple[str, str, str], Any] = {}
-    confirm_cache: dict[tuple[str, str, str], Any] = {}
-    global _CURRENT_ANSWER_CACHE
-    global _CURRENT_CONFIRM_CACHE
-    pending_manifest: dict[str, Any] | None = None
+    trace = _ReasoningTracer(stripped_intent)
+    global _CURRENT_TRACE
+    previous_trace = _CURRENT_TRACE
+    _CURRENT_TRACE = trace
+    _trace("intent_received", {"text": stripped_intent})
+    try:
+        intent_text = stripped_intent
+        final_manifest: dict[str, Any] | None = None
+        final_clarifications: list[str] = []
+        final_suggestions: list[dict[str, Any]] = []
+        accepted_history: list[dict[str, Any]] = []
+        accepted_stages: set[str] = set()
+        answer_cache: dict[tuple[str, str, str], Any] = {}
+        confirm_cache: dict[tuple[str, str, str], Any] = {}
+        global _CURRENT_ANSWER_CACHE
+        global _CURRENT_CONFIRM_CACHE
+        pending_manifest: dict[str, Any] | None = None
 
-    while True:
-        if pending_manifest is not None:
-            manifest = pending_manifest
-            pending_manifest = None
-        else:
-            try:
-                manifest = planner.plan(intent_text)
-            except ValueError as exc:
-                print(str(exc), file=sys.stderr)
-                return 2
+        plan_summary: list[str] = []
 
-        _CURRENT_ANSWER_CACHE = answer_cache
-        _CURRENT_CONFIRM_CACHE = confirm_cache
-        _apply_cached_answers(manifest, answer_cache)
-        manifest = _maybe_prompt_for_followups(
-            manifest, allow_prompt=not getattr(ns, "no_clarify", False)
-        )
-        manifest = _propagate_inferred_args(manifest)
-        errors = _validate_manifest(manifest)
-        if errors:
-            for err in errors:
-                print(f"planner validation: {err}", file=sys.stderr)
-            if ns.strict:
-                return 2
+        while True:
+            if pending_manifest is not None:
+                manifest = pending_manifest
+                pending_manifest = None
+            else:
+                try:
+                    manifest = planner.plan(intent_text)
+                    _trace(
+                        "manifest_generated",
+                        {
+                            "agents": len(manifest.get("agents") or []),
+                            "stage_counts": _stage_breakdown(manifest),
+                        },
+                    )
+                except ValueError as exc:
+                    print(str(exc), file=sys.stderr)
+                    return 2
 
-        if ns.guardrails:
-            try:
-                _run_guardrails(ns.guardrails, manifest)
-            except Exception as exc:
-                print(f"guardrails validation failed: {exc}", file=sys.stderr)
+            _CURRENT_ANSWER_CACHE = answer_cache
+            _CURRENT_CONFIRM_CACHE = confirm_cache
+            _apply_cached_answers(manifest, answer_cache)
+            manifest = _maybe_prompt_for_followups(
+                manifest, allow_prompt=not getattr(ns, "no_clarify", False)
+            )
+            manifest = _propagate_inferred_args(manifest)
+            errors = _validate_manifest(manifest)
+            if errors:
+                for err in errors:
+                    print(f"planner validation: {err}", file=sys.stderr)
+                _trace("validation_errors", {"count": len(errors)})
                 if ns.strict:
                     return 2
 
-        clarifications = _detect_clarifications(manifest)
-        for msg in clarifications:
-            print(f"clarification needed: {msg}", file=sys.stderr)
+            if ns.guardrails:
+                try:
+                    _run_guardrails(ns.guardrails, manifest)
+                    _trace("guardrails_validated", {"schema": ns.guardrails})
+                except Exception as exc:
+                    print(f"guardrails validation failed: {exc}", file=sys.stderr)
+                    _trace("guardrails_failed", {"error": str(exc)})
+                    if ns.strict:
+                        return 2
 
-        suggestions = [
+            clarifications = _detect_clarifications(manifest)
+            for msg in clarifications:
+                print(f"clarification needed: {msg}", file=sys.stderr)
+                _trace("clarification_detected", {"message": msg})
+
+            suggestions = [
+                s
+                for s in suggest_augmentations(manifest, intent=intent_text)
+                if str(s.get("stage") or "").lower() not in accepted_stages
+            ]
+            if suggestions:
+                _trace(
+                    "suggestions_generated",
+                    {
+                        "count": len(suggestions),
+                        "stages": [s.get("stage") for s in suggestions],
+                    },
+                )
+            accepted = _prompt_accept_suggestions(
+                suggestions,
+                allow_prompt=not getattr(ns, "no_clarify", False),
+            )
+            if accepted:
+                accepted_history.extend(accepted)
+                stages = {str(s.get("stage") or "").lower() for s in accepted}
+                accepted_stages.update(stages)
+                manifest = _apply_suggestion_templates(manifest, accepted)
+                pending_manifest = manifest
+                intent_text = _augment_intent(intent_text, accepted)
+                _trace("suggestions_accepted", {"stages": sorted(stages)})
+                continue
+
+            final_manifest = manifest
+            final_clarifications = clarifications
+            final_suggestions = suggestions
+            plan_summary = _trace_agent_reasoning(final_manifest, intent_text)
+            _ensure_auto_verify_agent(final_manifest)
+            _ensure_verify_agents_materialized(final_manifest)
+            break
+
+        _CURRENT_ANSWER_CACHE = None
+        _CURRENT_CONFIRM_CACHE = None
+        if final_manifest is None:
+            return 2
+
+        if ns.memory:
+            store = open_provenance_store(ns.memory)
+            hook = store.as_event_hook()
+            hook(
+                "plan_generated",
+                {
+                    "intent": intent_text,
+                    "agent_count": len(final_manifest.get("agents", [])),
+                    "clarifications": final_clarifications,
+                    "suggestions": final_suggestions,
+                },
+            )
+            store.close()
+        final_manifest["suggestions"] = [
             s
-            for s in suggest_augmentations(manifest, intent=intent_text)
+            for s in final_suggestions
             if str(s.get("stage") or "").lower() not in accepted_stages
         ]
-        accepted = _prompt_accept_suggestions(
-            suggestions,
-            allow_prompt=not getattr(ns, "no_clarify", False),
-        )
-        if accepted:
-            accepted_history.extend(accepted)
-            accepted_stages.update(
-                {str(s.get("stage") or "").lower() for s in accepted}
-            )
-            manifest = _apply_suggestion_templates(manifest, accepted)
-            pending_manifest = manifest
-            intent_text = _augment_intent(intent_text, accepted)
-            continue
-
-        final_manifest = manifest
-        final_clarifications = clarifications
-        final_suggestions = suggestions
-        break
-
-    _CURRENT_ANSWER_CACHE = None
-    _CURRENT_CONFIRM_CACHE = None
-    if final_manifest is None:
-        return 2
-
-    if ns.memory:
-        store = open_provenance_store(ns.memory)
-        hook = store.as_event_hook()
-        hook(
-            "plan_generated",
+        if accepted_history:
+            final_manifest["accepted_suggestions"] = accepted_history
+        final_manifest["intent"] = intent_text
+        meta = final_manifest.setdefault("metadata", {})
+        meta.setdefault("intent", intent_text)
+        summary_text = "\n".join(f"- {line}" for line in plan_summary)
+        if plan_summary:
+            final_manifest["plan_summary"] = summary_text
+        _strip_internal_fields(final_manifest)
+        _trace(
+            "manifest_finalized",
             {
-                "intent": intent_text,
-                "agent_count": len(final_manifest.get("agents", [])),
-                "clarifications": final_clarifications,
-                "suggestions": final_suggestions,
+                "agents": len(final_manifest.get("agents") or []),
+                "summary_lines": len(plan_summary),
             },
         )
-        store.close()
-    final_manifest["suggestions"] = [
-        s
-        for s in final_suggestions
-        if str(s.get("stage") or "").lower() not in accepted_stages
-    ]
-    if accepted_history:
-        final_manifest["accepted_suggestions"] = accepted_history
-    final_manifest["intent"] = intent_text
-    meta = final_manifest.setdefault("metadata", {})
-    meta.setdefault("intent", intent_text)
-    _strip_internal_fields(final_manifest)
-    payload = json.dumps(final_manifest, indent=2, sort_keys=True)
-    if ns.output and ns.output != "-":
-        Path(ns.output).write_text(payload, encoding="utf-8")
-    else:
-        print(payload)
-    return 0
+        if plan_summary:
+            _trace("plan_summary", {"text": summary_text})
+        payload = json.dumps(final_manifest, indent=2, sort_keys=True)
+        if ns.output and ns.output != "-":
+            Path(ns.output).write_text(payload, encoding="utf-8")
+        else:
+            print(payload)
+        return 0
+    finally:
+        trace.dump()
+        _CURRENT_TRACE = previous_trace
 
 
 def _validate_manifest(manifest: dict[str, Any]) -> list[str]:
@@ -813,14 +1161,31 @@ def _apply_suggestion_templates(
     agents = manifest.setdefault("agents", [])
     for suggestion in suggestions:
         stage = str(suggestion.get("stage") or "").lower()
-        template = _SUGGESTION_TEMPLATES.get(stage)
-        if not template:
-            continue
-        new_agent = _build_agent_from_template(
-            manifest, template, stage, suggestion=suggestion
-        )
+        template_override = suggestion.get("agent_template")
+        if template_override:
+            new_agent = _build_agent_from_template(
+                manifest,
+                template_override,
+                template_override.get("stage") or stage,
+                suggestion=suggestion,
+            )
+        else:
+            template = _SUGGESTION_TEMPLATES.get(stage)
+            if not template:
+                continue
+            new_agent = _build_agent_from_template(
+                manifest, template, stage, suggestion=suggestion
+            )
         if new_agent:
             agents.append(new_agent)
+            _trace(
+                "suggestion_applied",
+                {
+                    "stage": stage,
+                    "agent_id": new_agent.get("id"),
+                    "behavior": new_agent.get("behavior"),
+                },
+            )
     return manifest
 
 
@@ -1280,9 +1645,16 @@ def _maybe_prompt_for_followups(
         current = gap.get("current")
         suffix = f" (current: {current})" if current else ""
         help_text = _field_help_text(stage, command, field)
+        friendly = _friendly_gap_message(gap, help_text)
+        if friendly:
+            print(f"    {friendly}", file=sys.stderr)
         if help_text:
             print(f"    hint: {help_text}", file=sys.stderr)
         prompt = f"[{label} — {stage} {command}] Provide value for '{field}'{suffix}: "
+        _trace(
+            "clarification_prompt",
+            {"stage": stage, "command": command, "field": field, "current": current},
+        )
         try:
             response = input(prompt)
         except EOFError:  # pragma: no cover - depends on shell piping
@@ -1293,14 +1665,26 @@ def _maybe_prompt_for_followups(
             if current is not None:
                 _remember_confirmation(stage, command, field, current)
             _remember_answer(stage, command, field, current)
+            _trace(
+                "clarification_confirmed",
+                {"stage": stage, "command": command, "field": field, "value": current},
+            )
             continue
         if not value:
             skipped.add(_gap_key(gap))
+            _trace(
+                "clarification_skipped",
+                {"stage": stage, "command": command, "field": field},
+            )
             continue
         args = agent_ref.setdefault("args", {})
         args[field] = value
         _mark_manual_field(agent_ref, field)
         _remember_answer(stage, command, field, value)
+        _trace(
+            "clarification_answer",
+            {"stage": stage, "command": command, "field": field, "value": value},
+        )
         if gap.get("reason") == "confirm_choice":
             _remember_confirmation(stage, command, field, value)
     return manifest
@@ -1338,8 +1722,13 @@ def _prompt_accept_suggestions(
         return []
     response = response.strip()
     if not response:
+        _trace("suggestions_prompt_skipped", None)
         return []
     if response.lower() in {"a", "all"}:
+        _trace(
+            "suggestions_prompt_response",
+            {"mode": "all", "count": len(actionable)},
+        )
         return list(actionable)
     chosen: list[dict[str, Any]] = []
     seen_indexes: set[int] = set()
@@ -1354,6 +1743,10 @@ def _prompt_accept_suggestions(
         if 1 <= idx <= len(actionable) and idx not in seen_indexes:
             chosen.append(actionable[idx - 1])
             seen_indexes.add(idx)
+    _trace(
+        "suggestions_prompt_response",
+        {"selected": [s.get("stage") for s in chosen], "count": len(chosen)},
+    )
     return chosen
 
 
@@ -1619,6 +2012,22 @@ def _parse_llm_json(raw: str) -> Any:
             except Exception:
                 return []
     return []
+
+
+def _example_manifest_specs() -> list[StageAgentSpec]:
+    try:
+        example_agents = deepcopy(_EXAMPLE_MANIFEST.get("agents") or [])
+    except Exception:
+        return []
+    specs: list[StageAgentSpec] = []
+    for agent in example_agents:
+        if not isinstance(agent, dict):
+            continue
+        try:
+            specs.append(StageAgentSpec.from_mapping(agent))
+        except Exception:
+            continue
+    return specs
 
 
 def _map_to_capabilities(entry: dict[str, Any], caps: dict[str, Any]) -> dict[str, Any]:

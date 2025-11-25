@@ -6719,13 +6719,23 @@
         "title": "options",
         "options": [
           "--help",
-          "--metric"
+          "--metric",
+          "--input"
         ]
       }
     ],
     "options": {
       "--help": "show this help message and exit",
-      "--metric": "Metric name (placeholder)"
+      "--metric": {
+        "help": "Metric name",
+        "type": "str",
+        "default": "completeness"
+      },
+      "--input": {
+        "help": "Path to metadata JSON (e.g., transform scan-frames output)",
+        "path_arg": true,
+        "type": "path"
+      }
     },
     "positionals": [],
     "domain": "verify",

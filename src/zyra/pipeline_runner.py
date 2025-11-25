@@ -349,15 +349,30 @@ def _run_cli(argv: list[str], input_bytes: bytes | None) -> tuple[int, bytes, st
     buf_in = io.BytesIO(input_bytes or b"")
     buf_out = io.BytesIO()
     sys.stdin = type("S", (), {"buffer": buf_in})()  # type: ignore
-    sys.stdout = type(
-        "S",
-        (),
-        {
-            "buffer": buf_out,
-            "write": lambda self, s: None,
-            "flush": lambda self: None,
-        },
-    )()  # type: ignore
+
+    class _StdoutProxy:
+        """Lightweight stdout shim that captures text + binary writes into a buffer."""
+
+        def __init__(self, buffer: io.BytesIO) -> None:
+            self.buffer = buffer
+            self.encoding = "utf-8"
+
+        def write(self, data):  # type: ignore[override]
+            if not data:
+                return 0
+            if isinstance(data, str):
+                payload = data.encode(self.encoding, errors="replace")
+            elif isinstance(data, (bytes, bytearray)):
+                payload = bytes(data)
+            else:
+                payload = str(data).encode(self.encoding, errors="replace")
+            self.buffer.write(payload)
+            return len(data)
+
+        def flush(self):  # type: ignore[override]
+            self.buffer.flush()
+
+    sys.stdout = _StdoutProxy(buf_out)  # type: ignore
     try:
         rc = cli_main(argv)
         try:
