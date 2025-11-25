@@ -121,7 +121,11 @@ def _select_provider(provider: str | None, model: str | None) -> LLMClient:
         or cfg.get("model")
         or None
     )
-    base_url = cfg.get("base_url")
+    base_url = (
+        os.environ.get("DATAVIZHUB_LLM_BASE_URL")
+        or os.environ.get("LLM_BASE_URL")
+        or cfg.get("base_url")
+    )
     if prov == "openai":
         from .llm_client import MockClient, OpenAIClient
 

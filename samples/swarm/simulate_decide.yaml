@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+metadata:
+  description: Mock simulate → decide → narrate manifest exercising skeleton stages
+agents:
+  - id: simulate
+    stage: simulate
+    outputs:
+      - ensemble
+    metadata:
+      template: "simulate {id}: produced ensemble for downstream scoring"
+  - id: decide
+    stage: decide
+    depends_on:
+      - simulate
+    stdin_from: ensemble
+    outputs:
+      - decision
+    metadata:
+      template: "decide {id}: selected best option from {depends_on}"
+  - id: narrate
+    stage: narrate
+    depends_on:
+      - decide
+    stdin_from: decision
+    outputs:
+      - narrative
+    metadata:
+      template: "narrate {id}: reported outcome for {depends_on}"

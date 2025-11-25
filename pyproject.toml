@@ -29,10 +29,10 @@ Tracker = "https://github.com/NOAA-GSL/zyra/issues"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-python-dotenv = "^0.19.1"
+python-dotenv = "^1.0.0"
 pyyaml = "^6.0.2"
 numpy = "^1.26"
-fastapi = { version = "^0.115.0", optional = true }
+fastapi = { version = ">=0.120.2,<0.122.0", optional = true }
 uvicorn = { version = "^0.30.0", optional = true }
 python-multipart = { version = ">=0.0.18", optional = true }
 redis = { version = "^5.0.0", optional = true }
@@ -40,6 +40,7 @@ rq = { version = "^1.15.1", optional = true }
 python-magic = { version = "^0.4.27", optional = true }
 websockets = { version = "^11.0.3", optional = true }
 prompt_toolkit = { version = "^3.0.50", optional = true }
+guardrails-ai = { version = "^0.5.0", optional = true }
 
 # Optional feature dependencies (installed via extras)
 boto3 = { version = "^1.17", optional = true }
@@ -120,6 +121,9 @@ interactive = [
 wizard = [
     "prompt_toolkit",
 ]
+
+# Guardrails validation
+guardrails = ["guardrails-ai"]
 
 # Focused extras for targeted installs
 grib2 = [
@@ -225,6 +229,7 @@ markers = [
     "pipeline: marks tests that run the pipeline runner",
     "redis: marks tests that require a running Redis",
     "mcp_ws: marks MCP WebSocket tests (force in-memory mode)",
+    "guardrails: marks tests that require the optional guardrails extra",
 ]
 
 [tool.coverage.run]

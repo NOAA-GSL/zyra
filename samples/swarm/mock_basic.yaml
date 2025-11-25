@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0
+metadata:
+  description: Sample manifest for mock simulate → narrate swarm
+agents:
+  - id: simulate
+    stage: simulate
+    outputs:
+      - simulated_output
+    metadata:
+      template: "simulate stage {id}: generated mock data"
+  - id: narrate
+    stage: narrate
+    depends_on:
+      - simulate
+    stdin_from: simulated_output
+    outputs:
+      - narrative
+    metadata:
+      template: "narrate stage {id}: summarized {depends_on}"
