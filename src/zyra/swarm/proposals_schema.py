@@ -4,11 +4,10 @@ from __future__ import annotations
 from typing import Any
 
 try:  # pragma: no cover - optional dependency
-    from pydantic import BaseModel, Field, ValidationError
+    from pydantic import BaseModel, Field
 except Exception:  # pragma: no cover - fallback when pydantic missing
     BaseModel = object  # type: ignore
     Field = None  # type: ignore
-    ValidationError = Exception  # type: ignore
 
 
 class ProposalModel(BaseModel):  # type: ignore[misc]

@@ -199,8 +199,8 @@ class SwarmOrchestrator:
                             s = sanitize_for_log(s)
                             preview = s[:160] + ("…" if len(s) > 160 else "")
                             LOG.info("[agent %s:%s] -> %s: %s", aid, role, key, preview)
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        LOG.debug("failed to log sanitized output for %s: %s", aid, exc)
                 prompt_ref = agent.spec.prompt_ref
                 if not prompt_ref:
                     known_ids = {
@@ -236,8 +236,8 @@ class SwarmOrchestrator:
         try:
             context.setdefault("outputs", {})
             context["outputs"].update(outputs)
-        except Exception:
-            pass
+        except Exception as exc:
+            LOG.debug("failed to update context outputs: %s", exc)
         return outputs
 
     def _capture_visual_context(

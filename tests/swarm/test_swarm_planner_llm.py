@@ -30,7 +30,7 @@ class FakeClient:
 
 
 def test_llm_rule(monkeypatch):
-    monkeypatch.setattr(planner_cli, "_load_llm_client", lambda: FakeClient())
+    monkeypatch.setattr(planner_cli, "_load_llm_client", FakeClient)
     manifest = planner_cli.planner.plan("Create a heatmap from remote data")
     assert manifest["agents"][0]["id"] == "import_step"
     assert manifest["agents"][1]["depends_on"] == ["import_step"]
@@ -61,7 +61,7 @@ def test_llm_stage_alias_mapping(monkeypatch):
         "prompt": {"stage_order": ["acquire"], "stages": []},
     }
 
-    monkeypatch.setattr(planner_cli, "_load_llm_client", lambda: AliasClient())
+    monkeypatch.setattr(planner_cli, "_load_llm_client", AliasClient)
     monkeypatch.setattr(planner_cli, "_load_capabilities", lambda: fake_caps)
     manifest = planner_cli.planner.plan("Download some FTP data")
     agent = manifest["agents"][0]

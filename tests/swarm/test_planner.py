@@ -23,7 +23,6 @@ from zyra.swarm.planner import (
     _validate_manifest,
     planner,
 )
-from zyra.swarm.value_engine import suggest as suggest_augmentations
 
 
 def test_mock_rule_produces_manifest():
@@ -285,7 +284,7 @@ def test_value_engine_suggests_narrate_and_verify():
             {"id": "viz", "stage": "visualize"},
         ]
     }
-    suggestions = suggest_augmentations(manifest)
+    suggestions = value_engine.suggest(manifest)
     stages = {s["stage"] for s in suggestions}
     assert "narrate" in stages
     assert "verify" in stages
