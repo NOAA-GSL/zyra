@@ -425,10 +425,11 @@ class GeminiVertexClient(LLMClient):
         payload = self._build_payload(system_prompt, user_prompt, images)
         try:
             headers = {"Content-Type": "application/json"}
-            headers.update(self._auth_headers())
-            url = self._endpoint
             if self.api_key:
-                url = f"{url}?key={self.api_key}"
+                headers["x-goog-api-key"] = self.api_key
+            else:
+                headers.update(self._auth_headers())
+            url = self._endpoint
             sess = self._get_session()
             if sess is None:
                 import requests  # type: ignore
@@ -475,7 +476,7 @@ class GeminiVertexClient(LLMClient):
             headers = {}
             url = self._models_endpoint
             if self.api_key:
-                url = f"{url}?key={self.api_key}"
+                headers["x-goog-api-key"] = self.api_key
             else:
                 headers.update(self._auth_headers())
             sess = self._get_session()
