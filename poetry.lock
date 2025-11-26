@@ -380,6 +380,19 @@ urllib3 = {version = ">=1.25.4,<2.2.0 || >2.2.0,<3", markers = "python_version >
 crt = ["awscrt (==0.27.6)"]
 
 [[package]]
+name = "cachetools"
+version = "6.2.2"
+description = "Extensible memoizing collections and decorators"
+optional = true
+python-versions = ">=3.9"
+groups = ["main"]
+markers = "extra == \"llm\" or extra == \"all\""
+files = [
+    {file = "cachetools-6.2.2-py3-none-any.whl", hash = "sha256:6c09c98183bf58560c97b2abfcedcbaf6a896a490f534b031b661d3723b45ace"},
+    {file = "cachetools-6.2.2.tar.gz", hash = "sha256:8e6d266b25e539df852251cfd6f990b4bc3a141db73b939058d809ebd2590fc6"},
+]
+
+[[package]]
 name = "cartopy"
 version = "0.22.0"
 description = "A Python library for cartographic visualizations with Matplotlib"
@@ -707,7 +720,7 @@ files = [
     {file = "charset_normalizer-3.4.3-py3-none-any.whl", hash = "sha256:ce571ab16d890d23b5c278547ba694193a45011ff86a9162a71307ed9f86759a"},
     {file = "charset_normalizer-3.4.3.tar.gz", hash = "sha256:6fce4b8500244f6fcb71465d4a4930d132ba9ab8e71a7859e6a5d59851068d14"},
 ]
-markers = {main = "extra == \"guardrails\" or extra == \"datatransfer\" or extra == \"connectors\" or extra == \"all\" or extra == \"processing\""}
+markers = {main = "extra == \"guardrails\" or extra == \"datatransfer\" or extra == \"connectors\" or extra == \"all\" or extra == \"llm\" or extra == \"processing\""}
 
 [[package]]
 name = "click"
@@ -774,7 +787,7 @@ files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
 ]
-markers = {main = "(extra == \"all\" or extra == \"api\" or extra == \"guardrails\" or extra == \"processing\" or extra == \"grib2\" or extra == \"geotiff\") and (platform_system == \"Windows\" or extra == \"guardrails\")", dev = "sys_platform == \"win32\""}
+markers = {main = "(platform_system == \"Windows\" or extra == \"guardrails\") and (extra == \"all\" or extra == \"api\" or extra == \"guardrails\" or extra == \"processing\" or extra == \"grib2\" or extra == \"geotiff\")", dev = "sys_platform == \"win32\""}
 
 [[package]]
 name = "coloredlogs"
@@ -1235,7 +1248,7 @@ description = "\"eccodeslib\""
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "(extra == \"processing\" or extra == \"grib2\" or extra == \"all\") and platform_system != \"Windows\""
+markers = "platform_system != \"Windows\" and (extra == \"processing\" or extra == \"grib2\" or extra == \"all\")"
 files = [
     {file = "eccodeslib-2.43.0-cp310-cp310-macosx_13_0_arm64.whl", hash = "sha256:4f06934e9eae7910b7587c45933de2432d42f1026ad3a191757e255c3ef4c7a3"},
     {file = "eccodeslib-2.43.0-cp310-cp310-macosx_13_0_x86_64.whl", hash = "sha256:88049675a28845eb06246e0fda4c97a6cdb67b5b4dd2b9ccc827af6d6a6449f2"},
@@ -1265,7 +1278,7 @@ description = "\"eckitlib\""
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "(extra == \"processing\" or extra == \"grib2\" or extra == \"all\") and platform_system != \"Windows\""
+markers = "platform_system != \"Windows\" and (extra == \"processing\" or extra == \"grib2\" or extra == \"all\")"
 files = [
     {file = "eckitlib-1.31.4-cp310-cp310-macosx_13_0_arm64.whl", hash = "sha256:b1c5539d1fec18db839ad4b29e9ac5212155819b5cdf3feaeb06d3489f5f5a2b"},
     {file = "eckitlib-1.31.4-cp310-cp310-macosx_13_0_x86_64.whl", hash = "sha256:c2627a2188394b903bee512583df50a4d09b8e7b97357a50a34296108ea494cb"},
@@ -1454,7 +1467,7 @@ description = "\"fckitlib\""
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "(extra == \"processing\" or extra == \"grib2\" or extra == \"all\") and platform_system != \"Windows\""
+markers = "platform_system != \"Windows\" and (extra == \"processing\" or extra == \"grib2\" or extra == \"all\")"
 files = [
     {file = "fckitlib-0.14.0-cp310-cp310-macosx_13_0_arm64.whl", hash = "sha256:a8043eda6c0055dbef469ccd132e27a6452a52d8c3a0f8309a3dec47c4db5138"},
     {file = "fckitlib-0.14.0-cp310-cp310-macosx_13_0_x86_64.whl", hash = "sha256:96048f631a59b4fda957fe9b0742c3ed35ef740a053a974776d57c72e50a0e3a"},
@@ -1789,6 +1802,34 @@ files = [
 ]
 
 [[package]]
+name = "google-auth"
+version = "2.43.0"
+description = "Google Authentication Library"
+optional = true
+python-versions = ">=3.7"
+groups = ["main"]
+markers = "extra == \"llm\" or extra == \"all\""
+files = [
+    {file = "google_auth-2.43.0-py2.py3-none-any.whl", hash = "sha256:af628ba6fa493f75c7e9dbe9373d148ca9f4399b5ea29976519e0a3848eddd16"},
+    {file = "google_auth-2.43.0.tar.gz", hash = "sha256:88228eee5fc21b62a1b5fe773ca15e67778cb07dc8363adcb4a8827b52d81483"},
+]
+
+[package.dependencies]
+cachetools = ">=2.0.0,<7.0"
+pyasn1-modules = ">=0.2.1"
+rsa = ">=3.1.4,<5"
+
+[package.extras]
+aiohttp = ["aiohttp (>=3.6.2,<4.0.0)", "requests (>=2.20.0,<3.0.0)"]
+enterprise-cert = ["cryptography", "pyopenssl"]
+pyjwt = ["cryptography (<39.0.0) ; python_version < \"3.8\"", "cryptography (>=38.0.3)", "pyjwt (>=2.0)"]
+pyopenssl = ["cryptography (<39.0.0) ; python_version < \"3.8\"", "cryptography (>=38.0.3)", "pyopenssl (>=20.0.0)"]
+reauth = ["pyu2f (>=0.1.5)"]
+requests = ["requests (>=2.20.0,<3.0.0)"]
+testing = ["aiohttp (<3.10.0)", "aiohttp (>=3.6.2,<4.0.0)", "aioresponses", "cryptography (<39.0.0) ; python_version < \"3.8\"", "cryptography (<39.0.0) ; python_version < \"3.8\"", "cryptography (>=38.0.3)", "cryptography (>=38.0.3)", "flask", "freezegun", "grpcio", "mock", "oauth2client", "packaging", "pyjwt (>=2.0)", "pyopenssl (<24.3.0)", "pyopenssl (>=20.0.0)", "pytest", "pytest-asyncio", "pytest-cov", "pytest-localserver", "pyu2f (>=0.1.5)", "requests (>=2.20.0,<3.0.0)", "responses", "urllib3"]
+urllib3 = ["packaging", "urllib3"]
+
+[[package]]
 name = "googleapis-common-protos"
 version = "1.72.0"
 description = "Common protobufs used in Google APIs"
@@ -2015,7 +2056,7 @@ description = "Fast transfer of large files with the Hugging Face Hub."
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"guardrails\" and (platform_machine == \"x86_64\" or platform_machine == \"amd64\" or platform_machine == \"AMD64\" or platform_machine == \"arm64\" or platform_machine == \"aarch64\")"
+markers = "(platform_machine == \"x86_64\" or platform_machine == \"amd64\" or platform_machine == \"AMD64\" or platform_machine == \"arm64\" or platform_machine == \"aarch64\") and extra == \"guardrails\""
 files = [
     {file = "hf_xet-1.2.0-cp313-cp313t-macosx_10_12_x86_64.whl", hash = "sha256:ceeefcd1b7aed4956ae8499e2199607765fbd1c60510752003b6cc0b8413b649"},
     {file = "hf_xet-1.2.0-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:b70218dd548e9840224df5638fdc94bd033552963cfa97f9170829381179c813"},
@@ -3736,7 +3777,7 @@ description = "Fast, correct Python JSON library supporting dataclasses, datetim
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"guardrails\" and platform_python_implementation != \"PyPy\""
+markers = "platform_python_implementation != \"PyPy\" and extra == \"guardrails\""
 files = [
     {file = "orjson-3.11.4-cp310-cp310-macosx_10_15_x86_64.macosx_11_0_arm64.macosx_10_15_universal2.whl", hash = "sha256:e3aa2118a3ece0d25489cbe48498de8a5d580e42e8d9979f65bf47900a15aba1"},
     {file = "orjson-3.11.4-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a69ab657a4e6733133a3dca82768f2f8b884043714e8d2b9ba9f52b6efef5c44"},
@@ -4376,6 +4417,35 @@ files = [
 ]
 
 [[package]]
+name = "pyasn1"
+version = "0.6.1"
+description = "Pure-Python implementation of ASN.1 types and DER/BER/CER codecs (X.208)"
+optional = true
+python-versions = ">=3.8"
+groups = ["main"]
+markers = "extra == \"llm\" or extra == \"all\""
+files = [
+    {file = "pyasn1-0.6.1-py3-none-any.whl", hash = "sha256:0d632f46f2ba09143da3a8afe9e33fb6f92fa2320ab7e886e2d0f7672af84629"},
+    {file = "pyasn1-0.6.1.tar.gz", hash = "sha256:6f580d2bdd84365380830acf45550f2511469f673cb4a5ae3857a3170128b034"},
+]
+
+[[package]]
+name = "pyasn1-modules"
+version = "0.4.2"
+description = "A collection of ASN.1-based protocols modules"
+optional = true
+python-versions = ">=3.8"
+groups = ["main"]
+markers = "extra == \"llm\" or extra == \"all\""
+files = [
+    {file = "pyasn1_modules-0.4.2-py3-none-any.whl", hash = "sha256:29253a9207ce32b64c3ac6600edc75368f98473906e8fd1043bd6b5b1de2c14a"},
+    {file = "pyasn1_modules-0.4.2.tar.gz", hash = "sha256:677091de870a80aae844b1ca6134f54652fa2c8c5a52aa396440ac3106e941e6"},
+]
+
+[package.dependencies]
+pyasn1 = ">=0.6.1,<0.7.0"
+
+[[package]]
 name = "pycparser"
 version = "2.23"
 description = "C parser in Python"
@@ -4386,7 +4456,7 @@ files = [
     {file = "pycparser-2.23-py3-none-any.whl", hash = "sha256:e5c6e8d3fbad53479cab09ac03729e0a9faf2bee3db8208a550daf5af81a5934"},
     {file = "pycparser-2.23.tar.gz", hash = "sha256:78816d4f24add8f10a06d6f05b4d424ad9e96cfebf68a4ddc99c65c0720d00c2"},
 ]
-markers = {main = "(extra == \"processing\" or extra == \"grib2\" or extra == \"all\") and implementation_name != \"PyPy\"", dev = "(os_name == \"nt\" or implementation_name == \"pypy\") and implementation_name != \"PyPy\""}
+markers = {main = "implementation_name != \"PyPy\" and (extra == \"processing\" or extra == \"grib2\" or extra == \"all\")", dev = "(os_name == \"nt\" or implementation_name == \"pypy\") and implementation_name != \"PyPy\""}
 
 [[package]]
 name = "pydantic"
@@ -4920,7 +4990,7 @@ description = "Python for Window Extensions"
 optional = false
 python-versions = "*"
 groups = ["dev"]
-markers = "sys_platform == \"win32\" and platform_python_implementation != \"PyPy\""
+markers = "platform_python_implementation != \"PyPy\" and sys_platform == \"win32\""
 files = [
     {file = "pywin32-311-cp310-cp310-win32.whl", hash = "sha256:d03ff496d2a0cd4a5893504789d4a15399133fe82517455e78bad62efbb7f0a3"},
     {file = "pywin32-311-cp310-cp310-win_amd64.whl", hash = "sha256:797c2772017851984b97180b0bebe4b620bb86328e8a884bb626156295a63b3b"},
@@ -5316,7 +5386,7 @@ files = [
     {file = "requests-2.32.5-py3-none-any.whl", hash = "sha256:2462f94637a34fd532264295e186976db0f5d453d1cdd31473c85a6a161affb6"},
     {file = "requests-2.32.5.tar.gz", hash = "sha256:dbba0bac56e100853db0ea71b82b4dfd5fe2bf6d3754a8893c3af500cec7d7cf"},
 ]
-markers = {main = "extra == \"guardrails\" or extra == \"datatransfer\" or extra == \"connectors\" or extra == \"all\" or extra == \"processing\""}
+markers = {main = "extra == \"guardrails\" or extra == \"datatransfer\" or extra == \"connectors\" or extra == \"all\" or extra == \"llm\" or extra == \"processing\""}
 
 [package.dependencies]
 certifi = ">=2017.4.17"
@@ -5560,6 +5630,22 @@ files = [
 [package.dependencies]
 click = ">=5"
 redis = ">=3.5"
+
+[[package]]
+name = "rsa"
+version = "4.9.1"
+description = "Pure-Python RSA implementation"
+optional = true
+python-versions = "<4,>=3.6"
+groups = ["main"]
+markers = "extra == \"llm\" or extra == \"all\""
+files = [
+    {file = "rsa-4.9.1-py3-none-any.whl", hash = "sha256:68635866661c6836b8d39430f97a996acbd61bfa49406748ea243539fe239762"},
+    {file = "rsa-4.9.1.tar.gz", hash = "sha256:e7bdbfdb5497da4c07dfd35530e1a902659db6ff241e39d9953cad06ebd0ae75"},
+]
+
+[package.dependencies]
+pyasn1 = ">=0.1.3"
 
 [[package]]
 name = "rstr"
@@ -6946,7 +7032,7 @@ files = [
 cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and python_version < \"3.14\"", "cffi (>=2.0.0b) ; platform_python_implementation != \"PyPy\" and python_version >= \"3.14\""]
 
 [extras]
-all = ["PyVimeo", "boto3", "cartopy", "cfgrib", "fastapi", "ffmpeg-python", "matplotlib", "netcdf4", "prompt_toolkit", "pygrib", "python-magic", "python-multipart", "rasterio", "redis", "requests", "rioxarray", "rq", "scipy", "siphon", "uvicorn", "xarray"]
+all = ["PyVimeo", "boto3", "cartopy", "cfgrib", "fastapi", "ffmpeg-python", "google-auth", "matplotlib", "netcdf4", "prompt_toolkit", "pygrib", "python-magic", "python-multipart", "rasterio", "redis", "requests", "rioxarray", "rq", "scipy", "siphon", "uvicorn", "xarray"]
 api = ["fastapi", "python-multipart", "redis", "rq", "uvicorn"]
 connectors = ["PyVimeo", "boto3", "requests"]
 datatransfer = ["PyVimeo", "boto3", "requests"]
@@ -6954,6 +7040,7 @@ geotiff = ["rasterio", "rioxarray"]
 grib2 = ["cfgrib", "pygrib"]
 guardrails = ["guardrails-ai"]
 interactive = []
+llm = ["google-auth", "requests"]
 mime = ["python-magic"]
 netcdf = ["netcdf4", "xarray"]
 processing = ["cfgrib", "ffmpeg-python", "netcdf4", "pygrib", "rasterio", "rioxarray", "scipy", "siphon", "xarray"]
@@ -6964,4 +7051,4 @@ ws = ["websockets"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "48b10680e4f07e18d1b67b4047726c99d6a5d73646422933a6bba21e0a55d440"
+content-hash = "0846b639f61a771b14c60063ce5ea337559cd94a8bff755b31686b53a1c41de7"

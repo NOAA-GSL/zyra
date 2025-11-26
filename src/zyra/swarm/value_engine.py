@@ -365,7 +365,7 @@ def _scan_frames_stats(manifest: dict[str, Any]) -> dict[str, Any] | None:
                     datetime_format=args.get("datetime_format"),
                     period_seconds=args.get("period_seconds"),
                 )
-            except Exception:
+            except (Exception, SystemExit):
                 return None
     return None
 

@@ -501,7 +501,11 @@ class NarrateSwarmArgs(BaseModel):
     )
     style: str | None = Field(default=None, description="Target writing style")
     provider: str | None = Field(
-        default=None, description="LLM provider (mock|openai|ollama)"
+        default=None,
+        description=(
+            "LLM provider (mock|openai|ollama|gemini). Gemini accepts GOOGLE_API_KEY "
+            "or Vertex credentials."
+        ),
     )
     model: str | None = Field(default=None, description="Model name")
     base_url: str | None = Field(default=None, description="Provider base URL")

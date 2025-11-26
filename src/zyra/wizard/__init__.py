@@ -146,6 +146,16 @@ def _select_provider(provider: str | None, model: str | None) -> LLMClient:
                 "Ollama unavailable: %s. Falling back to mock.", exc
             )
             return MockClient()
+    if prov in {"gemini", "vertex"}:
+        from .llm_client import GeminiVertexClient, MockClient
+
+        try:
+            return GeminiVertexClient(model=model_name, base_url=base_url)
+        except (RuntimeError, ImportError, AttributeError) as exc:
+            logging.getLogger(__name__).warning(
+                "Gemini provider unavailable: %s. Falling back to mock.", exc
+            )
+            return MockClient()
     if prov == "mock":
         from .llm_client import MockClient
 
@@ -217,6 +227,24 @@ def _test_llm_connectivity(provider: str | None, model: str | None) -> tuple[boo
             return True, f"✅ Connected to {who} at {oc.base_url}"
         except Exception:
             return False, "❌ Failed to query OpenAI; check API key and network access."
+
+    if prov in {"gemini", "vertex"}:
+        from .llm_client import GeminiVertexClient
+
+        try:
+            gc = GeminiVertexClient(model=model_name or None, base_url=base_url or None)
+        except RuntimeError:
+            return (
+                False,
+                "❌ Gemini client not available; set GOOGLE_API_KEY or Vertex credentials.",
+            )
+        except ImportError:
+            return (
+                False,
+                "❌ google-auth is required for Gemini provider; install via `poetry install --with llm`.",
+            )
+        ok, msg = gc.test_connection()
+        return ok, msg
 
     # mock is always 'connected'
     return True, "✅ Using mock LLM provider"
@@ -1556,8 +1584,8 @@ def register_cli(p: argparse.ArgumentParser) -> None:
     )
     p.add_argument(
         "--provider",
-        choices=["openai", "ollama", "mock"],
-        help="LLM provider (default: openai)",
+        choices=["openai", "ollama", "gemini", "vertex", "mock"],
+        help="LLM provider (default: openai). Gemini accepts GOOGLE_API_KEY or Vertex credentials.",
     )
     p.add_argument("--model", help="Model name override for the selected provider")
     p.add_argument(

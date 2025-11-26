@@ -36,3 +36,27 @@ Conventions
 - No secrets; prefer env vars and documented config.
 - Keep prompts small, composable, and versioned via filenames.
 - Use relative paths; avoid absolute paths.
+
+Gemini / Vertex Setup
+---------------------
+
+Tools that route through the Wizard/Narrate clients can target Google Gemini models once the LLM dependency group is installed:
+
+- Install auth helpers: `pip install "zyra[llm]"` (or `poetry install --with llm`).
+- Generative Language API mode:
+  - Set `GOOGLE_API_KEY` (e.g., for `gemini-2.5-flash` or other hosted models).
+  - Optional: `GENLANG_BASE_URL`, `VERTEX_MODEL`.
+- Vertex AI mode:
+  - Provide `VERTEX_PROJECT` (aliases: `GOOGLE_PROJECT_ID`, `GOOGLE_CLOUD_PROJECT`), `VERTEX_LOCATION` (default `us-central1`), and Application Default Credentials (`GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json`).
+  - Optional overrides: `VERTEX_MODEL`, `VERTEX_ENDPOINT`, `VERTEX_PUBLISHER`, `VERTEX_IMPERSONATE_SERVICE_ACCOUNT`.
+
+Sample `~/.zyra_wizard.yaml` for Gemini:
+
+```yaml
+provider: gemini
+model: gemini-2.5-flash
+project: demo-project
+location: us-central1
+```
+
+If neither `GOOGLE_API_KEY` nor Vertex credentials are available, the Wizard automatically falls back to the mock provider so workflows remain testable offline.

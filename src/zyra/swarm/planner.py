@@ -326,7 +326,7 @@ def _scan_frames_plan_details(
             datetime_format=args.get("datetime_format"),
             period_seconds=args.get("period_seconds"),
         )
-    except Exception:
+    except (Exception, SystemExit):
         return None, None
     count = meta.get("frame_count_actual")
     start = meta.get("start_datetime")
@@ -539,7 +539,10 @@ _COMMAND_RULES: dict[str, dict[str, Any]] = {
             "fill_mode": {},
             "basemap": {"when": {"fill_mode": "basemap"}},
         },
-    }
+    },
+    "acquire ftp": {
+        "confirm": ["path"],
+    },
 }
 
 
@@ -1368,6 +1371,19 @@ def _strip_internal_fields(manifest: dict[str, Any]) -> None:
     for agent in agents:
         if not isinstance(agent, dict):
             continue
+        stage = str(agent.get("stage") or "")
+        command = str(agent.get("command") or "")
+        args = agent.get("args")
+        manual = agent.get("_planner_manual_fields")
+        manual_fields = set(manual or []) if isinstance(manual, list) else set()
+        if (
+            isinstance(args, dict)
+            and stage in {"acquire", "import"}
+            and command == "ftp"
+            and "path" not in manual_fields
+        ):
+            args.pop("path", None)
+            args.pop("pattern", None)
         agent.pop("_planner_manual_fields", None)
 
 
@@ -2225,6 +2241,9 @@ def _resolve_ftp_pattern_from_listing(gap: dict[str, Any]) -> bool:
     if not isinstance(agent_ref, dict):
         return False
     args = agent_ref.setdefault("args", {})
+    manual = agent_ref.get("_planner_manual_fields")
+    if not isinstance(manual, list) or "path" not in manual:
+        return False
     path = args.get("path")
     if not isinstance(path, str) or _looks_like_placeholder(path):
         return False

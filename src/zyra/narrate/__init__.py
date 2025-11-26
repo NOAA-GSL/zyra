@@ -75,7 +75,10 @@ def _add_swarm_flags(p: argparse.ArgumentParser) -> None:
     p.add_argument("--agents", help="Comma-separated agent IDs (e.g., summary,critic)")
     p.add_argument("--audiences", help="Comma-separated audiences (e.g., kids,policy)")
     p.add_argument("--style", help="Target writing style (e.g., journalistic)")
-    p.add_argument("--provider", help="LLM provider (mock|openai|ollama)")
+    p.add_argument(
+        "--provider",
+        help="LLM provider (mock|openai|ollama|gemini). Gemini accepts GOOGLE_API_KEY or Vertex creds.",
+    )
     p.add_argument("--model", help="Model name (provider-specific)")
     p.add_argument("--base-url", dest="base_url", help="Provider base URL override")
     p.add_argument("--max-workers", type=int, help="Max concurrent agents (optional)")

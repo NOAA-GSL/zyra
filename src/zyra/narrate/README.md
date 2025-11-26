@@ -76,8 +76,10 @@ Exit Codes
 
 Notes
 
-- The default provider is mock‑friendly and works offline. When credentials are
-  set for providers (OpenAI/Ollama), generation uses those clients.
+- The default provider is mock-friendly and works offline. When credentials are
+  set for providers (OpenAI/Ollama/Gemini), generation uses those clients. For Gemini,
+  either supply `GOOGLE_API_KEY` (Generative Language API) or Vertex credentials
+  (`VERTEX_PROJECT`, `GOOGLE_APPLICATION_CREDENTIALS`, etc.).
 - Prompt templates for common roles are packaged under
   `zyra.assets/llm/prompts/narrate/` and referenced in provenance via
   `prompt_ref`.
