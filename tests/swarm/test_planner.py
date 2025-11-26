@@ -20,6 +20,8 @@ from zyra.swarm.planner import (
     _map_to_capabilities,
     _normalize_args_for_command,
     _propagate_inferred_args,
+    _scan_frames_plan_details,
+    _strip_internal_fields,
     _validate_manifest,
     planner,
 )
@@ -137,6 +139,32 @@ def test_detect_clarifications_placeholder(monkeypatch):
     assert any("placeholder value" in msg for msg in clarifications)
 
 
+def test_ftp_path_requires_confirmation(monkeypatch):
+    fake_caps = {
+        "stage_commands": {
+            "acquire": {
+                "ftp": {
+                    "positionals": [{"name": "path", "required": True}],
+                    "options": {},
+                }
+            }
+        },
+    }
+    monkeypatch.setattr(planner_cli, "_load_capabilities", lambda: fake_caps)
+    manifest = {
+        "agents": [
+            {
+                "id": "ftp",
+                "stage": "acquire",
+                "command": "ftp",
+                "args": {"path": "ftp://droughtmonitor.unl.edu/weekly/frames/"},
+            }
+        ]
+    }
+    clarifications = _detect_clarifications(manifest)
+    assert any("confirm" in msg.lower() for msg in clarifications)
+
+
 def test_drop_placeholder_args_removes_example_path():
     args = {
         "path": "ftp://example.org/data",
@@ -176,6 +204,47 @@ def test_friendly_gap_message_with_llm(monkeypatch):
     assert message == "Please share input for narrate"
 
 
+def test_strip_internal_fields_drops_unconfirmed_ftp_args():
+    manifest = {
+        "agents": [
+            {
+                "id": "ftp",
+                "stage": "acquire",
+                "command": "ftp",
+                "args": {
+                    "path": "ftp://example.com/data/",
+                    "pattern": "^Frame_[0-9]{8}\\.png$",
+                },
+            }
+        ]
+    }
+    _strip_internal_fields(manifest)
+    ftp_args = manifest["agents"][0]["args"]
+    assert "path" not in ftp_args
+    assert "pattern" not in ftp_args
+
+
+def test_strip_internal_fields_preserves_manual_ftp_args():
+    manifest = {
+        "agents": [
+            {
+                "id": "ftp",
+                "stage": "acquire",
+                "command": "ftp",
+                "args": {
+                    "path": "ftp://real.host/data/",
+                    "pattern": "^Frame_[0-9]{8}\\.png$",
+                },
+                "_planner_manual_fields": ["path"],
+            }
+        ]
+    }
+    _strip_internal_fields(manifest)
+    ftp_args = manifest["agents"][0]["args"]
+    assert ftp_args["path"] == "ftp://real.host/data/"
+    assert ftp_args["pattern"] == "^Frame_[0-9]{8}\\.png$"
+
+
 def test_scan_frames_reasoning_includes_stats(tmp_path):
     frames_dir = tmp_path / "frames"
     frames_dir.mkdir()
@@ -192,6 +261,23 @@ def test_scan_frames_reasoning_includes_stats(tmp_path):
     }
     text = _agent_reasoning(agent, "download")
     assert "Stats" in text
+
+
+def test_scan_frames_missing_dir_does_not_crash(monkeypatch):
+    def fake_compute(*args, **kwargs):
+        raise SystemExit("Frames directory not found: boom")
+
+    monkeypatch.setattr(planner_cli, "_compute_frames_metadata", fake_compute)
+    agent = {
+        "id": "scan",
+        "stage": "process",
+        "command": "scan-frames",
+        "args": {
+            "frames_dir": "missing_dir",
+        },
+    }
+    summary, meta = _scan_frames_plan_details(agent)
+    assert summary is None and meta is None
 
 
 def test_apply_suggestion_template_inserts_custom_agent():

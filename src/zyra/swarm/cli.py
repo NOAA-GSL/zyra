@@ -94,7 +94,10 @@ def register_cli(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--provider",
-        help="Override the LLM provider for proposal/narrate agents (openai|ollama|mock)",
+        help=(
+            "Override the LLM provider for proposal/narrate agents "
+            "(openai|ollama|gemini|vertex|mock). Gemini supports GOOGLE_API_KEY or Vertex credentials."
+        ),
     )
     parser.add_argument(
         "--model",
