@@ -29,6 +29,14 @@ import re
 from dataclasses import dataclass
 from typing import Any, Iterable
 
+try:  # optional observability helpers for redaction
+    from zyra.api.utils.obs import _redact
+except Exception:  # pragma: no cover - fallback when API extras missing
+
+    def _redact(value: Any) -> Any:  # type: ignore[override]
+        return value
+
+
 from zyra.connectors.credentials import (
     CredentialResolutionError,
     apply_auth_header,
@@ -1159,8 +1167,10 @@ def _semantic_search(ns: argparse.Namespace) -> list[DatasetMetadata]:
                 "ogc_wms": wms_urls or None,
                 "ogc_records": rec_urls or None,
             }
-            print(json.dumps(plan, indent=2))
-            print(json.dumps({k: v for k, v in effective.items() if v}, indent=2))
+            safe_plan = _redact(plan)
+            safe_effective = _redact({k: v for k, v in effective.items() if v})
+            print(json.dumps(safe_plan, indent=2))
+            print(json.dumps(safe_effective, indent=2))
         except Exception:
             pass
 
@@ -1221,11 +1231,13 @@ def _semantic_analyze(ns: argparse.Namespace) -> int:
         "items": ctx_items,
         "analysis": analysis,
     }
+    safe_out = _redact(out)
     if getattr(ns, "json", False):
-        print(_json.dumps(out, indent=2))
+        print(_json.dumps(safe_out, indent=2))
     else:
-        print(analysis.get("summary", ""))
-        picks = analysis.get("picks", []) or []
+        summary = safe_out.get("analysis", {}).get("summary", "")
+        print(summary)
+        picks = safe_out.get("analysis", {}).get("picks", []) or []
         if picks:
             print("")
             print("Top picks:")

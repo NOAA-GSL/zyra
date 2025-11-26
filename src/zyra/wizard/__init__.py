@@ -16,6 +16,14 @@ from pathlib import Path
 from pathlib import Path as _Path
 from typing import Any
 
+try:  # Planner and wizard share the observability helper
+    from zyra.api.utils.obs import _redact as _wiz_redact
+except Exception:  # pragma: no cover - optional import
+
+    def _wiz_redact(value: Any) -> Any:  # type: ignore[override]
+        return value
+
+
 from zyra.core.capabilities_loader import load_capabilities
 
 from .llm_client import LLMClient
@@ -146,6 +154,16 @@ def _select_provider(provider: str | None, model: str | None) -> LLMClient:
                 "Ollama unavailable: %s. Falling back to mock.", exc
             )
             return MockClient()
+    if prov in {"gemini", "vertex"}:
+        from .llm_client import GeminiVertexClient, MockClient
+
+        try:
+            return GeminiVertexClient(model=model_name, base_url=base_url)
+        except (RuntimeError, ImportError, AttributeError) as exc:
+            logging.getLogger(__name__).warning(
+                "Gemini provider unavailable: %s. Falling back to mock.", exc
+            )
+            return MockClient()
     if prov == "mock":
         from .llm_client import MockClient
 
@@ -218,6 +236,24 @@ def _test_llm_connectivity(provider: str | None, model: str | None) -> tuple[boo
         except Exception:
             return False, "❌ Failed to query OpenAI; check API key and network access."
 
+    if prov in {"gemini", "vertex"}:
+        from .llm_client import GeminiVertexClient
+
+        try:
+            gc = GeminiVertexClient(model=model_name or None, base_url=base_url or None)
+        except RuntimeError:
+            return (
+                False,
+                "❌ Gemini client not available; set GOOGLE_API_KEY or Vertex credentials.",
+            )
+        except ImportError:
+            return (
+                False,
+                "❌ google-auth is required for Gemini provider; install via `poetry install --with llm`.",
+            )
+        ok, msg = gc.test_connection()
+        return ok, msg
+
     # mock is always 'connected'
     return True, "✅ Using mock LLM provider"
 
@@ -267,6 +303,19 @@ def select_profile_from_rules(text: str) -> str:
 
 
 _CAP_MANIFEST_CACHE: dict | None = None
+
+
+def _safe_print_text(text: Any) -> str:
+    try:
+        redacted = _wiz_redact(text)
+    except Exception:
+        redacted = text
+    if isinstance(redacted, str):
+        return redacted
+    try:
+        return json.dumps(redacted)
+    except Exception:
+        return str(redacted)
 
 
 def _load_capabilities_manifest() -> dict | None:
@@ -967,7 +1016,8 @@ def _resolve_missing_args(
         log_fn=lambda e: _log_evt({"type": "arg_resolve", **e}),
     )
     if updated != cmd:
-        print(f"✅ Command ready: {updated}")
+        safe_cmd = _safe_print_text(updated)
+        print(f"✅ Command ready: {safe_cmd}")
     return updated
 
 
@@ -1170,13 +1220,15 @@ def _handle_prompt(
             return 1
         if show_raw:
             print("Raw model output:\n" + reply)
+        safe_shown = [_safe_print_text(cmd) for cmd in shown]
+        safe_cmds = [_safe_print_text(cmd) for cmd in cmds]
         if explain:
             print(
                 "Suggested commands (with explanations):\n"
-                + "\n".join(f"  {cmd}" for cmd in shown)
+                + "\n".join(f"  {cmd}" for cmd in safe_shown)
             )
         else:
-            print("Suggested commands:\n" + "\n".join(f"  {cmd}" for cmd in cmds))
+            print("Suggested commands:\n" + "\n".join(f"  {cmd}" for cmd in safe_cmds))
         _log_event(
             logfile,
             {
@@ -1203,13 +1255,15 @@ def _handle_prompt(
     if show_raw:
         print("Raw model output:\n" + reply)
     # Suggested commands: optionally include inline comments via annotated lines
+    safe_shown = [_safe_print_text(cmd) for cmd in shown]
+    safe_cmds = [_safe_print_text(cmd) for cmd in cmds]
     if explain:
         print(
             "Suggested commands (with explanations):\n"
-            + "\n".join(f"  {cmd}" for cmd in shown)
+            + "\n".join(f"  {cmd}" for cmd in safe_shown)
         )
     else:
-        print("Suggested commands:\n" + "\n".join(f"  {cmd}" for cmd in cmds))
+        print("Suggested commands:\n" + "\n".join(f"  {cmd}" for cmd in safe_cmds))
     # Update session context immediately so dry-runs can influence follow-up prompts
     if session is not None:
         session.history.extend(cmds if not explain else shown)
@@ -1261,7 +1315,7 @@ def _handle_prompt(
 
     status = 0
     for cmd in cmds:
-        print(f"\n$ {cmd}")
+        print(f"\n$ {_safe_print_text(cmd)}")
         # Resolve missing required args
         try:
             cmd = _resolve_missing_args(
@@ -1556,8 +1610,8 @@ def register_cli(p: argparse.ArgumentParser) -> None:
     )
     p.add_argument(
         "--provider",
-        choices=["openai", "ollama", "mock"],
-        help="LLM provider (default: openai)",
+        choices=["openai", "ollama", "gemini", "vertex", "mock"],
+        help="LLM provider (default: openai). Gemini accepts GOOGLE_API_KEY or Vertex credentials.",
     )
     p.add_argument("--model", help="Model name override for the selected provider")
     p.add_argument(
@@ -1845,8 +1899,10 @@ def _run_semantic_search(
                 "ogc_wms": wms_urls or None,
                 "ogc_records": rec_urls or None,
             }
-            print(_json.dumps(raw_plan, indent=2))
-            print(_json.dumps({k: v for k, v in effective.items() if v}, indent=2))
+            safe_plan = _wiz_redact(raw_plan)
+            safe_effective = _wiz_redact({k: v for k, v in effective.items() if v})
+            print(_json.dumps(safe_plan, indent=2))
+            print(_json.dumps(safe_effective, indent=2))
         except Exception:
             pass
 

@@ -19,6 +19,14 @@ from zyra.pipeline_runner import _stage_group_alias
 from zyra.swarm import open_provenance_store, suggest_augmentations
 from zyra.swarm.spec import StageAgentSpec
 
+try:  # pragma: no cover - optional dependency
+    from zyra.api.utils.obs import _redact as _friendly_redact
+except Exception:  # pragma: no cover - fallback when obs helpers unavailable
+
+    def _friendly_redact(value: Any) -> Any:  # type: ignore[override]
+        return value
+
+
 try:  # pragma: no cover - optional import
     from zyra.transform import _compute_frames_metadata
 except Exception:  # pragma: no cover - imported at runtime only
@@ -326,7 +334,7 @@ def _scan_frames_plan_details(
             datetime_format=args.get("datetime_format"),
             period_seconds=args.get("period_seconds"),
         )
-    except Exception:
+    except (Exception, SystemExit):
         return None, None
     count = meta.get("frame_count_actual")
     start = meta.get("start_datetime")
@@ -539,7 +547,10 @@ _COMMAND_RULES: dict[str, dict[str, Any]] = {
             "fill_mode": {},
             "basemap": {"when": {"fill_mode": "basemap"}},
         },
-    }
+    },
+    "acquire ftp": {
+        "confirm": ["path"],
+    },
 }
 
 
@@ -575,7 +586,11 @@ def _register_arg_resolver(stage: str, command: str, field: str):
 
 def _log_verbose(message: str) -> None:
     if _PLANNER_VERBOSE:
-        print(message, file=sys.stderr)
+        try:
+            safe = _friendly_redact(message)
+        except Exception:
+            safe = message
+        print(safe, file=sys.stderr)
 
 
 def _print_listing_preview(
@@ -1368,6 +1383,19 @@ def _strip_internal_fields(manifest: dict[str, Any]) -> None:
     for agent in agents:
         if not isinstance(agent, dict):
             continue
+        stage = str(agent.get("stage") or "")
+        command = str(agent.get("command") or "")
+        args = agent.get("args")
+        manual = agent.get("_planner_manual_fields")
+        manual_fields = set(manual or []) if isinstance(manual, list) else set()
+        if (
+            isinstance(args, dict)
+            and stage in {"acquire", "import"}
+            and command == "ftp"
+            and "path" not in manual_fields
+        ):
+            args.pop("path", None)
+            args.pop("pattern", None)
         agent.pop("_planner_manual_fields", None)
 
 
@@ -1620,9 +1648,9 @@ def _maybe_prompt_for_followups(
         help_text = _field_help_text(stage, command, field)
         friendly = _friendly_gap_message(gap, help_text)
         if friendly:
-            print(f"    {friendly}", file=sys.stderr)
+            print(f"    {_friendly_redact(friendly)}", file=sys.stderr)
         if help_text:
-            print(f"    hint: {help_text}", file=sys.stderr)
+            print(f"    hint: {_friendly_redact(help_text)}", file=sys.stderr)
         prompt = f"[{label} — {stage} {command}] Provide value for '{field}'{suffix}: "
         _trace(
             "clarification_prompt",
@@ -2225,6 +2253,9 @@ def _resolve_ftp_pattern_from_listing(gap: dict[str, Any]) -> bool:
     if not isinstance(agent_ref, dict):
         return False
     args = agent_ref.setdefault("args", {})
+    manual = agent_ref.get("_planner_manual_fields")
+    if not isinstance(manual, list) or "path" not in manual:
+        return False
     path = args.get("path")
     if not isinstance(path, str) or _looks_like_placeholder(path):
         return False
