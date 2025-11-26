@@ -4,6 +4,8 @@ from __future__ import annotations
 import sys
 import types
 
+import pytest
+
 from zyra.wizard.llm_client import GeminiVertexClient, OllamaClient
 
 
@@ -113,9 +115,5 @@ def test_gemini_vertex_uses_adc_defaults(monkeypatch):
 def test_gemini_vertex_requires_project(monkeypatch):
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
     _install_fake_google(monkeypatch, project=None)
-    try:
+    with pytest.raises(RuntimeError, match="VERTEX_PROJECT"):
         GeminiVertexClient(model=None)
-    except RuntimeError as exc:
-        assert "VERTEX_PROJECT" in str(exc)
-    else:  # pragma: no cover - ensure we fail if no exception
-        raise AssertionError("expected RuntimeError for missing project")

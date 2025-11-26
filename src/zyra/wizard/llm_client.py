@@ -293,7 +293,6 @@ class GeminiVertexClient(LLMClient):
             base = (
                 base_url
                 or os.environ.get("GENLANG_BASE_URL")
-                or os.environ.get("VERTEX_ENDPOINT")
                 or "https://generativelanguage.googleapis.com"
             )
             self._mode = "api_key"

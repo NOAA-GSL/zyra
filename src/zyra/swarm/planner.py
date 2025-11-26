@@ -549,6 +549,8 @@ _COMMAND_RULES: dict[str, dict[str, Any]] = {
         },
     },
     "acquire ftp": {
+        # Confirm path before inferring pattern because the resolver relies on a
+        # confirmed path to list the remote directory safely.
         "confirm": ["path"],
     },
 }
@@ -1394,6 +1396,8 @@ def _strip_internal_fields(manifest: dict[str, Any]) -> None:
             and command == "ftp"
             and "path" not in manual_fields
         ):
+            # Pattern inference depends on the confirmed path. When path wasn't
+            # manually confirmed, drop both so the planner re-prompts next time.
             args.pop("path", None)
             args.pop("pattern", None)
         agent.pop("_planner_manual_fields", None)
