@@ -285,11 +285,7 @@ def create_app() -> FastAPI:
             elif prov == "ollama":
                 model_resolved = "mistral"
             elif prov in {"gemini", "vertex"}:
-                model_resolved = (
-                    env("VERTEX_MODEL")
-                    or os.environ.get("VERTEX_MODEL")
-                    or "gemini-2.5-flash"
-                )
+                model_resolved = env("VERTEX_MODEL") or "gemini-2.5-flash"
             else:
                 model_resolved = None  # mock/unknown
         llm = {"provider": prov, "model": model_resolved}
@@ -352,9 +348,7 @@ def create_app() -> FastAPI:
                 if prov == "openai"
                 else "mistral"
                 if prov == "ollama"
-                else env("VERTEX_MODEL")
-                or os.environ.get("VERTEX_MODEL")
-                or "gemini-2.5-flash"
+                else env("VERTEX_MODEL") or "gemini-2.5-flash"
                 if prov in {"gemini", "vertex"}
                 else None
             )

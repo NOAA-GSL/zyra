@@ -586,10 +586,8 @@ def _register_arg_resolver(stage: str, command: str, field: str):
 
 def _log_verbose(message: str) -> None:
     if _PLANNER_VERBOSE:
-        from zyra.api.utils.obs import _redact
-
         try:
-            safe = _redact(message)
+            safe = _friendly_redact(message)
         except Exception:
             safe = message
         print(safe, file=sys.stderr)

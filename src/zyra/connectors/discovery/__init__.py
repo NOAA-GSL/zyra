@@ -1237,7 +1237,7 @@ def _semantic_analyze(ns: argparse.Namespace) -> int:
     else:
         summary = safe_out.get("analysis", {}).get("summary", "")
         print(summary)
-        picks = analysis.get("picks", []) or []
+        picks = safe_out.get("analysis", {}).get("picks", []) or []
         if picks:
             print("")
             print("Top picks:")
