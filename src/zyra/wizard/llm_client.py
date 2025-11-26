@@ -14,6 +14,7 @@ tests and offline/dev environments.
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -137,9 +138,6 @@ class OpenAIClient(LLMClient):
     def generate(
         self, system_prompt: str, user_prompt: str, images: list[str] | None = None
     ) -> str:  # pragma: no cover - network optional
-        import json
-        from json import JSONDecodeError
-
         try:
             url = f"{self.base_url}/chat/completions"
             headers = {
@@ -175,7 +173,7 @@ class OpenAIClient(LLMClient):
             return data["choices"][0]["message"]["content"].strip()
         except (
             ImportError,
-            JSONDecodeError,
+            json.JSONDecodeError,
             KeyError,
             IndexError,
             TypeError,
@@ -224,9 +222,6 @@ class OllamaClient(LLMClient):
     def generate(
         self, system_prompt: str, user_prompt: str, images: list[str] | None = None
     ) -> str:  # pragma: no cover - network optional
-        import json
-        from json import JSONDecodeError
-
         try:
             url = f"{self.base_url}/api/chat"
             payload: dict = {
@@ -252,7 +247,7 @@ class OllamaClient(LLMClient):
             return data.get("message", {}).get("content", "").strip()
         except (
             ImportError,
-            JSONDecodeError,
+            json.JSONDecodeError,
             KeyError,
             TypeError,
             RequestException,
@@ -318,7 +313,8 @@ class GeminiVertexClient(LLMClient):
             )
         except ImportError as exc:  # pragma: no cover - optional dependency
             raise ImportError(
-                "Gemini provider requires google-auth. Install with `poetry install --with dev,llm`."
+                "Gemini provider requires google-auth. Install with `poetry install --with llm` "
+                'or `pip install "zyra[llm]"`.'
             ) from exc
 
         credentials, default_project = google.auth.default(scopes=_GEMINI_SCOPES)
@@ -412,16 +408,13 @@ class GeminiVertexClient(LLMClient):
                     return " ".join(
                         t.strip() for t in texts if isinstance(t, str)
                     ).strip()
-        except Exception:
-            pass
+        except Exception:  # pragma: no cover - fallback when response is malformed
+            return ""
         return ""
 
     def generate(
         self, system_prompt: str, user_prompt: str, images: list[str] | None = None
     ) -> str:
-        import json
-        from json import JSONDecodeError
-
         payload = self._build_payload(system_prompt, user_prompt, images)
         try:
             headers = {"Content-Type": "application/json"}
@@ -451,7 +444,7 @@ class GeminiVertexClient(LLMClient):
             )
         except (
             ImportError,
-            JSONDecodeError,
+            json.JSONDecodeError,
             KeyError,
             TypeError,
             RequestException,
@@ -461,8 +454,10 @@ class GeminiVertexClient(LLMClient):
             hint_text = ""
             if _env_bool("LLM_ERROR_HINTS", False):
                 hints = [
-                    "Ensure GOOGLE_API_KEY is set for Generative Language API usage "
-                    "or VERTEX_PROJECT/GOOGLE_APPLICATION_CREDENTIALS for Vertex AI.",
+                    (
+                        "Ensure GOOGLE_API_KEY is set for Generative Language API usage "
+                        "or VERTEX_PROJECT/GOOGLE_APPLICATION_CREDENTIALS for Vertex AI."
+                    ),
                     "Install google-auth (poetry install --with llm) for Vertex-managed access.",
                 ]
                 hint_text = "\n# " + "\n# ".join(hints)

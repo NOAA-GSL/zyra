@@ -29,7 +29,14 @@ import re
 from dataclasses import dataclass
 from typing import Any, Iterable
 
-from zyra.api.utils.obs import _redact
+try:  # optional observability helpers for redaction
+    from zyra.api.utils.obs import _redact
+except Exception:  # pragma: no cover - fallback when API extras missing
+
+    def _redact(value: Any) -> Any:  # type: ignore[override]
+        return value
+
+
 from zyra.connectors.credentials import (
     CredentialResolutionError,
     apply_auth_header,
