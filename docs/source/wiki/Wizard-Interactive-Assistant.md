@@ -3,7 +3,7 @@ The Wizard is an interactive and one‑shot assistant that turns natural‑langu
 
 - Command: `zyra wizard`
 - Modes: interactive REPL or one‑shot via `--prompt`
-- Providers: OpenAI, Ollama, or a network‑free mock
+- Providers: OpenAI, Ollama, Gemini (Vertex/Generative Language API), or a network‑free mock
 
 This implements the MVP for the interactive assistant. For current scope and status, see Roadmap-and-Tracking.md.
 
@@ -15,7 +15,7 @@ This implements the MVP for the interactive assistant. For current scope and sta
 
 ## Options
 - `--prompt TEXT`: One‑shot query; without it, starts interactive mode.
-- `--provider {openai,ollama,mock}`: LLM backend (default: `openai`).
+- `--provider {openai,ollama,gemini,vertex,mock}`: LLM backend (default: `openai`; Gemini defaults to `gemini-2.5-flash`).
 - `--model NAME`: Model name override for the selected provider.
 - `--dry-run`: Show suggested commands but do not execute them.
 - `-y, --yes`: Auto‑confirm execution without prompting.
@@ -37,18 +37,30 @@ This implements the MVP for the interactive assistant. For current scope and sta
 - Ollama
   - Requires a local Ollama server (default base URL: `http://localhost:11434`).
   - Override with `OLLAMA_BASE_URL`.
+- Gemini (Vertex AI / Generative Language API)
+  - Option 1 (API key / hosted tools): set `GOOGLE_API_KEY` to call the Generative Language REST endpoint (e.g., `gemini-2.5-flash`, `gemini-1.5-pro`). Optional overrides: `GENLANG_BASE_URL`, `VERTEX_MODEL`.
+  - Option 2 (Vertex managed): provide `VERTEX_PROJECT` (or `GOOGLE_PROJECT_ID`), `VERTEX_LOCATION` (default `us-central1`), plus Application Default Credentials (e.g., `GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json`). Optional overrides: `VERTEX_MODEL`, `VERTEX_ENDPOINT`, `VERTEX_PUBLISHER`.
+  - Install `google-auth` (included in the `llm` extra) when using Vertex-side authentication. The client falls back to the mock provider when credentials are missing.
 - Mock (offline)
   - No network, returns simple deterministic suggestions for testing.
 
 Additional env overrides:
-- `ZYRA_LLM_PROVIDER`: default provider (`openai`, `ollama`, or `mock`).
+- `ZYRA_LLM_PROVIDER`: default provider (`openai`, `ollama`, `gemini`, `vertex`, or `mock`).
 - `ZYRA_LLM_MODEL`: default model name for the chosen provider.
+- Gemini-specific:
+  - `GOOGLE_API_KEY`: API key for the Generative Language REST API.
+  - `VERTEX_PROJECT`: Vertex AI project ID (alias: `GOOGLE_PROJECT_ID`, `GOOGLE_CLOUD_PROJECT`).
+  - `VERTEX_LOCATION`: Vertex AI region (alias: `GOOGLE_CLOUD_REGION`; default `us-central1`).
+  - `VERTEX_MODEL`: Gemini model name (default `gemini-2.5-flash`).
+  - `VERTEX_ENDPOINT`: Custom Vertex API root (optional).
+  - `GENLANG_BASE_URL`: Alternate Generative Language API root (optional).
+  - `GOOGLE_APPLICATION_CREDENTIALS`: path to a service-account JSON when using ADC.
 
 ## Configuration & Precedence
 Wizard supports three levels of configuration. Highest priority wins:
 
 1) CLI flags (per-invocation)
-- `--provider openai|ollama|mock`
+- `--provider openai|ollama|gemini|vertex|mock`
 - `--model NAME`
 
 2) Environment variables (good for CI/CD)
@@ -180,11 +192,10 @@ Saved 2 command(s) to /path/to/history.txt
 The Wizard can ground suggestions using a structured capabilities manifest that lists available commands and their options.
 
 - Generation:
-  - `poetry run zyra generate-manifest` (writes canonical per-domain files under `src/zyra/wizard/zyra_capabilities/`).
-  - Pass `--legacy-json` (default) to also refresh `src/zyra/wizard/zyra_capabilities.json` for older tools.
-  - Use `-o /path/to/dir` or `-o /path/to/file.json` to override destinations.
-  - Note: Regenerate whenever CLI commands or options change so assistants/tools stay in sync.
-- Packaging: The manifest directory `src/zyra/wizard/zyra_capabilities/` (plus the optional legacy JSON when enabled) is bundled with the package.
+  - `poetry run zyra generate-manifest` (writes to `src/zyra/wizard/zyra_capabilities.json` by default).
+  - Use `-o /path/to/file.json` to write elsewhere.
+  - Note: When new CLI commands or options are added (e.g., `search` flags), regenerate the manifest so assistants and tools stay in sync.
+- Packaging: The manifest under `src/zyra/wizard/zyra_capabilities.json` is bundled with the package.
 - Usage in Wizard: On each turn, Wizard loads the manifest (if present), selects relevant entries by keyword match against the user prompt, and prepends a short context like:
   - `- Relevant commands:`
   - `  - visualize heatmap: Generate heatmap images. Options: --input, --var, --output`
