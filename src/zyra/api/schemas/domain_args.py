@@ -503,8 +503,8 @@ class NarrateSwarmArgs(BaseModel):
     provider: str | None = Field(
         default=None,
         description=(
-            "LLM provider (mock|openai|ollama|gemini). Gemini accepts GOOGLE_API_KEY "
-            "or Vertex credentials."
+            "LLM provider (mock|openai|ollama|gemini|vertex). Gemini accepts "
+            "GOOGLE_API_KEY or Vertex credentials."
         ),
     )
     model: str | None = Field(default=None, description="Model name")

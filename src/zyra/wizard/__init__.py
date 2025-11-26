@@ -1899,8 +1899,8 @@ def _run_semantic_search(
                 "ogc_wms": wms_urls or None,
                 "ogc_records": rec_urls or None,
             }
-            safe_plan = _safe_print_text(raw_plan)
-            safe_effective = _safe_print_text({k: v for k, v in effective.items() if v})
+            safe_plan = _wiz_redact(raw_plan)
+            safe_effective = _wiz_redact({k: v for k, v in effective.items() if v})
             print(_json.dumps(safe_plan, indent=2))
             print(_json.dumps(safe_effective, indent=2))
         except Exception:

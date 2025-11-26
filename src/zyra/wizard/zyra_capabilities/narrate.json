@@ -72,7 +72,7 @@
       "--agents": "Comma-separated agent IDs (e.g., summary,critic)",
       "--audiences": "Comma-separated audiences (e.g., kids,policy)",
       "--style": "Target writing style (e.g., journalistic)",
-      "--provider": "LLM provider (mock|openai|ollama|gemini). Gemini accepts GOOGLE_API_KEY or Vertex creds.",
+      "--provider": "LLM provider (mock|openai|ollama|gemini|vertex). Gemini accepts GOOGLE_API_KEY or Vertex creds.",
       "--model": "Model name (provider-specific)",
       "--base-url": "Provider base URL override",
       "--max-workers": {
