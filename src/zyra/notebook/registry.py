@@ -194,10 +194,14 @@ class ToolWrapper:
             return
         # Track invocation for export helpers even if store handling fails
         with contextlib.suppress(Exception):
+            kwargs = _safe_repr(ns)
+            # Remove the synthetic workdir default so exports stay concise
+            if isinstance(kwargs, dict):
+                kwargs.pop("workdir", None)
             self._session._invocations.append(  # noqa: SLF001
                 {
                     "tool": self.meta.name,
-                    "kwargs": _safe_repr(ns),
+                    "kwargs": kwargs,
                     "returns": self.meta.returns or "object",
                 }
             )
