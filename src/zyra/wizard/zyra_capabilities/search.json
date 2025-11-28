@@ -143,6 +143,12 @@
     "positionals": [],
     "domain": "search",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.discovery",
+      "callable": "_cmd_api"
+    },
+    "returns": "bytes",
+    "output_arg": "--output"
   }
 }

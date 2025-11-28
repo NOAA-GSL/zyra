@@ -143,6 +143,12 @@
     ],
     "domain": "run",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.pipeline_runner",
+      "callable": "_cmd"
+    },
+    "returns": "object",
+    "stdin_arg": "config"
   }
 }

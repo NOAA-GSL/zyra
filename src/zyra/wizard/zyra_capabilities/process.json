@@ -83,7 +83,13 @@
         "records_path"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.processing",
+      "callable": "cmd_api_json"
+    },
+    "returns": "path",
+    "stdin_arg": "file_or_url"
   },
   "process audio-metadata": {
     "description": "Run ffprobe to extract duration, bitrate, channels, sample rate, codec, and size; writes JSON.",
@@ -142,7 +148,12 @@
         "output"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.processing",
+      "callable": "cmd_audio_metadata"
+    },
+    "returns": "bytes"
   },
   "process audio-transcode": {
     "description": "Transcode input audio to a target format using ffmpeg. Requires FFmpeg runtime.",
@@ -234,7 +245,13 @@
         "to"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.processing",
+      "callable": "_at_entry"
+    },
+    "returns": "path",
+    "output_arg": "--output"
   },
   "process convert-format": {
     "description": "Convert decoded GRIB2 data to NetCDF or GeoTIFF. Supports single input or batch via --inputs.",
@@ -354,7 +371,14 @@
       "file_or_url": "samples/demo.grib2",
       "format": "netcdf",
       "stdout": true
-    }
+    },
+    "impl": {
+      "module": "zyra.processing",
+      "callable": "cmd_convert_format"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "stdin_arg": "file_or_url"
   },
   "process decode-grib2": {
     "description": "Decode a GRIB2 file or URL using cfgrib/pygrib/wgrib2 and log basic metadata. Optionally emit raw bytes (with optional .idx subset) to stdout.",
@@ -434,7 +458,16 @@
         "unsigned"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.processing",
+      "callable": "cmd_decode_grib2"
+    },
+    "returns": "bytes",
+    "stdin_arg": "file_or_url",
+    "extras": [
+      "grib"
+    ]
   },
   "process enrich-datasets": {
     "description": "zyra process enrich-datasets",
@@ -539,7 +572,12 @@
     "positionals": [],
     "domain": "process",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_enrich_datasets"
+    },
+    "returns": "path"
   },
   "process enrich-metadata": {
     "description": "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin.",
@@ -606,7 +644,12 @@
     "positionals": [],
     "domain": "process",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_enrich"
+    },
+    "returns": "path"
   },
   "process extract-variable": {
     "description": "Extract a variable from GRIB2 by regex pattern. Output selected variable as NetCDF/GRIB2 to stdout when requested, or log the matched variable name.",
@@ -694,7 +737,13 @@
         "stdout"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.processing",
+      "callable": "cmd_extract_variable"
+    },
+    "returns": "bytes",
+    "stdin_arg": "file_or_url"
   },
   "process metadata": {
     "description": "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence.",
@@ -755,7 +804,12 @@
     "positionals": [],
     "domain": "process",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_metadata"
+    },
+    "returns": "bytes"
   },
   "process pad-missing": {
     "description": "Read frames metadata JSON from 'transform metadata/scan-frames' and generate placeholder images for each missing timestamp using blank, solid color, basemap, or nearest-frame strategies.",
@@ -842,7 +896,19 @@
     "positionals": [],
     "domain": "process",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.processing",
+      "callable": "notebook_pad_missing"
+    },
+    "returns": "path",
+    "extras": [
+      "pillow"
+    ],
+    "side_effects": [
+      "--output-dir",
+      "--json-report"
+    ]
   },
   "process scan-frames": {
     "description": "Alias of 'metadata'. Scan a frames directory and report timestamps, counts, and missing frames.",
@@ -903,7 +969,12 @@
     "positionals": [],
     "domain": "process",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_metadata"
+    },
+    "returns": "bytes"
   },
   "process update-dataset-json": {
     "description": "Update a dataset.json entry by id using metadata (start/end and Vimeo URI) from a file, stdin, or args.",
@@ -986,7 +1057,12 @@
     "positionals": [],
     "domain": "process",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_update_dataset"
+    },
+    "returns": "path"
   },
   "process video-transcode": {
     "description": "Transcode videos or JPG image stacks into modern or legacy formats using FFmpeg. Supports SOS presets, metadata capture, and batch processing.",
@@ -1139,6 +1215,12 @@
         "write_metadata"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.processing",
+      "callable": "_vt_entry"
+    },
+    "returns": "path",
+    "output_arg": "--output"
   }
 }

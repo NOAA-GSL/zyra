@@ -34,6 +34,11 @@
         "metric"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.verify",
+      "callable": "_cmd_evaluate"
+    },
+    "returns": "text"
   }
 }

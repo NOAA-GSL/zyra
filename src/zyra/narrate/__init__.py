@@ -199,15 +199,10 @@ def _cmd_swarm(ns: argparse.Namespace) -> int:
     except Exception as e:
         print(str(e), file=sys.stderr)
         return 2
+
     # Skeleton execution using the orchestrator for agent outputs
     try:
-        pack = _build_pack_with_orchestrator(resolved)
-    except ValueError as exc:
-        print(str(exc), file=sys.stderr)
-        return 2
-    # Validate before writing; map validation errors to exit 2
-    try:
-        pack = NarrativePack.model_validate(pack)
+        pack = _run_swarm(resolved)
     except Exception as e:  # pydantic.ValidationError
         # Print actionable error with field locations when available
         try:
@@ -224,13 +219,6 @@ def _cmd_swarm(ns: argparse.Namespace) -> int:
         print(str(e), file=sys.stderr)
         return 2
 
-    # Runtime validation (RFC3339 timestamps, monotonic per agent, failed_agents subset)
-    try:
-        _runtime_validate_pack_dict(pack.model_dump())
-    except ValueError as ve:
-        print(str(ve), file=sys.stderr)
-        return 2
-
     if resolved.get("pack"):
         _write_pack(resolved["pack"], pack.model_dump(exclude_none=True))
     else:
@@ -238,12 +226,51 @@ def _cmd_swarm(ns: argparse.Namespace) -> int:
     return 0 if pack.status.completed else 1
 
 
-def _build_pack_with_orchestrator(cfg: dict[str, Any]) -> dict[str, Any]:
+def notebook_swarm(ns: argparse.Namespace) -> str | dict[str, Any]:
+    """Notebook-friendly entrypoint that returns the narration text."""
+
+    resolved = _resolve_swarm_config(ns)
+    input_data = getattr(ns, "input_data", None)
+    input_format = getattr(ns, "input_format", None)
+    if input_data is None:
+        intent = getattr(ns, "intent", None)
+        if intent:
+            input_data = {"description": str(intent)}
+            input_format = "text"
+    pack = _run_swarm(
+        resolved,
+        input_data=input_data,
+        input_format=input_format,
+    )
+    if resolved.get("pack"):
+        _write_pack(resolved["pack"], pack.model_dump(exclude_none=True))
+    outputs = pack.outputs or {}
+    preferred_raw = (
+        outputs.get("editor")
+        or outputs.get("summary")
+        or next(
+            (v for v in outputs.values() if isinstance(v, str) and v.strip()),
+            None,
+        )
+    )
+    text = _clean_llm_output(preferred_raw or "")
+    if _looks_like_command_suggestion(text):
+        text = _build_offline_narration(input_data) or text
+    return text or outputs or pack.model_dump(exclude_none=True)
+
+
+def _build_pack_with_orchestrator(
+    cfg: dict[str, Any],
+    *,
+    input_data: Any | None = None,
+    input_format: str | None = None,
+) -> dict[str, Any]:
     agents_cfg = cfg.get("agents") or ["summary", "critic"]
     audiences = cfg.get("audiences") or []
     style = cfg.get("style") or "journalistic"
     input_path = cfg.get("input")
-    input_data, inp_format = _load_input_payload(input_path)
+    if input_data is None:
+        input_data, input_format = _load_input_payload(input_path)
     client = _wiz_select_provider(cfg.get("provider"), cfg.get("model"))
 
     agents = _create_agents(
@@ -267,9 +294,82 @@ def _build_pack_with_orchestrator(cfg: dict[str, Any]) -> dict[str, Any]:
         style,
         rubric_ref,
         input_path,
-        inp_format,
+        input_format,
         input_data,
     )
+
+
+def _run_swarm(
+    cfg: dict[str, Any],
+    *,
+    input_data: Any | None = None,
+    input_format: str | None = None,
+) -> NarrativePack:
+    pack_dict = _build_pack_with_orchestrator(
+        cfg, input_data=input_data, input_format=input_format
+    )
+    pack = NarrativePack.model_validate(pack_dict)
+    _runtime_validate_pack_dict(pack.model_dump())
+    return pack
+
+
+def _clean_llm_output(text: str) -> str:
+    """Strip noisy fallback prefixes from LLM outputs."""
+
+    if not isinstance(text, str):
+        return text
+    lines = text.splitlines()
+    filtered = [
+        ln
+        for ln in lines
+        if "fallback response used" not in ln.lower()
+        and not ln.strip().startswith("# ollama error")
+        and not ln.strip().startswith("# openai error")
+        and not ln.strip().startswith("# gemini error")
+    ]
+    cleaned = "\n".join(filtered).strip()
+    return cleaned or text.strip()
+
+
+def _looks_like_command_suggestion(text: str) -> bool:
+    """Detect mock/help-style responses that aren't helpful narrations."""
+
+    if not isinstance(text, str):
+        return False
+    lower = text.lower()
+    return lower.startswith("suggested command") or "zyra --help" in lower
+
+
+def _build_offline_narration(input_data: Any | None) -> str:
+    """Construct a deterministic narration when the LLM falls back to mock/help."""
+
+    if not isinstance(input_data, dict):
+        return ""
+    data = input_data.get("data") if isinstance(input_data, dict) else None
+    missing = None
+    after = None
+    expected = None
+    if isinstance(data, dict):
+        missing = data.get("missing_count")
+        after = data.get("frame_count_after_padding") or data.get("frame_count_actual")
+        expected = data.get("frame_count_expected")
+        timestamps = data.get("missing_timestamps") or []
+    else:
+        timestamps = []
+    title = input_data.get("title") or "the animation"
+    parts: list[str] = []
+    if expected and after:
+        parts.append(f"{after}/{expected} weekly frames available")
+    elif after:
+        parts.append(f"{after} weekly frames available")
+    if missing:
+        parts.append(f"filled {missing} gaps")
+    if timestamps and isinstance(timestamps, list):
+        preview = ", ".join(str(ts) for ts in timestamps[:2])
+        if preview:
+            parts.append(f"missing weeks around {preview}")
+    body = "; ".join(parts) or "animation composed from recent drought frames"
+    return f"Narration (offline fallback): {title} shows {body}."
 
 
 def _load_input_payload(input_path: str | None) -> tuple[Any | None, str | None]:
@@ -412,10 +512,37 @@ def _execute_orchestrator(
             event_hook=store.as_event_hook(),
             guardrails=guardrails_adapter,
         )
-        outputs = asyncio.run(orch.execute(context))
+        outputs = _run_coro_sync(orch.execute(context))
         return outputs, orch
     finally:
         store.close()
+
+
+def _run_coro_sync(coro: Any) -> Any:
+    """Run an async coroutine from sync code, even inside a running loop."""
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+
+    result: dict[str, Any] = {}
+    error: dict[str, BaseException] = {}
+
+    def _runner() -> None:
+        try:
+            result["value"] = asyncio.run(coro)
+        except BaseException as exc:  # noqa: BLE001
+            error["exc"] = exc
+
+    import threading  # placed inside function to avoid unused at import time
+
+    thread = threading.Thread(target=_runner, daemon=True)
+    thread.start()
+    thread.join()
+    if error:
+        raise error["exc"]
+    return result.get("value")
 
 
 def _build_pack_structure(

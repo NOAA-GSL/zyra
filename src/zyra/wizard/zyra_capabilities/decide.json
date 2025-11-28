@@ -32,7 +32,12 @@
         "strategy"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.decide",
+      "callable": "_cmd_optimize"
+    },
+    "returns": "object"
   },
   "optimize optimize": {
     "description": "zyra optimize optimize",
@@ -62,6 +67,11 @@
     "positionals": [],
     "domain": "optimize",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.decide",
+      "callable": "_cmd_optimize"
+    },
+    "returns": "object"
   }
 }
