@@ -63,6 +63,23 @@ import sys
 from typing import Any
 
 
+def notebook_pad_missing(ns: Any) -> list[str]:
+    """Notebook-friendly shim for pad-missing (Namespace-style args)."""
+
+    source = getattr(ns, "frames_meta", None) or "-"
+    return pad_missing_frames(
+        source,
+        output_dir=getattr(ns, "output_dir", None),
+        fill_mode=getattr(ns, "fill_mode", None),
+        basemap=getattr(ns, "basemap", None),
+        indicator=getattr(ns, "indicator", None),
+        overwrite=bool(getattr(ns, "overwrite", False)),
+        dry_run=bool(getattr(ns, "dry_run", False)),
+        json_report=getattr(ns, "json_report", None),
+        read_stdin=bool(getattr(ns, "read_frames_meta_stdin", False)),
+    )
+
+
 def register_cli(subparsers: Any) -> None:
     """Register processing subcommands under a provided subparsers object.
 
@@ -378,6 +395,9 @@ def register_cli(subparsers: Any) -> None:
             except Exception:
                 logging.debug("Created frame: %s", path)
         return 0
+
+    # Expose pad-missing handler at module scope for notebook/manifest imports
+    globals()["cmd_pad_missing"] = cmd_pad_missing
 
     # ---- api-json processor helpers ----
     from zyra.utils.json_tools import get_by_path as _get_by_path

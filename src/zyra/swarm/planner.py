@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import difflib
 import json
+import os
 import re
 import shlex
 import subprocess
@@ -779,6 +780,12 @@ def register_cli(subparser: argparse.ArgumentParser) -> None:
 
 
 def _cmd_plan(ns: argparse.Namespace) -> int:
+    store = None
+    mem_hook = None
+    if ns.memory:
+        store = open_provenance_store(ns.memory)
+        mem_hook = store.as_event_hook()
+
     intent = ns.intent
     if not intent and ns.intent_file:
         intent = Path(ns.intent_file).read_text(encoding="utf-8")
@@ -896,19 +903,17 @@ def _cmd_plan(ns: argparse.Namespace) -> int:
         if final_manifest is None:
             return 2
 
-        if ns.memory:
-            store = open_provenance_store(ns.memory)
-            hook = store.as_event_hook()
-            hook(
+        if mem_hook:
+            mem_hook(
                 "plan_generated",
                 {
                     "intent": intent_text,
                     "agent_count": len(final_manifest.get("agents", [])),
                     "clarifications": final_clarifications,
                     "suggestions": final_suggestions,
+                    "accepted_suggestions": accepted_history,
                 },
             )
-            store.close()
         final_manifest["suggestions"] = [
             s
             for s in final_suggestions
@@ -937,8 +942,20 @@ def _cmd_plan(ns: argparse.Namespace) -> int:
             Path(ns.output).write_text(payload, encoding="utf-8")
         else:
             print(payload)
+        if mem_hook:
+            mem_hook(
+                "run_completed",
+                {
+                    "status": "ok",
+                    "agents": len(final_manifest.get("agents", [])),
+                    "clarifications": final_clarifications,
+                    "suggestions": final_suggestions,
+                },
+            )
         return 0
     finally:
+        if store:
+            store.close()
         trace.dump()
         _CURRENT_TRACE = previous_trace
 
@@ -1611,7 +1628,10 @@ def _frames_source_for_compose(
 def _maybe_prompt_for_followups(
     manifest: dict[str, Any], allow_prompt: bool = True
 ) -> dict[str, Any]:
-    if not allow_prompt or not sys.stdin.isatty() or not sys.stdout.isatty():
+    force_prompt = bool(os.environ.get("ZYRA_FORCE_PLAN_PROMPT"))
+    if not allow_prompt:
+        return manifest
+    if not force_prompt and (not sys.stdin.isatty() or not sys.stdout.isatty()):
         return manifest
     skipped: set[tuple[Any, ...]] = set()
     _maybe_prompt_for_followups._printed_banner = False  # type: ignore[attr-defined]
@@ -1715,11 +1735,13 @@ def _prompt_accept_suggestions(
     for idx, suggestion in enumerate(actionable, 1):
         stage = suggestion.get("stage") or ""
         desc = suggestion.get("description") or ""
+        origin = suggestion.get("origin") or suggestion.get("origin_detail")
+        origin_label = f" [inline: {origin}]" if origin else ""
         confidence = suggestion.get("confidence")
         conf_str = ""
         if isinstance(confidence, (int, float)):
             conf_str = f" (confidence {confidence:.2f})"
-        print(f"  [{idx}] ({stage}) {desc}{conf_str}", file=sys.stderr)
+        print(f"  [{idx}] ({stage}){origin_label} {desc}{conf_str}", file=sys.stderr)
     prompt = "Select suggestions to accept (comma-separated numbers, 'a' for all, Enter to skip): "
     try:
         response = input(prompt)
@@ -1972,6 +1994,20 @@ def _load_capabilities() -> dict[str, Any]:
             "prompt": {},
         }
         return planner._caps
+
+    # Merge notebook overlay capabilities if present.
+    overlay_paths = os.environ.get("ZYRA_NOTEBOOK_OVERLAY", "")
+    if overlay_paths:
+        for path in overlay_paths.split(","):
+            path = path.strip()
+            if not path:
+                continue
+            try:
+                data = json.loads(Path(path).read_text())
+                if isinstance(data, dict):
+                    raw_caps.update(data)
+            except Exception:
+                continue
 
     stage_commands: dict[str, dict[str, Any]] = {}
     for full_cmd, meta in raw_caps.items():

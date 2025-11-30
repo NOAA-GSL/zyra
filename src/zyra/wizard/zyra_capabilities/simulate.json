@@ -34,6 +34,11 @@
         "trials"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.simulate",
+      "callable": "_cmd_sample"
+    },
+    "returns": "path"
   }
 }

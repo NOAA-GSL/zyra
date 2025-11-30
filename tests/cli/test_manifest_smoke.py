@@ -18,3 +18,15 @@ def test_manifest_contains_core_groups():
         "manifest missing expected core commands: "
         f"acquire={has_acquire}, visualize={has_visualize}"
     )
+
+
+def test_manifest_includes_impl_and_returns_hints():
+    """Selected entries should carry impl metadata and return hints."""
+    from zyra.wizard.manifest import build_manifest
+
+    mf = build_manifest()
+    sample = mf.get("acquire http") or {}
+    assert isinstance(sample.get("impl"), dict)
+    assert sample.get("impl", {}).get("module")
+    assert sample.get("impl", {}).get("callable")
+    assert isinstance(sample.get("returns"), str)

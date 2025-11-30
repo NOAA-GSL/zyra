@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "zyra"
-version = "0.1.41"
+version = "0.1.42"
 description = "A tool to ingest data from various sources and formats, create imagery or video based on that data, and send the results to various locations for dissemination."
 authors = ["Eric Hackathorn <eric.j.hackathorn@noaa.gov>"]
 include = [
@@ -74,6 +74,7 @@ rasterio = { version = "^1.3.9", optional = true }
 #   Wiki (design, architecture, vision): https://github.com/NOAA-GSL/zyra/wiki
 #   API Reference & Examples: https://noaa-gsl.github.io/zyra/
 # -------------------------------------------------------------------
+reverse-geocoder = "^1.5.1"
 [tool.poetry.extras]
 # Transfer-only dependencies
 datatransfer = [

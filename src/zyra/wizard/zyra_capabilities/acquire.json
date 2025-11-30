@@ -268,7 +268,13 @@
         "url"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_api"
+    },
+    "returns": "bytes",
+    "output_arg": "--output"
   },
   "acquire ftp": {
     "description": "Fetch files via FTP (single path or batch). Optionally list or sync directories to a local folder.",
@@ -384,7 +390,16 @@
         "user"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_ftp"
+    },
+    "returns": "bytes",
+    "output_arg": "--output",
+    "side_effects": [
+      "--output-dir"
+    ]
   },
   "acquire http": {
     "description": "Fetch a file via HTTP(S) to a local path. Optionally list/filter directory pages, or fetch multiple URLs with --inputs/--manifest.",
@@ -502,7 +517,16 @@
     "example_args": {
       "url": "https://example.com/file.bin",
       "output": "/tmp/file.bin"
-    }
+    },
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_http"
+    },
+    "returns": "bytes",
+    "output_arg": "--output",
+    "side_effects": [
+      "--output-dir"
+    ]
   },
   "acquire s3": {
     "description": "Fetch objects from Amazon S3 via s3:// URL or bucket/key. Supports unsigned access, listing prefixes, and batch via --inputs/--manifest.",
@@ -611,7 +635,16 @@
         "url"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_s3"
+    },
+    "returns": "bytes",
+    "output_arg": "--output",
+    "side_effects": [
+      "--output-dir"
+    ]
   },
   "acquire vimeo": {
     "description": "Placeholder for fetching Vimeo videos by id. Not implemented yet.",
@@ -663,7 +696,13 @@
     ],
     "domain": "acquire",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_vimeo"
+    },
+    "returns": "bytes",
+    "output_arg": "--output"
   },
   "import api": {
     "description": "Call a REST API endpoint with headers/params/body. Supports cursor/page pagination.",
@@ -934,7 +973,13 @@
         "url"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_api"
+    },
+    "returns": "bytes",
+    "output_arg": "--output"
   },
   "import ftp": {
     "description": "Fetch files via FTP (single path or batch). Optionally list or sync directories to a local folder.",
@@ -1030,7 +1075,16 @@
     ],
     "domain": "import",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_ftp"
+    },
+    "returns": "bytes",
+    "output_arg": "--output",
+    "side_effects": [
+      "--output-dir"
+    ]
   },
   "import http": {
     "description": "Fetch a file via HTTP(S) to a local path. Optionally list/filter directory pages, or fetch multiple URLs with --inputs/--manifest.",
@@ -1145,7 +1199,16 @@
         "url"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_http"
+    },
+    "returns": "bytes",
+    "output_arg": "--output",
+    "side_effects": [
+      "--output-dir"
+    ]
   },
   "import s3": {
     "description": "Fetch objects from Amazon S3 via s3:// URL or bucket/key. Supports unsigned access, listing prefixes, and batch via --inputs/--manifest.",
@@ -1236,7 +1299,16 @@
     "positionals": [],
     "domain": "import",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_s3"
+    },
+    "returns": "bytes",
+    "output_arg": "--output",
+    "side_effects": [
+      "--output-dir"
+    ]
   },
   "import vimeo": {
     "description": "Placeholder for fetching Vimeo videos by id. Not implemented yet.",
@@ -1288,6 +1360,12 @@
     ],
     "domain": "import",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_vimeo"
+    },
+    "returns": "bytes",
+    "output_arg": "--output"
   }
 }
