@@ -24,7 +24,15 @@
         "topic"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.narrate",
+      "callable": "_cmd_describe"
+    },
+    "returns": "text",
+    "extras": [
+      "llm"
+    ]
   },
   "narrate swarm": {
     "description": "Run a lightweight narration swarm with presets and YAML merging. When audiences are provided, an internal audience_adapter agent emits <aud>_version outputs. Provenance is recorded per agent with started/model/prompt_ref/duration_ms and included in the Narrative Pack.",
@@ -144,6 +152,14 @@
         "swarm_config"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.narrate",
+      "callable": "notebook_swarm"
+    },
+    "returns": "text",
+    "extras": [
+      "llm"
+    ]
   }
 }

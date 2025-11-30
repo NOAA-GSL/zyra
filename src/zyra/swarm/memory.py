@@ -109,7 +109,8 @@ class SQLiteProvenanceStore(ProvenanceStore):
         created = _utc_now()
         agent = payload.get("agent") if isinstance(payload, dict) else None
 
-        if name == "run_started" and not self._run_initialized:
+        if not self._run_initialized:
+            # Ensure the run row exists so subsequent events do not fail FK checks.
             started = payload.get("started") or created
             conn.execute(
                 """

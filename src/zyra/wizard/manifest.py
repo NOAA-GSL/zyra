@@ -38,6 +38,196 @@ DOMAIN_ALIAS_MAP: dict[str, str] = {
     "optimize": "decide",
 }
 
+# Optional notebook-friendly hints for selected commands.
+# Keys are manifest command names (e.g., "acquire http").
+NOTEBOOK_HINTS: dict[str, dict[str, object]] = {
+    # acquire/import
+    "acquire http": {
+        "returns": "bytes",
+        "output_arg": "--output",
+        "side_effects": ["--output-dir"],
+    },
+    "acquire s3": {
+        "returns": "bytes",
+        "output_arg": "--output",
+        "side_effects": ["--output-dir"],
+    },
+    "acquire ftp": {
+        "returns": "bytes",
+        "output_arg": "--output",
+        "side_effects": ["--output-dir"],
+    },
+    "acquire api": {
+        "returns": "bytes",
+        "output_arg": "--output",
+    },
+    "acquire vimeo": {
+        "returns": "bytes",
+        "output_arg": "--output",
+    },
+    # import (alias of acquire)
+    "import http": {
+        "returns": "bytes",
+        "output_arg": "--output",
+        "side_effects": ["--output-dir"],
+    },
+    "import s3": {
+        "returns": "bytes",
+        "output_arg": "--output",
+        "side_effects": ["--output-dir"],
+    },
+    "import ftp": {
+        "returns": "bytes",
+        "output_arg": "--output",
+        "side_effects": ["--output-dir"],
+    },
+    "import api": {
+        "returns": "bytes",
+        "output_arg": "--output",
+    },
+    "import vimeo": {
+        "returns": "bytes",
+        "output_arg": "--output",
+    },
+    # process/transform
+    "process convert-format": {
+        "returns": "path",
+        "output_arg": "--output",
+        "stdin_arg": "file_or_url",
+    },
+    "process extract-variable": {
+        "returns": "bytes",
+        "stdin_arg": "file_or_url",
+    },
+    "process decode-grib2": {
+        "returns": "bytes",
+        "stdin_arg": "file_or_url",
+        "extras": ["grib"],
+    },
+    "process pad-missing": {
+        "returns": "path",
+        "side_effects": ["--output-dir", "--json-report"],
+        "extras": ["pillow"],
+        "impl": {"module": "zyra.processing", "callable": "notebook_pad_missing"},
+    },
+    "process metadata": {"returns": "bytes"},
+    "process scan-frames": {"returns": "bytes"},
+    "process update-dataset-json": {"returns": "path"},
+    "process api-json": {"returns": "path", "stdin_arg": "file_or_url"},
+    "process audio-transcode": {"returns": "path", "output_arg": "--output"},
+    "process audio-metadata": {"returns": "bytes"},
+    "process video-transcode": {"returns": "path", "output_arg": "--output"},
+    # transform aliases mirror process counterparts
+    "transform metadata": {"returns": "bytes"},
+    "transform scan-frames": {"returns": "bytes"},
+    "transform update-dataset-json": {"returns": "path"},
+    "transform enrich-metadata": {"returns": "path"},
+    "transform enrich-datasets": {"returns": "path"},
+    # visualize/render
+    "visualize heatmap": {
+        "returns": "path",
+        "output_arg": "--output",
+        "extras": ["visualization"],
+    },
+    "visualize contour": {
+        "returns": "path",
+        "output_arg": "--output",
+        "extras": ["visualization"],
+    },
+    "visualize vector": {
+        "returns": "path",
+        "output_arg": "--output",
+        "extras": ["visualization"],
+    },
+    "visualize animate": {
+        "returns": "path",
+        "output_arg": "--output",
+        "extras": ["visualization"],
+    },
+    "visualize compose-video": {
+        "returns": "path",
+        "output_arg": "--output",
+        "extras": ["visualization"],
+    },
+    "visualize interactive": {
+        "returns": "path",
+        "output_arg": "--output",
+        "extras": ["visualization"],
+    },
+    "visualize timeseries": {
+        "returns": "path",
+        "output_arg": "--output",
+        "extras": ["visualization"],
+    },
+    # render aliases
+    "render heatmap": {
+        "returns": "path",
+        "output_arg": "--output",
+        "extras": ["visualization"],
+    },
+    "render contour": {
+        "returns": "path",
+        "output_arg": "--output",
+        "extras": ["visualization"],
+    },
+    "render vector": {
+        "returns": "path",
+        "output_arg": "--output",
+        "extras": ["visualization"],
+    },
+    "render animate": {
+        "returns": "path",
+        "output_arg": "--output",
+        "extras": ["visualization"],
+    },
+    "render compose-video": {
+        "returns": "path",
+        "output_arg": "--output",
+        "extras": ["visualization"],
+    },
+    "render interactive": {
+        "returns": "path",
+        "output_arg": "--output",
+        "extras": ["visualization"],
+    },
+    "render timeseries": {
+        "returns": "path",
+        "output_arg": "--output",
+        "extras": ["visualization"],
+    },
+    # decimate/disseminate/export
+    "decimate local": {"returns": "path", "output_arg": "--path"},
+    "decimate s3": {"returns": "uri", "output_arg": "--url"},
+    "decimate ftp": {"returns": "uri", "output_arg": "--path"},
+    "decimate post": {"returns": "uri", "output_arg": "--url"},
+    "decimate vimeo": {"returns": "uri"},
+    "disseminate local": {"returns": "path", "output_arg": "--path"},
+    "disseminate s3": {"returns": "uri", "output_arg": "--url"},
+    "disseminate ftp": {"returns": "uri", "output_arg": "--path"},
+    "disseminate post": {"returns": "uri", "output_arg": "--url"},
+    "disseminate vimeo": {"returns": "uri"},
+    "export local": {"returns": "path", "output_arg": "--path"},
+    "export s3": {"returns": "uri", "output_arg": "--url"},
+    "export ftp": {"returns": "uri", "output_arg": "--path"},
+    "export post": {"returns": "uri", "output_arg": "--url"},
+    "export vimeo": {"returns": "uri"},
+    # narrate/swarm
+    "narrate describe": {"returns": "text", "extras": ["llm"]},
+    "narrate swarm": {
+        "returns": "text",
+        "extras": ["llm"],
+        "impl": {"module": "zyra.narrate", "callable": "notebook_swarm"},
+    },
+    # verify/simulate/decide
+    "verify evaluate": {"returns": "text"},
+    "simulate sample": {"returns": "path"},
+    "decide optimize": {"returns": "object"},
+    "optimize optimize": {"returns": "object"},
+    # run/search
+    "run": {"returns": "object", "stdin_arg": "config"},
+    "search api": {"returns": "bytes", "output_arg": "--output"},
+}
+
 
 def _safe_add_group(
     sub: argparse._SubParsersAction,
@@ -476,6 +666,8 @@ def _traverse(parser: argparse.ArgumentParser, *, prefix: str = "") -> dict[str,
         # Leaf command: collect options, description, doc, epilog, and groups
         name = prefix.strip()
         if name:  # skip root
+            defaults = getattr(parser, "_defaults", {}) or {}
+            func = defaults.get("func") if isinstance(defaults, dict) else None
             # Option groups: preserve group titles and option flags
             groups: list[dict[str, Any]] = []
             for grp in getattr(parser, "_action_groups", []):  # type: ignore[attr-defined]
@@ -542,7 +734,38 @@ def _traverse(parser: argparse.ArgumentParser, *, prefix: str = "") -> dict[str,
                 },
             }
 
-            manifest[name] = {
+            def _default_returns(dom: str) -> str:
+                return {
+                    "acquire": "bytes",
+                    "import": "bytes",
+                    "process": "path",
+                    "transform": "path",
+                    "visualize": "path",
+                    "render": "path",
+                    "disseminate": "path",
+                    "decimate": "path",
+                    "export": "path",
+                    "narrate": "text",
+                    "verify": "object",
+                    "decide": "object",
+                    "optimize": "object",
+                    "run": "object",
+                    "search": "bytes",
+                    "simulate": "path",
+                }.get(dom, "object")
+
+            hints = NOTEBOOK_HINTS.get(name, {})
+            impl = None
+            if func:
+                try:
+                    impl = {"module": func.__module__, "callable": func.__name__}
+                except Exception:
+                    impl = None
+            hint_impl = hints.get("impl")
+            if hint_impl is not None:
+                impl = hint_impl
+
+            entry: dict[str, Any] = {
                 "description": (parser.description or parser.prog or "").strip(),
                 "doc": (parser.description or "") or "",
                 "epilog": (getattr(parser, "epilog", None) or ""),
@@ -556,7 +779,14 @@ def _traverse(parser: argparse.ArgumentParser, *, prefix: str = "") -> dict[str,
                     else None
                 ),
                 "example_args": examples.get((domain, tool)),
+                "impl": impl,
+                "returns": hints.get("returns") or _default_returns(domain),
             }
+            for key in ("output_arg", "stdin_arg", "extras", "side_effects"):
+                val = hints.get(key)
+                if val is not None:
+                    entry[key] = val
+            manifest[name] = entry
         return manifest
 
     for spa in sub_actions:  # type: ignore[misc]

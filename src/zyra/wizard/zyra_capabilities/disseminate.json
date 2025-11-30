@@ -69,7 +69,13 @@
         "user"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_ftp"
+    },
+    "returns": "uri",
+    "output_arg": "--path"
   },
   "decimate local": {
     "description": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
@@ -130,7 +136,13 @@
     "example_args": {
       "input": "-",
       "path": "/tmp/out.bin"
-    }
+    },
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_local"
+    },
+    "returns": "path",
+    "output_arg": "--path"
   },
   "decimate post": {
     "description": "HTTP POST stdin or an input file to a URL with optional content-type.",
@@ -206,7 +218,13 @@
         "headers"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_post"
+    },
+    "returns": "uri",
+    "output_arg": "--url"
   },
   "decimate s3": {
     "description": "Upload stdin or an input file to Amazon S3, specified by s3:// URL or bucket/key.",
@@ -271,7 +289,13 @@
         "url"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_s3"
+    },
+    "returns": "uri",
+    "output_arg": "--url"
   },
   "decimate vimeo": {
     "description": "Upload a new video to Vimeo or replace an existing video by URI. Optionally set title and description.",
@@ -334,7 +358,12 @@
     "positionals": [],
     "domain": "decimate",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_vimeo"
+    },
+    "returns": "uri"
   },
   "disseminate ftp": {
     "description": "Upload stdin or an input file to an FTP destination path.",
@@ -406,7 +435,13 @@
         "user"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_ftp"
+    },
+    "returns": "uri",
+    "output_arg": "--path"
   },
   "disseminate local": {
     "description": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
@@ -464,7 +499,13 @@
       ],
       "optional": []
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_local"
+    },
+    "returns": "path",
+    "output_arg": "--path"
   },
   "disseminate post": {
     "description": "HTTP POST stdin or an input file to a URL with optional content-type.",
@@ -540,7 +581,13 @@
         "headers"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_post"
+    },
+    "returns": "uri",
+    "output_arg": "--url"
   },
   "disseminate s3": {
     "description": "Upload stdin or an input file to Amazon S3, specified by s3:// URL or bucket/key.",
@@ -605,7 +652,13 @@
         "url"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_s3"
+    },
+    "returns": "uri",
+    "output_arg": "--url"
   },
   "disseminate vimeo": {
     "description": "Upload a new video to Vimeo or replace an existing video by URI. Optionally set title and description.",
@@ -668,7 +721,12 @@
     "positionals": [],
     "domain": "disseminate",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_vimeo"
+    },
+    "returns": "uri"
   },
   "export ftp": {
     "description": "Upload stdin or an input file to an FTP destination path.",
@@ -728,7 +786,13 @@
     ],
     "domain": "export",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_ftp"
+    },
+    "returns": "uri",
+    "output_arg": "--path"
   },
   "export local": {
     "description": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
@@ -780,7 +844,13 @@
     ],
     "domain": "export",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_local"
+    },
+    "returns": "path",
+    "output_arg": "--path"
   },
   "export post": {
     "description": "HTTP POST stdin or an input file to a URL with optional content-type.",
@@ -842,7 +912,13 @@
     ],
     "domain": "export",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_post"
+    },
+    "returns": "uri",
+    "output_arg": "--url"
   },
   "export s3": {
     "description": "Upload stdin or an input file to Amazon S3, specified by s3:// URL or bucket/key.",
@@ -898,7 +974,13 @@
     "positionals": [],
     "domain": "export",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_s3"
+    },
+    "returns": "uri",
+    "output_arg": "--url"
   },
   "export vimeo": {
     "description": "Upload a new video to Vimeo or replace an existing video by URI. Optionally set title and description.",
@@ -961,6 +1043,11 @@
     "positionals": [],
     "domain": "export",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_vimeo"
+    },
+    "returns": "uri"
   }
 }

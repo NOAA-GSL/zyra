@@ -115,7 +115,16 @@
     "example_args": {
       "url": "https://example.com/file.bin",
       "output": "/tmp/file.bin"
-    }
+    },
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_http"
+    },
+    "returns": "bytes",
+    "output_arg": "--output",
+    "side_effects": [
+      "--output-dir"
+    ]
   },
   "acquire s3": {
     "description": "Fetch objects from Amazon S3 via s3:// URL or bucket/key. Supports unsigned access, listing prefixes, and batch via --inputs/--manifest.",
@@ -224,7 +233,16 @@
         "url"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_s3"
+    },
+    "returns": "bytes",
+    "output_arg": "--output",
+    "side_effects": [
+      "--output-dir"
+    ]
   },
   "acquire ftp": {
     "description": "Fetch files via FTP (single path or batch). Optionally list or sync directories to a local folder.",
@@ -340,7 +358,16 @@
         "user"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_ftp"
+    },
+    "returns": "bytes",
+    "output_arg": "--output",
+    "side_effects": [
+      "--output-dir"
+    ]
   },
   "acquire vimeo": {
     "description": "Placeholder for fetching Vimeo videos by id. Not implemented yet.",
@@ -392,7 +419,13 @@
     ],
     "domain": "acquire",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_vimeo"
+    },
+    "returns": "bytes",
+    "output_arg": "--output"
   },
   "acquire api": {
     "description": "Call a REST API endpoint with headers/params/body. Supports cursor/page pagination.",
@@ -663,7 +696,13 @@
         "url"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_api"
+    },
+    "returns": "bytes",
+    "output_arg": "--output"
   },
   "import http": {
     "description": "Fetch a file via HTTP(S) to a local path. Optionally list/filter directory pages, or fetch multiple URLs with --inputs/--manifest.",
@@ -778,7 +817,16 @@
         "url"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_http"
+    },
+    "returns": "bytes",
+    "output_arg": "--output",
+    "side_effects": [
+      "--output-dir"
+    ]
   },
   "import s3": {
     "description": "Fetch objects from Amazon S3 via s3:// URL or bucket/key. Supports unsigned access, listing prefixes, and batch via --inputs/--manifest.",
@@ -869,7 +917,16 @@
     "positionals": [],
     "domain": "import",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_s3"
+    },
+    "returns": "bytes",
+    "output_arg": "--output",
+    "side_effects": [
+      "--output-dir"
+    ]
   },
   "import ftp": {
     "description": "Fetch files via FTP (single path or batch). Optionally list or sync directories to a local folder.",
@@ -965,7 +1022,16 @@
     ],
     "domain": "import",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_ftp"
+    },
+    "returns": "bytes",
+    "output_arg": "--output",
+    "side_effects": [
+      "--output-dir"
+    ]
   },
   "import vimeo": {
     "description": "Placeholder for fetching Vimeo videos by id. Not implemented yet.",
@@ -1017,7 +1083,13 @@
     ],
     "domain": "import",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_vimeo"
+    },
+    "returns": "bytes",
+    "output_arg": "--output"
   },
   "import api": {
     "description": "Call a REST API endpoint with headers/params/body. Supports cursor/page pagination.",
@@ -1288,7 +1360,13 @@
         "url"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_api"
+    },
+    "returns": "bytes",
+    "output_arg": "--output"
   },
   "process decode-grib2": {
     "description": "Decode a GRIB2 file or URL using cfgrib/pygrib/wgrib2 and log basic metadata. Optionally emit raw bytes (with optional .idx subset) to stdout.",
@@ -1368,7 +1446,16 @@
         "unsigned"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.processing",
+      "callable": "cmd_decode_grib2"
+    },
+    "returns": "bytes",
+    "stdin_arg": "file_or_url",
+    "extras": [
+      "grib"
+    ]
   },
   "process extract-variable": {
     "description": "Extract a variable from GRIB2 by regex pattern. Output selected variable as NetCDF/GRIB2 to stdout when requested, or log the matched variable name.",
@@ -1456,7 +1543,13 @@
         "stdout"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.processing",
+      "callable": "cmd_extract_variable"
+    },
+    "returns": "bytes",
+    "stdin_arg": "file_or_url"
   },
   "process convert-format": {
     "description": "Convert decoded GRIB2 data to NetCDF or GeoTIFF. Supports single input or batch via --inputs.",
@@ -1576,7 +1669,14 @@
       "file_or_url": "samples/demo.grib2",
       "format": "netcdf",
       "stdout": true
-    }
+    },
+    "impl": {
+      "module": "zyra.processing",
+      "callable": "cmd_convert_format"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "stdin_arg": "file_or_url"
   },
   "process pad-missing": {
     "description": "Read frames metadata JSON from 'transform metadata/scan-frames' and generate placeholder images for each missing timestamp using blank, solid color, basemap, or nearest-frame strategies.",
@@ -1663,7 +1763,19 @@
     "positionals": [],
     "domain": "process",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.processing",
+      "callable": "notebook_pad_missing"
+    },
+    "returns": "path",
+    "extras": [
+      "pillow"
+    ],
+    "side_effects": [
+      "--output-dir",
+      "--json-report"
+    ]
   },
   "process api-json": {
     "description": "Read a JSON or NDJSON file/stream, select fields via dot paths, optionally flatten nested objects, explode arrays into multiple rows, and write CSV or JSONL.",
@@ -1749,7 +1861,13 @@
         "records_path"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.processing",
+      "callable": "cmd_api_json"
+    },
+    "returns": "path",
+    "stdin_arg": "file_or_url"
   },
   "process video-transcode": {
     "description": "Transcode videos or JPG image stacks into modern or legacy formats using FFmpeg. Supports SOS presets, metadata capture, and batch processing.",
@@ -1902,7 +2020,13 @@
         "write_metadata"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.processing",
+      "callable": "_vt_entry"
+    },
+    "returns": "path",
+    "output_arg": "--output"
   },
   "process audio-transcode": {
     "description": "Transcode input audio to a target format using ffmpeg. Requires FFmpeg runtime.",
@@ -1994,7 +2118,13 @@
         "to"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.processing",
+      "callable": "_at_entry"
+    },
+    "returns": "path",
+    "output_arg": "--output"
   },
   "process audio-metadata": {
     "description": "Run ffprobe to extract duration, bitrate, channels, sample rate, codec, and size; writes JSON.",
@@ -2053,7 +2183,12 @@
         "output"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.processing",
+      "callable": "cmd_audio_metadata"
+    },
+    "returns": "bytes"
   },
   "process metadata": {
     "description": "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence.",
@@ -2114,7 +2249,12 @@
     "positionals": [],
     "domain": "process",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_metadata"
+    },
+    "returns": "bytes"
   },
   "process scan-frames": {
     "description": "Alias of 'metadata'. Scan a frames directory and report timestamps, counts, and missing frames.",
@@ -2175,7 +2315,12 @@
     "positionals": [],
     "domain": "process",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_metadata"
+    },
+    "returns": "bytes"
   },
   "process enrich-metadata": {
     "description": "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin.",
@@ -2242,7 +2387,12 @@
     "positionals": [],
     "domain": "process",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_enrich"
+    },
+    "returns": "path"
   },
   "process enrich-datasets": {
     "description": "zyra process enrich-datasets",
@@ -2347,7 +2497,12 @@
     "positionals": [],
     "domain": "process",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_enrich_datasets"
+    },
+    "returns": "path"
   },
   "process update-dataset-json": {
     "description": "Update a dataset.json entry by id using metadata (start/end and Vimeo URI) from a file, stdin, or args.",
@@ -2430,7 +2585,12 @@
     "positionals": [],
     "domain": "process",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_update_dataset"
+    },
+    "returns": "path"
   },
   "visualize heatmap": {
     "description": "zyra visualize heatmap",
@@ -2632,7 +2792,16 @@
     "example_args": {
       "input": "samples/demo.npy",
       "output": "/tmp/heatmap.png"
-    }
+    },
+    "impl": {
+      "module": "zyra.visualization.cli_heatmap",
+      "callable": "handle_heatmap"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "visualize contour": {
     "description": "zyra visualize contour",
@@ -2829,7 +2998,16 @@
         "output_dir"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_contour",
+      "callable": "handle_contour"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "visualize timeseries": {
     "description": "zyra visualize timeseries",
@@ -2938,7 +3116,16 @@
         "ylabel"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_timeseries",
+      "callable": "handle_timeseries"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "visualize vector": {
     "description": "zyra visualize vector",
@@ -3135,7 +3322,16 @@
         "xarray_engine"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_vector",
+      "callable": "handle_vector"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "visualize animate": {
     "description": "zyra visualize animate",
@@ -3425,7 +3621,16 @@
         "width"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_animate",
+      "callable": "handle_animate"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "visualize compose-video": {
     "description": "zyra visualize compose-video",
@@ -3496,7 +3701,16 @@
         "fps"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_compose_video",
+      "callable": "handle_compose_video"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "visualize interactive": {
     "description": "zyra visualize interactive",
@@ -3708,7 +3922,16 @@
         "zoom"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_interactive",
+      "callable": "handle_interactive"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "render heatmap": {
     "description": "zyra render heatmap",
@@ -3882,7 +4105,16 @@
     "positionals": [],
     "domain": "render",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_heatmap",
+      "callable": "handle_heatmap"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "render contour": {
     "description": "zyra render contour",
@@ -4068,7 +4300,16 @@
     "positionals": [],
     "domain": "render",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_contour",
+      "callable": "handle_contour"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "render timeseries": {
     "description": "zyra render timeseries",
@@ -4160,7 +4401,16 @@
     "positionals": [],
     "domain": "render",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_timeseries",
+      "callable": "handle_timeseries"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "render vector": {
     "description": "zyra render vector",
@@ -4330,7 +4580,16 @@
     "positionals": [],
     "domain": "render",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_vector",
+      "callable": "handle_vector"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "render animate": {
     "description": "zyra render animate",
@@ -4596,7 +4855,16 @@
     "positionals": [],
     "domain": "render",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_animate",
+      "callable": "handle_animate"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "render compose-video": {
     "description": "zyra render compose-video",
@@ -4658,7 +4926,16 @@
     "positionals": [],
     "domain": "render",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_compose_video",
+      "callable": "handle_compose_video"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "render interactive": {
     "description": "zyra render interactive",
@@ -4826,7 +5103,16 @@
     "positionals": [],
     "domain": "render",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_interactive",
+      "callable": "handle_interactive"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "disseminate local": {
     "description": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
@@ -4884,7 +5170,13 @@
       ],
       "optional": []
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_local"
+    },
+    "returns": "path",
+    "output_arg": "--path"
   },
   "disseminate s3": {
     "description": "Upload stdin or an input file to Amazon S3, specified by s3:// URL or bucket/key.",
@@ -4949,7 +5241,13 @@
         "url"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_s3"
+    },
+    "returns": "uri",
+    "output_arg": "--url"
   },
   "disseminate ftp": {
     "description": "Upload stdin or an input file to an FTP destination path.",
@@ -5021,7 +5319,13 @@
         "user"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_ftp"
+    },
+    "returns": "uri",
+    "output_arg": "--path"
   },
   "disseminate post": {
     "description": "HTTP POST stdin or an input file to a URL with optional content-type.",
@@ -5097,7 +5401,13 @@
         "headers"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_post"
+    },
+    "returns": "uri",
+    "output_arg": "--url"
   },
   "disseminate vimeo": {
     "description": "Upload a new video to Vimeo or replace an existing video by URI. Optionally set title and description.",
@@ -5160,7 +5470,12 @@
     "positionals": [],
     "domain": "disseminate",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_vimeo"
+    },
+    "returns": "uri"
   },
   "export local": {
     "description": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
@@ -5212,7 +5527,13 @@
     ],
     "domain": "export",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_local"
+    },
+    "returns": "path",
+    "output_arg": "--path"
   },
   "export s3": {
     "description": "Upload stdin or an input file to Amazon S3, specified by s3:// URL or bucket/key.",
@@ -5268,7 +5589,13 @@
     "positionals": [],
     "domain": "export",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_s3"
+    },
+    "returns": "uri",
+    "output_arg": "--url"
   },
   "export ftp": {
     "description": "Upload stdin or an input file to an FTP destination path.",
@@ -5328,7 +5655,13 @@
     ],
     "domain": "export",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_ftp"
+    },
+    "returns": "uri",
+    "output_arg": "--path"
   },
   "export post": {
     "description": "HTTP POST stdin or an input file to a URL with optional content-type.",
@@ -5390,7 +5723,13 @@
     ],
     "domain": "export",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_post"
+    },
+    "returns": "uri",
+    "output_arg": "--url"
   },
   "export vimeo": {
     "description": "Upload a new video to Vimeo or replace an existing video by URI. Optionally set title and description.",
@@ -5453,7 +5792,12 @@
     "positionals": [],
     "domain": "export",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_vimeo"
+    },
+    "returns": "uri"
   },
   "decimate local": {
     "description": "Write stdin or an input file to a local destination path, creating parent directories as needed.",
@@ -5514,7 +5858,13 @@
     "example_args": {
       "input": "-",
       "path": "/tmp/out.bin"
-    }
+    },
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_local"
+    },
+    "returns": "path",
+    "output_arg": "--path"
   },
   "decimate s3": {
     "description": "Upload stdin or an input file to Amazon S3, specified by s3:// URL or bucket/key.",
@@ -5579,7 +5929,13 @@
         "url"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_s3"
+    },
+    "returns": "uri",
+    "output_arg": "--url"
   },
   "decimate ftp": {
     "description": "Upload stdin or an input file to an FTP destination path.",
@@ -5651,7 +6007,13 @@
         "user"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_ftp"
+    },
+    "returns": "uri",
+    "output_arg": "--path"
   },
   "decimate post": {
     "description": "HTTP POST stdin or an input file to a URL with optional content-type.",
@@ -5727,7 +6089,13 @@
         "headers"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_post"
+    },
+    "returns": "uri",
+    "output_arg": "--url"
   },
   "decimate vimeo": {
     "description": "Upload a new video to Vimeo or replace an existing video by URI. Optionally set title and description.",
@@ -5790,7 +6158,12 @@
     "positionals": [],
     "domain": "decimate",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.egress",
+      "callable": "_cmd_vimeo"
+    },
+    "returns": "uri"
   },
   "transform metadata": {
     "description": "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence.",
@@ -5851,7 +6224,12 @@
     "positionals": [],
     "domain": "transform",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_metadata"
+    },
+    "returns": "bytes"
   },
   "transform scan-frames": {
     "description": "Alias of 'metadata'. Scan a frames directory and report timestamps, counts, and missing frames.",
@@ -5912,7 +6290,12 @@
     "positionals": [],
     "domain": "transform",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_metadata"
+    },
+    "returns": "bytes"
   },
   "transform enrich-metadata": {
     "description": "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin.",
@@ -5979,7 +6362,12 @@
     "positionals": [],
     "domain": "transform",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_enrich"
+    },
+    "returns": "path"
   },
   "transform enrich-datasets": {
     "description": "zyra transform enrich-datasets",
@@ -6084,7 +6472,12 @@
     "positionals": [],
     "domain": "transform",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_enrich_datasets"
+    },
+    "returns": "path"
   },
   "transform update-dataset-json": {
     "description": "Update a dataset.json entry by id using metadata (start/end and Vimeo URI) from a file, stdin, or args.",
@@ -6167,7 +6560,12 @@
     "positionals": [],
     "domain": "transform",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_update_dataset"
+    },
+    "returns": "path"
   },
   "search api": {
     "description": "zyra search api",
@@ -6313,7 +6711,13 @@
     "positionals": [],
     "domain": "search",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.discovery",
+      "callable": "_cmd_api"
+    },
+    "returns": "bytes",
+    "output_arg": "--output"
   },
   "run": {
     "description": "zyra run",
@@ -6459,7 +6863,13 @@
     ],
     "domain": "run",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.pipeline_runner",
+      "callable": "_cmd"
+    },
+    "returns": "object",
+    "stdin_arg": "config"
   },
   "simulate sample": {
     "description": "zyra simulate sample",
@@ -6496,7 +6906,12 @@
         "trials"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.simulate",
+      "callable": "_cmd_sample"
+    },
+    "returns": "path"
   },
   "decide optimize": {
     "description": "zyra decide optimize",
@@ -6531,7 +6946,12 @@
         "strategy"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.decide",
+      "callable": "_cmd_optimize"
+    },
+    "returns": "object"
   },
   "optimize optimize": {
     "description": "zyra optimize optimize",
@@ -6561,7 +6981,12 @@
     "positionals": [],
     "domain": "optimize",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.decide",
+      "callable": "_cmd_optimize"
+    },
+    "returns": "object"
   },
   "narrate describe": {
     "description": "zyra narrate describe",
@@ -6588,7 +7013,15 @@
         "topic"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.narrate",
+      "callable": "_cmd_describe"
+    },
+    "returns": "text",
+    "extras": [
+      "llm"
+    ]
   },
   "narrate swarm": {
     "description": "Run a lightweight narration swarm with presets and YAML merging. When audiences are provided, an internal audience_adapter agent emits <aud>_version outputs. Provenance is recorded per agent with started/model/prompt_ref/duration_ms and included in the Narrative Pack.",
@@ -6708,7 +7141,15 @@
         "swarm_config"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.narrate",
+      "callable": "notebook_swarm"
+    },
+    "returns": "text",
+    "extras": [
+      "llm"
+    ]
   },
   "verify evaluate": {
     "description": "zyra verify evaluate",
@@ -6745,6 +7186,11 @@
         "metric"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.verify",
+      "callable": "_cmd_evaluate"
+    },
+    "returns": "text"
   }
 }
