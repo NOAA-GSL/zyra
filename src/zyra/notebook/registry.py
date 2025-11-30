@@ -12,12 +12,14 @@ Phase 3 scope: define the interfaces and basic manifest loading.
 from __future__ import annotations
 
 import contextlib
+import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from zyra.swarm import open_provenance_store
+from zyra.swarm import planner as _swarm_planner
 from zyra.wizard.manifest import build_manifest
 
 DEFAULT_WORKDIR_ENV = "ZYRA_NOTEBOOK_DIR"
@@ -260,6 +262,10 @@ class StageNamespace:
         returns: str | None = "object",
         extras: list[str] | None = None,
         side_effects: list[str] | None = None,
+        cell_id: str | None = None,
+        cell_hash: str | None = None,
+        args_template: dict[str, Any] | None = None,
+        outputs_template: dict[str, Any] | None = None,
     ) -> None:
         """Register an inline tool callable for this stage."""
 
@@ -278,6 +284,15 @@ class StageNamespace:
             side_effects=side_effects,
         )
         self._tools[safe_name] = meta
+        # Persist an overlay entry so planner can see inline tools.
+        with contextlib.suppress(Exception):
+            self._session._add_overlay_tool(
+                meta,
+                cell_id=cell_id,
+                cell_hash=cell_hash,
+                args_template=args_template,
+                outputs_template=outputs_template,
+            )  # noqa: SLF001
 
 
 class Session:
@@ -292,7 +307,10 @@ class Session:
         self._manifest = manifest or build_manifest()
         self._workdir = self._resolve_workdir(workdir)
         self._provenance_path = self._resolve_provenance_path(provenance_path)
+        self._overlay_path = self._workdir / "notebook_capabilities_overlay.json"
         self._provenance_store = open_provenance_store(self._provenance_path)
+        os.environ.setdefault("ZYRA_NOTEBOOK_PROVENANCE", str(self._provenance_path))
+        os.environ.setdefault("ZYRA_NOTEBOOK_OVERLAY", str(self._overlay_path))
         self.acquire = self._build_namespace("acquire")
         self.process = self._build_namespace("process")
         self.transform = self._build_namespace("transform")
@@ -309,6 +327,7 @@ class Session:
         self.decide = self._build_namespace("decide")
         self.optimize = self._build_namespace("optimize")
         self._invocations: list[dict[str, Any]] = []
+        self._overlay_entries: dict[str, dict[str, Any]] = {}
 
     def _resolve_workdir(self, override: Path | None) -> Path:
         if override:
@@ -323,6 +342,69 @@ class Session:
             except Exception:
                 continue
         return Path.cwd()
+
+    def _add_overlay_tool(
+        self,
+        meta: ToolMetadata,
+        *,
+        cell_id: str | None = None,
+        cell_hash: str | None = None,
+        args_template: dict[str, Any] | None = None,
+        outputs_template: dict[str, Any] | None = None,
+    ) -> None:
+        """Persist a minimal capability overlay entry for a registered tool."""
+
+        name = meta.name
+        if not isinstance(name, str) or " " not in name:
+            return
+        stage, command = name.split(" ", 1)
+        serialization: dict[str, Any] = {
+            "kind": "reference",
+            "module": meta.impl.get("module") if meta.impl else None,
+            "callable": meta.impl.get("callable") if meta.impl else None,
+        }
+        if cell_hash:
+            serialization["kind"] = "inline"
+            serialization["cell_hash"] = cell_hash
+            serialization["cell_id"] = cell_id
+            serialization["replay"] = {
+                "materialize": False,
+                "fallback": "skip",  # runtime should skip inline entries when code is unavailable
+            }
+        entry = {
+            "impl": meta.impl,
+            "returns": meta.returns,
+            "extras": meta.extras,
+            "side_effects": meta.side_effects,
+            "origin": "inline",
+            "origin_detail": "notebook_register",
+            "serialization": serialization,
+            "stage": stage,
+            "command": command,
+        }
+        if args_template:
+            entry["args_template"] = args_template
+        if outputs_template:
+            entry["outputs_template"] = outputs_template
+        # Best-effort docstring/description
+        try:
+            entry["description"] = (meta.callable_obj.__doc__ or "").strip()  # type: ignore[attr-defined]
+        except Exception:
+            entry["description"] = ""
+        self._overlay_entries[name] = entry
+        if not self._overlay_path:
+            return
+        try:
+            existing = {}
+            if self._overlay_path.exists():
+                existing = json.loads(self._overlay_path.read_text()) or {}
+            existing.update(self._overlay_entries)
+            self._overlay_path.parent.mkdir(parents=True, exist_ok=True)
+            self._overlay_path.write_text(
+                json.dumps(existing, indent=2), encoding="utf-8"
+            )
+        except Exception:
+            return
 
     def _resolve_provenance_path(self, override: Path | str | None) -> Path | None:
         if override:
@@ -357,6 +439,50 @@ class Session:
         """Return the active working directory for notebook outputs."""
 
         return self._workdir
+
+    def plan(
+        self,
+        intent: str,
+        *,
+        output: Path | str | None = None,
+        guardrails: str | None = None,
+        strict: bool = False,
+        memory: Path | str | None = None,
+        verbose: bool = False,
+        no_clarify: bool = False,
+        force_prompt: bool = True,
+    ) -> int:
+        """Notebook-friendly wrapper around ``zyra plan`` for interactive planning."""
+
+        # Allow prompting even when stdin/stdout are not TTYs (e.g., notebooks).
+        prev_env = os.environ.get("ZYRA_FORCE_PLAN_PROMPT")
+        # Surface overlay path for inline tools to the planner.
+        if self._overlay_path:
+            os.environ["ZYRA_NOTEBOOK_OVERLAY"] = str(self._overlay_path)
+        # Reset cached planner capabilities so overlays are loaded.
+        with contextlib.suppress(Exception):
+            from zyra.swarm import planner as _planner
+
+            _planner.planner._caps = None  # noqa: SLF001
+        if force_prompt:
+            os.environ["ZYRA_FORCE_PLAN_PROMPT"] = "1"
+        ns = _swarm_planner.argparse.Namespace(
+            intent=intent,
+            intent_file=None,
+            output=str(output) if output else None,
+            guardrails=guardrails,
+            strict=strict,
+            memory=str(memory or self._provenance_path),
+            verbose=verbose,
+            no_clarify=no_clarify,
+        )
+        try:
+            return _swarm_planner._cmd_plan(ns)
+        finally:
+            if prev_env is None:
+                os.environ.pop("ZYRA_FORCE_PLAN_PROMPT", None)
+            else:
+                os.environ["ZYRA_FORCE_PLAN_PROMPT"] = prev_env
 
     def provenance_store(self) -> Any:
         """Return the provenance store (null/SQLite depending on config)."""

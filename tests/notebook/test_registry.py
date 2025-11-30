@@ -48,7 +48,8 @@ def test_tool_wrapper_missing_impl_raises():
 
 def test_provenance_path_defaults(tmp_path, monkeypatch):
     monkeypatch.setenv("ZYRA_NOTEBOOK_DIR", str(tmp_path))
-    sess = create_session()
+    monkeypatch.delenv("ZYRA_NOTEBOOK_PROVENANCE", raising=False)
+    sess = create_session(workdir=tmp_path)
     assert sess.provenance_store() is not None
     # default path under workdir
     assert (tmp_path / "provenance.sqlite") == sess._provenance_path  # noqa: SLF001

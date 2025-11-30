@@ -245,8 +245,10 @@ def notebook_swarm(ns: argparse.Namespace) -> str | dict[str, Any]:
     if resolved.get("pack"):
         _write_pack(resolved["pack"], pack.model_dump(exclude_none=True))
     outputs = pack.outputs or {}
+    # Prefer editor/edited outputs first, then summary, then any non-empty string
     preferred_raw = (
-        outputs.get("editor")
+        outputs.get("edited")
+        or outputs.get("editor")
         or outputs.get("summary")
         or next(
             (v for v in outputs.values() if isinstance(v, str) and v.strip()),
@@ -500,6 +502,8 @@ def _execute_orchestrator(
         metadata["preset"] = cfg.get("preset")
     if cfg.get("agents"):
         metadata["agents"] = cfg.get("agents")
+    if cfg.get("rubric"):
+        metadata["rubric"] = cfg.get("rubric")
     guardrails_adapter = build_guardrails_adapter(
         cfg.get("guardrails"), strict=bool(cfg.get("strict_guardrails"))
     )
@@ -586,6 +590,8 @@ def _build_pack_structure(
 
         if _has_ungrounded(_cn):
             completed = False
+            if "critic" in declared_agents:
+                failed.add("critic")
 
     reviews: dict[str, Any] = {}
     _cn = outputs.get("critic_notes")
@@ -602,6 +608,41 @@ def _build_pack_structure(
     }
     if cfg.get("preset"):
         inputs_section["preset"] = cfg.get("preset")
+    run_metadata: dict[str, Any] = {
+        "command": "narrate swarm",
+        "agents": cfg.get("agents"),
+        "preset": cfg.get("preset"),
+        "rubric": cfg.get("rubric"),
+        "strict_grounding": cfg.get("strict_grounding"),
+        "critic_structured": cfg.get("critic_structured"),
+    }
+    run_metadata = {k: v for k, v in run_metadata.items() if v not in (None, "")}
+    input_preview: dict[str, Any] = {}
+    try:
+        if isinstance(input_data, dict):
+            input_preview["title"] = input_data.get("title")
+            input_preview["description"] = input_data.get("description")
+            data_block = (
+                input_data.get("data")
+                if isinstance(input_data.get("data"), dict)
+                else {}
+            )
+            input_preview["padded_weeks"] = data_block.get("padded_weeks")
+            input_preview["missing_timestamps"] = data_block.get("missing_timestamps")
+            analysis_block = (
+                data_block.get("analysis") if isinstance(data_block, dict) else {}
+            )
+            flt = (
+                analysis_block.get("frames_locations_text")
+                if isinstance(analysis_block, dict)
+                else None
+            )
+            if isinstance(flt, list):
+                input_preview["frames_locations_text"] = flt[:5]
+        elif isinstance(input_data, str):
+            input_preview["text"] = input_data[:400]
+    except Exception:
+        input_preview = {"error": "failed to build input preview"}
     try:
         if input_data and isinstance(input_data, dict) and input_data.get("images"):
             from pathlib import Path
@@ -639,6 +680,8 @@ def _build_pack_structure(
         "reviews": reviews,
         "errors": getattr(orch, "errors", []),
         "provenance": prov,
+        "input_preview": input_preview,
+        "metadata": run_metadata,
     }
 
 

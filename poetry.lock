@@ -5415,6 +5415,21 @@ files = [
 requests = ">=2.0.1,<3.0.0"
 
 [[package]]
+name = "reverse-geocoder"
+version = "1.5.1"
+description = "Fast, offline reverse geocoder"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "reverse_geocoder-1.5.1.tar.gz", hash = "sha256:2a2e781b5f69376d922b78fe8978f1350c84fce0ddb07e02c834ecf98b57c75c"},
+]
+
+[package.dependencies]
+numpy = ">=1.11.0"
+scipy = ">=0.17.1"
+
+[[package]]
 name = "rfc3339-validator"
 version = "0.1.4"
 description = "A pure python RFC3339 validator"
@@ -5710,10 +5725,10 @@ crt = ["botocore[crt] (>=1.37.4,<2.0a.0)"]
 name = "scipy"
 version = "1.15.3"
 description = "Fundamental algorithms for scientific computing in Python"
-optional = true
+optional = false
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "python_version == \"3.10\" and (extra == \"processing\" or extra == \"visualization\" or extra == \"all\")"
+markers = "python_version == \"3.10\""
 files = [
     {file = "scipy-1.15.3-cp310-cp310-macosx_10_13_x86_64.whl", hash = "sha256:a345928c86d535060c9c2b25e71e87c39ab2f22fc96e9636bd74d1dbf9de448c"},
     {file = "scipy-1.15.3-cp310-cp310-macosx_12_0_arm64.whl", hash = "sha256:ad3432cb0f9ed87477a8d97f03b763fd1d57709f1bbde3c9369b1dff5503b253"},
@@ -5775,10 +5790,10 @@ test = ["Cython", "array-api-strict (>=2.0,<2.1.1)", "asv", "gmpy2", "hypothesis
 name = "scipy"
 version = "1.16.2"
 description = "Fundamental algorithms for scientific computing in Python"
-optional = true
+optional = false
 python-versions = ">=3.11"
 groups = ["main"]
-markers = "python_version >= \"3.11\" and (extra == \"processing\" or extra == \"visualization\" or extra == \"all\")"
+markers = "python_version >= \"3.11\""
 files = [
     {file = "scipy-1.16.2-cp311-cp311-macosx_10_14_x86_64.whl", hash = "sha256:6ab88ea43a57da1af33292ebd04b417e8e2eaf9d5aa05700be8d6e1b6501cd92"},
     {file = "scipy-1.16.2-cp311-cp311-macosx_12_0_arm64.whl", hash = "sha256:c95e96c7305c96ede73a7389f46ccd6c659c4da5ef1b2789466baeaed3622b6e"},
@@ -7051,4 +7066,4 @@ ws = ["websockets"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "0846b639f61a771b14c60063ce5ea337559cd94a8bff755b31686b53a1c41de7"
+content-hash = "cf8dae4d2eb0ef6815ae37b203de7dc2b77953c92e963cadc2acc99b032af10c"

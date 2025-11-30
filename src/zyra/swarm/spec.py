@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -147,8 +148,36 @@ def load_stage_agent_specs(doc: Mapping[str, Any]) -> list[StageAgentSpec]:
     for key, raw in items:
         if isinstance(raw, Mapping):
             data = dict(raw)
+            ser = data.get("serialization") or {}
+            md = data.get("metadata") or {}
+            if not isinstance(md, dict):
+                md = {}
+            # Warn on inline serialization; note fallback/materialize for replay.
+            if isinstance(ser, dict) and ser.get("kind") == "inline":
+                replay_meta = ser.get("replay") or {}
+                fallback = replay_meta.get("fallback", "skip")
+                materialize = replay_meta.get("materialize")
+                print(
+                    f"warning: inline agent '{data.get('id') or key}' will "
+                    f"attempt replay (materialize={materialize}) with fallback='{fallback}'",
+                    file=sys.stderr,
+                )
+                md.setdefault("serialization", ser)
+            elif isinstance(md, dict) and isinstance(md.get("serialization"), dict):
+                ser = md.get("serialization")
+                if ser.get("kind") == "inline":
+                    replay_meta = ser.get("replay") or {}
+                    fallback = replay_meta.get("fallback", "skip")
+                    materialize = replay_meta.get("materialize")
+                    print(
+                        f"warning: inline agent '{data.get('id') or key}' will "
+                        f"attempt replay (materialize={materialize}) with fallback='{fallback}'",
+                        file=sys.stderr,
+                    )
             if not data.get("id") and key:
                 data["id"] = key
+            if md:
+                data["metadata"] = md
             specs.append(StageAgentSpec.from_mapping(data))
         elif isinstance(raw, str):
             specs.append(

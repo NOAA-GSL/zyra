@@ -24,25 +24,28 @@ pipeline = sess.to_pipeline()
 cli_cmds = sess.to_cli()
 ```
 
-## LLM provider selection (notebook UX target)
+## LLM provider selection (notebook cells)
 
-- Start notebook with a provider selector cell (default `ollama`; also `openai`, `google/gemini`; fallback `mock` when creds missing).
-- Document required env vars: `OLLAMA_BASE_URL`, `OPENAI_API_KEY`, `GOOGLE_API_KEY` (or Vertex vars).
-- Swarm narration cell should summarize upcoming expected 2 m temperature from the HRRR subset; allow provider override via cell param.
+- Provider selector cell sets `ZYRA_LLM_PROVIDER` and `LLM_MODEL`; defaults to Google Gemini Flash when creds exist, otherwise falls back to `mock` to stay runnable offline. Env vars: `GOOGLE_API_KEY`/Vertex vars, `OPENAI_API_KEY`, `OLLAMA_BASE_URL`.
+- Verbosity: `ZYRA_VERBOSITY=debug` surfaces per-agent swarm logs in notebooks.
+- Narrate cells honor `provider`/`model` overrides and will use mock when no creds are available.
 
-## HRRR workflow (target for walkthrough notebook)
-
-1. Acquire a small HRRR 2 m temperature subset via HTTP/NCSS (tight bbox/time to keep a few MB).
-2. Process (subset/convert as needed).
-3. Visualize or export.
-4. Inline `process.register` demo.
-5. Provenance export + `to_pipeline` / `to_cli`.
-6. Narrate/swarm cell describing expected temperature (provider selector, mock-safe).
-
-## Defaults and paths
+## Provenance and export
 
 - Workspace: `ZYRA_NOTEBOOK_DIR` -> `/kaggle/working` (if exists) -> `cwd`.
-- Provenance: `ZYRA_NOTEBOOK_PROVENANCE` or `${workdir}/provenance.sqlite`.
+- Provenance DB: `ZYRA_NOTEBOOK_PROVENANCE` (defaults to `${workdir}/provenance.sqlite`). Inspect via the notebook “Inspect provenance SQLite logs” cell.
+- Helpers: `sess.to_pipeline()` (stage/args JSON), `sess.to_cli()` (equivalent CLI strings). Narrate and planner calls can also log to provenance when `memory` is set (defaults to session DB).
+
+## Interactive planner (notebook + inline)
+
+- `sess.plan(...)` wraps `zyra plan`, with prompts enabled in notebooks; set `force_prompt=False` to disable.
+- Inline planner cell (`plan_session_inline.json`) prompts for missing args, runs the value engine, and auto-inserts frame scan/pad steps and dependencies for compose/local.
+- Value-engine suggestions are shown and can be accepted/rejected interactively; accepted suggestions are recorded in the manifest.
+
+## Narrate/swarm (notebook cells)
+
+- Narrate rerun cell builds frames/location bullets, sets a rubric, runs `sess.narrate.swarm`, and prints raw/edited outputs plus the pack/provenance.
+- Input preview and agent outputs are surfaced in `narrate_pack.yaml`; final narration prefers the edited output.
 
 ## Limitations (current scaffolding)
 
