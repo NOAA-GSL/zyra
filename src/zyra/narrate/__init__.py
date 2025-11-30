@@ -536,7 +536,7 @@ def _run_coro_sync(coro: Any) -> Any:
     def _runner() -> None:
         try:
             result["value"] = asyncio.run(coro)
-        except BaseException as exc:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
             error["exc"] = exc
 
     import threading  # placed inside function to avoid unused at import time
