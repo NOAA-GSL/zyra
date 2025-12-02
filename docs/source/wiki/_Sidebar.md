@@ -4,6 +4,7 @@
 - [Getting Started](Getting-Started-with-Zyra)
 - [Workflow Stages](Workflow-Stages)
 - [Stage Examples](Stage-Examples)
+- [Stage Agents](Stage-Agents-and-Planner-Overview)
 - [Install & Extras](Install-Extras)
 
 # Quick Help
