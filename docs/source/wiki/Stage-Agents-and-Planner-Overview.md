@@ -1,6 +1,6 @@
 # Stage Agents & Planner Overview
 
-This page summarizes the changes introduced on the stage-agent/planner branch so teammates can understand the new workflow without reading every commit. It covers:
+This page summarizes:
 
 1. How stage agents map to the existing Zyra stages
 2. The new `zyra plan` capabilities (reasoning trace, suggestions, clarifications)

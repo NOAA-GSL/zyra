@@ -41,6 +41,7 @@ Zyra evokes growth and flow — small seeds of data can flourish into full workf
 - Install & Extras: [Install & Extras](Install-Extras)
 - Patterns: [Pipeline Patterns](Pipeline-Patterns)
 - Stage Examples: [Stage Examples](Stage-Examples)
+- Stage Agents: [Zyra Swarm](Stage-Agents-and-Planner-Overview)
 - CLI Reference: https://noaa-gsl.github.io/zyra/api/zyra.cli.html
 
 ---
@@ -48,7 +49,7 @@ Zyra evokes growth and flow — small seeds of data can flourish into full workf
 ## Explore More
 
 ### Assistant & Guidance
-- [![Chat with Zyra Assistant](https://img.shields.io/badge/ChatGPT-Zyra%20Assistant-00A67E?logo=openai&logoColor=white)](https://chatgpt.com/g/g-6897a3dd5a7481918a55ebe3795f7a26-zyra-assistant)
+- [![Chat with Zyra Assistant](https://img.shields.io/badge/ChatGPT-Zyra%20Assistant-00A67E?logo=openai&logoColor=white)](https://assistant.zyra-project.org/)
 - Zyra Assistant Instructions: [Zyra-Assistant-Instructions](Zyra-Assistant-Instructions)
 - Wizard Assistant: [Wizard-Interactive-Assistant](Wizard-Interactive-Assistant)
 
