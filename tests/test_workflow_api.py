@@ -63,6 +63,25 @@ def test_workflow_run_stage_invalid_name():
         wf.run_stage("missing")
 
 
+def test_workflow_run_stage_with_args_override(monkeypatch):
+    captured_cmds: list[list[str]] = []
+
+    def fake_run(cmd, capture_output=False, text=False, check=False):
+        captured_cmds.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(wf_api.subprocess, "run", fake_run)
+    wf = Workflow.from_dict(
+        {"stages": [{"stage": "process", "command": "demo", "args": {"key1": "val1"}}]}
+    )
+    res = wf.run_stage(0, args={"key2": "val2"}, capture=True)
+    assert res.returncode == 0
+    assert captured_cmds
+    joined = " ".join(captured_cmds[0])
+    assert "key1" in joined
+    assert "key2" in joined
+
+
 def test_workflow_run_stream_writes_stdout(monkeypatch, capsys):
     captured_cmds: list[list[str]] = []
 

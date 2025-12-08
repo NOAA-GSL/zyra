@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from zyra.plugins import manifest_overlay
+from zyra.stage_utils import normalize_stage_name
 from zyra.wizard.manifest import build_manifest
 
 
@@ -26,11 +26,29 @@ def _read_overlay(path: Path) -> dict[str, Any]:
 def load_manifest_with_overlays(
     *, include_plugins: bool = True, overlay_path: Path | str | None = None
 ) -> dict[str, Any]:
-    """Load packaged manifest and merge plugin + overlay entries."""
+    """Load packaged manifest and merge plugin + overlay entries.
+
+    Args:
+        include_plugins: If True, merge registered plugin commands from the in-memory registry.
+        overlay_path: Optional path to a JSON overlay file. If not provided, checks
+            the ``ZYRA_NOTEBOOK_OVERLAY`` environment variable.
+
+    Returns:
+        Dictionary containing the merged manifest with all command metadata.
+
+    Note:
+        Overlay precedence: base manifest → plugins (if enabled) → overlay file (if present).
+    """
 
     data = build_manifest()
     if include_plugins:
-        data.update(manifest_overlay())
+        try:
+            from zyra import plugins as _plugins
+
+            data.update(_plugins.manifest_overlay())
+        except Exception:
+            # Best-effort: skip plugin overlay on errors
+            pass
 
     overlay: Path | None = None
     if overlay_path:
@@ -44,4 +62,4 @@ def load_manifest_with_overlays(
     return data
 
 
-__all__ = ["load_manifest_with_overlays"]
+__all__ = ["load_manifest_with_overlays", "normalize_stage_name"]

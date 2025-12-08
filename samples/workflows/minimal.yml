@@ -1,4 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: Apache-2.0
+# Minimal workflow sample for testing and demonstration.
+# Used by test_workflow_api.py and examples/api_and_programmatic_interface.ipynb.
 stages:
   - stage: narrate
     command: describe

@@ -18,6 +18,7 @@ subsetting, and S3 URL parsing.
 """
 
 import argparse
+import contextlib
 import json
 import os
 import platform
@@ -766,13 +767,10 @@ def main(argv: list[str] | None = None) -> int:
         # Non-fatal: plugin epilog is best-effort.
         pass
     except Exception as exc:  # pragma: no cover - defensive
-        try:
+        with contextlib.suppress(Exception):
             import logging as _log
 
             _log.getLogger(__name__).debug("plugin help epilog failed: %s", exc)
-        except Exception:
-            # Avoid raising during help epilog setup
-            pass
     # Global verbosity controls for all commands
     vgrp = parser.add_mutually_exclusive_group()
     vgrp.add_argument(

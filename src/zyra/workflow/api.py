@@ -54,11 +54,29 @@ class Workflow:
         self._source_path = Path(source_path) if source_path else None
         self._results: list[StageResult] = []
 
+    @staticmethod
+    def _normalized_stage(stage: dict[str, Any]) -> str:
+        return _stage_group_alias(str(stage.get("stage", "")))
+
     @classmethod
     def load(
         cls, path: str, *, overrides: list[tuple[str, str]] | None = None
     ) -> Workflow:
-        """Load a workflow config from YAML/JSON."""
+        """Load a workflow config from YAML/JSON.
+
+        Args:
+            path: File path to a YAML or JSON workflow configuration file.
+            overrides: Optional list of (key, value) tuples to override
+                configuration values. Follows the same format as the ``--set``
+                CLI flag (e.g., ``[("stage.key", "value")]``).
+
+        Returns:
+            Workflow instance with the loaded and processed configuration.
+
+        Raises:
+            FileNotFoundError: If the workflow file does not exist.
+            ValueError: If the file cannot be parsed as YAML or JSON.
+        """
 
         cfg = _load_config(path)
         _apply_overrides(cfg, overrides)
@@ -69,7 +87,19 @@ class Workflow:
     def from_dict(
         cls, cfg: dict[str, Any], *, overrides: list[tuple[str, str]] | None = None
     ) -> Workflow:
-        """Construct a workflow from an in-memory mapping."""
+        """Construct a workflow from an in-memory mapping.
+
+        Args:
+            cfg: Dictionary containing workflow configuration with a ``stages``
+                key. Each stage should include ``stage``, ``command``, and
+                optional ``args`` keys.
+            overrides: Optional list of (key, value) tuples to override
+                configuration values, following the same format as the
+                ``--set`` CLI flag.
+
+        Returns:
+            Workflow instance with the processed configuration.
+        """
 
         data = copy.deepcopy(cfg)
         _apply_overrides(data, overrides)
@@ -77,12 +107,25 @@ class Workflow:
         return cls(data)
 
     def describe(self) -> dict[str, Any]:
-        """Return a normalized view of stages."""
+        """Return a normalized view of workflow stages.
+
+        Returns:
+            Dict with:
+            - ``source``: path to the source file if loaded from disk, else None.
+            - ``stages``: list of stage dicts containing:
+                - ``index``: 0-based stage index
+                - ``stage``: normalized stage name (e.g., ``process``)
+                - ``command``: command name within the stage
+                - ``args``: argument mapping for the stage
+
+        Example:
+            ``{'source': 'workflow.yml', 'stages': [{'index': 0, 'stage': 'process', ...}]}``
+        """
 
         stages = self._cfg.get("stages") or []
         summary = []
         for idx, st in enumerate(stages):
-            stage_name = _stage_group_alias(str(st.get("stage", "")))
+            stage_name = self._normalized_stage(st)
             summary.append(
                 {
                     "index": idx,
@@ -118,7 +161,7 @@ class Workflow:
                 with contextlib.suppress(Exception):  # pragma: no cover - best effort
                     sys.stderr.write(stderr)
             return StageResult(
-                stage=_stage_group_alias(str(stage.get("stage", ""))),
+                stage=self._normalized_stage(stage),
                 command=str(stage.get("command", "")),
                 args=stage.get("args") or {},
                 returncode=int(proc.returncode or 0),
@@ -127,7 +170,7 @@ class Workflow:
             )
         proc = subprocess.run(cmd, check=False)
         return StageResult(
-            stage=_stage_group_alias(str(stage.get("stage", ""))),
+            stage=self._normalized_stage(stage),
             command=str(stage.get("command", "")),
             args=stage.get("args") or {},
             returncode=int(proc.returncode or 0),
@@ -142,7 +185,18 @@ class Workflow:
         stream: bool = False,
         continue_on_error: bool = False,
     ) -> WorkflowRunResult:
-        """Execute stages sequentially using the CLI subprocess."""
+        """Execute stages sequentially using the CLI subprocess.
+
+        Args:
+            capture: If True, capture stdout/stderr from each stage.
+            stream: If True and ``capture`` is True, write captured output to
+                stdout/stderr while also returning it.
+            continue_on_error: If True, continue executing remaining stages even
+                when a stage fails. If False (default), stop at the first failure.
+
+        Returns:
+            WorkflowRunResult containing results for all executed stages.
+        """
 
         stages = self._cfg.get("stages") or []
         results: list[StageResult] = []
@@ -162,7 +216,21 @@ class Workflow:
         capture: bool = False,
         stream: bool = False,
     ) -> StageResult:
-        """Run a single stage by index or stage name."""
+        """Run a single stage by index or stage name.
+
+        Args:
+            name_or_index: Stage index (0-based) or stage name to execute.
+            args: Optional dict of arguments to override or add to the stage's args.
+            capture: If True, capture stdout/stderr from the stage execution.
+            stream: If True and ``capture`` is True, write captured output to
+                stdout/stderr while also returning it.
+
+        Returns:
+            StageResult for the requested stage.
+
+        Raises:
+            IndexError: If the stage name or index is not found.
+        """
 
         stages = self._cfg.get("stages") or []
         target: dict[str, Any] | None = None
@@ -172,7 +240,7 @@ class Workflow:
         else:
             name_norm = _stage_group_alias(str(name_or_index))
             for st in stages:
-                if _stage_group_alias(str(st.get("stage", ""))) == name_norm:
+                if self._normalized_stage(st) == name_norm:
                     target = copy.deepcopy(st)
                     break
         if target is None:

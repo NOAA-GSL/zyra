@@ -12,11 +12,16 @@ for discovery, metadata, and notebook-style inline extensions.
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import logging
+import os
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, overload
+
+from zyra.stage_utils import normalize_stage_name
 
 _REGISTRY: dict[str, dict[str, PluginSpec]] = {}
 _LOCAL_LOADED = False
@@ -37,25 +42,7 @@ class PluginSpec:
 
 
 def _normalize_stage(stage: str) -> str:
-    norm = stage.strip().lower().replace("-", " ")
-    norm = " ".join(norm.split())
-    try:
-        from zyra.pipeline_runner import _stage_group_alias
-
-        return _stage_group_alias(norm)
-    except (ImportError, AttributeError):
-        return norm
-    except Exception as exc:  # pragma: no cover - defensive
-        try:
-            import logging as _log
-
-            _log.getLogger(__name__).debug(
-                "plugin stage normalization fallback: %s", exc
-            )
-        except Exception:
-            # Avoid raising during normalization fallback
-            pass
-        return norm
+    return normalize_stage_name(stage)
 
 
 def _load_local_extensions() -> None:
@@ -65,10 +52,15 @@ def _load_local_extensions() -> None:
     if _LOCAL_LOADED:
         return
     _LOCAL_LOADED = True
+    if os.environ.get("ZYRA_DISABLE_LOCAL_PLUGINS"):
+        return
     try:
         extensions_path = Path(".zyra") / "extensions" / "plugins.py"
         if not extensions_path.exists():
             return
+        logging.getLogger(__name__).info(
+            "Loading local plugins from %s", extensions_path
+        )
         spec = importlib.util.spec_from_file_location(
             "zyra_local_plugins", extensions_path
         )
@@ -79,14 +71,39 @@ def _load_local_extensions() -> None:
     except ImportError:
         return
     except Exception as exc:  # pragma: no cover - defensive
-        try:
+        with contextlib.suppress(Exception):
             import logging as _log
 
             _log.getLogger(__name__).debug("failed to load local plugins: %s", exc)
-        except Exception:
-            # Avoid raising during optional local plugin import
-            pass
         return
+
+
+@overload
+def register_command(
+    stage: str,
+    name: str,
+    handler: Callable[..., Any],
+    *,
+    description: str | None = None,
+    args: list[dict[str, Any]] | None = None,
+    returns: str | None = None,
+    extras: list[str] | None = None,
+    origin: str | None = None,
+) -> Callable[..., Any]: ...
+
+
+@overload
+def register_command(
+    stage: str,
+    name: str,
+    handler: None = None,
+    *,
+    description: str | None = None,
+    args: list[dict[str, Any]] | None = None,
+    returns: str | None = None,
+    extras: list[str] | None = None,
+    origin: str | None = None,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]: ...
 
 
 def register_command(
@@ -102,8 +119,21 @@ def register_command(
 ) -> Callable[..., Any] | Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Register a plugin command.
 
-    Can be used as a decorator or a direct call. Returns the handler for
-    decorator-style usage.
+    Can be used as a decorator or a direct call.
+
+    Args:
+        stage: Workflow stage name (e.g., "process", "visualize"). Accepts aliases.
+        name: Command name within the stage.
+        handler: Optional callable to invoke for this command. Required for direct calls.
+        description: Human-readable description of the command.
+        args: List of argument specifications for the command.
+        returns: Return type hint (e.g., "path", "bytes").
+        extras: Optional list of extra dependencies required by this command.
+        origin: Optional identifier for the plugin source (defaults to "plugin_registry").
+
+    Returns:
+        If handler is provided, returns the handler unchanged.
+        If handler is None, returns a decorator function.
     """
 
     stage_norm = _normalize_stage(stage)

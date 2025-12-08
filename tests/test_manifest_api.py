@@ -20,8 +20,10 @@ def test_manifest_merges_plugins(monkeypatch):
 def test_manifest_describe_specific_command():
     manifest = Manifest.load(include_plugins=False)
     detail = manifest.describe(command="process convert-format")
-    assert detail.get("name") == "process convert-format"
-    assert detail.get("meta")
+    commands = detail.get("commands") or []
+    assert commands
+    assert commands[0].name == "process convert-format"
+    assert commands[0].meta
 
 
 def test_manifest_stage_alias_processing():

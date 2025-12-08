@@ -27,7 +27,7 @@ def test_plugin_stage_normalization_spaces(monkeypatch):
     assert "process transform demo" in overlay
 
 
-def test_plugin_stage_alias_processing(monkeypatch):
+def test_plugin_processing_alias_resolves_to_process(monkeypatch):
     monkeypatch.setattr(plugins, "_REGISTRY", {})
     plugins.register_command("processing", "alias-demo")
     overlay = plugins.manifest_overlay()
