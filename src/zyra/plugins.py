@@ -53,6 +53,7 @@ def _normalize_stage(stage: str) -> str:
                 "plugin stage normalization fallback: %s", exc
             )
         except Exception:
+            # Avoid raising during normalization fallback
             pass
         return norm
 
