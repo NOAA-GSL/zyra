@@ -21,7 +21,7 @@ manifest = Manifest.load(include_plugins=True)
 print(manifest.list_commands(stage="process"))
 ```
 
-Notes:
+## Notes
 - Workflow execution uses subprocess calls to `zyra.cli` to mirror CLI behavior and logging.
 - Plugin registry is discovery-only for now; execution dispatch remains unchanged.
 - A companion notebook lives at `examples/api_and_programmatic_interface.ipynb` for interactive use.

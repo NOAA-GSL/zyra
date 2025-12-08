@@ -45,7 +45,7 @@ def _normalize_stage(stage: str) -> str:
     return normalize_stage_name(stage)
 
 
-def _load_local_extensions() -> None:
+def _load_local_plugins() -> None:
     """Best-effort import of .zyra/extensions/plugins.py for local hooks."""
 
     global _LOCAL_LOADED
@@ -171,7 +171,7 @@ def list_registered(stage: None = None) -> dict[str, list[str]]: ...
 def list_registered(stage: str | None = None) -> dict[str, list[str]] | list[str]:
     """List registered plugin commands."""
 
-    _load_local_extensions()
+    _load_local_plugins()
     if stage:
         stage_norm = _normalize_stage(stage)
         return sorted(_REGISTRY.get(stage_norm, {}).keys())
@@ -181,7 +181,7 @@ def list_registered(stage: str | None = None) -> dict[str, list[str]] | list[str
 def manifest_overlay() -> dict[str, dict[str, Any]]:
     """Return a manifest-like overlay for all registered plugins."""
 
-    _load_local_extensions()
+    _load_local_plugins()
     overlay: dict[str, dict[str, Any]] = {}
     for stage, cmds in _REGISTRY.items():
         for name, spec in cmds.items():
@@ -200,7 +200,7 @@ def manifest_overlay() -> dict[str, dict[str, Any]]:
 def help_epilog() -> str | None:
     """Generate a help epilog snippet listing plugin commands."""
 
-    _load_local_extensions()
+    _load_local_plugins()
     if not _REGISTRY:
         return None
     parts: list[str] = ["Plugin commands:"]

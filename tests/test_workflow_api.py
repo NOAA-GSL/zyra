@@ -99,6 +99,23 @@ def test_workflow_run_stream_writes_stdout(monkeypatch, capsys):
     assert result.stages[0].stderr == "world"
 
 
+def test_workflow_run_capture_no_stream(monkeypatch, capsys):
+    captured_cmds: list[list[str]] = []
+
+    def fake_run(cmd, capture_output=False, text=False, check=False):
+        captured_cmds.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, stdout="hello", stderr="world")
+
+    monkeypatch.setattr(wf_api.subprocess, "run", fake_run)
+    wf = Workflow.from_dict({"stages": [{"stage": "process", "command": "demo"}]})
+    result = wf.run(capture=True, stream=False)
+    out = capsys.readouterr()
+    assert out.out == ""
+    assert out.err == ""
+    assert result.stages[0].stdout == "hello"
+    assert result.stages[0].stderr == "world"
+
+
 def test_workflow_run_continue_on_error(monkeypatch):
     calls: list[list[str]] = []
 

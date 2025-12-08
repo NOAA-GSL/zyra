@@ -155,10 +155,14 @@ class Workflow:
             stdout = proc.stdout or ""
             stderr = proc.stderr or ""
             if stream and stdout:
-                with contextlib.suppress(Exception):  # pragma: no cover - best effort
+                with contextlib.suppress(
+                    Exception
+                ):  # pragma: no cover - stream write best effort
                     sys.stdout.write(stdout)
             if stream and stderr:
-                with contextlib.suppress(Exception):  # pragma: no cover - best effort
+                with contextlib.suppress(
+                    Exception
+                ):  # pragma: no cover - stream write best effort
                     sys.stderr.write(stderr)
             return StageResult(
                 stage=self._normalized_stage(stage),

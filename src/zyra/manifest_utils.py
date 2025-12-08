@@ -9,7 +9,6 @@ import os
 from pathlib import Path
 from typing import Any
 
-from zyra.stage_utils import normalize_stage_name
 from zyra.wizard.manifest import build_manifest
 
 
@@ -46,9 +45,8 @@ def load_manifest_with_overlays(
             from zyra import plugins as _plugins
 
             data.update(_plugins.manifest_overlay())
-        except Exception:
-            # Best-effort: skip plugin overlay on errors
-            pass
+        except Exception as exc:
+            logging.getLogger(__name__).debug("Skipping plugin overlay: %s", exc)
 
     overlay: Path | None = None
     if overlay_path:
@@ -62,4 +60,4 @@ def load_manifest_with_overlays(
     return data
 
 
-__all__ = ["load_manifest_with_overlays", "normalize_stage_name"]
+__all__ = ["load_manifest_with_overlays"]
