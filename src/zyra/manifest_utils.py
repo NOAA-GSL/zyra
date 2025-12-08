@@ -16,11 +16,9 @@ def _read_overlay(path: Path) -> dict[str, Any]:
     try:
         text = path.read_text(encoding="utf-8")
         data = json.loads(text) or {}
-        if isinstance(data, dict):
-            return data
+        return data if isinstance(data, dict) else {}
     except Exception:
         return {}
-    return {}
 
 
 def load_manifest_with_overlays(

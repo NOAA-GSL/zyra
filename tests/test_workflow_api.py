@@ -2,7 +2,7 @@
 import subprocess
 from pathlib import Path
 
-import zyra.workflow.api as wf_api
+from zyra.workflow import api as wf_api
 from zyra.workflow.api import Workflow
 
 

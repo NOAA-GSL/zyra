@@ -96,6 +96,45 @@ class Workflow:
             "stages": summary,
         }
 
+    def _execute_stage(
+        self, stage: dict[str, Any], *, capture: bool, stream: bool
+    ) -> StageResult:
+        argv = _build_argv_for_stage(stage)
+        cmd = [sys.executable, "-m", "zyra.cli", *argv]
+        LOG.debug("Running workflow stage: %s", " ".join(cmd))
+        if capture or stream:
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            stdout = proc.stdout or ""
+            stderr = proc.stderr or ""
+            if stream and stdout:
+                with contextlib.suppress(Exception):  # pragma: no cover - best effort
+                    sys.stdout.write(stdout)
+            if stream and stderr:
+                with contextlib.suppress(Exception):  # pragma: no cover - best effort
+                    sys.stderr.write(stderr)
+            return StageResult(
+                stage=_stage_group_alias(str(stage.get("stage", ""))),
+                command=str(stage.get("command", "")),
+                args=stage.get("args") or {},
+                returncode=int(proc.returncode or 0),
+                stdout=stdout,
+                stderr=stderr,
+            )
+        proc = subprocess.run(cmd, check=False)
+        return StageResult(
+            stage=_stage_group_alias(str(stage.get("stage", ""))),
+            command=str(stage.get("command", "")),
+            args=stage.get("args") or {},
+            returncode=int(proc.returncode or 0),
+            stdout=None,
+            stderr=None,
+        )
+
     def run(
         self,
         *,
@@ -108,46 +147,7 @@ class Workflow:
         stages = self._cfg.get("stages") or []
         results: list[StageResult] = []
         for st in stages:
-            argv = _build_argv_for_stage(st)
-            cmd = [sys.executable, "-m", "zyra.cli", *argv]
-            LOG.debug("Running workflow stage: %s", " ".join(cmd))
-            if capture or stream:
-                proc = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                )
-                stdout = proc.stdout or ""
-                stderr = proc.stderr or ""
-                if stream and stdout:
-                    with contextlib.suppress(
-                        Exception
-                    ):  # pragma: no cover - best effort
-                        sys.stdout.write(stdout)
-                if stream and stderr:
-                    with contextlib.suppress(
-                        Exception
-                    ):  # pragma: no cover - best effort
-                        sys.stderr.write(stderr)
-                result = StageResult(
-                    stage=_stage_group_alias(str(st.get("stage", ""))),
-                    command=str(st.get("command", "")),
-                    args=st.get("args") or {},
-                    returncode=int(proc.returncode or 0),
-                    stdout=stdout,
-                    stderr=stderr,
-                )
-            else:
-                proc = subprocess.run(cmd, check=False)
-                result = StageResult(
-                    stage=_stage_group_alias(str(st.get("stage", ""))),
-                    command=str(st.get("command", "")),
-                    args=st.get("args") or {},
-                    returncode=int(proc.returncode or 0),
-                    stdout=None,
-                    stderr=None,
-                )
+            result = self._execute_stage(st, capture=capture, stream=stream)
             results.append(result)
             if result.returncode != 0 and not continue_on_error:
                 break
@@ -181,42 +181,7 @@ class Workflow:
         if args:
             target_args.update(args)
             target["args"] = target_args
-        argv = _build_argv_for_stage(target)
-        cmd = [sys.executable, "-m", "zyra.cli", *argv]
-        LOG.debug("Running single stage: %s", " ".join(cmd))
-        if capture or stream:
-            proc = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            stdout = proc.stdout or ""
-            stderr = proc.stderr or ""
-            if stream and stdout:
-                with contextlib.suppress(Exception):  # pragma: no cover
-                    sys.stdout.write(stdout)
-            if stream and stderr:
-                with contextlib.suppress(Exception):  # pragma: no cover
-                    sys.stderr.write(stderr)
-            result = StageResult(
-                stage=_stage_group_alias(str(target.get("stage", ""))),
-                command=str(target.get("command", "")),
-                args=target_args,
-                returncode=int(proc.returncode or 0),
-                stdout=stdout,
-                stderr=stderr,
-            )
-        else:
-            proc = subprocess.run(cmd, check=False)
-            result = StageResult(
-                stage=_stage_group_alias(str(target.get("stage", ""))),
-                command=str(target.get("command", "")),
-                args=target_args,
-                returncode=int(proc.returncode or 0),
-                stdout=None,
-                stderr=None,
-            )
+        result = self._execute_stage(target, capture=capture, stream=stream)
         self._results = [result]
         return result
 
