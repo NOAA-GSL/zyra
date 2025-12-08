@@ -18,9 +18,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from zyra.manifest_utils import load_manifest_with_overlays
 from zyra.swarm import open_provenance_store
 from zyra.swarm import planner as _swarm_planner
-from zyra.wizard.manifest import build_manifest
 
 DEFAULT_WORKDIR_ENV = "ZYRA_NOTEBOOK_DIR"
 DEFAULT_WORKDIR_FALLBACKS = [
@@ -304,7 +304,7 @@ class Session:
         workdir: Path | None = None,
         provenance_path: Path | str | None = None,
     ) -> None:
-        self._manifest = manifest or build_manifest()
+        self._manifest = manifest or load_manifest_with_overlays()
         self._workdir = self._resolve_workdir(workdir)
         self._provenance_path = self._resolve_provenance_path(provenance_path)
         self._overlay_path = self._workdir / "notebook_capabilities_overlay.json"

@@ -755,6 +755,24 @@ def main(argv: list[str] | None = None) -> int:
         _print_version_banner(mode)
         return 0
     parser = argparse.ArgumentParser(prog="zyra")
+    try:
+        from zyra import plugins as _plugins
+
+        epilog = _plugins.help_epilog()
+        if epilog:
+            parser.epilog = epilog
+            parser.formatter_class = argparse.RawDescriptionHelpFormatter
+    except ImportError:
+        # Non-fatal: plugin epilog is best-effort.
+        pass
+    except Exception as exc:  # pragma: no cover - defensive
+        try:
+            import logging as _log
+
+            _log.getLogger(__name__).debug("plugin help epilog failed: %s", exc)
+        except Exception:
+            # Avoid raising during help epilog setup
+            pass
     # Global verbosity controls for all commands
     vgrp = parser.add_mutually_exclusive_group()
     vgrp.add_argument(
