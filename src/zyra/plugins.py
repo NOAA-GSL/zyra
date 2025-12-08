@@ -16,7 +16,7 @@ import importlib.util
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, overload
 
 _REGISTRY: dict[str, dict[str, PluginSpec]] = {}
 _LOCAL_LOADED = False
@@ -102,6 +102,14 @@ def register_command(
     if handler is not None:
         return lambda func: func
     return _decorator
+
+
+@overload
+def list_registered(stage: str) -> list[str]: ...
+
+
+@overload
+def list_registered(stage: None = None) -> dict[str, list[str]]: ...
 
 
 def list_registered(stage: str | None = None) -> dict[str, list[str]] | list[str]:
