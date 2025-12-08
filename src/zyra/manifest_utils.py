@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Any
@@ -17,7 +18,8 @@ def _read_overlay(path: Path) -> dict[str, Any]:
         text = path.read_text(encoding="utf-8")
         data = json.loads(text) or {}
         return data if isinstance(data, dict) else {}
-    except Exception:
+    except (OSError, json.JSONDecodeError) as exc:
+        logging.getLogger(__name__).debug("Failed to read overlay %s: %s", path, exc)
         return {}
 
 

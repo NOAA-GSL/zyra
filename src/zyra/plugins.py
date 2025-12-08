@@ -60,8 +60,15 @@ def _load_local_extensions() -> None:
             mod = importlib.util.module_from_spec(spec)
             sys.modules["zyra_local_plugins"] = mod
             spec.loader.exec_module(mod)
-    except Exception:
-        # Non-fatal: ignore local extensions errors to avoid breaking CLI.
+    except ImportError:
+        return
+    except Exception as exc:  # pragma: no cover - defensive
+        try:
+            import logging as _log
+
+            _log.getLogger(__name__).debug("failed to load local plugins: %s", exc)
+        except Exception:
+            pass
         return
 
 

@@ -16,7 +16,17 @@ def _normalize_stage(stage: str) -> str:
         from zyra.pipeline_runner import _stage_group_alias
 
         return _stage_group_alias(stage_norm)
-    except Exception:
+    except (ImportError, AttributeError):
+        return DOMAIN_ALIAS_MAP.get(stage_norm, stage_norm)
+    except Exception as exc:  # pragma: no cover - defensive
+        try:
+            import logging as _log
+
+            _log.getLogger(__name__).debug(
+                "manifest stage normalization fallback: %s", exc
+            )
+        except Exception:
+            pass
         return DOMAIN_ALIAS_MAP.get(stage_norm, stage_norm)
 
 

@@ -762,9 +762,16 @@ def main(argv: list[str] | None = None) -> int:
         if epilog:
             parser.epilog = epilog
             parser.formatter_class = argparse.RawDescriptionHelpFormatter
-    except Exception:
-        # Non-fatal: help epilog is best-effort.
+    except ImportError:
+        # Non-fatal: plugin epilog is best-effort.
         pass
+    except Exception as exc:  # pragma: no cover - defensive
+        try:
+            import logging as _log
+
+            _log.getLogger(__name__).debug("plugin help epilog failed: %s", exc)
+        except Exception:
+            pass
     # Global verbosity controls for all commands
     vgrp = parser.add_mutually_exclusive_group()
     vgrp.add_argument(

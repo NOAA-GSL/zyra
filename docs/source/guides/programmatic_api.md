@@ -29,7 +29,7 @@ Notes:
 ## Notebook sessions
 
 - `zyra.notebook.create_session()` builds stage namespaces from the same manifest used by `Manifest.load()`.
-- Plugins registered via `zyra.plugins.register_command` are written to the overlay that notebook sessions read, so they show up in session namespaces and planner/help.
+- Plugins registered via `zyra.plugins.register_command` are merged into the manifest programmatically (registry overlay), and notebook sessions see them without writing files.
 - Workflow APIs stay subprocess-based for parity, while notebook tools call callable wrappers; use whichever fits your notebook flow.
 - Manifest/overlay loading is centralized in `zyra.manifest_utils.load_manifest_with_overlays` (honors `ZYRA_NOTEBOOK_OVERLAY` when set).
 
