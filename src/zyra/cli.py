@@ -19,6 +19,7 @@ subsetting, and S3 URL parsing.
 
 import argparse
 import json
+import logging
 import os
 import platform
 import re
@@ -755,6 +756,20 @@ def main(argv: list[str] | None = None) -> int:
         _print_version_banner(mode)
         return 0
     parser = argparse.ArgumentParser(prog="zyra")
+    try:
+        from zyra import plugins as _plugins
+
+        epilog = _plugins.help_epilog()
+        if epilog:
+            parser.epilog = epilog
+            parser.formatter_class = argparse.RawDescriptionHelpFormatter
+    except ImportError:
+        # Non-fatal: plugin epilog is best-effort.
+        pass
+    except Exception as exc:  # pragma: no cover - defensive
+        logging.getLogger(__name__).warning(
+            "plugin help epilog disabled due to error: %s", exc
+        )
     # Global verbosity controls for all commands
     vgrp = parser.add_mutually_exclusive_group()
     vgrp.add_argument(
