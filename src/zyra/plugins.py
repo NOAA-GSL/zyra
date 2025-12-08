@@ -46,7 +46,10 @@ def _normalize_stage(stage: str) -> str:
 
 
 def _load_local_plugins() -> None:
-    """Best-effort import of .zyra/extensions/plugins.py for local hooks."""
+    """Best-effort import of .zyra/extensions/plugins.py for local hooks.
+
+    Disable by setting the ``ZYRA_DISABLE_LOCAL_PLUGINS`` environment variable.
+    """
 
     global _LOCAL_LOADED
     if _LOCAL_LOADED:

@@ -32,6 +32,7 @@ print(manifest.list_commands(stage="process"))
 - Plugins registered via `zyra.plugins.register_command` are merged into the manifest programmatically (registry overlay), and notebook sessions see them without writing files.
 - Workflow APIs stay subprocess-based for parity, while notebook tools call callable wrappers; use whichever fits your notebook flow.
 - Manifest/overlay loading is centralized in `zyra.manifest_utils.load_manifest_with_overlays` (honors `ZYRA_NOTEBOOK_OVERLAY` when set).
+- To disable automatic loading of local plugins from `.zyra/extensions/plugins.py`, set `ZYRA_DISABLE_LOCAL_PLUGINS=1`.
 
 Example:
 

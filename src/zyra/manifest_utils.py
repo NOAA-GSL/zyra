@@ -29,8 +29,9 @@ def load_manifest_with_overlays(
 
     Args:
         include_plugins: If True, merge registered plugin commands from the in-memory registry.
-        overlay_path: Optional path to a JSON overlay file. If not provided, checks
-            the ``ZYRA_NOTEBOOK_OVERLAY`` environment variable.
+        overlay_path: Optional path to a JSON overlay file. If not provided and
+            the ``ZYRA_NOTEBOOK_OVERLAY`` environment variable is set, uses that
+            path instead.
 
     Returns:
         Dictionary containing the merged manifest with all command metadata.
