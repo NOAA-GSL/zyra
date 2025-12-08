@@ -68,6 +68,7 @@ Contents
    domain_apis
    mcp
    guides/narrate_swarm_quickstart
+   guides/programmatic_api
 
 .. toctree::
    :maxdepth: 2
