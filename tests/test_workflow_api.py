@@ -2,6 +2,8 @@
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from zyra.workflow import api as wf_api
 from zyra.workflow.api import Workflow
 
@@ -51,17 +53,11 @@ def test_workflow_run_stage(monkeypatch):
 
 def test_workflow_run_stage_invalid_index():
     wf = Workflow.from_dict({"stages": []})
-    try:
+    with pytest.raises(IndexError):
         wf.run_stage(0)
-        raise AssertionError("Expected IndexError")
-    except IndexError:
-        pass
 
 
 def test_workflow_run_stage_invalid_name():
     wf = Workflow.from_dict({"stages": [{"stage": "narrate", "command": "describe"}]})
-    try:
+    with pytest.raises(IndexError):
         wf.run_stage("missing")
-        raise AssertionError("Expected IndexError")
-    except IndexError:
-        pass

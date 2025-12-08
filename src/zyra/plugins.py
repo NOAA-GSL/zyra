@@ -75,7 +75,7 @@ def register_command(
     returns: str | None = None,
     extras: list[str] | None = None,
     origin: str | None = None,
-) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+) -> Callable[..., Any] | Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Register a plugin command.
 
     Can be used as a decorator or a direct call. Returns the handler for
