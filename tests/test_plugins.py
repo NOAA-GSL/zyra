@@ -25,3 +25,11 @@ def test_plugin_stage_normalization_spaces(monkeypatch):
     overlay = plugins.manifest_overlay()
     # Stage normalization keeps space, not hyphen, in manifest keys
     assert "process transform demo" in overlay
+
+
+def test_plugin_stage_alias_processing(monkeypatch):
+    monkeypatch.setattr(plugins, "_REGISTRY", {})
+    plugins.register_command("processing", "alias-demo")
+    overlay = plugins.manifest_overlay()
+    # Alias resolves to process
+    assert "process alias-demo" in overlay

@@ -38,8 +38,23 @@ class PluginSpec:
 
 def _normalize_stage(stage: str) -> str:
     norm = stage.strip().lower().replace("-", " ")
-    # Collapse repeated whitespace to a single space for consistent keys
-    return " ".join(norm.split())
+    norm = " ".join(norm.split())
+    try:
+        from zyra.pipeline_runner import _stage_group_alias
+
+        return _stage_group_alias(norm)
+    except (ImportError, AttributeError):
+        return norm
+    except Exception as exc:  # pragma: no cover - defensive
+        try:
+            import logging as _log
+
+            _log.getLogger(__name__).debug(
+                "plugin stage normalization fallback: %s", exc
+            )
+        except Exception:
+            pass
+        return norm
 
 
 def _load_local_extensions() -> None:
