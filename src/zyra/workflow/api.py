@@ -176,7 +176,7 @@ class Workflow:
                     target = copy.deepcopy(st)
                     break
         if target is None:
-            raise IndexError("Stage not found")
+            raise IndexError(f"Stage not found: {name_or_index!r}")
         target_args = target.get("args") or {}
         if args:
             target_args.update(args)

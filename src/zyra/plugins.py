@@ -37,7 +37,9 @@ class PluginSpec:
 
 
 def _normalize_stage(stage: str) -> str:
-    return stage.strip().lower().replace(" ", "-")
+    norm = stage.strip().lower().replace("-", " ")
+    # Collapse repeated whitespace to a single space for consistent keys
+    return " ".join(norm.split())
 
 
 def _load_local_extensions() -> None:
@@ -100,7 +102,7 @@ def register_command(
         return func
 
     if handler is not None:
-        return lambda func: func
+        return handler
     return _decorator
 
 

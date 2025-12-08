@@ -17,3 +17,11 @@ def test_help_epilog_includes_plugins(monkeypatch):
     assert epilog is not None
     assert "process" in epilog
     assert "demo-process" in epilog
+
+
+def test_plugin_stage_normalization_spaces(monkeypatch):
+    monkeypatch.setattr(plugins, "_REGISTRY", {})
+    plugins.register_command("process transform", "demo")
+    overlay = plugins.manifest_overlay()
+    # Stage normalization keeps space, not hyphen, in manifest keys
+    assert "process transform demo" in overlay

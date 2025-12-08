@@ -12,7 +12,12 @@ from zyra.wizard.manifest import DOMAIN_ALIAS_MAP
 
 def _normalize_stage(stage: str) -> str:
     stage_norm = stage.strip().lower()
-    return DOMAIN_ALIAS_MAP.get(stage_norm, stage_norm)
+    try:
+        from zyra.pipeline_runner import _stage_group_alias
+
+        return _stage_group_alias(stage_norm)
+    except Exception:
+        return DOMAIN_ALIAS_MAP.get(stage_norm, stage_norm)
 
 
 @dataclass

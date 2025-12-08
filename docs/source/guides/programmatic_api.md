@@ -16,7 +16,7 @@ print(wf.describe())
 run_result = wf.run(capture=True, stream=False)
 assert run_result.succeeded
 
-plugins.register_command("process", "demo-plugin", description="Local demo")
+plugins.register_command("process", "demo_plugin", description="Local demo")
 manifest = Manifest.load(include_plugins=True)
 print(manifest.list_commands(stage="process"))
 ```

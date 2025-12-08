@@ -36,14 +36,32 @@ def test_workflow_run_capture(monkeypatch):
 
 
 def test_workflow_run_stage(monkeypatch):
-    called: list[list[str]] = []
+    captured_cmds: list[list[str]] = []
 
     def fake_run(cmd, capture_output=False, text=False, check=False):
-        called.append(cmd)
+        captured_cmds.append(cmd)
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
     monkeypatch.setattr(wf_api.subprocess, "run", fake_run)
     wf = Workflow.from_dict({"stages": [{"stage": "narrate", "command": "describe"}]})
     res = wf.run_stage(0, capture=True)
     assert res.returncode == 0
-    assert called and "narrate" in " ".join(called[0])
+    assert captured_cmds and "narrate" in " ".join(captured_cmds[0])
+
+
+def test_workflow_run_stage_invalid_index():
+    wf = Workflow.from_dict({"stages": []})
+    try:
+        wf.run_stage(0)
+        raise AssertionError("Expected IndexError")
+    except IndexError:
+        pass
+
+
+def test_workflow_run_stage_invalid_name():
+    wf = Workflow.from_dict({"stages": [{"stage": "narrate", "command": "describe"}]})
+    try:
+        wf.run_stage("missing")
+        raise AssertionError("Expected IndexError")
+    except IndexError:
+        pass
