@@ -771,6 +771,7 @@ def main(argv: list[str] | None = None) -> int:
 
             _log.getLogger(__name__).debug("plugin help epilog failed: %s", exc)
         except Exception:
+            # Avoid raising during help epilog setup
             pass
     # Global verbosity controls for all commands
     vgrp = parser.add_mutually_exclusive_group()

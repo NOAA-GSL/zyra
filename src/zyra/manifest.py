@@ -26,6 +26,7 @@ def _normalize_stage(stage: str) -> str:
                 "manifest stage normalization fallback: %s", exc
             )
         except Exception:
+            # Avoid raising during manifest load path
             pass
         return DOMAIN_ALIAS_MAP.get(stage_norm, stage_norm)
 

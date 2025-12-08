@@ -68,6 +68,7 @@ def _load_local_extensions() -> None:
 
             _log.getLogger(__name__).debug("failed to load local plugins: %s", exc)
         except Exception:
+            # Avoid raising during optional local plugin import
             pass
         return
 
