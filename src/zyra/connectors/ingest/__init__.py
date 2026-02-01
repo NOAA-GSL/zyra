@@ -261,6 +261,17 @@ def _cmd_ftp(ns: argparse.Namespace) -> int:
 
     # Sync mode
     if getattr(ns, "sync_dir", None):
+        # Build SyncOptions from CLI args
+        sync_opts = ftp_backend.SyncOptions(
+            overwrite_existing=getattr(ns, "overwrite_existing", False),
+            recheck_existing=getattr(ns, "recheck_existing", False),
+            min_remote_size=getattr(ns, "min_remote_size", None),
+            prefer_remote=getattr(ns, "prefer_remote", False),
+            prefer_remote_if_meta_newer=getattr(ns, "prefer_remote_if_meta_newer", False),
+            skip_if_local_done=getattr(ns, "skip_if_local_done", False),
+            recheck_missing_meta=getattr(ns, "recheck_missing_meta", False),
+            frames_meta_path=getattr(ns, "frames_meta", None),
+        )
         ftp_backend.sync_directory(
             ns.path,
             ns.sync_dir,
@@ -276,6 +287,7 @@ def _cmd_ftp(ns: argparse.Namespace) -> int:
             date_format=getattr(ns, "date_format", None),
             username=username,
             password=password,
+            sync_options=sync_opts,
         )
         return 0
 
@@ -1046,6 +1058,53 @@ def register_cli(acq_subparsers: Any) -> None:
         "--credential-file",
         dest="credential_file",
         help="Optional dotenv file for resolving @KEY credentials",
+    )
+    # Sync mode options for overwrite/replacement behavior
+    p_ftp.add_argument(
+        "--overwrite-existing",
+        dest="overwrite_existing",
+        action="store_true",
+        help="Replace local files unconditionally regardless of timestamps",
+    )
+    p_ftp.add_argument(
+        "--recheck-existing",
+        dest="recheck_existing",
+        action="store_true",
+        help="Compare file sizes when timestamps are unavailable",
+    )
+    p_ftp.add_argument(
+        "--min-remote-size",
+        dest="min_remote_size",
+        help="Replace if remote file larger (bytes or percentage like '10%%')",
+    )
+    p_ftp.add_argument(
+        "--prefer-remote",
+        dest="prefer_remote",
+        action="store_true",
+        help="Always prioritize remote versions over local copies",
+    )
+    p_ftp.add_argument(
+        "--prefer-remote-if-meta-newer",
+        dest="prefer_remote_if_meta_newer",
+        action="store_true",
+        help="Use frames-meta.json timestamps for comparison",
+    )
+    p_ftp.add_argument(
+        "--skip-if-local-done",
+        dest="skip_if_local_done",
+        action="store_true",
+        help="Skip files that have a .done marker file",
+    )
+    p_ftp.add_argument(
+        "--recheck-missing-meta",
+        dest="recheck_missing_meta",
+        action="store_true",
+        help="Re-download files lacking companion metadata in frames-meta.json",
+    )
+    p_ftp.add_argument(
+        "--frames-meta",
+        dest="frames_meta",
+        help="Path to frames-meta.json for metadata-aware sync operations",
     )
     p_ftp.set_defaults(func=_cmd_ftp)
 
