@@ -108,8 +108,19 @@ class FTPConnector(Connector):
         since: str | None = None,
         until: str | None = None,
         date_format: str | None = None,
+        sync_options: ftp_backend.SyncOptions | None = None,
     ) -> None:
-        """Mirror a remote directory on this FTP host to a local directory."""
+        """Mirror a remote directory on this FTP host to a local directory.
+
+        Args:
+            remote_dir: Remote FTP directory path.
+            local_dir: Local directory to sync files to.
+            pattern: Optional regex pattern to filter filenames.
+            since: ISO date string for start of date range filter.
+            until: ISO date string for end of date range filter.
+            date_format: Custom date format for parsing dates in filenames.
+            sync_options: Configuration for file replacement behavior.
+        """
         return ftp_backend.sync_directory(
             self._url(remote_dir),
             local_dir,
@@ -119,6 +130,7 @@ class FTPConnector(Connector):
             date_format=date_format,
             username=self.username,
             password=self.password,
+            sync_options=sync_options,
         )
 
 
