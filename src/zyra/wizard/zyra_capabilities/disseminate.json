@@ -56,7 +56,19 @@
       }
     ],
     "domain": "decimate",
-    "args_schema": null,
+    "args_schema": {
+      "required": [
+        "input",
+        "path"
+      ],
+      "optional": [
+        "credential",
+        "credential_file",
+        "credentials",
+        "password",
+        "user"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.egress",
@@ -114,7 +126,13 @@
       }
     ],
     "domain": "decimate",
-    "args_schema": null,
+    "args_schema": {
+      "required": [
+        "input",
+        "path"
+      ],
+      "optional": []
+    },
     "example_args": {
       "input": "-",
       "path": "/tmp/out.bin"
@@ -185,7 +203,21 @@
       }
     ],
     "domain": "decimate",
-    "args_schema": null,
+    "args_schema": {
+      "required": [
+        "input",
+        "url"
+      ],
+      "optional": [
+        "auth",
+        "content_type",
+        "credential",
+        "credential_file",
+        "credentials",
+        "header",
+        "headers"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.egress",
@@ -247,7 +279,16 @@
     },
     "positionals": [],
     "domain": "decimate",
-    "args_schema": null,
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "bucket",
+        "content_type",
+        "input",
+        "key",
+        "url"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.egress",
@@ -381,7 +422,19 @@
       }
     ],
     "domain": "disseminate",
-    "args_schema": null,
+    "args_schema": {
+      "required": [
+        "input",
+        "path"
+      ],
+      "optional": [
+        "credential",
+        "credential_file",
+        "credentials",
+        "password",
+        "user"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.egress",
@@ -439,7 +492,13 @@
       }
     ],
     "domain": "disseminate",
-    "args_schema": null,
+    "args_schema": {
+      "required": [
+        "input",
+        "path"
+      ],
+      "optional": []
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.egress",
@@ -507,7 +566,21 @@
       }
     ],
     "domain": "disseminate",
-    "args_schema": null,
+    "args_schema": {
+      "required": [
+        "input",
+        "url"
+      ],
+      "optional": [
+        "auth",
+        "content_type",
+        "credential",
+        "credential_file",
+        "credentials",
+        "header",
+        "headers"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.egress",
@@ -569,7 +642,16 @@
     },
     "positionals": [],
     "domain": "disseminate",
-    "args_schema": null,
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "bucket",
+        "content_type",
+        "input",
+        "key",
+        "url"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.egress",

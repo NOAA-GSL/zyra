@@ -28,7 +28,12 @@
     },
     "positionals": [],
     "domain": "verify",
-    "args_schema": null,
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "metric"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.verify",

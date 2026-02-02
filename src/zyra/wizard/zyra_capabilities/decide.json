@@ -26,7 +26,12 @@
     },
     "positionals": [],
     "domain": "decide",
-    "args_schema": null,
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "strategy"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.decide",
