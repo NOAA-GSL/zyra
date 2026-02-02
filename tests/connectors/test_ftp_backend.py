@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
+import argparse
 import warnings
 from unittest.mock import patch
 
@@ -527,3 +528,177 @@ class TestSyncDirectoryWithOptions:
             # File should NOT be downloaded
             assert len(download_called) == 0
             assert existing.read_bytes() == b"original"
+
+
+# ============================================================================
+# CLI integration tests for SyncOptions (issue #11)
+# ============================================================================
+
+
+class TestCLIIntegration:
+    """Test that CLI arguments correctly construct SyncOptions and pass to backend."""
+
+    def _make_namespace(self, **kwargs) -> argparse.Namespace:
+        """Helper to create a Namespace with default values."""
+        defaults = {
+            "path": "ftp://host/dir",
+            "sync_dir": "/tmp/sync",
+            "pattern": None,
+            "since": None,
+            "since_period": None,
+            "until": None,
+            "date_format": None,
+            "credential": [],
+            "credential_file": None,
+            "user": None,
+            "password": None,
+            "clean_zero_bytes": False,
+            "overwrite_existing": False,
+            "recheck_existing": False,
+            "min_remote_size": None,
+            "prefer_remote": False,
+            "prefer_remote_if_meta_newer": False,
+            "skip_if_local_done": False,
+            "recheck_missing_meta": False,
+            "frames_meta": None,
+            "list": False,
+            "verbose": False,
+            "quiet": False,
+            "trace": False,
+        }
+        defaults.update(kwargs)
+        return argparse.Namespace(**defaults)
+
+    def test_cli_overwrite_existing_flag(self, tmp_path):
+        """--overwrite-existing CLI flag constructs correct SyncOptions."""
+        from zyra.connectors.ingest import _cmd_ftp
+
+        ns = self._make_namespace(
+            sync_dir=str(tmp_path),
+            overwrite_existing=True,
+        )
+
+        captured_opts = []
+
+        def mock_sync_directory(path, local_dir, **kwargs):
+            captured_opts.append(kwargs.get("sync_options"))
+
+        with patch.object(ftp_backend, "sync_directory", mock_sync_directory):
+            _cmd_ftp(ns)
+
+        assert len(captured_opts) == 1
+        assert captured_opts[0].overwrite_existing is True
+        assert captured_opts[0].recheck_existing is False
+
+    def test_cli_recheck_existing_flag(self, tmp_path):
+        """--recheck-existing CLI flag constructs correct SyncOptions."""
+        from zyra.connectors.ingest import _cmd_ftp
+
+        ns = self._make_namespace(
+            sync_dir=str(tmp_path),
+            recheck_existing=True,
+        )
+
+        captured_opts = []
+
+        def mock_sync_directory(path, local_dir, **kwargs):
+            captured_opts.append(kwargs.get("sync_options"))
+
+        with patch.object(ftp_backend, "sync_directory", mock_sync_directory):
+            _cmd_ftp(ns)
+
+        assert len(captured_opts) == 1
+        assert captured_opts[0].recheck_existing is True
+
+    def test_cli_min_remote_size_percentage(self, tmp_path):
+        """--min-remote-size with percentage is passed correctly."""
+        from zyra.connectors.ingest import _cmd_ftp
+
+        ns = self._make_namespace(
+            sync_dir=str(tmp_path),
+            min_remote_size="10%",
+        )
+
+        captured_opts = []
+
+        def mock_sync_directory(path, local_dir, **kwargs):
+            captured_opts.append(kwargs.get("sync_options"))
+
+        with patch.object(ftp_backend, "sync_directory", mock_sync_directory):
+            _cmd_ftp(ns)
+
+        assert len(captured_opts) == 1
+        assert captured_opts[0].min_remote_size == "10%"
+
+    def test_cli_skip_if_local_done_flag(self, tmp_path):
+        """--skip-if-local-done CLI flag constructs correct SyncOptions."""
+        from zyra.connectors.ingest import _cmd_ftp
+
+        ns = self._make_namespace(
+            sync_dir=str(tmp_path),
+            skip_if_local_done=True,
+        )
+
+        captured_opts = []
+
+        def mock_sync_directory(path, local_dir, **kwargs):
+            captured_opts.append(kwargs.get("sync_options"))
+
+        with patch.object(ftp_backend, "sync_directory", mock_sync_directory):
+            _cmd_ftp(ns)
+
+        assert len(captured_opts) == 1
+        assert captured_opts[0].skip_if_local_done is True
+
+    def test_cli_prefer_remote_if_meta_newer_with_frames_meta(self, tmp_path):
+        """--prefer-remote-if-meta-newer with --frames-meta path is passed correctly."""
+        from zyra.connectors.ingest import _cmd_ftp
+
+        meta_file = tmp_path / "frames-meta.json"
+        meta_file.write_text('{"frames": []}')
+
+        ns = self._make_namespace(
+            sync_dir=str(tmp_path),
+            prefer_remote_if_meta_newer=True,
+            frames_meta=str(meta_file),
+        )
+
+        captured_opts = []
+
+        def mock_sync_directory(path, local_dir, **kwargs):
+            captured_opts.append(kwargs.get("sync_options"))
+
+        with patch.object(ftp_backend, "sync_directory", mock_sync_directory):
+            _cmd_ftp(ns)
+
+        assert len(captured_opts) == 1
+        assert captured_opts[0].prefer_remote_if_meta_newer is True
+        assert captured_opts[0].frames_meta_path == str(meta_file)
+
+    def test_cli_multiple_sync_options_combined(self, tmp_path):
+        """Multiple sync options can be combined correctly."""
+        from zyra.connectors.ingest import _cmd_ftp
+
+        ns = self._make_namespace(
+            sync_dir=str(tmp_path),
+            recheck_existing=True,
+            skip_if_local_done=True,
+            min_remote_size="5%",
+        )
+
+        captured_opts = []
+
+        def mock_sync_directory(path, local_dir, **kwargs):
+            captured_opts.append(kwargs.get("sync_options"))
+
+        with patch.object(ftp_backend, "sync_directory", mock_sync_directory):
+            _cmd_ftp(ns)
+
+        assert len(captured_opts) == 1
+        opts = captured_opts[0]
+        assert opts.recheck_existing is True
+        assert opts.skip_if_local_done is True
+        assert opts.min_remote_size == "5%"
+        # Others should be defaults
+        assert opts.overwrite_existing is False
+        assert opts.prefer_remote is False
