@@ -9,7 +9,7 @@ keeping the core API functional and composable.
 
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from zyra.connectors.backends import ftp as ftp_backend
 from zyra.connectors.backends import s3 as s3_backend

@@ -267,7 +267,9 @@ def _cmd_ftp(ns: argparse.Namespace) -> int:
             recheck_existing=getattr(ns, "recheck_existing", False),
             min_remote_size=getattr(ns, "min_remote_size", None),
             prefer_remote=getattr(ns, "prefer_remote", False),
-            prefer_remote_if_meta_newer=getattr(ns, "prefer_remote_if_meta_newer", False),
+            prefer_remote_if_meta_newer=getattr(
+                ns, "prefer_remote_if_meta_newer", False
+            ),
             skip_if_local_done=getattr(ns, "skip_if_local_done", False),
             recheck_missing_meta=getattr(ns, "recheck_missing_meta", False),
             frames_meta_path=getattr(ns, "frames_meta", None),

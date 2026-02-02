@@ -16,12 +16,12 @@ import json
 import logging
 import re
 import warnings
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from ftplib import FTP, all_errors
 from io import BytesIO
 from pathlib import Path
-from typing import Iterable
 
 from zyra.utils.date_manager import DateManager
 from zyra.utils.grib import compute_chunks, ensure_idx_path, parse_idx_lines
@@ -396,12 +396,8 @@ def sync_directory(
         frames_meta = _load_frames_meta(options.frames_meta_path)
 
     # Determine if we need remote metadata for decision-making
-    needs_remote_size = (
-        options.recheck_existing or options.min_remote_size is not None
-    )
-    needs_remote_mtime = not (
-        options.overwrite_existing or options.prefer_remote
-    )
+    needs_remote_size = options.recheck_existing or options.min_remote_size is not None
+    needs_remote_mtime = not (options.overwrite_existing or options.prefer_remote)
 
     for name in names:
         filename = Path(name).name
@@ -646,9 +642,10 @@ def should_download(
                 pass
 
     # 7. Recheck missing meta
-    if options.recheck_missing_meta:
-        if not _has_companion_meta(remote_name, frames_meta):
-            return (True, "missing companion metadata")
+    if options.recheck_missing_meta and not _has_companion_meta(
+        remote_name, frames_meta
+    ):
+        return (True, "missing companion metadata")
 
     # 8. Min remote size check
     if options.min_remote_size is not None and remote_size is not None:
@@ -657,9 +654,12 @@ def should_download(
             return (True, f"remote size {remote_size} >= threshold {threshold}")
 
     # 9. Recheck existing (size comparison when mtime unavailable)
-    if options.recheck_existing:
-        if remote_size is not None and remote_size != local_size:
-            return (True, f"size mismatch: local={local_size}, remote={remote_size}")
+    if (
+        options.recheck_existing
+        and remote_size is not None
+        and remote_size != local_size
+    ):
+        return (True, f"size mismatch: local={local_size}, remote={remote_size}")
 
     # 10. Default: MDTM-based comparison
     if remote_mtime is not None:
