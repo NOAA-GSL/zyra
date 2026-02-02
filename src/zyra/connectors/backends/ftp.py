@@ -436,7 +436,6 @@ def sync_directory(
                 return datetime.strptime(ts_str, "%Y%m%d%H%M%S")
         except all_errors as exc:
             logging.debug("FTP MDTM failed for %s: %s", filename, exc)
-            return None
         return None
 
     try:
@@ -571,7 +570,7 @@ def _parse_min_size(spec: int | str | None, local_size: int) -> int | None:
     if spec_str.endswith("%"):
         try:
             pct = float(spec_str[:-1])
-            return int(local_size * (1 + pct / 100))
+            return round(local_size * (1 + pct / 100))
         except ValueError:
             return None
     try:
@@ -604,17 +603,18 @@ def _has_done_marker(local_path: Path) -> bool:
     return done_path.exists()
 
 
-def _has_companion_meta(filename: str, frames_meta: dict | None) -> bool:
-    """Check if a file has companion metadata in frames-meta.json.
+def _is_missing_companion_meta(filename: str, frames_meta: dict | None) -> bool:
+    """Check if a file is missing companion metadata in frames-meta.json.
 
-    Returns True if no metadata source is provided (assume OK).
+    Returns False if no metadata source is provided (nothing to check against).
+    Returns True only if frames_meta exists but the file is not listed in it.
     """
     if not frames_meta:
-        return True  # Assume OK if no metadata source
+        return False  # No metadata source, can't be "missing" from it
     frames = frames_meta.get("frames", [])
     if isinstance(frames, list):
-        return any(f.get("filename") == filename for f in frames)
-    return True
+        return not any(f.get("filename") == filename for f in frames)
+    return False
 
 
 def _get_meta_timestamp(filename: str, frames_meta: dict | None) -> datetime | None:
@@ -696,7 +696,7 @@ def should_download(
                 )
 
     # 7. Recheck missing meta
-    if options.recheck_missing_meta and not _has_companion_meta(
+    if options.recheck_missing_meta and _is_missing_companion_meta(
         remote_name, frames_meta
     ):
         return (True, "missing companion metadata")
