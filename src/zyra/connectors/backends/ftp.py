@@ -327,7 +327,9 @@ def sync_directory(
         username: FTP username (overrides URL-embedded credentials).
         password: FTP password (overrides URL-embedded credentials).
         sync_options: Configuration for file replacement behavior. If None,
-            uses default behavior (download missing/zero-byte files only).
+            a default SyncOptions instance is used, which downloads files
+            that are missing, zero-byte, or have a newer remote modification
+            time than the local copy.
     """
     host, remote_dir, user, pwd = parse_ftp_path(
         url_or_dir, username=username, password=password
@@ -396,6 +398,8 @@ def sync_directory(
         frames_meta = _load_frames_meta(options.frames_meta_path)
 
     # Determine if we need remote metadata for decision-making
+    # NOTE: Each get_size/get_remote_mtime call opens a separate FTP connection.
+    # For large directories, consider connection pooling as a future optimization.
     needs_remote_size = options.recheck_existing or options.min_remote_size is not None
     needs_remote_mtime = not (options.overwrite_existing or options.prefer_remote)
 
@@ -403,21 +407,28 @@ def sync_directory(
         filename = Path(name).name
         local_path = local_dir_path / filename
         dest = str(local_path)
-
-        # Get remote metadata as needed
         remote_url = f"ftp://{host}/{remote_dir}/{filename}"
-        remote_size: int | None = None
-        remote_mtime: datetime | None = None
 
-        if needs_remote_size and local_path.exists():
-            remote_size = get_size(remote_url, username=user, password=pwd)
-        if needs_remote_mtime and local_path.exists():
-            remote_mtime = get_remote_mtime(remote_url, username=user, password=pwd)
+        # Short-circuit: check local-only conditions first to avoid remote queries
+        # File missing or zero-byte -> always download
+        if not local_path.exists() or local_path.stat().st_size == 0:
+            do_download, reason = True, "missing or zero-byte"
+        # skip_if_local_done -> skip if .done marker exists (local-only check)
+        elif options.skip_if_local_done and _has_done_marker(local_path):
+            do_download, reason = False, ".done marker present"
+        else:
+            # Need full decision logic with potentially remote metadata
+            remote_size: int | None = None
+            remote_mtime: datetime | None = None
 
-        # Decide whether to download
-        do_download, reason = should_download(
-            filename, local_path, remote_size, remote_mtime, options, frames_meta
-        )
+            if needs_remote_size:
+                remote_size = get_size(remote_url, username=user, password=pwd)
+            if needs_remote_mtime:
+                remote_mtime = get_remote_mtime(remote_url, username=user, password=pwd)
+
+            do_download, reason = should_download(
+                filename, local_path, remote_size, remote_mtime, options, frames_meta
+            )
 
         if do_download:
             logging.debug("Downloading %s: %s", filename, reason)
@@ -540,8 +551,10 @@ def _load_frames_meta(path: str | None) -> dict | None:
         p = Path(path)
         if p.exists():
             return json.loads(p.read_text(encoding="utf-8"))
-    except Exception:
-        pass
+    except Exception as exc:
+        logging.getLogger(__name__).warning(
+            "Failed to load frames meta from %s: %s", path, exc
+        )
     return None
 
 
