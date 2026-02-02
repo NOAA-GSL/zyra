@@ -22,7 +22,6 @@
         "export"
       ]
     },
-    "narrate": "narrate.json",
     "process": "process.json",
     "run": "run.json",
     "search": "search.json",

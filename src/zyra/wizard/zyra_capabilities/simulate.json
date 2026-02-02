@@ -27,13 +27,7 @@
     },
     "positionals": [],
     "domain": "simulate",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "seed",
-        "trials"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.simulate",
