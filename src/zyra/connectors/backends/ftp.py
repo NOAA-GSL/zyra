@@ -651,8 +651,12 @@ def should_download(
                 local_mtime = datetime.fromtimestamp(local_path.stat().st_mtime)
                 if meta_ts > local_mtime:
                     return (True, "meta timestamp newer than local")
-            except OSError:
-                pass
+            except OSError as exc:
+                logging.debug(
+                    "Failed to read mtime for %s when comparing to meta timestamp: %s",
+                    local_path,
+                    exc,
+                )
 
     # 7. Recheck missing meta
     if options.recheck_missing_meta and not _has_companion_meta(
@@ -680,8 +684,12 @@ def should_download(
             local_mtime = datetime.fromtimestamp(local_path.stat().st_mtime)
             if remote_mtime > local_mtime:
                 return (True, "remote mtime newer")
-        except OSError:
-            pass
+        except OSError as exc:
+            logging.debug(
+                "Failed to read local mtime for %s during MDTM comparison: %s",
+                local_path,
+                exc,
+            )
 
     return (False, "up-to-date")
 
