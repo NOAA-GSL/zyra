@@ -230,7 +230,44 @@
     },
     "positionals": [],
     "domain": "acquire",
-    "args_schema": null,
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "accept",
+        "audio_source",
+        "auth",
+        "content_type",
+        "cursor_param",
+        "data",
+        "detect_filename",
+        "duration",
+        "empty_json_path",
+        "end",
+        "expect_content_type",
+        "head_first",
+        "headers",
+        "link_rel",
+        "method",
+        "newline_json",
+        "next_cursor_json_path",
+        "openapi_strict",
+        "openapi_validate",
+        "output",
+        "page_param",
+        "page_size",
+        "page_size_param",
+        "page_start",
+        "paginate",
+        "params",
+        "preset",
+        "progress",
+        "resume",
+        "since",
+        "start",
+        "stream",
+        "url"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.ingest",
@@ -340,14 +377,14 @@
         "type": "bool",
         "default": false
       },
-      "--min-remote-size": "Replace if remote file larger (bytes or percentage like '10%%')",
+      "--min-remote-size": "Replace if remote file is at least this size (bytes or percentage like '10%')",
       "--prefer-remote": {
-        "help": "Always prioritize remote versions over local copies",
+        "help": "Always prioritize remote versions over local",
         "type": "bool",
         "default": false
       },
       "--prefer-remote-if-meta-newer": {
-        "help": "Use frames-meta.json timestamps for comparison",
+        "help": "Use frames-meta.json timestamps to decide replacement",
         "type": "bool",
         "default": false
       },
@@ -361,11 +398,7 @@
         "type": "bool",
         "default": false
       },
-      "--frames-meta": {
-        "help": "Path to frames-meta.json for metadata-aware sync operations",
-        "path_arg": true,
-        "type": "path"
-      }
+      "--frames-meta": "Path to frames-meta.json for metadata-aware sync"
     },
     "positionals": [
       {
@@ -376,7 +409,35 @@
       }
     ],
     "domain": "acquire",
-    "args_schema": null,
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "credential",
+        "credential_file",
+        "overwrite_existing",
+        "recheck_existing",
+        "min_remote_size",
+        "prefer_remote",
+        "prefer_remote_if_meta_newer",
+        "skip_if_local_done",
+        "recheck_missing_meta",
+        "frames_meta",
+        "credentials",
+        "date_format",
+        "inputs",
+        "list_mode",
+        "manifest",
+        "output",
+        "output_dir",
+        "password",
+        "path",
+        "pattern",
+        "since",
+        "since_period",
+        "until",
+        "user"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.ingest",
@@ -479,7 +540,28 @@
       }
     ],
     "domain": "acquire",
-    "args_schema": null,
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "auth",
+        "credential",
+        "credential_file",
+        "credentials",
+        "date_format",
+        "header",
+        "headers",
+        "inputs",
+        "list_mode",
+        "manifest",
+        "output",
+        "output_dir",
+        "pattern",
+        "since",
+        "since_period",
+        "until",
+        "url"
+      ]
+    },
     "example_args": {
       "url": "https://example.com/file.bin",
       "output": "/tmp/file.bin"
@@ -582,7 +664,25 @@
     },
     "positionals": [],
     "domain": "acquire",
-    "args_schema": null,
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "bucket",
+        "date_format",
+        "inputs",
+        "key",
+        "list_mode",
+        "manifest",
+        "output",
+        "output_dir",
+        "pattern",
+        "since",
+        "since_period",
+        "unsigned",
+        "until",
+        "url"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.ingest",
@@ -883,7 +983,44 @@
     },
     "positionals": [],
     "domain": "import",
-    "args_schema": null,
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "accept",
+        "audio_source",
+        "auth",
+        "content_type",
+        "cursor_param",
+        "data",
+        "detect_filename",
+        "duration",
+        "empty_json_path",
+        "end",
+        "expect_content_type",
+        "head_first",
+        "headers",
+        "link_rel",
+        "method",
+        "newline_json",
+        "next_cursor_json_path",
+        "openapi_strict",
+        "openapi_validate",
+        "output",
+        "page_param",
+        "page_size",
+        "page_size_param",
+        "page_start",
+        "paginate",
+        "params",
+        "preset",
+        "progress",
+        "resume",
+        "since",
+        "start",
+        "stream",
+        "url"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.ingest",
@@ -918,15 +1055,7 @@
           "--user",
           "--password",
           "--credential",
-          "--credential-file",
-          "--overwrite-existing",
-          "--recheck-existing",
-          "--min-remote-size",
-          "--prefer-remote",
-          "--prefer-remote-if-meta-newer",
-          "--skip-if-local-done",
-          "--recheck-missing-meta",
-          "--frames-meta"
+          "--credential-file"
         ]
       }
     ],
@@ -982,43 +1111,7 @@
       "--user": "FTP username (alias for --credential user=...)",
       "--password": "FTP password (alias for --credential password=...)",
       "--credential": "Credential slot resolution (repeatable), e.g., 'user=@FTP_USER' or 'password=$FTP_PASS'",
-      "--credential-file": "Optional dotenv file for resolving @KEY credentials",
-      "--overwrite-existing": {
-        "help": "Replace local files unconditionally regardless of timestamps",
-        "type": "bool",
-        "default": false
-      },
-      "--recheck-existing": {
-        "help": "Compare file sizes when timestamps are unavailable",
-        "type": "bool",
-        "default": false
-      },
-      "--min-remote-size": "Replace if remote file larger (bytes or percentage like '10%%')",
-      "--prefer-remote": {
-        "help": "Always prioritize remote versions over local copies",
-        "type": "bool",
-        "default": false
-      },
-      "--prefer-remote-if-meta-newer": {
-        "help": "Use frames-meta.json timestamps for comparison",
-        "type": "bool",
-        "default": false
-      },
-      "--skip-if-local-done": {
-        "help": "Skip files that have a .done marker file",
-        "type": "bool",
-        "default": false
-      },
-      "--recheck-missing-meta": {
-        "help": "Re-download files lacking companion metadata in frames-meta.json",
-        "type": "bool",
-        "default": false
-      },
-      "--frames-meta": {
-        "help": "Path to frames-meta.json for metadata-aware sync operations",
-        "path_arg": true,
-        "type": "path"
-      }
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials"
     },
     "positionals": [
       {
@@ -1132,7 +1225,28 @@
       }
     ],
     "domain": "import",
-    "args_schema": null,
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "auth",
+        "credential",
+        "credential_file",
+        "credentials",
+        "date_format",
+        "header",
+        "headers",
+        "inputs",
+        "list_mode",
+        "manifest",
+        "output",
+        "output_dir",
+        "pattern",
+        "since",
+        "since_period",
+        "until",
+        "url"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.ingest",

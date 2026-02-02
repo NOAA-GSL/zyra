@@ -1443,7 +1443,31 @@
     },
     "positionals": [],
     "domain": "visualize",
-    "args_schema": null,
+    "args_schema": {
+      "required": [
+        "output_dir"
+      ],
+      "optional": [
+        "basemap",
+        "cmap",
+        "dpi",
+        "extent",
+        "fps",
+        "height",
+        "input",
+        "inputs",
+        "levels",
+        "mode",
+        "to_video",
+        "u",
+        "uvar",
+        "v",
+        "vmax",
+        "vmin",
+        "vvar",
+        "width"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.visualization.cli_animate",
@@ -1514,7 +1538,16 @@
     },
     "positionals": [],
     "domain": "visualize",
-    "args_schema": null,
+    "args_schema": {
+      "required": [
+        "frames",
+        "output"
+      ],
+      "optional": [
+        "basemap",
+        "fps"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.visualization.cli_compose_video",
@@ -1709,7 +1742,18 @@
     },
     "positionals": [],
     "domain": "visualize",
-    "args_schema": null,
+    "args_schema": {
+      "required": [
+        "output"
+      ],
+      "optional": [
+        "filled",
+        "input",
+        "inputs",
+        "levels",
+        "output_dir"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.visualization.cli_contour",
@@ -1892,7 +1936,32 @@
     },
     "positionals": [],
     "domain": "visualize",
-    "args_schema": null,
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "basemap",
+        "cmap",
+        "colorbar",
+        "crs",
+        "dpi",
+        "extent",
+        "height",
+        "input",
+        "inputs",
+        "label",
+        "map_type",
+        "output",
+        "output_dir",
+        "reproject",
+        "tile_source",
+        "tile_zoom",
+        "timestamp",
+        "units",
+        "var",
+        "width",
+        "xarray_engine"
+      ]
+    },
     "example_args": {
       "input": "samples/demo.npy",
       "output": "/tmp/heatmap.png"
@@ -2072,7 +2141,51 @@
     },
     "positionals": [],
     "domain": "visualize",
-    "args_schema": null,
+    "args_schema": {
+      "required": [
+        "input",
+        "output"
+      ],
+      "optional": [
+        "attribution",
+        "cmap",
+        "color",
+        "colorbar",
+        "crs",
+        "density",
+        "engine",
+        "extent",
+        "features",
+        "height",
+        "label",
+        "layer_control",
+        "mode",
+        "no_borders",
+        "no_coastline",
+        "no_gridlines",
+        "period",
+        "reproject",
+        "scale",
+        "streamlines",
+        "tiles",
+        "time_column",
+        "timestamp",
+        "timestamp_loc",
+        "transition_ms",
+        "u",
+        "units",
+        "uvar",
+        "v",
+        "var",
+        "vvar",
+        "width",
+        "wms_format",
+        "wms_layers",
+        "wms_transparent",
+        "wms_url",
+        "zoom"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.visualization.cli_interactive",
@@ -2173,7 +2286,24 @@
     },
     "positionals": [],
     "domain": "visualize",
-    "args_schema": null,
+    "args_schema": {
+      "required": [
+        "input",
+        "output"
+      ],
+      "optional": [
+        "dpi",
+        "height",
+        "style",
+        "title",
+        "var",
+        "width",
+        "x",
+        "xlabel",
+        "y",
+        "ylabel"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.visualization.cli_timeseries",
@@ -2352,7 +2482,34 @@
     },
     "positionals": [],
     "domain": "visualize",
-    "args_schema": null,
+    "args_schema": {
+      "required": [],
+      "optional": [
+        "basemap",
+        "color",
+        "crs",
+        "density",
+        "dpi",
+        "extent",
+        "height",
+        "input",
+        "inputs",
+        "map_type",
+        "output",
+        "output_dir",
+        "reproject",
+        "scale",
+        "streamlines",
+        "tile_source",
+        "tile_zoom",
+        "u",
+        "uvar",
+        "v",
+        "vvar",
+        "width",
+        "xarray_engine"
+      ]
+    },
     "example_args": null,
     "impl": {
       "module": "zyra.visualization.cli_vector",
