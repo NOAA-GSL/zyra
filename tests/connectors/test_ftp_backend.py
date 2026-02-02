@@ -145,7 +145,7 @@ class TestParseMinSize:
         assert ftp_backend._parse_min_size("500", 1000) == 500
 
     def test_parse_min_size_percentage(self):
-        # 10% larger than 1000 = 1000 * 1.10 = 1100
+        # 10% increase from 1000 = 1000 * 1.10 = 1100
         assert ftp_backend._parse_min_size("10%", 1000) == 1100
 
     def test_parse_min_size_percentage_zero(self):

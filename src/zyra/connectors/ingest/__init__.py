@@ -1077,7 +1077,7 @@ def register_cli(acq_subparsers: Any) -> None:
     p_ftp.add_argument(
         "--min-remote-size",
         dest="min_remote_size",
-        help="Replace if remote file larger (bytes or percentage like '10%%')",
+        help="Replace if remote file is larger (bytes or percentage like '10%%')",
     )
     p_ftp.add_argument(
         "--prefer-remote",
