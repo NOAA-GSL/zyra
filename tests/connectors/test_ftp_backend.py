@@ -221,7 +221,9 @@ class TestShouldDownload:
         """Without .done marker, file may be downloaded."""
         local_path = tmp_path / "not_processed.png"
         local_path.write_bytes(b"content")
-        options = ftp_backend.SyncOptions(skip_if_local_done=True, overwrite_existing=True)
+        options = ftp_backend.SyncOptions(
+            skip_if_local_done=True, overwrite_existing=True
+        )
         result, reason = ftp_backend.should_download(
             "not_processed.png", local_path, 100, None, options
         )
@@ -233,7 +235,11 @@ class TestShouldDownload:
         local_path.write_bytes(b"short")  # 5 bytes
         options = ftp_backend.SyncOptions(recheck_existing=True)
         result, reason = ftp_backend.should_download(
-            "file.png", local_path, 100, None, options  # Remote is 100 bytes
+            "file.png",
+            local_path,
+            100,
+            None,
+            options,  # Remote is 100 bytes
         )
         assert result is True
         assert "size mismatch" in reason
@@ -244,7 +250,11 @@ class TestShouldDownload:
         local_path.write_bytes(b"12345")  # 5 bytes
         options = ftp_backend.SyncOptions(recheck_existing=True)
         result, reason = ftp_backend.should_download(
-            "file.png", local_path, 5, None, options  # Same size
+            "file.png",
+            local_path,
+            5,
+            None,
+            options,  # Same size
         )
         assert result is False
         assert "up-to-date" in reason
@@ -255,7 +265,11 @@ class TestShouldDownload:
         local_path.write_bytes(b"x" * 100)  # 100 bytes
         options = ftp_backend.SyncOptions(min_remote_size="10%")  # threshold = 110
         result, reason = ftp_backend.should_download(
-            "file.png", local_path, 120, None, options  # Remote 120 >= 110
+            "file.png",
+            local_path,
+            120,
+            None,
+            options,  # Remote 120 >= 110
         )
         assert result is True
         assert "threshold" in reason
@@ -266,7 +280,11 @@ class TestShouldDownload:
         local_path.write_bytes(b"x" * 100)  # 100 bytes
         options = ftp_backend.SyncOptions(min_remote_size="10%")  # threshold = 110
         result, reason = ftp_backend.should_download(
-            "file.png", local_path, 105, None, options  # Remote 105 < 110
+            "file.png",
+            local_path,
+            105,
+            None,
+            options,  # Remote 105 < 110
         )
         assert result is False
         assert "up-to-date" in reason
@@ -281,6 +299,7 @@ class TestShouldDownload:
         # Set local mtime to past
         old_time = time.time() - 86400  # 1 day ago
         import os
+
         os.utime(local_path, (old_time, old_time))
 
         options = ftp_backend.SyncOptions()
@@ -310,13 +329,14 @@ class TestShouldDownload:
     def test_should_download_prefer_remote_if_meta_newer(self, tmp_path):
         """--prefer-remote-if-meta-newer uses frames-meta.json timestamps."""
         import time
-        from datetime import datetime, timedelta
+        from datetime import datetime
 
         local_path = tmp_path / "frame_001.png"
         local_path.write_bytes(b"content")
         # Set local mtime to past
         old_time = time.time() - 86400
         import os
+
         os.utime(local_path, (old_time, old_time))
 
         options = ftp_backend.SyncOptions(prefer_remote_if_meta_newer=True)
@@ -456,9 +476,7 @@ class TestSyncDirectoryWithOptions:
 
         sync_opts = ftp_backend.SyncOptions(overwrite_existing=True)
         with patch("zyra.connectors.backends.ftp.FTP", _FTPSync):
-            ftp_backend.sync_directory(
-                "ftp://host/dir", str(d), sync_options=sync_opts
-            )
+            ftp_backend.sync_directory("ftp://host/dir", str(d), sync_options=sync_opts)
             # File should be replaced with new content
             assert existing.read_bytes() == b"new content"
 
@@ -505,9 +523,7 @@ class TestSyncDirectoryWithOptions:
 
         sync_opts = ftp_backend.SyncOptions(skip_if_local_done=True)
         with patch("zyra.connectors.backends.ftp.FTP", _FTPSkip):
-            ftp_backend.sync_directory(
-                "ftp://host/dir", str(d), sync_options=sync_opts
-            )
+            ftp_backend.sync_directory("ftp://host/dir", str(d), sync_options=sync_opts)
             # File should NOT be downloaded
             assert len(download_called) == 0
             assert existing.read_bytes() == b"original"
