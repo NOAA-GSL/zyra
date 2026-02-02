@@ -90,28 +90,7 @@
       }
     ],
     "domain": "acquire",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "auth",
-        "credential",
-        "credential_file",
-        "credentials",
-        "date_format",
-        "header",
-        "headers",
-        "inputs",
-        "list_mode",
-        "manifest",
-        "output",
-        "output_dir",
-        "pattern",
-        "since",
-        "since_period",
-        "until",
-        "url"
-      ]
-    },
+    "args_schema": null,
     "example_args": {
       "url": "https://example.com/file.bin",
       "output": "/tmp/file.bin"
@@ -214,25 +193,7 @@
     },
     "positionals": [],
     "domain": "acquire",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "bucket",
-        "date_format",
-        "inputs",
-        "key",
-        "list_mode",
-        "manifest",
-        "output",
-        "output_dir",
-        "pattern",
-        "since",
-        "since_period",
-        "unsigned",
-        "until",
-        "url"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.ingest",
@@ -270,7 +231,15 @@
           "--user",
           "--password",
           "--credential",
-          "--credential-file"
+          "--credential-file",
+          "--overwrite-existing",
+          "--recheck-existing",
+          "--min-remote-size",
+          "--prefer-remote",
+          "--prefer-remote-if-meta-newer",
+          "--skip-if-local-done",
+          "--recheck-missing-meta",
+          "--frames-meta"
         ]
       }
     ],
@@ -326,7 +295,43 @@
       "--user": "FTP username (alias for --credential user=...)",
       "--password": "FTP password (alias for --credential password=...)",
       "--credential": "Credential slot resolution (repeatable), e.g., 'user=@FTP_USER' or 'password=$FTP_PASS'",
-      "--credential-file": "Optional dotenv file for resolving @KEY credentials"
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials",
+      "--overwrite-existing": {
+        "help": "Replace local files unconditionally regardless of timestamps",
+        "type": "bool",
+        "default": false
+      },
+      "--recheck-existing": {
+        "help": "Compare file sizes when timestamps are unavailable",
+        "type": "bool",
+        "default": false
+      },
+      "--min-remote-size": "Replace if remote file larger (bytes or percentage like '10%%')",
+      "--prefer-remote": {
+        "help": "Always prioritize remote versions over local copies",
+        "type": "bool",
+        "default": false
+      },
+      "--prefer-remote-if-meta-newer": {
+        "help": "Use frames-meta.json timestamps for comparison",
+        "type": "bool",
+        "default": false
+      },
+      "--skip-if-local-done": {
+        "help": "Skip files that have a .done marker file",
+        "type": "bool",
+        "default": false
+      },
+      "--recheck-missing-meta": {
+        "help": "Re-download files lacking companion metadata in frames-meta.json",
+        "type": "bool",
+        "default": false
+      },
+      "--frames-meta": {
+        "help": "Path to frames-meta.json for metadata-aware sync operations",
+        "path_arg": true,
+        "type": "path"
+      }
     },
     "positionals": [
       {
@@ -337,27 +342,7 @@
       }
     ],
     "domain": "acquire",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "credential",
-        "credential_file",
-        "credentials",
-        "date_format",
-        "inputs",
-        "list_mode",
-        "manifest",
-        "output",
-        "output_dir",
-        "password",
-        "path",
-        "pattern",
-        "since",
-        "since_period",
-        "until",
-        "user"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.ingest",
@@ -658,44 +643,7 @@
     },
     "positionals": [],
     "domain": "acquire",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "accept",
-        "audio_source",
-        "auth",
-        "content_type",
-        "cursor_param",
-        "data",
-        "detect_filename",
-        "duration",
-        "empty_json_path",
-        "end",
-        "expect_content_type",
-        "head_first",
-        "headers",
-        "link_rel",
-        "method",
-        "newline_json",
-        "next_cursor_json_path",
-        "openapi_strict",
-        "openapi_validate",
-        "output",
-        "page_param",
-        "page_size",
-        "page_size_param",
-        "page_start",
-        "paginate",
-        "params",
-        "preset",
-        "progress",
-        "resume",
-        "since",
-        "start",
-        "stream",
-        "url"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.ingest",
@@ -795,28 +743,7 @@
       }
     ],
     "domain": "import",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "auth",
-        "credential",
-        "credential_file",
-        "credentials",
-        "date_format",
-        "header",
-        "headers",
-        "inputs",
-        "list_mode",
-        "manifest",
-        "output",
-        "output_dir",
-        "pattern",
-        "since",
-        "since_period",
-        "until",
-        "url"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.ingest",
@@ -954,7 +881,15 @@
           "--user",
           "--password",
           "--credential",
-          "--credential-file"
+          "--credential-file",
+          "--overwrite-existing",
+          "--recheck-existing",
+          "--min-remote-size",
+          "--prefer-remote",
+          "--prefer-remote-if-meta-newer",
+          "--skip-if-local-done",
+          "--recheck-missing-meta",
+          "--frames-meta"
         ]
       }
     ],
@@ -1010,7 +945,43 @@
       "--user": "FTP username (alias for --credential user=...)",
       "--password": "FTP password (alias for --credential password=...)",
       "--credential": "Credential slot resolution (repeatable), e.g., 'user=@FTP_USER' or 'password=$FTP_PASS'",
-      "--credential-file": "Optional dotenv file for resolving @KEY credentials"
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials",
+      "--overwrite-existing": {
+        "help": "Replace local files unconditionally regardless of timestamps",
+        "type": "bool",
+        "default": false
+      },
+      "--recheck-existing": {
+        "help": "Compare file sizes when timestamps are unavailable",
+        "type": "bool",
+        "default": false
+      },
+      "--min-remote-size": "Replace if remote file larger (bytes or percentage like '10%%')",
+      "--prefer-remote": {
+        "help": "Always prioritize remote versions over local copies",
+        "type": "bool",
+        "default": false
+      },
+      "--prefer-remote-if-meta-newer": {
+        "help": "Use frames-meta.json timestamps for comparison",
+        "type": "bool",
+        "default": false
+      },
+      "--skip-if-local-done": {
+        "help": "Skip files that have a .done marker file",
+        "type": "bool",
+        "default": false
+      },
+      "--recheck-missing-meta": {
+        "help": "Re-download files lacking companion metadata in frames-meta.json",
+        "type": "bool",
+        "default": false
+      },
+      "--frames-meta": {
+        "help": "Path to frames-meta.json for metadata-aware sync operations",
+        "path_arg": true,
+        "type": "path"
+      }
     },
     "positionals": [
       {
@@ -1322,44 +1293,7 @@
     },
     "positionals": [],
     "domain": "import",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "accept",
-        "audio_source",
-        "auth",
-        "content_type",
-        "cursor_param",
-        "data",
-        "detect_filename",
-        "duration",
-        "empty_json_path",
-        "end",
-        "expect_content_type",
-        "head_first",
-        "headers",
-        "link_rel",
-        "method",
-        "newline_json",
-        "next_cursor_json_path",
-        "openapi_strict",
-        "openapi_validate",
-        "output",
-        "page_param",
-        "page_size",
-        "page_size_param",
-        "page_start",
-        "paginate",
-        "params",
-        "preset",
-        "progress",
-        "resume",
-        "since",
-        "start",
-        "stream",
-        "url"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.ingest",
@@ -1435,17 +1369,7 @@
       }
     ],
     "domain": "process",
-    "args_schema": {
-      "required": [
-        "file_or_url"
-      ],
-      "optional": [
-        "backend",
-        "pattern",
-        "raw",
-        "unsigned"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.processing",
@@ -1532,17 +1456,7 @@
       }
     ],
     "domain": "process",
-    "args_schema": {
-      "required": [
-        "file_or_url",
-        "pattern"
-      ],
-      "optional": [
-        "backend",
-        "format",
-        "stdout"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.processing",
@@ -1649,22 +1563,7 @@
       }
     ],
     "domain": "process",
-    "args_schema": {
-      "required": [
-        "format"
-      ],
-      "optional": [
-        "backend",
-        "file_or_url",
-        "inputs",
-        "output",
-        "output_dir",
-        "pattern",
-        "stdout",
-        "unsigned",
-        "var"
-      ]
-    },
+    "args_schema": null,
     "example_args": {
       "file_or_url": "samples/demo.grib2",
       "format": "netcdf",
@@ -1846,21 +1745,7 @@
       }
     ],
     "domain": "process",
-    "args_schema": {
-      "required": [
-        "file_or_url"
-      ],
-      "optional": [
-        "derived",
-        "explode",
-        "fields",
-        "flatten",
-        "format",
-        "output",
-        "preset",
-        "records_path"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.processing",
@@ -1996,30 +1881,7 @@
       }
     ],
     "domain": "process",
-    "args_schema": {
-      "required": [
-        "input"
-      ],
-      "optional": [
-        "audio_bitrate",
-        "audio_codec",
-        "bitrate",
-        "codec",
-        "container",
-        "crf",
-        "extra_args",
-        "fps",
-        "gop",
-        "metadata_out",
-        "no_overwrite",
-        "output",
-        "pix_fmt",
-        "preset",
-        "scale",
-        "sos_legacy",
-        "write_metadata"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.processing",
@@ -2106,18 +1968,7 @@
       }
     ],
     "domain": "process",
-    "args_schema": {
-      "required": [
-        "input",
-        "output"
-      ],
-      "optional": [
-        "mono",
-        "sample_rate",
-        "stereo",
-        "to"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.processing",
@@ -2175,14 +2026,7 @@
       }
     ],
     "domain": "process",
-    "args_schema": {
-      "required": [
-        "input"
-      ],
-      "optional": [
-        "output"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.processing",
@@ -2763,32 +2607,7 @@
     },
     "positionals": [],
     "domain": "visualize",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "basemap",
-        "cmap",
-        "colorbar",
-        "crs",
-        "dpi",
-        "extent",
-        "height",
-        "input",
-        "inputs",
-        "label",
-        "map_type",
-        "output",
-        "output_dir",
-        "reproject",
-        "tile_source",
-        "tile_zoom",
-        "timestamp",
-        "units",
-        "var",
-        "width",
-        "xarray_engine"
-      ]
-    },
+    "args_schema": null,
     "example_args": {
       "input": "samples/demo.npy",
       "output": "/tmp/heatmap.png"
@@ -2986,18 +2805,7 @@
     },
     "positionals": [],
     "domain": "visualize",
-    "args_schema": {
-      "required": [
-        "output"
-      ],
-      "optional": [
-        "filled",
-        "input",
-        "inputs",
-        "levels",
-        "output_dir"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.visualization.cli_contour",
@@ -3098,24 +2906,7 @@
     },
     "positionals": [],
     "domain": "visualize",
-    "args_schema": {
-      "required": [
-        "input",
-        "output"
-      ],
-      "optional": [
-        "dpi",
-        "height",
-        "style",
-        "title",
-        "var",
-        "width",
-        "x",
-        "xlabel",
-        "y",
-        "ylabel"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.visualization.cli_timeseries",
@@ -3294,34 +3085,7 @@
     },
     "positionals": [],
     "domain": "visualize",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "basemap",
-        "color",
-        "crs",
-        "density",
-        "dpi",
-        "extent",
-        "height",
-        "input",
-        "inputs",
-        "map_type",
-        "output",
-        "output_dir",
-        "reproject",
-        "scale",
-        "streamlines",
-        "tile_source",
-        "tile_zoom",
-        "u",
-        "uvar",
-        "v",
-        "vvar",
-        "width",
-        "xarray_engine"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.visualization.cli_vector",
@@ -3596,31 +3360,7 @@
     },
     "positionals": [],
     "domain": "visualize",
-    "args_schema": {
-      "required": [
-        "output_dir"
-      ],
-      "optional": [
-        "basemap",
-        "cmap",
-        "dpi",
-        "extent",
-        "fps",
-        "height",
-        "input",
-        "inputs",
-        "levels",
-        "mode",
-        "to_video",
-        "u",
-        "uvar",
-        "v",
-        "vmax",
-        "vmin",
-        "vvar",
-        "width"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.visualization.cli_animate",
@@ -3691,16 +3431,7 @@
     },
     "positionals": [],
     "domain": "visualize",
-    "args_schema": {
-      "required": [
-        "frames",
-        "output"
-      ],
-      "optional": [
-        "basemap",
-        "fps"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.visualization.cli_compose_video",
@@ -3877,51 +3608,7 @@
     },
     "positionals": [],
     "domain": "visualize",
-    "args_schema": {
-      "required": [
-        "input",
-        "output"
-      ],
-      "optional": [
-        "attribution",
-        "cmap",
-        "color",
-        "colorbar",
-        "crs",
-        "density",
-        "engine",
-        "extent",
-        "features",
-        "height",
-        "label",
-        "layer_control",
-        "mode",
-        "no_borders",
-        "no_coastline",
-        "no_gridlines",
-        "period",
-        "reproject",
-        "scale",
-        "streamlines",
-        "tiles",
-        "time_column",
-        "timestamp",
-        "timestamp_loc",
-        "transition_ms",
-        "u",
-        "units",
-        "uvar",
-        "v",
-        "var",
-        "vvar",
-        "width",
-        "wms_format",
-        "wms_layers",
-        "wms_transparent",
-        "wms_url",
-        "zoom"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.visualization.cli_interactive",
@@ -5163,13 +4850,7 @@
       }
     ],
     "domain": "disseminate",
-    "args_schema": {
-      "required": [
-        "input",
-        "path"
-      ],
-      "optional": []
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.egress",
@@ -5231,16 +4912,7 @@
     },
     "positionals": [],
     "domain": "disseminate",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "bucket",
-        "content_type",
-        "input",
-        "key",
-        "url"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.egress",
@@ -5306,19 +4978,7 @@
       }
     ],
     "domain": "disseminate",
-    "args_schema": {
-      "required": [
-        "input",
-        "path"
-      ],
-      "optional": [
-        "credential",
-        "credential_file",
-        "credentials",
-        "password",
-        "user"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.egress",
@@ -5386,21 +5046,7 @@
       }
     ],
     "domain": "disseminate",
-    "args_schema": {
-      "required": [
-        "input",
-        "url"
-      ],
-      "optional": [
-        "auth",
-        "content_type",
-        "credential",
-        "credential_file",
-        "credentials",
-        "header",
-        "headers"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.egress",
@@ -5848,13 +5494,7 @@
       }
     ],
     "domain": "decimate",
-    "args_schema": {
-      "required": [
-        "input",
-        "path"
-      ],
-      "optional": []
-    },
+    "args_schema": null,
     "example_args": {
       "input": "-",
       "path": "/tmp/out.bin"
@@ -5919,16 +5559,7 @@
     },
     "positionals": [],
     "domain": "decimate",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "bucket",
-        "content_type",
-        "input",
-        "key",
-        "url"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.egress",
@@ -5994,19 +5625,7 @@
       }
     ],
     "domain": "decimate",
-    "args_schema": {
-      "required": [
-        "input",
-        "path"
-      ],
-      "optional": [
-        "credential",
-        "credential_file",
-        "credentials",
-        "password",
-        "user"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.egress",
@@ -6074,21 +5693,7 @@
       }
     ],
     "domain": "decimate",
-    "args_schema": {
-      "required": [
-        "input",
-        "url"
-      ],
-      "optional": [
-        "auth",
-        "content_type",
-        "credential",
-        "credential_file",
-        "credentials",
-        "header",
-        "headers"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.connectors.egress",
@@ -6899,13 +6504,7 @@
     },
     "positionals": [],
     "domain": "simulate",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "seed",
-        "trials"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.simulate",
@@ -6940,12 +6539,7 @@
     },
     "positionals": [],
     "domain": "decide",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "strategy"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.decide",
@@ -6988,169 +6582,6 @@
     },
     "returns": "object"
   },
-  "narrate describe": {
-    "description": "zyra narrate describe",
-    "doc": "",
-    "epilog": "",
-    "groups": [
-      {
-        "title": "options",
-        "options": [
-          "--help",
-          "--topic"
-        ]
-      }
-    ],
-    "options": {
-      "--help": "show this help message and exit",
-      "--topic": "Topic to narrate (placeholder)"
-    },
-    "positionals": [],
-    "domain": "narrate",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "topic"
-      ]
-    },
-    "example_args": null,
-    "impl": {
-      "module": "zyra.narrate",
-      "callable": "_cmd_describe"
-    },
-    "returns": "text",
-    "extras": [
-      "llm"
-    ]
-  },
-  "narrate swarm": {
-    "description": "Run a lightweight narration swarm with presets and YAML merging. When audiences are provided, an internal audience_adapter agent emits <aud>_version outputs. Provenance is recorded per agent with started/model/prompt_ref/duration_ms and included in the Narrative Pack.",
-    "doc": "Run a lightweight narration swarm with presets and YAML merging. When audiences are provided, an internal audience_adapter agent emits <aud>_version outputs. Provenance is recorded per agent with started/model/prompt_ref/duration_ms and included in the Narrative Pack.",
-    "epilog": "Provenance fields: agent, model, started (RFC3339), prompt_ref, duration_ms. Use '-P help' to list presets. Unknown preset exits 2 with suggestions.",
-    "groups": [
-      {
-        "title": "options",
-        "options": [
-          "--help",
-          "--preset",
-          "--list-presets",
-          "--swarm-config",
-          "--agents",
-          "--audiences",
-          "--style",
-          "--provider",
-          "--model",
-          "--base-url",
-          "--max-workers",
-          "--max-rounds",
-          "--pack",
-          "--rubric",
-          "--verbose",
-          "--quiet",
-          "--input",
-          "--critic-structured",
-          "--attach-images",
-          "--strict-grounding",
-          "--guardrails",
-          "--strict-guardrails",
-          "--memory"
-        ]
-      }
-    ],
-    "options": {
-      "--help": "show this help message and exit",
-      "--preset": "Preset template name (use '-P help' to list presets)",
-      "--list-presets": {
-        "help": "List available presets and exit",
-        "type": "bool",
-        "default": false
-      },
-      "--swarm-config": "YAML config with agents/graph/settings",
-      "--agents": "Comma-separated agent IDs (e.g., summary,critic)",
-      "--audiences": "Comma-separated audiences (e.g., kids,policy)",
-      "--style": "Target writing style (e.g., journalistic)",
-      "--provider": "LLM provider (mock|openai|ollama|gemini|vertex). Gemini accepts GOOGLE_API_KEY or Vertex creds.",
-      "--model": "Model name (provider-specific)",
-      "--base-url": "Provider base URL override",
-      "--max-workers": {
-        "help": "Max concurrent agents (optional)",
-        "type": "int"
-      },
-      "--max-rounds": {
-        "help": "Review rounds (0 disables critic/editor loop)",
-        "type": "int"
-      },
-      "--pack": "Output file for Narrative Pack (yaml or json); '-' for stdout",
-      "--rubric": "Path to critic rubric YAML (defaults to packaged critic rubric)",
-      "--verbose": {
-        "help": "Verbose logging (shows per-agent dialog)",
-        "type": "bool",
-        "default": false
-      },
-      "--quiet": {
-        "help": "Quiet logging (errors only)",
-        "type": "bool",
-        "default": false
-      },
-      "--input": {
-        "help": "Optional input file path or '-' for stdin (JSON/YAML autodetect; falls back to text)",
-        "path_arg": true,
-        "type": "path"
-      },
-      "--critic-structured": {
-        "help": "Emit structured critic output (critic_notes as {notes: ...})",
-        "type": "bool",
-        "default": false
-      },
-      "--attach-images": {
-        "help": "Attach images from input_data.images to LLM calls (multimodal models only)",
-        "type": "bool",
-        "default": false
-      },
-      "--strict-grounding": {
-        "help": "Fail the run if critic flags ungrounded content",
-        "type": "bool",
-        "default": false
-      },
-      "--guardrails": "Guardrails (.rail) schema applied to stage outputs (optional)",
-      "--strict-guardrails": {
-        "help": "Fail the run if guardrails validation fails",
-        "type": "bool",
-        "default": false
-      },
-      "--memory": "Provenance store path (SQLite). Use '-' for in-memory/no file."
-    },
-    "positionals": [],
-    "domain": "narrate",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "agents",
-        "audiences",
-        "base_url",
-        "guardrails",
-        "max_rounds",
-        "max_workers",
-        "memory",
-        "model",
-        "pack",
-        "preset",
-        "provider",
-        "strict_guardrails",
-        "style",
-        "swarm_config"
-      ]
-    },
-    "example_args": null,
-    "impl": {
-      "module": "zyra.narrate",
-      "callable": "notebook_swarm"
-    },
-    "returns": "text",
-    "extras": [
-      "llm"
-    ]
-  },
   "verify evaluate": {
     "description": "zyra verify evaluate",
     "doc": "",
@@ -7180,12 +6611,7 @@
     },
     "positionals": [],
     "domain": "verify",
-    "args_schema": {
-      "required": [],
-      "optional": [
-        "metric"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.verify",

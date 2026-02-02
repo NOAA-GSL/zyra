@@ -68,21 +68,7 @@
       }
     ],
     "domain": "process",
-    "args_schema": {
-      "required": [
-        "file_or_url"
-      ],
-      "optional": [
-        "derived",
-        "explode",
-        "fields",
-        "flatten",
-        "format",
-        "output",
-        "preset",
-        "records_path"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.processing",
@@ -140,14 +126,7 @@
       }
     ],
     "domain": "process",
-    "args_schema": {
-      "required": [
-        "input"
-      ],
-      "optional": [
-        "output"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.processing",
@@ -233,18 +212,7 @@
       }
     ],
     "domain": "process",
-    "args_schema": {
-      "required": [
-        "input",
-        "output"
-      ],
-      "optional": [
-        "mono",
-        "sample_rate",
-        "stereo",
-        "to"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.processing",
@@ -351,22 +319,7 @@
       }
     ],
     "domain": "process",
-    "args_schema": {
-      "required": [
-        "format"
-      ],
-      "optional": [
-        "backend",
-        "file_or_url",
-        "inputs",
-        "output",
-        "output_dir",
-        "pattern",
-        "stdout",
-        "unsigned",
-        "var"
-      ]
-    },
+    "args_schema": null,
     "example_args": {
       "file_or_url": "samples/demo.grib2",
       "format": "netcdf",
@@ -447,17 +400,7 @@
       }
     ],
     "domain": "process",
-    "args_schema": {
-      "required": [
-        "file_or_url"
-      ],
-      "optional": [
-        "backend",
-        "pattern",
-        "raw",
-        "unsigned"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.processing",
@@ -726,17 +669,7 @@
       }
     ],
     "domain": "process",
-    "args_schema": {
-      "required": [
-        "file_or_url",
-        "pattern"
-      ],
-      "optional": [
-        "backend",
-        "format",
-        "stdout"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.processing",
@@ -1191,30 +1124,7 @@
       }
     ],
     "domain": "process",
-    "args_schema": {
-      "required": [
-        "input"
-      ],
-      "optional": [
-        "audio_bitrate",
-        "audio_codec",
-        "bitrate",
-        "codec",
-        "container",
-        "crf",
-        "extra_args",
-        "fps",
-        "gop",
-        "metadata_out",
-        "no_overwrite",
-        "output",
-        "pix_fmt",
-        "preset",
-        "scale",
-        "sos_legacy",
-        "write_metadata"
-      ]
-    },
+    "args_schema": null,
     "example_args": null,
     "impl": {
       "module": "zyra.processing",
