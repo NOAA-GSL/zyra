@@ -422,7 +422,8 @@ def sync_directory(
         try:
             conn = ensure_ftp_connection()
             return conn.size(filename)
-        except all_errors:
+        except all_errors as exc:
+            logging.debug("FTP SIZE failed for %s: %s", filename, exc)
             return None
 
     def get_mtime_via_conn(filename: str) -> datetime | None:
@@ -433,8 +434,9 @@ def sync_directory(
             if resp.startswith("213 "):
                 ts_str = resp[4:].strip()
                 return datetime.strptime(ts_str, "%Y%m%d%H%M%S")
-        except all_errors:
-            pass
+        except all_errors as exc:
+            logging.debug("FTP MDTM failed for %s: %s", filename, exc)
+            return None
         return None
 
     try:
@@ -444,12 +446,13 @@ def sync_directory(
             dest = str(local_path)
 
             # Short-circuit: check local-only conditions first to avoid remote queries
-            # File missing or zero-byte -> always download
-            if not local_path.exists() or local_path.stat().st_size == 0:
-                do_download, reason = True, "missing or zero-byte"
-            # skip_if_local_done -> skip if .done marker exists (local-only check)
-            elif options.skip_if_local_done and _has_done_marker(local_path):
+            # NOTE: skip_if_local_done has highest precedence, matching should_download().
+            # If a .done marker exists, we always skip, even if the base file is missing.
+            if options.skip_if_local_done and _has_done_marker(local_path):
                 do_download, reason = False, ".done marker present"
+            # File missing or zero-byte -> download
+            elif not local_path.exists() or local_path.stat().st_size == 0:
+                do_download, reason = True, "missing or zero-byte"
             else:
                 # Need full decision logic with potentially remote metadata
                 remote_size: int | None = None
