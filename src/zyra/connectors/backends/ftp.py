@@ -398,54 +398,88 @@ def sync_directory(
         frames_meta = _load_frames_meta(options.frames_meta_path)
 
     # Determine if we need remote metadata for decision-making
-    # NOTE: Each get_size/get_remote_mtime call opens a separate FTP connection.
-    # For large directories, consider connection pooling as a future optimization.
     needs_remote_size = options.recheck_existing or options.min_remote_size is not None
     needs_remote_mtime = not (options.overwrite_existing or options.prefer_remote)
 
-    for name in names:
-        filename = Path(name).name
-        local_path = local_dir_path / filename
-        dest = str(local_path)
-        remote_url = f"ftp://{host}/{remote_dir}/{filename}"
+    # Use a single FTP connection for all metadata queries and downloads
+    # to avoid connection overhead per file
+    ftp: FTP | None = None
 
-        # Short-circuit: check local-only conditions first to avoid remote queries
-        # File missing or zero-byte -> always download
-        if not local_path.exists() or local_path.stat().st_size == 0:
-            do_download, reason = True, "missing or zero-byte"
-        # skip_if_local_done -> skip if .done marker exists (local-only check)
-        elif options.skip_if_local_done and _has_done_marker(local_path):
-            do_download, reason = False, ".done marker present"
-        else:
-            # Need full decision logic with potentially remote metadata
-            remote_size: int | None = None
-            remote_mtime: datetime | None = None
-
-            if needs_remote_size:
-                remote_size = get_size(remote_url, username=user, password=pwd)
-            if needs_remote_mtime:
-                remote_mtime = get_remote_mtime(remote_url, username=user, password=pwd)
-
-            do_download, reason = should_download(
-                filename, local_path, remote_size, remote_mtime, options, frames_meta
-            )
-
-        if do_download:
-            logging.debug("Downloading %s: %s", filename, reason)
+    def ensure_ftp_connection() -> FTP:
+        """Ensure we have an active FTP connection, creating one if needed."""
+        nonlocal ftp
+        if ftp is None:
             ftp = FTP(timeout=30)
             ftp.connect(host)
             ftp.login(user=(user or "anonymous"), passwd=(pwd or "test@test.com"))
             ftp.set_pasv(True)
-            directory = remote_dir
-            if directory:
-                ftp.cwd(directory)
+            if remote_dir:
+                ftp.cwd(remote_dir)
+        return ftp
 
-            with Path(dest).open("wb") as lf:
-                ftp.retrbinary(f"RETR {filename}", lf.write)
+    def get_size_via_conn(filename: str) -> int | None:
+        """Get file size using the shared connection."""
+        try:
+            conn = ensure_ftp_connection()
+            return conn.size(filename)
+        except all_errors:
+            return None
+
+    def get_mtime_via_conn(filename: str) -> datetime | None:
+        """Get file mtime using the shared connection via MDTM."""
+        try:
+            conn = ensure_ftp_connection()
+            resp = conn.sendcmd(f"MDTM {filename}")
+            if resp.startswith("213 "):
+                ts_str = resp[4:].strip()
+                return datetime.strptime(ts_str, "%Y%m%d%H%M%S")
+        except all_errors:
+            pass
+        return None
+
+    try:
+        for name in names:
+            filename = Path(name).name
+            local_path = local_dir_path / filename
+            dest = str(local_path)
+
+            # Short-circuit: check local-only conditions first to avoid remote queries
+            # File missing or zero-byte -> always download
+            if not local_path.exists() or local_path.stat().st_size == 0:
+                do_download, reason = True, "missing or zero-byte"
+            # skip_if_local_done -> skip if .done marker exists (local-only check)
+            elif options.skip_if_local_done and _has_done_marker(local_path):
+                do_download, reason = False, ".done marker present"
+            else:
+                # Need full decision logic with potentially remote metadata
+                remote_size: int | None = None
+                remote_mtime: datetime | None = None
+
+                if needs_remote_size:
+                    remote_size = get_size_via_conn(filename)
+                if needs_remote_mtime:
+                    remote_mtime = get_mtime_via_conn(filename)
+
+                do_download, reason = should_download(
+                    filename,
+                    local_path,
+                    remote_size,
+                    remote_mtime,
+                    options,
+                    frames_meta,
+                )
+
+            if do_download:
+                logging.debug("Downloading %s: %s", filename, reason)
+                conn = ensure_ftp_connection()
+                with Path(dest).open("wb") as lf:
+                    conn.retrbinary(f"RETR {filename}", lf.write)
+            else:
+                logging.debug("Skipping %s: %s", filename, reason)
+    finally:
+        if ftp is not None:
             with contextlib.suppress(Exception):
                 ftp.quit()
-        else:
-            logging.debug("Skipping %s: %s", filename, reason)
 
 
 def get_size(
