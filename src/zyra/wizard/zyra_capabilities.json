@@ -270,7 +270,15 @@
           "--user",
           "--password",
           "--credential",
-          "--credential-file"
+          "--credential-file",
+          "--overwrite-existing",
+          "--recheck-existing",
+          "--min-remote-size",
+          "--prefer-remote",
+          "--prefer-remote-if-meta-newer",
+          "--skip-if-local-done",
+          "--recheck-missing-meta",
+          "--frames-meta"
         ]
       }
     ],
@@ -326,7 +334,43 @@
       "--user": "FTP username (alias for --credential user=...)",
       "--password": "FTP password (alias for --credential password=...)",
       "--credential": "Credential slot resolution (repeatable), e.g., 'user=@FTP_USER' or 'password=$FTP_PASS'",
-      "--credential-file": "Optional dotenv file for resolving @KEY credentials"
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials",
+      "--overwrite-existing": {
+        "help": "Replace local files unconditionally regardless of timestamps",
+        "type": "bool",
+        "default": false
+      },
+      "--recheck-existing": {
+        "help": "Compare file sizes when timestamps are unavailable",
+        "type": "bool",
+        "default": false
+      },
+      "--min-remote-size": "Replace if remote file is larger (bytes or percentage like '10%%')",
+      "--prefer-remote": {
+        "help": "Always prioritize remote versions over local copies",
+        "type": "bool",
+        "default": false
+      },
+      "--prefer-remote-if-meta-newer": {
+        "help": "Use frames-meta.json timestamps for comparison",
+        "type": "bool",
+        "default": false
+      },
+      "--skip-if-local-done": {
+        "help": "Skip files that have a .done marker file",
+        "type": "bool",
+        "default": false
+      },
+      "--recheck-missing-meta": {
+        "help": "Re-download files lacking companion metadata in frames-meta.json",
+        "type": "bool",
+        "default": false
+      },
+      "--frames-meta": {
+        "help": "Path to frames-meta.json for metadata-aware sync operations",
+        "path_arg": true,
+        "type": "path"
+      }
     },
     "positionals": [
       {
@@ -344,16 +388,25 @@
         "credential_file",
         "credentials",
         "date_format",
+        "frames_meta",
         "inputs",
         "list_mode",
         "manifest",
+        "min_remote_size",
         "output",
         "output_dir",
+        "overwrite_existing",
         "password",
         "path",
         "pattern",
+        "prefer_remote",
+        "prefer_remote_if_meta_newer",
+        "recheck_existing",
+        "recheck_missing_meta",
         "since",
         "since_period",
+        "skip_if_local_done",
+        "sync_dir",
         "until",
         "user"
       ]
@@ -954,7 +1007,15 @@
           "--user",
           "--password",
           "--credential",
-          "--credential-file"
+          "--credential-file",
+          "--overwrite-existing",
+          "--recheck-existing",
+          "--min-remote-size",
+          "--prefer-remote",
+          "--prefer-remote-if-meta-newer",
+          "--skip-if-local-done",
+          "--recheck-missing-meta",
+          "--frames-meta"
         ]
       }
     ],
@@ -1010,7 +1071,43 @@
       "--user": "FTP username (alias for --credential user=...)",
       "--password": "FTP password (alias for --credential password=...)",
       "--credential": "Credential slot resolution (repeatable), e.g., 'user=@FTP_USER' or 'password=$FTP_PASS'",
-      "--credential-file": "Optional dotenv file for resolving @KEY credentials"
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials",
+      "--overwrite-existing": {
+        "help": "Replace local files unconditionally regardless of timestamps",
+        "type": "bool",
+        "default": false
+      },
+      "--recheck-existing": {
+        "help": "Compare file sizes when timestamps are unavailable",
+        "type": "bool",
+        "default": false
+      },
+      "--min-remote-size": "Replace if remote file is larger (bytes or percentage like '10%%')",
+      "--prefer-remote": {
+        "help": "Always prioritize remote versions over local copies",
+        "type": "bool",
+        "default": false
+      },
+      "--prefer-remote-if-meta-newer": {
+        "help": "Use frames-meta.json timestamps for comparison",
+        "type": "bool",
+        "default": false
+      },
+      "--skip-if-local-done": {
+        "help": "Skip files that have a .done marker file",
+        "type": "bool",
+        "default": false
+      },
+      "--recheck-missing-meta": {
+        "help": "Re-download files lacking companion metadata in frames-meta.json",
+        "type": "bool",
+        "default": false
+      },
+      "--frames-meta": {
+        "help": "Path to frames-meta.json for metadata-aware sync operations",
+        "path_arg": true,
+        "type": "path"
+      }
     },
     "positionals": [
       {
