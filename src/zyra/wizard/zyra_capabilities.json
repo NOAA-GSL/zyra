@@ -345,7 +345,7 @@
         "type": "bool",
         "default": false
       },
-      "--min-remote-size": "Replace if remote file is larger (bytes or percentage like '10%%')",
+      "--min-remote-size": "Threshold for replacement (absolute bytes or relative percentage)",
       "--prefer-remote": {
         "help": "Always prioritize remote versions over local copies",
         "type": "bool",
@@ -1082,7 +1082,7 @@
         "type": "bool",
         "default": false
       },
-      "--min-remote-size": "Replace if remote file is larger (bytes or percentage like '10%%')",
+      "--min-remote-size": "Threshold for replacement (absolute bytes or relative percentage)",
       "--prefer-remote": {
         "help": "Always prioritize remote versions over local copies",
         "type": "bool",
