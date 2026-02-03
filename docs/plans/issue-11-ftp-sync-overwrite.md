@@ -75,7 +75,7 @@ Uses FTP's `MDTM` command to get file modification time (fails gracefully when u
    - `_parse_min_size()` - Parse bytes or percentage size spec
    - `_load_frames_meta()` - Load frames-meta.json file
    - `_has_done_marker()` - Check for .done marker file
-   - `_has_companion_meta()` - Check if file has metadata entry
+   - `_is_missing_companion_meta()` - Check if file is missing from metadata
 4. Implement `should_download()` logic
 5. Update `sync_directory()` signature and loop
 6. Write unit tests for new functions
