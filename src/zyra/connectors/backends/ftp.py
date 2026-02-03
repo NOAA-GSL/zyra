@@ -386,9 +386,11 @@ def sync_directory(
                     fp.unlink()
     local_set = {p.name for p in local_dir_path.iterdir() if p.is_file()}
 
-    # Remove locals not on server
+    # Remove locals not on server (but preserve .done marker files)
     remote_set = set(Path(n).name for n in names)
     for fname in list(local_set - remote_set):
+        if fname.endswith(".done"):
+            continue  # Preserve marker files for skip_if_local_done
         with contextlib.suppress(Exception):
             (local_dir_path / fname).unlink()
 

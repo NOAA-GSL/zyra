@@ -529,6 +529,56 @@ class TestSyncDirectoryWithOptions:
             assert len(download_called) == 0
             assert existing.read_bytes() == b"original"
 
+    def test_sync_directory_preserves_done_markers_during_cleanup(self, tmp_path):
+        """sync_directory cleanup preserves .done marker files."""
+        d = tmp_path / "frames"
+        d.mkdir()
+        # Create a file that's NOT on the remote server (orphan)
+        orphan = d / "old_file.png"
+        orphan.write_bytes(b"orphan content")
+        # Create a .done marker for it
+        done_marker = d / "old_file.png.done"
+        done_marker.write_text("processed")
+
+        class _FTPCleanup:
+            def __init__(self, timeout=30):
+                pass
+
+            def connect(self, host):
+                return None
+
+            def login(self, user=None, passwd=None):
+                return None
+
+            def set_pasv(self, flag):
+                return None
+
+            def cwd(self, path):
+                return None
+
+            def nlst(self):
+                # Remote only has new_file.png, not old_file.png
+                return ["new_file.png"]
+
+            def size(self, filename):
+                return 100
+
+            def sendcmd(self, cmd):
+                return "213 20240101120000"
+
+            def retrbinary(self, cmd, cb):
+                cb(b"new content")
+
+            def quit(self):
+                return None
+
+        with patch("zyra.connectors.backends.ftp.FTP", _FTPCleanup):
+            ftp_backend.sync_directory("ftp://host/dir", str(d))
+            # Orphan file should be deleted (not on remote)
+            assert not orphan.exists()
+            # But .done marker should be preserved
+            assert done_marker.exists()
+
 
 # ============================================================================
 # CLI integration tests for SyncOptions (issue #11)
