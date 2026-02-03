@@ -434,6 +434,7 @@
         "pattern",
         "since",
         "since_period",
+        "sync_dir",
         "until",
         "user"
       ]
