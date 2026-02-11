@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 import json
+import os
 from argparse import Namespace
+
+import pytest
 
 import zyra.swarm.value_engine as value_engine
 from zyra.swarm import planner as planner_cli
@@ -20,6 +23,7 @@ from zyra.swarm.planner import (
     _map_to_capabilities,
     _normalize_args_for_command,
     _propagate_inferred_args,
+    _run_guardrails,
     _scan_frames_plan_details,
     _strip_internal_fields,
     _validate_manifest,
@@ -836,3 +840,71 @@ def test_llm_plan_mock(monkeypatch):
     assert specs[0].command == "ftp"
     assert specs[1].behavior == "proposal"
     assert specs[1].metadata["proposal_options"] == ["swarm", "describe"]
+
+
+# --- guardrails integration via planner ---
+
+_SIMPLE_RAIL = """\
+<rail version="0.1">
+
+<output>
+    <object name="plan">
+        <list name="agents">
+            <object>
+                <string name="id" />
+                <string name="stage" />
+            </object>
+        </list>
+    </object>
+</output>
+
+<prompt>
+    Validate plan agents.
+    {{#block hidden=True}}
+    {{input}}
+    {{/block}}
+</prompt>
+
+</rail>
+"""
+
+
+@pytest.mark.guardrails
+def test_run_guardrails_validates_manifest(tmp_path):
+    """_run_guardrails should accept a valid manifest without raising."""
+    os.environ.setdefault("OTEL_SDK_DISABLED", "true")
+    pytest.importorskip("guardrails")
+    schema = tmp_path / "plan.rail"
+    schema.write_text(_SIMPLE_RAIL, encoding="utf-8")
+    manifest = {
+        "agents": [
+            {"id": "fetch", "stage": "acquire"},
+            {"id": "narrate", "stage": "narrate"},
+        ]
+    }
+    # Should not raise
+    _run_guardrails(str(schema), manifest)
+
+
+@pytest.mark.guardrails
+def test_cmd_plan_with_guardrails_flag(tmp_path, capsys):
+    """The --guardrails CLI flag should invoke validation without error."""
+    os.environ.setdefault("OTEL_SDK_DISABLED", "true")
+    pytest.importorskip("guardrails")
+    schema = tmp_path / "plan.rail"
+    schema.write_text(_SIMPLE_RAIL, encoding="utf-8")
+    ns = Namespace(
+        intent="mock swarm plan",
+        intent_file=None,
+        output="-",
+        guardrails=str(schema),
+        strict=False,
+        memory=None,
+        no_clarify=True,
+        verbose=False,
+    )
+    rc = planner_cli._cmd_plan(ns)
+    assert rc == 0
+    out = capsys.readouterr().out
+    payload = json.loads(out)
+    assert payload["agents"][0]["stage"] == "simulate"
