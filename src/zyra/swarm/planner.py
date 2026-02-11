@@ -1960,7 +1960,9 @@ def _run_guardrails(schema_path: str, manifest: dict[str, Any]) -> None:
         ) from exc
     text = Path(schema_path).read_text(encoding="utf-8")
     guard = Guard.for_rail_string(text)  # type: ignore
-    guard.validate(json.dumps(manifest, sort_keys=True))
+    result = guard.validate(json.dumps(manifest, sort_keys=True))
+    if hasattr(result, "validation_passed") and not result.validation_passed:
+        raise RuntimeError("guardrails schema validation did not pass")
 
 
 def _load_llm_client():  # pragma: no cover - environment dependent

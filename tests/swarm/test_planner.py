@@ -844,7 +844,29 @@ def test_llm_plan_mock(monkeypatch):
 
 # --- guardrails integration via planner ---
 
-_SIMPLE_RAIL = """\
+_PASS_RAIL = """\
+<rail version="0.1">
+
+<output>
+    <list name="agents" description="Pipeline agent definitions">
+        <object>
+            <string name="id" />
+            <string name="stage" />
+        </object>
+    </list>
+</output>
+
+<prompt>
+    Validate plan agents.
+    {{#block hidden=True}}
+    {{input}}
+    {{/block}}
+</prompt>
+
+</rail>
+"""
+
+_STRICT_RAIL = """\
 <rail version="0.1">
 
 <output>
@@ -853,13 +875,14 @@ _SIMPLE_RAIL = """\
             <object>
                 <string name="id" />
                 <string name="stage" />
+                <integer name="priority" description="required priority field" />
             </object>
         </list>
     </object>
 </output>
 
 <prompt>
-    Validate plan agents.
+    Validate plan agents have a priority field.
     {{#block hidden=True}}
     {{input}}
     {{/block}}
@@ -875,7 +898,7 @@ def test_run_guardrails_validates_manifest(tmp_path):
     os.environ.setdefault("OTEL_SDK_DISABLED", "true")
     pytest.importorskip("guardrails")
     schema = tmp_path / "plan.rail"
-    schema.write_text(_SIMPLE_RAIL, encoding="utf-8")
+    schema.write_text(_PASS_RAIL, encoding="utf-8")
     manifest = {
         "agents": [
             {"id": "fetch", "stage": "acquire"},
@@ -887,12 +910,30 @@ def test_run_guardrails_validates_manifest(tmp_path):
 
 
 @pytest.mark.guardrails
+def test_run_guardrails_rejects_invalid_manifest(tmp_path):
+    """_run_guardrails should raise when the manifest fails validation."""
+    os.environ.setdefault("OTEL_SDK_DISABLED", "true")
+    pytest.importorskip("guardrails")
+    schema = tmp_path / "strict.rail"
+    schema.write_text(_STRICT_RAIL, encoding="utf-8")
+    # Manifest lacks the required "priority" integer field and is not
+    # wrapped in a "plan" key, so validation_passed will be False.
+    manifest = {
+        "agents": [
+            {"id": "fetch", "stage": "acquire"},
+        ]
+    }
+    with pytest.raises(RuntimeError, match="validation did not pass"):
+        _run_guardrails(str(schema), manifest)
+
+
+@pytest.mark.guardrails
 def test_cmd_plan_with_guardrails_flag(tmp_path, capsys):
     """The --guardrails CLI flag should invoke validation without error."""
     os.environ.setdefault("OTEL_SDK_DISABLED", "true")
     pytest.importorskip("guardrails")
     schema = tmp_path / "plan.rail"
-    schema.write_text(_SIMPLE_RAIL, encoding="utf-8")
+    schema.write_text(_PASS_RAIL, encoding="utf-8")
     ns = Namespace(
         intent="mock swarm plan",
         intent_file=None,
@@ -908,3 +949,26 @@ def test_cmd_plan_with_guardrails_flag(tmp_path, capsys):
     out = capsys.readouterr().out
     payload = json.loads(out)
     assert payload["agents"][0]["stage"] == "simulate"
+
+
+@pytest.mark.guardrails
+def test_cmd_plan_strict_guardrails_rejects(tmp_path, capsys):
+    """--guardrails + --strict should return exit code 2 on failure."""
+    os.environ.setdefault("OTEL_SDK_DISABLED", "true")
+    pytest.importorskip("guardrails")
+    schema = tmp_path / "strict.rail"
+    schema.write_text(_STRICT_RAIL, encoding="utf-8")
+    ns = Namespace(
+        intent="mock swarm plan",
+        intent_file=None,
+        output="-",
+        guardrails=str(schema),
+        strict=True,
+        memory=None,
+        no_clarify=True,
+        verbose=False,
+    )
+    rc = planner_cli._cmd_plan(ns)
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "guardrails validation failed" in err
