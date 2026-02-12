@@ -55,7 +55,7 @@ RUN curl -fsSLO "$WGRIB2_URL" \
     && cd .. && rm -rf grib2 "$(basename "$WGRIB2_URL")"
 
 # Upgrade pip to the latest version
-RUN pip install --upgrade pip
+RUN pip install --upgrade pip 'wheel>=0.46.2'
 
 # Install Poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -
