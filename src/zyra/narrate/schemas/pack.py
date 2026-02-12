@@ -59,6 +59,10 @@ class ProvenanceEntry(BaseModel):
 class NarrativePack(BaseModel):
     version: int = Field(0, description="Schema version (integer for v0)")
     inputs: dict[str, Any] = Field(default_factory=dict)
+    input_preview: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Lightweight preview of input_data for debugging/traceability",
+    )
     models: dict[str, Any] = Field(default_factory=dict)
     status: Status
     outputs: dict[str, Any] = Field(default_factory=dict)

@@ -263,7 +263,16 @@
     "positionals": [],
     "domain": "render",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_animate",
+      "callable": "handle_animate"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "render compose-video": {
     "description": "zyra render compose-video",
@@ -325,7 +334,16 @@
     "positionals": [],
     "domain": "render",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_compose_video",
+      "callable": "handle_compose_video"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "render contour": {
     "description": "zyra render contour",
@@ -511,7 +529,16 @@
     "positionals": [],
     "domain": "render",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_contour",
+      "callable": "handle_contour"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "render heatmap": {
     "description": "zyra render heatmap",
@@ -685,7 +712,16 @@
     "positionals": [],
     "domain": "render",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_heatmap",
+      "callable": "handle_heatmap"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "render interactive": {
     "description": "zyra render interactive",
@@ -853,7 +889,16 @@
     "positionals": [],
     "domain": "render",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_interactive",
+      "callable": "handle_interactive"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "render timeseries": {
     "description": "zyra render timeseries",
@@ -945,7 +990,16 @@
     "positionals": [],
     "domain": "render",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_timeseries",
+      "callable": "handle_timeseries"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "render vector": {
     "description": "zyra render vector",
@@ -1115,7 +1169,16 @@
     "positionals": [],
     "domain": "render",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_vector",
+      "callable": "handle_vector"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "visualize animate": {
     "description": "zyra visualize animate",
@@ -1405,7 +1468,16 @@
         "width"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_animate",
+      "callable": "handle_animate"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "visualize compose-video": {
     "description": "zyra visualize compose-video",
@@ -1476,7 +1548,16 @@
         "fps"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_compose_video",
+      "callable": "handle_compose_video"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "visualize contour": {
     "description": "zyra visualize contour",
@@ -1673,7 +1754,16 @@
         "output_dir"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_contour",
+      "callable": "handle_contour"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "visualize heatmap": {
     "description": "zyra visualize heatmap",
@@ -1875,7 +1965,16 @@
     "example_args": {
       "input": "samples/demo.npy",
       "output": "/tmp/heatmap.png"
-    }
+    },
+    "impl": {
+      "module": "zyra.visualization.cli_heatmap",
+      "callable": "handle_heatmap"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "visualize interactive": {
     "description": "zyra visualize interactive",
@@ -2087,7 +2186,16 @@
         "zoom"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_interactive",
+      "callable": "handle_interactive"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "visualize timeseries": {
     "description": "zyra visualize timeseries",
@@ -2196,7 +2304,16 @@
         "ylabel"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_timeseries",
+      "callable": "handle_timeseries"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   },
   "visualize vector": {
     "description": "zyra visualize vector",
@@ -2393,6 +2510,15 @@
         "xarray_engine"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_vector",
+      "callable": "handle_vector"
+    },
+    "returns": "path",
+    "output_arg": "--output",
+    "extras": [
+      "visualization"
+    ]
   }
 }

@@ -55,6 +55,22 @@ See module-level READMEs under `src/zyra/` for focused examples and options:
 ## Stage Map
 - Overview: https://github.com/NOAA-GSL/zyra/wiki/Workflow-Stages
 
+### Swarm Orchestration
+- `zyra swarm --plan samples/swarm/mock_basic.yaml --dry-run` prints the instantiated agents.
+- Remove `--dry-run` to execute mock simulate→narrate agents; use `--memory provenance.db` to persist provenance and `--guardrails schema.rail` to enforce structured outputs.
+- Guardrail validation requires the optional extra: `pip install "zyra[guardrails]"` (or `poetry install --with guardrails`) before using `--guardrails schema.rail`.
+- To exercise the skeleton simulate/decide flow end-to-end, try `zyra swarm --plan samples/swarm/simulate_decide.yaml --dry-run` (or drop `--dry-run` to run the mock pipeline).
+- Add `--log-events` to echo provenance events live, and `--dump-memory provenance.db` to inspect existing runs without executing new stages.
+- Target specific stages or experiment with partial DAGs using `--agents acquire,visualize,narrate`; unknown stage names are rejected early so typos do not silently skip work.
+- Control concurrency explicitly with `--parallel/--no-parallel` (the latter forces `max-workers=1`) and use `--max-workers N` when you want a fixed pool size.
+- Override LLM settings for proposal/narrate stages with `--provider mock|openai|ollama|gemini|vertex`, `--model <name>`, and `--base-url <endpoint>` instead of editing `.env` or wizard config files. Gemini runs with either `GOOGLE_API_KEY` (Generative Language API) or Vertex credentials (`VERTEX_PROJECT`, `GOOGLE_APPLICATION_CREDENTIALS`, etc.).
+- A real-world example lives in `samples/swarm/drought_animation.yaml`; run it with
+  `poetry run zyra swarm --plan samples/swarm/drought_animation.yaml --memory drought.db`.
+  Create `data/drought/` ahead of time, place `earth_vegetation.jpg` in your working directory (or adjust the manifest),
+  and ensure Pillow is installed for `process pad-missing`.
+- Preview planner output (JSON manifest with augmentation suggestions) before running: `poetry run zyra plan --intent "mock swarm plan"`.
+- Plans are YAML/JSON manifests listing agents, dependencies (`depends_on`), and CLI args; see `samples/swarm/` to get started.
+
 ### Import (acquire/ingest)
 - Docs: https://noaa-gsl.github.io/zyra/api/zyra.connectors.html
 - Examples: https://github.com/NOAA-GSL/zyra/wiki/Stage-Examples
@@ -82,6 +98,27 @@ See module-level READMEs under `src/zyra/` for focused examples and options:
 ### Export (disseminate; legacy: decimate)
 - Docs: https://noaa-gsl.github.io/zyra/api/zyra.connectors.html
 - Examples: https://github.com/NOAA-GSL/zyra/wiki/Stage-Examples
+
+### LLM Providers for Wizard/Narrate
+
+Zyra’s Wizard, narrative swarm, and discovery semantic search all share the same provider configuration. Install `google-auth` when needed with `pip install "zyra[llm]"` (or `poetry install --with llm`). Key options:
+
+| Provider | Configuration |
+| --- | --- |
+| OpenAI | `OPENAI_API_KEY`, optional `OPENAI_BASE_URL` |
+| Ollama | Local server on `http://localhost:11434` (override with `OLLAMA_BASE_URL`) |
+| Gemini (Generative Language API) | Set `GOOGLE_API_KEY`; optional `GENLANG_BASE_URL`, `VERTEX_MODEL` (default `gemini-2.5-flash`) |
+| Gemini (Vertex AI) | Provide `VERTEX_PROJECT` (aliases: `GOOGLE_PROJECT_ID`, `GOOGLE_CLOUD_PROJECT`), `VERTEX_LOCATION` (default `us-central1`), and Application Default Credentials (`GOOGLE_APPLICATION_CREDENTIALS` pointing to a service-account JSON). Optional `VERTEX_MODEL`, `VERTEX_ENDPOINT`, `VERTEX_PUBLISHER`. |
+| Mock | No credentials needed; deterministic offline responses. Useful for testing. |
+
+Example `~/.zyra_wizard.yaml` targeting Gemini via Vertex:
+
+```yaml
+provider: gemini
+model: gemini-2.5-flash
+project: my-vertex-project
+location: us-central1
+```
 
 ## API & Reference Docs
 - GitHub Pages: https://noaa-gsl.github.io/zyra/

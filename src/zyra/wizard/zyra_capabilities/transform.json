@@ -102,7 +102,12 @@
     "positionals": [],
     "domain": "transform",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_enrich_datasets"
+    },
+    "returns": "path"
   },
   "transform enrich-metadata": {
     "description": "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin.",
@@ -169,7 +174,12 @@
     "positionals": [],
     "domain": "transform",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_enrich"
+    },
+    "returns": "path"
   },
   "transform metadata": {
     "description": "Scan a frames directory to compute start/end timestamps, counts, and missing frames on a cadence.",
@@ -230,7 +240,12 @@
     "positionals": [],
     "domain": "transform",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_metadata"
+    },
+    "returns": "bytes"
   },
   "transform scan-frames": {
     "description": "Alias of 'metadata'. Scan a frames directory and report timestamps, counts, and missing frames.",
@@ -291,7 +306,12 @@
     "positionals": [],
     "domain": "transform",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_metadata"
+    },
+    "returns": "bytes"
   },
   "transform update-dataset-json": {
     "description": "Update a dataset.json entry by id using metadata (start/end and Vimeo URI) from a file, stdin, or args.",
@@ -374,6 +394,11 @@
     "positionals": [],
     "domain": "transform",
     "args_schema": null,
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.transform",
+      "callable": "_cmd_update_dataset"
+    },
+    "returns": "path"
   }
 }

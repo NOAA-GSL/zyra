@@ -75,7 +75,7 @@ jobs:
             exit 1
           fi
           echo "Using project directory: $DIR"
-          poetry -C "$DIR" install --no-root --with dev
+          poetry -C "$DIR" install --no-root --with dev -E guardrails
 
       - name: Ruff format check
         run: poetry run ruff format --check .
@@ -141,7 +141,7 @@ jobs:
             exit 1
           fi
           echo "Using project directory: $DIR"
-          poetry -C "$DIR" install --no-root --with dev -E api
+          poetry -C "$DIR" install --no-root --with dev -E api -E guardrails
 
       - name: Show workspace root (post-install debug)
         run: |

@@ -24,7 +24,15 @@
         "topic"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.narrate",
+      "callable": "_cmd_describe"
+    },
+    "returns": "text",
+    "extras": [
+      "llm"
+    ]
   },
   "narrate swarm": {
     "description": "Run a lightweight narration swarm with presets and YAML merging. When audiences are provided, an internal audience_adapter agent emits <aud>_version outputs. Provenance is recorded per agent with started/model/prompt_ref/duration_ms and included in the Narrative Pack.",
@@ -53,7 +61,10 @@
           "--input",
           "--critic-structured",
           "--attach-images",
-          "--strict-grounding"
+          "--strict-grounding",
+          "--guardrails",
+          "--strict-guardrails",
+          "--memory"
         ]
       }
     ],
@@ -69,7 +80,7 @@
       "--agents": "Comma-separated agent IDs (e.g., summary,critic)",
       "--audiences": "Comma-separated audiences (e.g., kids,policy)",
       "--style": "Target writing style (e.g., journalistic)",
-      "--provider": "LLM provider (mock|openai|ollama)",
+      "--provider": "LLM provider (mock|openai|ollama|gemini|vertex). Gemini accepts GOOGLE_API_KEY or Vertex creds.",
       "--model": "Model name (provider-specific)",
       "--base-url": "Provider base URL override",
       "--max-workers": {
@@ -111,7 +122,14 @@
         "help": "Fail the run if critic flags ungrounded content",
         "type": "bool",
         "default": false
-      }
+      },
+      "--guardrails": "Guardrails (.rail) schema applied to stage outputs (optional)",
+      "--strict-guardrails": {
+        "help": "Fail the run if guardrails validation fails",
+        "type": "bool",
+        "default": false
+      },
+      "--memory": "Provenance store path (SQLite). Use '-' for in-memory/no file."
     },
     "positionals": [],
     "domain": "narrate",
@@ -121,16 +139,27 @@
         "agents",
         "audiences",
         "base_url",
+        "guardrails",
         "max_rounds",
         "max_workers",
+        "memory",
         "model",
         "pack",
         "preset",
         "provider",
+        "strict_guardrails",
         "style",
         "swarm_config"
       ]
     },
-    "example_args": null
+    "example_args": null,
+    "impl": {
+      "module": "zyra.narrate",
+      "callable": "notebook_swarm"
+    },
+    "returns": "text",
+    "extras": [
+      "llm"
+    ]
   }
 }

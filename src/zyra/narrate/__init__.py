@@ -20,7 +20,12 @@ from importlib import resources as ir
 from typing import Any
 
 from zyra.narrate.schemas import NarrativePack
-from zyra.narrate.swarm import Agent, AgentSpec, SwarmOrchestrator
+from zyra.narrate.swarm import Agent, AgentSpec
+from zyra.swarm import (
+    SwarmOrchestrator,
+    build_guardrails_adapter,
+    open_provenance_store,
+)
 from zyra.wizard import _select_provider as _wiz_select_provider
 
 
@@ -70,7 +75,12 @@ def _add_swarm_flags(p: argparse.ArgumentParser) -> None:
     p.add_argument("--agents", help="Comma-separated agent IDs (e.g., summary,critic)")
     p.add_argument("--audiences", help="Comma-separated audiences (e.g., kids,policy)")
     p.add_argument("--style", help="Target writing style (e.g., journalistic)")
-    p.add_argument("--provider", help="LLM provider (mock|openai|ollama)")
+    p.add_argument(
+        "--provider",
+        help=(
+            "LLM provider (mock|openai|ollama|gemini|vertex). Gemini accepts GOOGLE_API_KEY or Vertex creds."
+        ),
+    )
     p.add_argument("--model", help="Model name (provider-specific)")
     p.add_argument("--base-url", dest="base_url", help="Provider base URL override")
     p.add_argument("--max-workers", type=int, help="Max concurrent agents (optional)")
@@ -116,6 +126,19 @@ def _add_swarm_flags(p: argparse.ArgumentParser) -> None:
         "--strict-grounding",
         action="store_true",
         help="Fail the run if critic flags ungrounded content",
+    )
+    p.add_argument(
+        "--guardrails",
+        help="Guardrails (.rail) schema applied to stage outputs (optional)",
+    )
+    p.add_argument(
+        "--strict-guardrails",
+        action="store_true",
+        help="Fail the run if guardrails validation fails",
+    )
+    p.add_argument(
+        "--memory",
+        help="Provenance store path (SQLite). Use '-' for in-memory/no file.",
     )
     p.epilog = (
         "Provenance fields: agent, model, started (RFC3339), prompt_ref, duration_ms. "
@@ -176,15 +199,10 @@ def _cmd_swarm(ns: argparse.Namespace) -> int:
     except Exception as e:
         print(str(e), file=sys.stderr)
         return 2
+
     # Skeleton execution using the orchestrator for agent outputs
     try:
-        pack = _build_pack_with_orchestrator(resolved)
-    except ValueError as exc:
-        print(str(exc), file=sys.stderr)
-        return 2
-    # Validate before writing; map validation errors to exit 2
-    try:
-        pack = NarrativePack.model_validate(pack)
+        pack = _run_swarm(resolved)
     except Exception as e:  # pydantic.ValidationError
         # Print actionable error with field locations when available
         try:
@@ -201,13 +219,6 @@ def _cmd_swarm(ns: argparse.Namespace) -> int:
         print(str(e), file=sys.stderr)
         return 2
 
-    # Runtime validation (RFC3339 timestamps, monotonic per agent, failed_agents subset)
-    try:
-        _runtime_validate_pack_dict(pack.model_dump())
-    except ValueError as ve:
-        print(str(ve), file=sys.stderr)
-        return 2
-
     if resolved.get("pack"):
         _write_pack(resolved["pack"], pack.model_dump(exclude_none=True))
     else:
@@ -215,12 +226,53 @@ def _cmd_swarm(ns: argparse.Namespace) -> int:
     return 0 if pack.status.completed else 1
 
 
-def _build_pack_with_orchestrator(cfg: dict[str, Any]) -> dict[str, Any]:
+def notebook_swarm(ns: argparse.Namespace) -> str | dict[str, Any]:
+    """Notebook-friendly entrypoint that returns the narration text."""
+
+    resolved = _resolve_swarm_config(ns)
+    input_data = getattr(ns, "input_data", None)
+    input_format = getattr(ns, "input_format", None)
+    if input_data is None:
+        intent = getattr(ns, "intent", None)
+        if intent:
+            input_data = {"description": str(intent)}
+            input_format = "text"
+    pack = _run_swarm(
+        resolved,
+        input_data=input_data,
+        input_format=input_format,
+    )
+    if resolved.get("pack"):
+        _write_pack(resolved["pack"], pack.model_dump(exclude_none=True))
+    outputs = pack.outputs or {}
+    # Prefer editor/edited outputs first, then summary, then any non-empty string
+    preferred_raw = (
+        outputs.get("edited")
+        or outputs.get("editor")
+        or outputs.get("summary")
+        or next(
+            (v for v in outputs.values() if isinstance(v, str) and v.strip()),
+            None,
+        )
+    )
+    text = _clean_llm_output(preferred_raw or "")
+    if _looks_like_command_suggestion(text):
+        text = _build_offline_narration(input_data) or text
+    return text or outputs or pack.model_dump(exclude_none=True)
+
+
+def _build_pack_with_orchestrator(
+    cfg: dict[str, Any],
+    *,
+    input_data: Any | None = None,
+    input_format: str | None = None,
+) -> dict[str, Any]:
     agents_cfg = cfg.get("agents") or ["summary", "critic"]
     audiences = cfg.get("audiences") or []
     style = cfg.get("style") or "journalistic"
     input_path = cfg.get("input")
-    input_data, inp_format = _load_input_payload(input_path)
+    if input_data is None:
+        input_data, input_format = _load_input_payload(input_path)
     client = _wiz_select_provider(cfg.get("provider"), cfg.get("model"))
 
     agents = _create_agents(
@@ -244,9 +296,82 @@ def _build_pack_with_orchestrator(cfg: dict[str, Any]) -> dict[str, Any]:
         style,
         rubric_ref,
         input_path,
-        inp_format,
+        input_format,
         input_data,
     )
+
+
+def _run_swarm(
+    cfg: dict[str, Any],
+    *,
+    input_data: Any | None = None,
+    input_format: str | None = None,
+) -> NarrativePack:
+    pack_dict = _build_pack_with_orchestrator(
+        cfg, input_data=input_data, input_format=input_format
+    )
+    pack = NarrativePack.model_validate(pack_dict)
+    _runtime_validate_pack_dict(pack.model_dump())
+    return pack
+
+
+def _clean_llm_output(text: str) -> str:
+    """Strip noisy fallback prefixes from LLM outputs."""
+
+    if not isinstance(text, str):
+        return text
+    lines = text.splitlines()
+    filtered = [
+        ln
+        for ln in lines
+        if "fallback response used" not in ln.lower()
+        and not ln.strip().startswith("# ollama error")
+        and not ln.strip().startswith("# openai error")
+        and not ln.strip().startswith("# gemini error")
+    ]
+    cleaned = "\n".join(filtered).strip()
+    return cleaned or text.strip()
+
+
+def _looks_like_command_suggestion(text: str) -> bool:
+    """Detect mock/help-style responses that aren't helpful narrations."""
+
+    if not isinstance(text, str):
+        return False
+    lower = text.lower()
+    return lower.startswith("suggested command") or "zyra --help" in lower
+
+
+def _build_offline_narration(input_data: Any | None) -> str:
+    """Construct a deterministic narration when the LLM falls back to mock/help."""
+
+    if not isinstance(input_data, dict):
+        return ""
+    data = input_data.get("data") if isinstance(input_data, dict) else None
+    missing = None
+    after = None
+    expected = None
+    if isinstance(data, dict):
+        missing = data.get("missing_count")
+        after = data.get("frame_count_after_padding") or data.get("frame_count_actual")
+        expected = data.get("frame_count_expected")
+        timestamps = data.get("missing_timestamps") or []
+    else:
+        timestamps = []
+    title = input_data.get("title") or "the animation"
+    parts: list[str] = []
+    if expected and after:
+        parts.append(f"{after}/{expected} weekly frames available")
+    elif after:
+        parts.append(f"{after} weekly frames available")
+    if missing:
+        parts.append(f"filled {missing} gaps")
+    if timestamps and isinstance(timestamps, list):
+        preview = ", ".join(str(ts) for ts in timestamps[:2])
+        if preview:
+            parts.append(f"missing weeks around {preview}")
+    body = "; ".join(parts) or "animation composed from recent drought frames"
+    return f"Narration (offline fallback): {title} shows {body}."
 
 
 def _load_input_payload(input_path: str | None) -> tuple[Any | None, str | None]:
@@ -372,13 +497,56 @@ def _build_execution_context(
 def _execute_orchestrator(
     agents: list[Agent], cfg: dict[str, Any], context: dict[str, Any]
 ) -> tuple[dict[str, Any], SwarmOrchestrator]:
-    orch = SwarmOrchestrator(
-        agents,
-        max_workers=cfg.get("max_workers"),
-        max_rounds=int(cfg.get("max_rounds") or 1),
+    metadata = {"command": "narrate-swarm"}
+    if cfg.get("preset"):
+        metadata["preset"] = cfg.get("preset")
+    if cfg.get("agents"):
+        metadata["agents"] = cfg.get("agents")
+    if cfg.get("rubric"):
+        metadata["rubric"] = cfg.get("rubric")
+    guardrails_adapter = build_guardrails_adapter(
+        cfg.get("guardrails"), strict=bool(cfg.get("strict_guardrails"))
     )
-    outputs = asyncio.run(orch.execute(context))
-    return outputs, orch
+    store = open_provenance_store(cfg.get("memory"), metadata=metadata)
+    try:
+        orch = SwarmOrchestrator(
+            agents,
+            max_workers=cfg.get("max_workers"),
+            max_rounds=int(cfg.get("max_rounds") or 1),
+            event_hook=store.as_event_hook(),
+            guardrails=guardrails_adapter,
+        )
+        outputs = _run_coro_sync(orch.execute(context))
+        return outputs, orch
+    finally:
+        store.close()
+
+
+def _run_coro_sync(coro: Any) -> Any:
+    """Run an async coroutine from sync code, even inside a running loop."""
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+
+    result: dict[str, Any] = {}
+    error: dict[str, BaseException] = {}
+
+    def _runner() -> None:
+        try:
+            result["value"] = asyncio.run(coro)
+        except Exception as exc:  # noqa: BLE001
+            error["exc"] = exc
+
+    import threading  # placed inside function to avoid unused at import time
+
+    thread = threading.Thread(target=_runner, daemon=True)
+    thread.start()
+    thread.join()
+    if error:
+        raise error["exc"]
+    return result.get("value")
 
 
 def _build_pack_structure(
@@ -422,6 +590,8 @@ def _build_pack_structure(
 
         if _has_ungrounded(_cn):
             completed = False
+            if "critic" in declared_agents:
+                failed.add("critic")
 
     reviews: dict[str, Any] = {}
     _cn = outputs.get("critic_notes")
@@ -438,6 +608,41 @@ def _build_pack_structure(
     }
     if cfg.get("preset"):
         inputs_section["preset"] = cfg.get("preset")
+    run_metadata: dict[str, Any] = {
+        "command": "narrate swarm",
+        "agents": cfg.get("agents"),
+        "preset": cfg.get("preset"),
+        "rubric": cfg.get("rubric"),
+        "strict_grounding": cfg.get("strict_grounding"),
+        "critic_structured": cfg.get("critic_structured"),
+    }
+    run_metadata = {k: v for k, v in run_metadata.items() if v not in (None, "")}
+    input_preview: dict[str, Any] = {}
+    try:
+        if isinstance(input_data, dict):
+            input_preview["title"] = input_data.get("title")
+            input_preview["description"] = input_data.get("description")
+            data_block = (
+                input_data.get("data")
+                if isinstance(input_data.get("data"), dict)
+                else {}
+            )
+            input_preview["padded_weeks"] = data_block.get("padded_weeks")
+            input_preview["missing_timestamps"] = data_block.get("missing_timestamps")
+            analysis_block = (
+                data_block.get("analysis") if isinstance(data_block, dict) else {}
+            )
+            flt = (
+                analysis_block.get("frames_locations_text")
+                if isinstance(analysis_block, dict)
+                else None
+            )
+            if isinstance(flt, list):
+                input_preview["frames_locations_text"] = flt[:5]
+        elif isinstance(input_data, str):
+            input_preview["text"] = input_data[:400]
+    except Exception:
+        input_preview = {"error": "failed to build input preview"}
     try:
         if input_data and isinstance(input_data, dict) and input_data.get("images"):
             from pathlib import Path
@@ -475,6 +680,8 @@ def _build_pack_structure(
         "reviews": reviews,
         "errors": getattr(orch, "errors", []),
         "provenance": prov,
+        "input_preview": input_preview,
+        "metadata": run_metadata,
     }
 
 
@@ -743,12 +950,17 @@ def _resolve_swarm_config(ns: argparse.Namespace) -> dict[str, Any]:
     _merge_cli("input", getattr(ns, "input", None))
     _merge_cli("max_workers", ns.max_workers)
     _merge_cli("max_rounds", ns.max_rounds)
+    _merge_cli("memory", getattr(ns, "memory", None))
     if getattr(ns, "critic_structured", False):
         _merge_cli("critic_structured", True)
     if getattr(ns, "attach_images", False):
         _merge_cli("attach_images", True)
     if getattr(ns, "strict_grounding", False):
         _merge_cli("strict_grounding", True)
+    if getattr(ns, "guardrails", None):
+        _merge_cli("guardrails", ns.guardrails)
+    if getattr(ns, "strict_guardrails", False):
+        _merge_cli("strict_guardrails", True)
     if ns.agents:
         _merge_cli("agents", _split_csv(ns.agents))
     if ns.audiences:
@@ -787,6 +999,9 @@ def _normalize_cfg(d: dict[str, Any]) -> dict[str, Any]:
         "strict_grounding",
         "critic_structured",
         "attach_images",
+        "memory",
+        "guardrails",
+        "strict_guardrails",
     ):
         if k in d:
             out[k] = d[k]

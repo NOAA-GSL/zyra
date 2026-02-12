@@ -19,6 +19,7 @@ subsetting, and S3 URL parsing.
 
 import argparse
 import json
+import logging
 import os
 import platform
 import re
@@ -755,6 +756,20 @@ def main(argv: list[str] | None = None) -> int:
         _print_version_banner(mode)
         return 0
     parser = argparse.ArgumentParser(prog="zyra")
+    try:
+        from zyra import plugins as _plugins
+
+        epilog = _plugins.help_epilog()
+        if epilog:
+            parser.epilog = epilog
+            parser.formatter_class = argparse.RawDescriptionHelpFormatter
+    except ImportError:
+        # Non-fatal: plugin epilog is best-effort.
+        pass
+    except Exception as exc:  # pragma: no cover - defensive
+        logging.getLogger(__name__).warning(
+            "plugin help epilog disabled due to error: %s", exc
+        )
     # Global verbosity controls for all commands
     vgrp = parser.add_mutually_exclusive_group()
     vgrp.add_argument(
@@ -848,6 +863,22 @@ def main(argv: list[str] | None = None) -> int:
         p_export = sub.add_parser("export", help=argparse.SUPPRESS)
         exp_sub = p_export.add_subparsers(dest="decimate_cmd", required=True)
         _egress_mod.register_cli(exp_sub)
+    elif first_non_flag == "swarm":
+        from zyra.swarm import cli as _swarm_cli
+
+        p_swarm = sub.add_parser(
+            "swarm",
+            help="Run the multi-stage swarm orchestrator",
+        )
+        _swarm_cli.register_cli(p_swarm)
+    elif first_non_flag == "plan":
+        from zyra.swarm import planner as _swarm_planner
+
+        p_plan = sub.add_parser(
+            "plan",
+            help="Generate a swarm manifest from user intent (planner preview)",
+        )
+        _swarm_planner.register_cli(p_plan)
     elif first_non_flag == "simulate":
         import zyra.simulate as _simulate_mod
 

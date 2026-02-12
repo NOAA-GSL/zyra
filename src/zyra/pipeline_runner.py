@@ -271,6 +271,9 @@ def _build_argv_for_stage(stage: dict[str, Any]) -> list[str]:
     return argv
 
 
+_ASYNCIO_ISOLATED = {("narrate", "swarm"), ("narrate", "describe")}
+
+
 def _run_cli(argv: list[str], input_bytes: bytes | None) -> tuple[int, bytes, str]:
     """Execute a CLI stage in-process, passing stdin bytes and capturing stdout."""
     import sys
@@ -337,21 +340,39 @@ def _run_cli(argv: list[str], input_bytes: bytes | None) -> tuple[int, bytes, st
         # Fall back to normal path on any detection error
         pass
 
+    if len(argv) >= 2 and (argv[0], argv[1]) in _ASYNCIO_ISOLATED:
+        return _run_cli_subprocess(argv, input_bytes)
+
     # Preserve and swap stdin/stdout
     old_stdin = sys.stdin
     old_stdout = sys.stdout
     buf_in = io.BytesIO(input_bytes or b"")
     buf_out = io.BytesIO()
     sys.stdin = type("S", (), {"buffer": buf_in})()  # type: ignore
-    sys.stdout = type(
-        "S",
-        (),
-        {
-            "buffer": buf_out,
-            "write": lambda self, s: None,
-            "flush": lambda self: None,
-        },
-    )()  # type: ignore
+
+    class _StdoutProxy:
+        """Lightweight stdout shim that captures text + binary writes into a buffer."""
+
+        def __init__(self, buffer: io.BytesIO) -> None:
+            self.buffer = buffer
+            self.encoding = "utf-8"
+
+        def write(self, data):  # type: ignore[override]
+            if not data:
+                return 0
+            if isinstance(data, str):
+                payload = data.encode(self.encoding, errors="replace")
+            elif isinstance(data, (bytes, bytearray)):
+                payload = bytes(data)
+            else:
+                payload = str(data).encode(self.encoding, errors="replace")
+            self.buffer.write(payload)
+            return len(data)
+
+        def flush(self):  # type: ignore[override]
+            self.buffer.flush()
+
+    sys.stdout = _StdoutProxy(buf_out)  # type: ignore
     try:
         rc = cli_main(argv)
         try:
@@ -370,6 +391,32 @@ def _run_cli(argv: list[str], input_bytes: bytes | None) -> tuple[int, bytes, st
     finally:
         sys.stdin = old_stdin
         sys.stdout = old_stdout
+
+
+_DEFAULT_SUBPROCESS_TIMEOUT = 120
+
+
+def _run_cli_subprocess(
+    argv: list[str], input_bytes: bytes | None
+) -> tuple[int, bytes, str]:
+    import subprocess
+    import sys
+
+    timeout = int(
+        os.getenv("ZYRA_CLI_SUBPROCESS_TIMEOUT", str(_DEFAULT_SUBPROCESS_TIMEOUT))
+        or _DEFAULT_SUBPROCESS_TIMEOUT
+    )
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-m", "zyra.cli", *argv],
+            input=input_bytes or b"",
+            capture_output=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired:
+        return 2, b"", f"subprocess timed out after {timeout}s"
+    stderr = (proc.stderr or b"").decode("utf-8", errors="ignore")
+    return int(proc.returncode), proc.stdout or b"", stderr
 
 
 def run_pipeline(
