@@ -393,17 +393,28 @@ def _run_cli(argv: list[str], input_bytes: bytes | None) -> tuple[int, bytes, st
         sys.stdout = old_stdout
 
 
+_DEFAULT_SUBPROCESS_TIMEOUT = 120
+
+
 def _run_cli_subprocess(
     argv: list[str], input_bytes: bytes | None
 ) -> tuple[int, bytes, str]:
     import subprocess
     import sys
 
-    proc = subprocess.run(
-        [sys.executable, "-m", "zyra.cli", *argv],
-        input=input_bytes or b"",
-        capture_output=True,
+    timeout = int(
+        os.getenv("ZYRA_CLI_SUBPROCESS_TIMEOUT", str(_DEFAULT_SUBPROCESS_TIMEOUT))
+        or _DEFAULT_SUBPROCESS_TIMEOUT
     )
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-m", "zyra.cli", *argv],
+            input=input_bytes or b"",
+            capture_output=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired:
+        return 2, b"", f"subprocess timed out after {timeout}s"
     stderr = (proc.stderr or b"").decode("utf-8", errors="ignore")
     return int(proc.returncode), proc.stdout or b"", stderr
 

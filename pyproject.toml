@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "zyra"
-version = "0.1.43"
+version = "0.1.44"
 description = "A tool to ingest data from various sources and formats, create imagery or video based on that data, and send the results to various locations for dissemination."
 authors = ["Eric Hackathorn <eric.j.hackathorn@noaa.gov>"]
 include = [
@@ -34,13 +34,13 @@ pyyaml = "^6.0.2"
 numpy = "^1.26"
 fastapi = { version = ">=0.120.2,<0.122.0", optional = true }
 uvicorn = { version = "^0.30.0", optional = true }
-python-multipart = { version = ">=0.0.18", optional = true }
+python-multipart = { version = ">=0.0.22", optional = true }
 redis = { version = "^5.0.0", optional = true }
 rq = { version = "^1.15.1", optional = true }
 python-magic = { version = "^0.4.27", optional = true }
 websockets = { version = "^11.0.3", optional = true }
 prompt_toolkit = { version = "^3.0.50", optional = true }
-guardrails-ai = { version = "^0.5.0", optional = true }
+guardrails-ai = { version = "^0.8.0", optional = true }
 google-auth = { version = "^2.29.0", optional = true }
 
 # Optional feature dependencies (installed via extras)

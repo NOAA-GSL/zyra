@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 from argparse import Namespace
 
+import pytest
+
 import zyra.swarm.value_engine as value_engine
 from zyra.swarm import planner as planner_cli
 from zyra.swarm.planner import (
@@ -20,6 +22,7 @@ from zyra.swarm.planner import (
     _map_to_capabilities,
     _normalize_args_for_command,
     _propagate_inferred_args,
+    _run_guardrails,
     _scan_frames_plan_details,
     _strip_internal_fields,
     _validate_manifest,
@@ -836,3 +839,135 @@ def test_llm_plan_mock(monkeypatch):
     assert specs[0].command == "ftp"
     assert specs[1].behavior == "proposal"
     assert specs[1].metadata["proposal_options"] == ["swarm", "describe"]
+
+
+# --- guardrails integration via planner ---
+
+_PASS_RAIL = """\
+<rail version="0.1">
+
+<output>
+    <list name="agents" description="Pipeline agent definitions">
+        <object>
+            <string name="id" />
+            <string name="stage" />
+        </object>
+    </list>
+</output>
+
+<prompt>
+    Validate plan agents.
+    {{#block hidden=True}}
+    {{input}}
+    {{/block}}
+</prompt>
+
+</rail>
+"""
+
+_STRICT_RAIL = """\
+<rail version="0.1">
+
+<output>
+    <object name="plan">
+        <list name="agents">
+            <object>
+                <string name="id" />
+                <string name="stage" />
+                <integer name="priority" description="required priority field" />
+            </object>
+        </list>
+    </object>
+</output>
+
+<prompt>
+    Validate plan agents have a priority field.
+    {{#block hidden=True}}
+    {{input}}
+    {{/block}}
+</prompt>
+
+</rail>
+"""
+
+
+@pytest.mark.guardrails
+def test_run_guardrails_validates_manifest(tmp_path, monkeypatch):
+    """_run_guardrails should accept a valid manifest without raising."""
+    pytest.importorskip("guardrails")
+    monkeypatch.setenv("OTEL_SDK_DISABLED", "true")
+    schema = tmp_path / "plan.rail"
+    schema.write_text(_PASS_RAIL, encoding="utf-8")
+    manifest = {
+        "agents": [
+            {"id": "fetch", "stage": "acquire"},
+            {"id": "narrate", "stage": "narrate"},
+        ]
+    }
+    # Should not raise
+    _run_guardrails(str(schema), manifest)
+
+
+@pytest.mark.guardrails
+def test_run_guardrails_rejects_invalid_manifest(tmp_path, monkeypatch):
+    """_run_guardrails should raise when the manifest fails validation."""
+    pytest.importorskip("guardrails")
+    monkeypatch.setenv("OTEL_SDK_DISABLED", "true")
+    schema = tmp_path / "strict.rail"
+    schema.write_text(_STRICT_RAIL, encoding="utf-8")
+    # Manifest lacks the required "priority" integer field and is not
+    # wrapped in a "plan" key, so validation_passed will be False.
+    manifest = {
+        "agents": [
+            {"id": "fetch", "stage": "acquire"},
+        ]
+    }
+    with pytest.raises(RuntimeError, match="validation did not pass"):
+        _run_guardrails(str(schema), manifest)
+
+
+@pytest.mark.guardrails
+def test_cmd_plan_with_guardrails_flag(tmp_path, capsys, monkeypatch):
+    """The --guardrails CLI flag should invoke validation without error."""
+    pytest.importorskip("guardrails")
+    monkeypatch.setenv("OTEL_SDK_DISABLED", "true")
+    schema = tmp_path / "plan.rail"
+    schema.write_text(_PASS_RAIL, encoding="utf-8")
+    ns = Namespace(
+        intent="mock swarm plan",
+        intent_file=None,
+        output="-",
+        guardrails=str(schema),
+        strict=False,
+        memory=None,
+        no_clarify=True,
+        verbose=False,
+    )
+    rc = planner_cli._cmd_plan(ns)
+    assert rc == 0
+    out = capsys.readouterr().out
+    payload = json.loads(out)
+    assert payload["agents"][0]["stage"] == "simulate"
+
+
+@pytest.mark.guardrails
+def test_cmd_plan_strict_guardrails_rejects(tmp_path, capsys, monkeypatch):
+    """--guardrails + --strict should return exit code 2 on failure."""
+    pytest.importorskip("guardrails")
+    monkeypatch.setenv("OTEL_SDK_DISABLED", "true")
+    schema = tmp_path / "strict.rail"
+    schema.write_text(_STRICT_RAIL, encoding="utf-8")
+    ns = Namespace(
+        intent="mock swarm plan",
+        intent_file=None,
+        output="-",
+        guardrails=str(schema),
+        strict=True,
+        memory=None,
+        no_clarify=True,
+        verbose=False,
+    )
+    rc = planner_cli._cmd_plan(ns)
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "guardrails validation failed" in err
