@@ -61,7 +61,8 @@ class GuardrailsAdapter(BaseGuardrailsAdapter):
         for key, value in outputs.items():
             raw = value if isinstance(value, str) else json.dumps(value)
             try:
-                # guard.validate returns the validated structure (string or dict)
+                # guard.validate returns a ValidationOutcome with
+                # .validation_passed (bool) and .validated_output
                 result = guard.validate(raw)
             except Exception as exc:
                 msg = f"guardrails validation failed for {agent.spec.id}:{key}: {exc}"
