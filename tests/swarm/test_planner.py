@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import os
 from argparse import Namespace
 
 import pytest
@@ -893,10 +892,10 @@ _STRICT_RAIL = """\
 
 
 @pytest.mark.guardrails
-def test_run_guardrails_validates_manifest(tmp_path):
+def test_run_guardrails_validates_manifest(tmp_path, monkeypatch):
     """_run_guardrails should accept a valid manifest without raising."""
-    os.environ.setdefault("OTEL_SDK_DISABLED", "true")
     pytest.importorskip("guardrails")
+    monkeypatch.setenv("OTEL_SDK_DISABLED", "true")
     schema = tmp_path / "plan.rail"
     schema.write_text(_PASS_RAIL, encoding="utf-8")
     manifest = {
@@ -910,10 +909,10 @@ def test_run_guardrails_validates_manifest(tmp_path):
 
 
 @pytest.mark.guardrails
-def test_run_guardrails_rejects_invalid_manifest(tmp_path):
+def test_run_guardrails_rejects_invalid_manifest(tmp_path, monkeypatch):
     """_run_guardrails should raise when the manifest fails validation."""
-    os.environ.setdefault("OTEL_SDK_DISABLED", "true")
     pytest.importorskip("guardrails")
+    monkeypatch.setenv("OTEL_SDK_DISABLED", "true")
     schema = tmp_path / "strict.rail"
     schema.write_text(_STRICT_RAIL, encoding="utf-8")
     # Manifest lacks the required "priority" integer field and is not
@@ -928,10 +927,10 @@ def test_run_guardrails_rejects_invalid_manifest(tmp_path):
 
 
 @pytest.mark.guardrails
-def test_cmd_plan_with_guardrails_flag(tmp_path, capsys):
+def test_cmd_plan_with_guardrails_flag(tmp_path, capsys, monkeypatch):
     """The --guardrails CLI flag should invoke validation without error."""
-    os.environ.setdefault("OTEL_SDK_DISABLED", "true")
     pytest.importorskip("guardrails")
+    monkeypatch.setenv("OTEL_SDK_DISABLED", "true")
     schema = tmp_path / "plan.rail"
     schema.write_text(_PASS_RAIL, encoding="utf-8")
     ns = Namespace(
@@ -952,10 +951,10 @@ def test_cmd_plan_with_guardrails_flag(tmp_path, capsys):
 
 
 @pytest.mark.guardrails
-def test_cmd_plan_strict_guardrails_rejects(tmp_path, capsys):
+def test_cmd_plan_strict_guardrails_rejects(tmp_path, capsys, monkeypatch):
     """--guardrails + --strict should return exit code 2 on failure."""
-    os.environ.setdefault("OTEL_SDK_DISABLED", "true")
     pytest.importorskip("guardrails")
+    monkeypatch.setenv("OTEL_SDK_DISABLED", "true")
     schema = tmp_path / "strict.rail"
     schema.write_text(_STRICT_RAIL, encoding="utf-8")
     ns = Namespace(
