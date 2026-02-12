@@ -71,16 +71,18 @@ class GuardrailsAdapter(BaseGuardrailsAdapter):
                 LOG.warning("%s", msg)
                 validated_value = value
             else:
-                validated_value = getattr(result, "validated_output", result)
-                # If validation failed but strict mode is enabled, raise
-                if (
-                    hasattr(result, "validation_passed")
-                    and not result.validation_passed
-                    and self.strict
-                ):
-                    raise RuntimeError(
-                        f"guardrails validation failed for {agent.spec.id}:{key}"
+                passed = getattr(result, "validation_passed", True)
+                if not passed:
+                    msg = (
+                        f"guardrails validation did not pass for "
+                        f"{agent.spec.id}:{key}"
                     )
+                    if self.strict:
+                        raise RuntimeError(msg)
+                    LOG.warning("%s – falling back to original value", msg)
+                    validated_value = value
+                else:
+                    validated_value = getattr(result, "validated_output", result)
             validated[key] = validated_value
         return validated
 
