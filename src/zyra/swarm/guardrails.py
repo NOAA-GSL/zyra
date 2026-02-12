@@ -50,7 +50,7 @@ class GuardrailsAdapter(BaseGuardrailsAdapter):
         if self._guard:
             return self._guard
         path = Path(self.schema_path)
-        self._guard = _guardrails.Guard.from_rail(str(path))  # type: ignore[attr-defined]
+        self._guard = _guardrails.Guard.for_rail(str(path))  # type: ignore[attr-defined]
         return self._guard
 
     def validate(
@@ -61,8 +61,9 @@ class GuardrailsAdapter(BaseGuardrailsAdapter):
         for key, value in outputs.items():
             raw = value if isinstance(value, str) else json.dumps(value)
             try:
-                # guard.parse returns the validated structure (string or dict)
-                result = guard.parse(raw)
+                # guard.validate returns a ValidationOutcome with
+                # .validation_passed (bool) and .validated_output
+                result = guard.validate(raw)
             except Exception as exc:
                 msg = f"guardrails validation failed for {agent.spec.id}:{key}: {exc}"
                 if self.strict:

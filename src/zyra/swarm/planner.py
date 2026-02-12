@@ -1959,8 +1959,10 @@ def _run_guardrails(schema_path: str, manifest: dict[str, Any]) -> None:
             "guardrails library not installed; pip install guardrails-ai"
         ) from exc
     text = Path(schema_path).read_text(encoding="utf-8")
-    guard = Guard.from_rail(text)  # type: ignore
-    guard.parse(json.dumps(manifest, sort_keys=True))
+    guard = Guard.for_rail_string(text)  # type: ignore
+    result = guard.validate(json.dumps(manifest, sort_keys=True))
+    if hasattr(result, "validation_passed") and not result.validation_passed:
+        raise RuntimeError("guardrails schema validation did not pass")
 
 
 def _load_llm_client():  # pragma: no cover - environment dependent
