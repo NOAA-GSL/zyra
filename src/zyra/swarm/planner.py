@@ -1962,7 +1962,31 @@ def _run_guardrails(schema_path: str, manifest: dict[str, Any]) -> None:
     guard = Guard.for_rail_string(text)  # type: ignore
     result = guard.validate(json.dumps(manifest, sort_keys=True))
     if hasattr(result, "validation_passed") and not result.validation_passed:
-        raise RuntimeError("guardrails schema validation did not pass")
+        details = _guardrails_failure_details(result)
+        detail_suffix = f": {details}" if details else ""
+        raise RuntimeError(
+            f"guardrails validation did not pass for {schema_path}{detail_suffix}"
+        )
+
+
+def _guardrails_failure_details(result: Any) -> str:
+    """Extract a human-readable failure summary from a ValidationOutcome."""
+    parts: list[str] = []
+    for attr in ("error", "error_message"):
+        val = getattr(result, attr, None)
+        if isinstance(val, str) and val.strip():
+            parts.append(val.strip())
+            break
+    errors = getattr(result, "validation_errors", None)
+    if isinstance(errors, list):
+        for err in errors[:5]:
+            text = str(err).strip() if err else ""
+            if text:
+                parts.append(text)
+    reask = getattr(result, "reask", None)
+    if reask is not None and not parts:
+        parts.append(f"reask={reask}")
+    return "; ".join(parts)
 
 
 def _load_llm_client():  # pragma: no cover - environment dependent
