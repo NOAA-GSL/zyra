@@ -1,0 +1,12 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#1A5A69', 'primaryTextColor': '#FEFEFE', 'lineColor': '#5F9DAE'}}}%%
+graph TD
+    DL["download_frames\n(import / ftp-sync)"] --> SC["scan_frames\n(transform / metadata)"]
+    SC --> FM["fill_missing\n(process / pad-missing)"]
+    FM --> CA["compose_animation\n(visualize / compose-video)"]
+    CA --> SL["save_local\n(export / local)"]
+
+    style DL fill:#00529E,stroke:#00172D,color:#FEFEFE,stroke-width:2px
+    style SC fill:#2C670C,stroke:#00172D,color:#FEFEFE,stroke-width:2px
+    style FM fill:#2C670C,stroke:#00172D,color:#FEFEFE,stroke-width:2px
+    style CA fill:#576216,stroke:#00172D,color:#FEFEFE,stroke-width:2px
+    style SL fill:#00529E,stroke:#00172D,color:#FEFEFE,stroke-width:2px
