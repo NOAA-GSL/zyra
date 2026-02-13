@@ -8,6 +8,7 @@ from pathlib import Path
 
 from zyra.utils.cli_helpers import configure_logging_from_env
 from zyra.visualization.cli_utils import features_from_ns, resolve_basemap_ref
+from zyra.visualization.overlays import OverlaySpec, parse_overlay_spec
 
 
 def handle_animate(ns) -> int:
@@ -19,8 +20,29 @@ def handle_animate(ns) -> int:
     if getattr(ns, "trace", False):
         os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
+    overlay_args = getattr(ns, "overlays", None) or []
+    overlay_specs: list[OverlaySpec] = []
+    overlay_time_default: str | None = None
+    overlay_time_map: dict[str, str] = {}
+    if overlay_args:
+        for item in overlay_args:
+            spec = parse_overlay_spec(item)
+            overlay_specs.append(spec)
+        overlay_time_default, overlay_time_map = _parse_overlay_time_keys(
+            getattr(ns, "overlay_time_keys", None)
+        )
+        for spec in overlay_specs:
+            if spec.time_key is None:
+                spec.time_key = overlay_time_map.get(spec.alias, overlay_time_default)
+    overlay_time_tolerance = int(getattr(ns, "overlay_time_tolerance", 900) or 900)
+
+    if overlay_specs and getattr(ns, "inputs", None):
+        raise SystemExit(
+            "--overlay is not supported with --inputs batch mode; specify a single --input"
+        )
+
     # Batch mode for animate: --inputs with --output-dir
-    if getattr(ns, "inputs", None):
+    if getattr(ns, "inputs", None) and not overlay_specs:
         if not ns.output_dir:
             raise SystemExit("--output-dir is required when using --inputs")
         from zyra.processing.video_processor import VideoProcessor
@@ -203,6 +225,14 @@ def handle_animate(ns) -> int:
         mode=ns.mode, basemap=bmap, extent=ns.extent, output_dir=ns.output_dir
     )
     features = features_from_ns(ns)
+    overlay_kwargs = {}
+    if overlay_specs:
+        overlay_kwargs = {
+            "overlay_specs": overlay_specs,
+            "overlay_time_map": overlay_time_map,
+            "overlay_time_default": overlay_time_default,
+            "overlay_time_tolerance": overlay_time_tolerance,
+        }
     manifest = mgr.render(
         input_path=ns.input,
         var=ns.var,
@@ -237,6 +267,7 @@ def handle_animate(ns) -> int:
         # CRS
         crs=getattr(ns, "crs", None),
         reproject=getattr(ns, "reproject", False),
+        **overlay_kwargs,
     )
     out = mgr.save(ns.manifest)
     if out:
@@ -356,3 +387,23 @@ def _build_ffmpeg_grid_args(
         ]
     )
     return args
+
+
+def _parse_overlay_time_keys(values) -> tuple[str | None, dict[str, str]]:
+    default_key: str | None = None
+    mapping: dict[str, str] = {}
+    if not values:
+        return default_key, mapping
+    for raw in values:
+        token = (raw or "").strip()
+        if not token:
+            continue
+        if "=" in token:
+            alias, key = token.split("=", 1)
+            alias = alias.strip()
+            key = key.strip()
+            if alias and key:
+                mapping[alias] = key
+        else:
+            default_key = token
+    return default_key, mapping

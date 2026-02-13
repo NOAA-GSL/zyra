@@ -91,8 +91,50 @@ def register_cli(subparsers: Any) -> None:
         is_netcdf_bytes,
     )
     from zyra.utils.cli_helpers import (
-        read_all_bytes as _read_bytes,
+        read_all_bytes as _read_all_bytes,
     )
+
+    def _read_input_bytes(
+        path_or_url: str,
+        *,
+        idx_pattern: str | None = None,
+        unsigned: bool = False,
+    ) -> bytes:
+        """Load bytes from path/URL with optional GRIB ``.idx`` subsetting."""
+
+        if not idx_pattern:
+            return _read_all_bytes(path_or_url)
+
+        from urllib.parse import urlparse
+
+        parsed = urlparse(path_or_url)
+        scheme = (parsed.scheme or "").lower()
+        try:
+            if scheme in {"http", "https"}:
+                from zyra.connectors.backends import http as http_backend
+                from zyra.utils.grib import idx_to_byteranges
+
+                lines = http_backend.get_idx_lines(path_or_url)
+                ranges = idx_to_byteranges(lines, idx_pattern)
+                if not ranges:
+                    return b""
+                return http_backend.download_byteranges(path_or_url, ranges.keys())
+            if scheme == "s3":
+                from zyra.connectors.backends import s3 as s3_backend
+                from zyra.utils.grib import idx_to_byteranges
+
+                lines = s3_backend.get_idx_lines(path_or_url, unsigned=unsigned)
+                ranges = idx_to_byteranges(lines, idx_pattern)
+                if not ranges:
+                    return b""
+                return s3_backend.download_byteranges(
+                    path_or_url, None, ranges.keys(), unsigned=unsigned
+                )
+        except Exception as exc:  # pragma: no cover - optional deps/env specific
+            raise SystemExit(f"Failed to subset via .idx: {exc}") from exc
+
+        # Fallback: local files/other schemes fall back to full read
+        return _read_all_bytes(path_or_url)
 
     def cmd_decode_grib2(args: argparse.Namespace) -> int:
         # Per-command verbosity/trace mapping
@@ -118,7 +160,11 @@ def register_cli(subparsers: Any) -> None:
         # fast and to avoid importing heavy modules unnecessarily, we load the
         # decoder utilities only after we've successfully read the input bytes
         # and determined that we actually need to decode.
-        data = _read_bytes(args.file_or_url)
+        data = _read_input_bytes(
+            args.file_or_url,
+            idx_pattern=getattr(args, "pattern", None),
+            unsigned=bool(getattr(args, "unsigned", False)),
+        )
         import logging
 
         if os.environ.get("ZYRA_SHELL_TRACE"):
@@ -159,7 +205,7 @@ def register_cli(subparsers: Any) -> None:
             extract_variable,
         )
 
-        data = _read_bytes(args.file_or_url)
+        data = _read_all_bytes(args.file_or_url)
         if getattr(args, "stdout", False):
             out_fmt = (args.format or "netcdf").lower()
             if out_fmt not in ("netcdf", "grib2"):
@@ -294,7 +340,11 @@ def register_cli(subparsers: Any) -> None:
             outdir_p.mkdir(parents=True, exist_ok=True)
             wrote = []
             for src in args.inputs:
-                data = _read_bytes(src)
+                data = _read_input_bytes(
+                    src,
+                    idx_pattern=getattr(args, "pattern", None),
+                    unsigned=bool(getattr(args, "unsigned", False)),
+                )
                 # Fast-path: NetCDF passthrough when converting to NetCDF
                 if args.format == "netcdf" and is_netcdf_bytes(data):
                     # Write source name with .nc extension
@@ -327,7 +377,11 @@ def register_cli(subparsers: Any) -> None:
 
         # Single-input flow
         # Read input first so we can short-circuit pass-through without heavy imports
-        data = _read_bytes(args.file_or_url)
+        data = _read_input_bytes(
+            args.file_or_url,
+            idx_pattern=getattr(args, "pattern", None),
+            unsigned=bool(getattr(args, "unsigned", False)),
+        )
         # If reading NetCDF and writing NetCDF with --stdout, pass-through
         if (
             getattr(args, "stdout", False)
