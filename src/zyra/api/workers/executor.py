@@ -272,14 +272,25 @@ def _args_dict_to_argv(stage: str, command: str, args: dict[str, Any]) -> list[s
             argv.append(str(path))
 
     # Remaining keys become long flags
+    negation_flags: dict[tuple[str, str], dict[str, str]] = {
+        ("visualize", "globe"): {
+            "probe": "--no-probe",
+            "lighting": "--no-lighting",
+            "auto_rotate": "--no-auto-rotate",
+        }
+    }
+
     for key, value in norm_args.items():
         if value is None:
             continue
-        flag = f"--{_to_kebab(key)}"
         if isinstance(value, bool):
+            neg_flag = negation_flags.get((stage, command), {}).get(key)
             if value:
-                argv.append(flag)
+                argv.append(f"--{_to_kebab(key)}")
+            elif neg_flag:
+                argv.append(neg_flag)
             continue
+        flag = f"--{_to_kebab(key)}"
         if isinstance(value, (list, tuple)):
             for item in value:
                 argv.extend([flag, str(item)])

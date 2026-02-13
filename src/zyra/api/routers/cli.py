@@ -16,10 +16,12 @@ Implementation notes
 from __future__ import annotations
 
 import argparse
+import mimetypes
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 
 import zyra.swarm.cli as swarm_cli
 from zyra.api.models.cli_request import CLIRunRequest, CLIRunResponse
@@ -358,6 +360,262 @@ def list_cli_examples() -> dict[str, Any]:
                     "width": 800,
                     "height": 400,
                 },
+            },
+        }
+    )
+
+    # 4b) Visualize: globe (webgl-sphere) with packaged Earth texture
+    examples.append(
+        {
+            "name": "visualize_globe_webgl",
+            "description": "Generate a WebGL globe bundle using the packaged Earth texture (writes index.html + assets).",
+            "request": {
+                "stage": "visualize",
+                "command": "globe",
+                "mode": "sync",
+                "args": {
+                    "target": "webgl-sphere",
+                    "output": "api_examples/globe_webgl",
+                    "texture": "pkg:zyra.assets.images/earth_vegetation.jpg",
+                    "probe_data": "pkg:zyra.assets.samples/points.csv",
+                    "title": "NASA Blue Marble",
+                    "description": "Global imagery derived from NASA's Blue Marble dataset.",
+                    "probe": True,
+                },
+            },
+            "preview": {
+                "type": "iframe",
+                "url": "/examples/view/globe_webgl/",
+            },
+        }
+    )
+
+    # 4b-1) Visualize: globe (webgl-sphere) animating local drought risk frames
+    examples.append(
+        {
+            "name": "visualize_globe_webgl_drought",
+            "description": "Animate NOAA drought risk imagery on the Three.js globe using the local _work/drought frame stack with interactive playback controls.",
+            "request": {
+                "stage": "visualize",
+                "command": "globe",
+                "mode": "sync",
+                "args": {
+                    "target": "webgl-sphere",
+                    "output": "api_examples/globe_webgl_drought",
+                    "texture_pattern": "drought/DroughtRisk_Weekly_*.png",
+                    "date_format": "%Y%m%d",
+                    "animate": "time",
+                    "auto_rotate": True,
+                    "title": "Weekly Drought Risk",
+                    "description": "Animated drought outlook sourced from ftp.nnvl.noaa.gov/SOS/DroughtRisk_Weekly.",
+                    "probe": False,
+                },
+            },
+            "preview": {
+                "type": "iframe",
+                "url": "/examples/view/globe_webgl_drought/",
+            },
+            "warning": "Requires drought frames synced under DATA_DIR/drought (default _work/drought). Run zyra acquire ftp … beforehand.",
+        }
+    )
+
+    # 4b-2) Visualize: Cesium globe animating local drought risk frames
+    examples.append(
+        {
+            "name": "visualize_globe_cesium_drought",
+            "description": "Animate the local drought risk frame stack on a CesiumJS globe with built-in timeline controls.",
+            "request": {
+                "stage": "visualize",
+                "command": "globe",
+                "mode": "sync",
+                "args": {
+                    "target": "cesium-globe",
+                    "output": "api_examples/globe_cesium_drought",
+                    "texture_pattern": "drought/DroughtRisk_Weekly_*.png",
+                    "date_format": "%Y%m%d",
+                    "animate": "time",
+                    "auto_rotate": False,
+                    "probe": False,
+                    "title": "Weekly Drought Risk (Cesium)",
+                    "description": "Interactive Cesium globe with timeline playback of NOAA drought risk imagery.",
+                },
+            },
+            "preview": {
+                "type": "iframe",
+                "url": "/examples/view/globe_cesium_drought/",
+            },
+            "warning": "Requires drought frames synced under DATA_DIR/drought (default _work/drought). Run zyra acquire ftp … beforehand.",
+        }
+    )
+
+    # 4b-3) Visualize: globe (webgl-sphere) from pre-generated drought video
+    examples.append(
+        {
+            "name": "visualize_globe_webgl_drought_video",
+            "description": (
+                "Render the weekly drought risk timeline by extracting frames from drought/drought.mp4. "
+                "This variant samples at the video cadence (30 fps) and anchors the first frame to 2024-12-05T00:00:00Z."
+            ),
+            "request": {
+                "stage": "visualize",
+                "command": "globe",
+                "mode": "sync",
+                "args": {
+                    "target": "webgl-sphere",
+                    "output": "api_examples/globe_webgl_drought_video",
+                    "video_source": "drought/drought.mp4",
+                    "fps": 30.0,
+                    "frame_cache": "drought/frame_cache",
+                    "frames_meta": "drought/frames_meta.json",
+                    "animate": "time",
+                    "title": "Weekly Drought Risk (Video)",
+                    "description": "WebGL globe backed by the pre-rendered drought MP4 (frames extracted automatically).",
+                    "probe": False,
+                },
+            },
+            "preview": {
+                "type": "iframe",
+                "url": "/examples/view/globe_webgl_drought_video/",
+            },
+            "warning": (
+                "Requires ffmpeg/ffprobe in PATH, drought.mp4 under DATA_DIR/drought (default _work/drought), and frames_meta.json with the desired cadence. "
+                "Generate the video via `zyra visualize compose-video --fps 30 ...`, run `zyра transform metadata --frames _work/drought --datetime-format %Y%m%d --period-seconds 604800 --output _work/drought/frames_meta.json`, "
+                "then mirror this API call locally with "
+                "`zyra visualize globe --target webgl-sphere --output _work/drought_globe "
+                "--video-source _work/drought/drought.mp4 --fps 30 --frames-meta _work/drought/frames_meta.json "
+                "--animate time --title 'Weekly Drought Risk'`."
+            ),
+        }
+    )
+
+    # 4b-4) Visualize: Cesium globe from pre-generated drought video
+    examples.append(
+        {
+            "name": "visualize_globe_cesium_drought_video",
+            "description": (
+                "Render the drought risk MP4 on a Cesium globe; timestamps track the 30 fps cadence starting at 2024-12-05T00:00:00Z."
+            ),
+            "request": {
+                "stage": "visualize",
+                "command": "globe",
+                "mode": "sync",
+                "args": {
+                    "target": "cesium-globe",
+                    "output": "api_examples/globe_cesium_drought_video",
+                    "video_source": "drought/drought.mp4",
+                    "fps": 30.0,
+                    "frame_cache": "drought/frame_cache",
+                    "frames_meta": "drought/frames_meta.json",
+                    "animate": "time",
+                    "probe": False,
+                    "title": "Weekly Drought Risk (Cesium Video)",
+                    "description": "Cesium globe that extracts frames from a local drought MP4 and provides timeline playback.",
+                },
+            },
+            "preview": {
+                "type": "iframe",
+                "url": "/examples/view/globe_cesium_drought_video/",
+            },
+            "warning": (
+                "Requires ffmpeg/ffprobe in PATH plus drought.mp4 under DATA_DIR/drought. "
+                "Match the start timestamp to your video cadence and regenerate frames_meta.json with the correct period before running through the API."
+            ),
+        }
+    )
+
+    # 4c) Visualize: Cesium globe seeded with Age of the Seafloor probe data
+    examples.append(
+        {
+            "name": "visualize_globe_cesium",
+            "description": (
+                "Build a CesiumJS globe with probe points derived from NOAA NCEI's Age of the Seafloor dataset. "
+                "Outputs a bundle under api_examples/ with an interactive iframe preview. Uses the ArcGIS tiled "
+                "seafloor age service for imagery (CESIUM_ION_TOKEN optional for terrain/fallback layers)."
+            ),
+            "request": {
+                "stage": "visualize",
+                "command": "globe",
+                "mode": "sync",
+                "args": {
+                    "target": "cesium-globe",
+                    "output": "api_examples/globe_cesium_seafloor",
+                    "title": "Age of the Seafloor (Cesium)",
+                    "description": (
+                        "Color-coded plate ages in million years with probe sampling seeded from Science On a Sphere "
+                        "metadata for the Age of the Seafloor collection."
+                    ),
+                    "tile_url": "https://tiledimageservices.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/Seafloor_Age_02_WM/ImageServer",
+                    "tile_credit": "Tiles © Esri, NOAA NCEI",
+                    "legend": "https://d3sik7mbbzunjo.cloudfront.net/land/sea_floor_age/colorbar_contour_en.png",
+                    "probe_data": "pkg:zyra.assets.samples/age_of_seafloor_points.csv",
+                    "probe_units": "Ma",
+                    "auto_rotate": True,
+                    "auto_rotate_speed": 0.4,
+                    "lighting": False,
+                    "width": 1280,
+                    "height": 720,
+                },
+            },
+            "warning": (
+                "Requires network access to fetch ArcGIS tiled imagery and the remote legend. "
+                "Provide `CESIUM_ION_TOKEN` if you want Cesium World Terrain or fallback base imagery."
+            ),
+            "preview": {
+                "type": "iframe",
+                "url": "/examples/view/globe_cesium_seafloor/",
+            },
+        }
+    )
+
+    # 4d) Visualize: Cesium globe with NASA GIBS VIIRS true-color tiles
+    examples.append(
+        {
+            "name": "visualize_globe_cesium_viirs",
+            "description": (
+                "Build a CesiumJS globe that streams NASA GIBS near real-time VIIRS SNPP "
+                "Corrected Reflectance (True Color) tiles."
+            ),
+            "request": {
+                "stage": "visualize",
+                "command": "globe",
+                "mode": "sync",
+                "args": {
+                    "target": "cesium-globe",
+                    "output": "api_examples/globe_viirs_gibs",
+                    "title": "VIIRS True Color (Cesium)",
+                    "description": (
+                        "NASA GIBS SNPP VIIRS corrected reflectance (True Color) tiles streamed from the "
+                        "Web Map Tile Service."
+                    ),
+                    "tile_url": (
+                        "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/"
+                        "VIIRS_SNPP_CorrectedReflectance_TrueColor/default/"
+                        "{time}/GoogleMapsCompatible_Level9/{TileMatrix}/{TileRow}/{TileCol}.jpg"
+                    ),
+                    "tile_type": "template",
+                    "tile_scheme": "webmercator",
+                    "tile_time_key": "time",
+                    "tile_time_start": "2024-07-16",
+                    "tile_time_end": "2024-07-18",
+                    "tile_time_period": "1d",
+                    "animate": "time",
+                    "tile_min_level": 0,
+                    "tile_max_level": 9,
+                    "probe": False,
+                    "auto_rotate": True,
+                    "auto_rotate_speed": 0.25,
+                    "lighting": False,
+                    "width": 1280,
+                    "height": 720,
+                },
+            },
+            "warning": (
+                "Requires network access to fetch VIIRS tiles from NASA GIBS. Update `tile_time_values` "
+                "to browse different archive dates (uses the `best` collection)."
+            ),
+            "preview": {
+                "type": "iframe",
+                "url": "/examples/view/globe_viirs_gibs/",
             },
         }
     )
@@ -996,6 +1254,51 @@ def examples_page(request: Request) -> HTMLResponse:
             const runAsync = el('button', { textContent: 'Run (async)' });
             const controls = el('div', { className: 'row' }, []);
             const warn = el('div', { className: 'small', textContent: '' });
+            const setWarn = (msg) => {
+              warn.textContent = msg || '';
+              warn.style.display = msg ? 'block' : 'none';
+            };
+            const previewWrap = el('div', { className: 'preview', style: 'margin-top:0.5rem' });
+            let previewShown = false;
+            const setPreviewMessage = (msg) => {
+              if (!ex.preview) return;
+              previewShown = false;
+              previewWrap.textContent = msg;
+            };
+            const refreshPreview = () => {
+              if (!ex.preview || !ex.preview.url) return;
+              previewShown = true;
+              const baseUrl = ex.preview.url;
+              const bust = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+              previewWrap.innerHTML = '';
+              previewWrap.appendChild(
+                el('div', { className: 'small' }, [
+                  el('a', {
+                    href: bust,
+                    target: '_blank',
+                    rel: 'noopener',
+                    textContent: 'Open preview in new tab',
+                  }),
+                ])
+              );
+              if (ex.preview.type === 'iframe') {
+                previewWrap.appendChild(
+                  el('iframe', {
+                    src: bust,
+                    loading: 'lazy',
+                    style: 'width:100%;min-height:420px;border:1px solid #ddd;border-radius:6px;margin-top:0.5rem;',
+                  })
+                );
+              }
+            };
+            if (ex.preview) {
+              setPreviewMessage('Run to generate preview.');
+            }
+            if (ex.warning) {
+              setWarn(ex.warning);
+            } else {
+              setWarn('');
+            }
             // Add Dry-run toggle for pipeline run examples
             try {
               const body = ex.request || {};
@@ -1010,7 +1313,7 @@ def examples_page(request: Request) -> HTMLResponse:
                     obj.args = obj.args || {};
                     obj.args.dry_run = !!dry.checked;
                     area.value = JSON.stringify(obj, null, 2);
-                    warn.textContent = dry.checked ? '' : 'Warning: This will attempt network I/O and may require credentials.';
+                    setWarn(dry.checked ? '' : 'Warning: This will attempt network I/O and may require credentials.');
                   } catch {}
                 };
                 dry.onchange = updateBody;
@@ -1019,19 +1322,32 @@ def examples_page(request: Request) -> HTMLResponse:
             } catch {}
             runSync.onclick = async () => {
               out.textContent = ''; status.textContent = 'Running…';
+              if (ex.preview) setPreviewMessage('Generating preview…');
               try {
                 const body = JSON.parse(area.value);
                 body.mode = 'sync';
                 const r = await fetch('/cli/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)});
-                const t = await r.text();
+                const respText = await r.text();
                 status.textContent = 'HTTP ' + r.status;
-                out.textContent = t;
+                let parsed = null;
+                try { parsed = JSON.parse(respText); } catch {}
+                out.textContent = parsed ? JSON.stringify(parsed, null, 2) : respText;
+                const succeeded = parsed
+                  ? (parsed.status === 'success' || parsed.exit_code === 0)
+                  : r.ok;
+                if (succeeded) {
+                  refreshPreview();
+                } else if (ex.preview) {
+                  setPreviewMessage('Preview unavailable (command failed).');
+                }
               } catch (e) {
                 status.textContent = 'Error'; out.textContent = String(e);
+                if (ex.preview) setPreviewMessage('Preview unavailable (command failed).');
               }
             };
             runAsync.onclick = async () => {
               out.textContent = ''; status.textContent = 'Submitting…';
+              if (ex.preview) setPreviewMessage('Waiting for async job…');
               try {
                 const body = JSON.parse(area.value);
                 body.mode = 'async';
@@ -1052,22 +1368,36 @@ def examples_page(request: Request) -> HTMLResponse:
                       out.textContent = JSON.stringify(jjs, null, 2);
                       if (['succeeded','failed','canceled'].includes(String(jjs.status))) {
                         clearInterval(timer);
+                        if (ex.preview) {
+                          if (String(jjs.status) === 'succeeded') {
+                            refreshPreview();
+                          } else {
+                            setPreviewMessage('Preview unavailable (job did not succeed).');
+                          }
+                        }
                       }
                       if (tries > 30) {
                         clearInterval(timer);
                         status.textContent += ' (timeout)';
+                        if (ex.preview && !previewShown) {
+                          setPreviewMessage('Preview unavailable (job timeout).');
+                        }
                       }
                     } catch (e) {
                       clearInterval(timer);
                       status.textContent = 'Polling error';
+                      if (ex.preview) setPreviewMessage('Preview unavailable (polling error).');
                     }
                   }, 1000);
+                } else if (ex.preview) {
+                  setPreviewMessage('Preview unavailable (job id missing).');
                 }
               } catch (e) {
                 status.textContent = 'Error'; out.textContent = String(e);
+                if (ex.preview) setPreviewMessage('Preview unavailable (command failed).');
               }
             };
-            const card = el('div', { className: 'example' }, [
+            const children = [
               el('h3', { textContent: ex.name || ('Example #' + (idx+1)) }),
               el('div', { className: 'small', textContent: ex.description || '' }),
               area,
@@ -1075,7 +1405,11 @@ def examples_page(request: Request) -> HTMLResponse:
               warn,
               el('div', { className: 'row' }, [ runSync, runAsync, status ]),
               out,
-            ]);
+            ];
+            if (ex.preview) {
+              children.push(previewWrap);
+            }
+            const card = el('div', { className: 'example' }, children);
             wrap.appendChild(card);
           });
         } catch (e) {
@@ -1087,3 +1421,35 @@ def examples_page(request: Request) -> HTMLResponse:
   </body>
   </html>"""
     return HTMLResponse(content=html)
+
+
+@router.get("/examples/view/{bundle}/{asset_path:path}", include_in_schema=False)
+def examples_view(bundle: str, asset_path: str = "") -> FileResponse:
+    """Serve generated example bundles under ``api_examples``.
+
+    Limits access to the ``api_examples`` directory within ``DATA_DIR`` (or ``_work``
+    when unset) and resolves directory requests to ``index.html``.
+    """
+
+    base_root = Path(env("DATA_DIR", "_work") or "_work").expanduser()
+    examples_root = (base_root / "api_examples").resolve()
+    if not examples_root.exists():
+        raise HTTPException(status_code=404, detail="Not found")
+
+    relative = Path(bundle)
+    if asset_path:
+        relative = relative / asset_path
+    if not asset_path or asset_path.endswith("/"):
+        relative = relative / "index.html"
+
+    target = (examples_root / relative).resolve()
+    try:
+        target.relative_to(examples_root)
+    except ValueError as exc:  # pragma: no cover - defensive
+        raise HTTPException(status_code=404, detail="Not found") from exc
+
+    if not target.exists() or not target.is_file():
+        raise HTTPException(status_code=404, detail="Not found")
+
+    media_type = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
+    return FileResponse(target, media_type=media_type)
