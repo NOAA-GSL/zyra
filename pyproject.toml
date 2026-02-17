@@ -217,7 +217,7 @@ trio = "^0.25.0"
 myst-parser = "^3.0.1"
 sphinx = "^7.4.7"
 boto3 = "^1.17"
-pre-commit = "^3.7"
+pre-commit = ">=3.7,<5.0"
 hypothesis = "^6.112.1"
 
 [tool.poetry.plugins."poetry.plugin"]
