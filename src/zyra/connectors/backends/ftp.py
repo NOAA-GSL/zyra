@@ -405,10 +405,12 @@ def sync_directory(
 
     # Determine if we need remote metadata for decision-making
     needs_remote_size = options.recheck_existing or options.min_remote_size is not None
-    needs_remote_mtime = (
-        not (options.overwrite_existing or options.prefer_remote)
-        or options.prefer_remote_if_meta_newer
-    )
+    # MDTM is skipped only when overwrite_existing or prefer_remote is set,
+    # because those modes return early in should_download() (steps 4-5) before
+    # the default MDTM comparison (step 10).  All other modes -- including
+    # prefer_remote_if_meta_newer -- may fall through to step 10, so MDTM is
+    # still fetched as a fallback.
+    needs_remote_mtime = not (options.overwrite_existing or options.prefer_remote)
 
     # Use a single FTP connection for all metadata queries and downloads
     # to avoid connection overhead per file
