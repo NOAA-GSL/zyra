@@ -405,7 +405,10 @@ def sync_directory(
 
     # Determine if we need remote metadata for decision-making
     needs_remote_size = options.recheck_existing or options.min_remote_size is not None
-    needs_remote_mtime = not (options.overwrite_existing or options.prefer_remote)
+    needs_remote_mtime = (
+        not (options.overwrite_existing or options.prefer_remote)
+        or options.prefer_remote_if_meta_newer
+    )
 
     # Use a single FTP connection for all metadata queries and downloads
     # to avoid connection overhead per file
