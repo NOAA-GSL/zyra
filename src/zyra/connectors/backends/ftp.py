@@ -37,13 +37,15 @@ class SyncOptions:
     when a local copy already exists. Options are evaluated in precedence order:
 
     1. ``skip_if_local_done`` - Skip if ``.done`` marker file exists
-    2. ``overwrite_existing`` - Unconditional replacement
-    3. ``prefer_remote`` - Always prioritize remote versions
-    4. ``prefer_remote_if_meta_newer`` - Use frames-meta.json timestamps
-    5. ``recheck_missing_meta`` - Re-download if metadata entry missing
-    6. ``min_remote_size`` - Replace if remote exceeds size threshold
-    7. ``recheck_existing`` - Compare sizes when mtime unavailable
-    8. Default: Replace if remote mtime (via MDTM) is newer
+    2. Local file missing - Always download when no local copy is present
+    3. Local file is zero bytes - Always replace empty local files
+    4. ``overwrite_existing`` - Unconditional replacement
+    5. ``prefer_remote`` - Always prioritize remote versions
+    6. ``prefer_remote_if_meta_newer`` - Use frames-meta.json timestamps
+    7. ``recheck_missing_meta`` - Re-download if metadata entry missing
+    8. ``min_remote_size`` - Replace if remote exceeds size threshold
+    9. ``recheck_existing`` - Compare sizes when mtime unavailable
+    10. Default: Replace if remote mtime (via MDTM) is newer
     """
 
     overwrite_existing: bool = False
