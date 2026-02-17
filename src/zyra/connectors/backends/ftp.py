@@ -623,6 +623,11 @@ def _load_frames_meta(path: str | None) -> dict | None:
                 logging.debug("frames-meta %s is not a JSON object, ignoring", path)
                 return None
             return data
+        else:
+            logging.getLogger(__name__).warning(
+                "Frames meta file %s does not exist; metadata-aware sync disabled",
+                path,
+            )
     except Exception as exc:
         logging.getLogger(__name__).warning(
             "Failed to load frames meta from %s: %s", path, exc
