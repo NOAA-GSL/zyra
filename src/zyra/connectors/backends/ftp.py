@@ -205,20 +205,24 @@ def list_files(
     ftp.set_pasv(True)
     ftp.cwd(remote_dir)
     try:
-        names = ftp.nlst()
-    except all_errors:
-        names = []
-    if pattern:
-        rx = re.compile(pattern)
-        names = [n for n in names if rx.search(n)]
-    if names is None:
-        return None
-    if since or until:
-        dm = DateManager([date_format] if date_format else None)
-        start = datetime.min if not since else datetime.fromisoformat(since)
-        end = datetime.max if not until else datetime.fromisoformat(until)
-        names = [n for n in names if dm.is_date_in_range(n, start, end)]
-    return names
+        try:
+            names = ftp.nlst()
+        except all_errors:
+            names = []
+        if pattern:
+            rx = re.compile(pattern)
+            names = [n for n in names if rx.search(n)]
+        if names is None:
+            return None
+        if since or until:
+            dm = DateManager([date_format] if date_format else None)
+            start = datetime.min if not since else datetime.fromisoformat(since)
+            end = datetime.max if not until else datetime.fromisoformat(until)
+            names = [n for n in names if dm.is_date_in_range(n, start, end)]
+        return names
+    finally:
+        with contextlib.suppress(Exception):
+            ftp.quit()
 
 
 def exists(
@@ -438,9 +442,17 @@ def sync_directory(
             resp = conn.sendcmd(f"MDTM {filename}")
             if resp.startswith("213 "):
                 ts_str = resp[4:].strip()
-                return datetime.strptime(ts_str, "%Y%m%d%H%M%S").replace(
-                    tzinfo=timezone.utc
-                )
+                try:
+                    return datetime.strptime(ts_str, "%Y%m%d%H%M%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                except (ValueError, TypeError) as exc:
+                    logging.debug(
+                        "FTP MDTM parse failed for %s (raw: %s): %s",
+                        filename,
+                        ts_str,
+                        exc,
+                    )
         except all_errors as exc:
             logging.debug("FTP MDTM failed for %s: %s", filename, exc)
         return None
@@ -553,9 +565,17 @@ def get_remote_mtime(
         resp = ftp.sendcmd(f"MDTM {filename}")
         if resp.startswith("213 "):
             ts_str = resp[4:].strip()
-            return datetime.strptime(ts_str, "%Y%m%d%H%M%S").replace(
-                tzinfo=timezone.utc
-            )
+            try:
+                return datetime.strptime(ts_str, "%Y%m%d%H%M%S").replace(
+                    tzinfo=timezone.utc
+                )
+            except ValueError:
+                logging.debug(
+                    "Failed to parse MDTM response %r for %s; returning None",
+                    resp,
+                    filename,
+                )
+                return None
         return None
     except all_errors:
         return None
@@ -590,13 +610,20 @@ def _parse_min_size(spec: int | str | None, local_size: int) -> int | None:
 
 
 def _load_frames_meta(path: str | None) -> dict | None:
-    """Load frames-meta.json if provided and exists."""
+    """Load frames-meta.json if provided and exists.
+
+    Returns None if the file is missing, unreadable, or not a JSON object.
+    """
     if not path:
         return None
     try:
         p = Path(path)
         if p.exists():
-            return json.loads(p.read_text(encoding="utf-8"))
+            data = json.loads(p.read_text(encoding="utf-8"))
+            if not isinstance(data, dict):
+                logging.debug("frames-meta %s is not a JSON object, ignoring", path)
+                return None
+            return data
     except Exception as exc:
         logging.getLogger(__name__).warning(
             "Failed to load frames meta from %s: %s", path, exc
