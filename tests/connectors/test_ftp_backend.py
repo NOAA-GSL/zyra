@@ -293,7 +293,7 @@ class TestShouldDownload:
     def test_should_download_mtime_newer_remote(self, tmp_path):
         """Default behavior downloads when remote mtime is newer."""
         import time
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         local_path = tmp_path / "file.png"
         local_path.write_bytes(b"content")
@@ -304,7 +304,7 @@ class TestShouldDownload:
         os.utime(local_path, (old_time, old_time))
 
         options = ftp_backend.SyncOptions()
-        remote_mtime = datetime.now()  # Current time (newer)
+        remote_mtime = datetime.now(tz=timezone.utc)  # Current time (newer)
         result, reason = ftp_backend.should_download(
             "file.png", local_path, 100, remote_mtime, options
         )
@@ -313,14 +313,14 @@ class TestShouldDownload:
 
     def test_should_download_mtime_older_remote(self, tmp_path):
         """Default behavior skips when remote mtime is older."""
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
         local_path = tmp_path / "file.png"
         local_path.write_bytes(b"content")
         # Note: local file has current mtime from write_bytes
 
         options = ftp_backend.SyncOptions()
-        remote_mtime = datetime.now() - timedelta(days=7)  # 7 days ago
+        remote_mtime = datetime.now(tz=timezone.utc) - timedelta(days=7)  # 7 days ago
         result, reason = ftp_backend.should_download(
             "file.png", local_path, 100, remote_mtime, options
         )
@@ -330,7 +330,7 @@ class TestShouldDownload:
     def test_should_download_prefer_remote_if_meta_newer(self, tmp_path):
         """--prefer-remote-if-meta-newer uses frames-meta.json timestamps."""
         import time
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         local_path = tmp_path / "frame_001.png"
         local_path.write_bytes(b"content")
@@ -343,7 +343,10 @@ class TestShouldDownload:
         options = ftp_backend.SyncOptions(prefer_remote_if_meta_newer=True)
         frames_meta = {
             "frames": [
-                {"filename": "frame_001.png", "timestamp": datetime.now().isoformat()}
+                {
+                    "filename": "frame_001.png",
+                    "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+                }
             ]
         }
         result, reason = ftp_backend.should_download(
@@ -399,9 +402,9 @@ class TestGetRemoteMtime:
 
         with patch("zyra.connectors.backends.ftp.FTP", _FTPMdtm):
             result = ftp_backend.get_remote_mtime("ftp://host/path/file.txt")
-            from datetime import datetime
+            from datetime import datetime, timezone
 
-            assert result == datetime(2024, 6, 15, 12, 0, 0)
+            assert result == datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
 
     def test_get_remote_mtime_not_supported(self, monkeypatch):
         """MDTM not supported returns None gracefully."""

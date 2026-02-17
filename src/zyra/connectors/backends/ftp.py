@@ -18,7 +18,7 @@ import re
 import warnings
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from ftplib import FTP, all_errors
 from io import BytesIO
 from pathlib import Path
@@ -429,13 +429,18 @@ def sync_directory(
             return None
 
     def get_mtime_via_conn(filename: str) -> datetime | None:
-        """Get file mtime using the shared connection via MDTM."""
+        """Get file mtime using the shared connection via MDTM.
+
+        Returns a UTC-aware datetime (MDTM timestamps are UTC per RFC 3659).
+        """
         try:
             conn = ensure_ftp_connection()
             resp = conn.sendcmd(f"MDTM {filename}")
             if resp.startswith("213 "):
                 ts_str = resp[4:].strip()
-                return datetime.strptime(ts_str, "%Y%m%d%H%M%S")
+                return datetime.strptime(ts_str, "%Y%m%d%H%M%S").replace(
+                    tzinfo=timezone.utc
+                )
         except all_errors as exc:
             logging.debug("FTP MDTM failed for %s: %s", filename, exc)
         return None
@@ -521,7 +526,8 @@ def get_remote_mtime(
 ) -> datetime | None:
     """Return modification time from FTP MDTM command, or None if unavailable.
 
-    The MDTM command returns timestamps in the format ``YYYYMMDDhhmmss``.
+    The MDTM command returns timestamps in UTC (RFC 3659) in the format
+    ``YYYYMMDDhhmmss``.  Returns a UTC-aware datetime.
     Not all FTP servers support this command; failures return None gracefully.
     """
     v = _maybe_delegate(
@@ -543,11 +549,13 @@ def get_remote_mtime(
             directory, filename = remote_path.rsplit("/", 1)
         if directory:
             ftp.cwd(directory)
-        # FTP MDTM returns: "213 YYYYMMDDhhmmss"
+        # FTP MDTM returns: "213 YYYYMMDDhhmmss" (UTC per RFC 3659)
         resp = ftp.sendcmd(f"MDTM {filename}")
         if resp.startswith("213 "):
             ts_str = resp[4:].strip()
-            return datetime.strptime(ts_str, "%Y%m%d%H%M%S")
+            return datetime.strptime(ts_str, "%Y%m%d%H%M%S").replace(
+                tzinfo=timezone.utc
+            )
         return None
     except all_errors:
         return None
@@ -620,7 +628,11 @@ def _is_missing_companion_meta(filename: str, frames_meta: dict | None) -> bool:
 
 
 def _get_meta_timestamp(filename: str, frames_meta: dict | None) -> datetime | None:
-    """Extract timestamp for a file from frames-meta.json."""
+    """Extract timestamp for a file from frames-meta.json.
+
+    Always returns a UTC-aware datetime so comparisons with other
+    UTC-aware timestamps are safe.
+    """
     if not frames_meta:
         return None
     frames = frames_meta.get("frames", [])
@@ -631,7 +643,13 @@ def _get_meta_timestamp(filename: str, frames_meta: dict | None) -> datetime | N
             ts = frame.get("timestamp")
             if ts:
                 try:
-                    return datetime.fromisoformat(ts)
+                    dt = datetime.fromisoformat(ts)
+                    # Normalize to UTC-aware
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    else:
+                        dt = dt.astimezone(timezone.utc)
+                    return dt
                 except ValueError:
                     pass
             break
@@ -687,7 +705,9 @@ def should_download(
         meta_ts = _get_meta_timestamp(remote_name, frames_meta)
         if meta_ts:
             try:
-                local_mtime = datetime.fromtimestamp(local_path.stat().st_mtime)
+                local_mtime = datetime.fromtimestamp(
+                    local_path.stat().st_mtime, tz=timezone.utc
+                )
                 if meta_ts > local_mtime:
                     return (True, "meta timestamp newer than local")
             except OSError as exc:
@@ -709,18 +729,21 @@ def should_download(
         if threshold is not None and remote_size >= threshold:
             return (True, f"remote size {remote_size} >= threshold {threshold}")
 
-    # 9. Recheck existing (size comparison when mtime unavailable)
+    # 9. Recheck existing (size fallback when mtime unavailable)
     if (
         options.recheck_existing
+        and remote_mtime is None
         and remote_size is not None
         and remote_size != local_size
     ):
         return (True, f"size mismatch: local={local_size}, remote={remote_size}")
 
-    # 10. Default: MDTM-based comparison
+    # 10. Default: MDTM-based comparison (both sides UTC-aware)
     if remote_mtime is not None:
         try:
-            local_mtime = datetime.fromtimestamp(local_path.stat().st_mtime)
+            local_mtime = datetime.fromtimestamp(
+                local_path.stat().st_mtime, tz=timezone.utc
+            )
             if remote_mtime > local_mtime:
                 return (True, "remote mtime newer")
         except OSError as exc:
