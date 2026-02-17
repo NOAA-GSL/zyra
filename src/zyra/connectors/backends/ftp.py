@@ -571,9 +571,8 @@ def get_remote_mtime(
                 )
             except ValueError:
                 logging.debug(
-                    "Failed to parse MDTM response %r for %s; returning None",
-                    resp,
-                    filename,
+                    "Failed to parse MDTM timestamp %r; returning None",
+                    ts_str,
                 )
                 return None
         return None
