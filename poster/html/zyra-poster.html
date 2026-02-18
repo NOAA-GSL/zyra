@@ -2828,14 +2828,6 @@ body { background: none !important; padding: 0 !important; }
     </div>
   </div>
 
-  <!-- DISCOVERY ANNOTATION (precursor to Import) -->
-  <div style="position:absolute; left:14px; top:295px; z-index:12;">
-    <span class="fpill" style="background:var(--seafoam); font-size:8.5px;">zyra search</span>
-    <div style="font-family:var(--font-sans); font-size:9px; color:var(--neutral-700); margin-top:3px; max-width:105px; line-height:1.3;">
-      Discover datasets via SOS catalog, OGC, or APIs
-    </div>
-  </div>
-
   <!-- STAGE BUBBLES -->
   <!-- 1 Import -->
   <div class="stage-bubble" style="left:230px; top:140px">
@@ -2932,13 +2924,13 @@ body { background: none !important; padding: 0 !important; }
   </div>
 
   <!-- CALLOUT CARDS -->
-  <div class="callout" style="left:170px; top:330px">
+  <div class="callout" style="left:170px; top:310px">
     <div class="callout-arrow" style="left:60px;"></div>
     <div class="callout-title"><span class="ct-tag" style="background:var(--cable-blue)">Import</span> zyra acquire</div>
-    <div class="callout-text">Fetch from S3, FTP, REST APIs, or HTTP endpoints with automatic retry and checksum validation.</div>
+    <div class="callout-text">Discover datasets via <code style="font-size:10px;">zyra search</code> (SOS catalog, OGC, remote APIs), then fetch from S3, FTP, REST, or HTTP with automatic retry and checksum validation.</div>
   </div>
 
-  <div class="callout" style="left:275px; top:385px">
+  <div class="callout" style="left:275px; top:400px">
     <div class="callout-arrow" style="left:110px;"></div>
     <div class="callout-title"><span class="ct-tag" style="background:var(--leaf-green)">Process</span> zyra transform</div>
     <div class="callout-text">Regrid, subset, and convert GRIB2, NetCDF, and GeoTIFF through configurable processing chains.</div>
@@ -3017,8 +3009,7 @@ body { background: none !important; padding: 0 !important; }
         </tr>
       </thead>
       <tbody>
-        <tr class="search-row"><td class="stage-num" style="color:var(--seafoam);">D</td><td>Discover</td><td>Search local SOS catalog, OGC WMS/Records, remote APIs</td><td class="cli-cell">zyra search</td><td class="status-impl">Implemented</td></tr>
-        <tr><td class="stage-num">1</td><td>Import</td><td>Fetch from HTTP/S, S3, FTP, REST API</td><td class="cli-cell">zyra acquire</td><td class="status-impl">Implemented</td></tr>
+        <tr><td class="stage-num">1</td><td>Import</td><td>Search &amp; fetch from HTTP/S, S3, FTP, REST API</td><td class="cli-cell">zyra acquire</td><td class="status-impl">Implemented</td></tr>
         <tr><td class="stage-num">2</td><td>Process</td><td>Decode, subset, convert (GRIB2, NetCDF, GeoTIFF)</td><td class="cli-cell">zyra process</td><td class="status-impl">Implemented</td></tr>
         <tr><td class="stage-num">3</td><td>Simulate</td><td>Generate synthetic/test data</td><td class="cli-cell">—</td><td class="status-plan">Planned</td></tr>
         <tr><td class="stage-num">4</td><td>Decide</td><td>Parameter optimization and selection</td><td class="cli-cell">—</td><td class="status-plan">Planned</td></tr>
