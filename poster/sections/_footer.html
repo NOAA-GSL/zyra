@@ -143,11 +143,13 @@
     var clone = visual.cloneNode(true);
     clone.id = '';
     clone.style.transform = 'none';
-    
+    // Strip duplicate IDs from cloned children to keep the DOM valid
+    clone.querySelectorAll('[id]').forEach(function(el) { el.removeAttribute('id'); });
+
     // Remove previous clone if any
     var old = lb.querySelector('.pipeline-visual');
     if (old) old.remove();
-    
+
     lb.appendChild(clone);
     lb.classList.add('active');
     document.body.style.overflow = 'hidden';

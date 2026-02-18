@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -43,6 +45,16 @@ jobs:
           test -f poster/html/zyra-poster.html || { echo "ERROR: poster HTML not found"; exit 1; }
           echo "Poster size: $(du -h poster/html/zyra-poster.html | cut -f1)"
           echo "Image assets: $(find poster/html -name '*.png' | wc -l) files"
+
+      - name: Detect LFS pointer files
+        run: |
+          POINTERS=$(find poster/html -name '*.png' -exec sh -c 'head -c 20 "$1" | grep -q "^version https://git-lfs" && echo "$1"' _ {} \;)
+          if [ -n "$POINTERS" ]; then
+            echo "ERROR: LFS pointers detected instead of real files:"
+            echo "$POINTERS"
+            exit 1
+          fi
+          echo "All PNG assets are real files (not LFS pointers)"
 
       - name: Assemble site (dry run)
         run: |
