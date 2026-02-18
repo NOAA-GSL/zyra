@@ -1,0 +1,203 @@
+  <!-- ════════════ SECTION 8: BUILDING OFF THE FOUNDATION ════════════ -->
+
+  <div class="foundation-section">
+
+    <div class="section-tag" style="margin-bottom:6px;">
+      <div class="diamond" style="background:var(--ocean-blue);"></div>
+      <span>Architecture</span>
+    </div>
+
+    <h2 class="foundation-heading">Building Off the Foundation</h2>
+    <p class="foundation-sub">Three layers of access — from terminal commands to autonomous AI agents — all sharing the same pipeline architecture.</p>
+
+    <div class="foundation-layers">
+
+      <!-- LEFT COLUMN: API (layer 2) -->
+      <div class="foundation-col col-left">
+
+        <div class="foundation-layer-card flc-mcp" style="text-align:right;">
+          <div style="display:flex;justify-content:flex-end;"><div class="flc-number">3</div></div>
+          <div class="flc-abbrev" style="text-align:right;">MCP + AI Agents</div>
+          <div class="flc-title">Model Context Protocol</div>
+          <p class="flc-desc">Zyra exposes every pipeline stage as an <code>MCP tool</code>, letting LLM agents like Claude autonomously discover, compose, and execute scientific workflows. The AI layer transforms conversational intent into reproducible pipeline runs.</p>
+        </div>
+
+        <div class="foundation-layer-card flc-api" style="text-align:right;">
+          <div style="display:flex;justify-content:flex-end;"><div class="flc-number">2</div></div>
+          <div class="flc-abbrev" style="text-align:right;">Python API</div>
+          <div class="flc-title">Application Programming Interface</div>
+          <p class="flc-desc">Zyra's modular Python API extends the CLI with programmatic access — enabling custom processing modules, integration into existing data workflows, and automated dissemination pipelines via <code>import zyra</code>.</p>
+        </div>
+
+        <div class="foundation-layer-card flc-cli" style="text-align:right;">
+          <div style="display:flex;justify-content:flex-end;"><div class="flc-number">1</div></div>
+          <div class="flc-abbrev" style="text-align:right;">Command Line Interface</div>
+          <div class="flc-title">CLI — The Foundation</div>
+          <p class="flc-desc">The CLI empowers researchers and developers to quickly build, test, and reproduce visualization pipelines with simple, scriptable commands. Every stage streams via <code>stdin/stdout</code> for Unix-style composition.</p>
+        </div>
+
+      </div>
+
+      <!-- CENTER: Pyramid SVG -->
+      <div class="foundation-pyramid">
+        <svg viewBox="0 0 380 420" width="380" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <!-- Pyramid face gradients -->
+            <linearGradient id="pyrGreen1" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#2C670C"/>
+              <stop offset="100%" stop-color="#1a4a08"/>
+            </linearGradient>
+            <linearGradient id="pyrGreen2" x1="1" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#3a7e12"/>
+              <stop offset="100%" stop-color="#2C670C"/>
+            </linearGradient>
+            <linearGradient id="pyrBlue1" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#00529E"/>
+              <stop offset="100%" stop-color="#003d7a"/>
+            </linearGradient>
+            <linearGradient id="pyrBlue2" x1="1" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#0068c4"/>
+              <stop offset="100%" stop-color="#00529E"/>
+            </linearGradient>
+            <linearGradient id="pyrTeal1" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#1A5A69"/>
+              <stop offset="100%" stop-color="#0e3d4a"/>
+            </linearGradient>
+            <linearGradient id="pyrTeal2" x1="1" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#247a8c"/>
+              <stop offset="100%" stop-color="#1A5A69"/>
+            </linearGradient>
+            <!-- Light stripe gradient -->
+            <linearGradient id="pyrStripe" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.0)"/>
+              <stop offset="30%" stop-color="rgba(255,255,255,0.35)"/>
+              <stop offset="70%" stop-color="rgba(255,255,255,0.35)"/>
+              <stop offset="100%" stop-color="rgba(255,255,255,0.0)"/>
+            </linearGradient>
+            <!-- Subtle shadow for depth -->
+            <filter id="pyrShadow">
+              <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00172D" flood-opacity="0.12"/>
+            </filter>
+          </defs>
+
+          <!-- ═══ TIER 1: CLI (bottom, widest) ═══ -->
+          <g filter="url(#pyrShadow)">
+            <!-- Left face -->
+            <polygon points="40,390  190,390  190,310  90,310" fill="url(#pyrGreen1)"/>
+            <!-- Right face -->
+            <polygon points="190,390  340,390  290,310  190,310" fill="url(#pyrGreen2)"/>
+            <!-- Top face -->
+            <polygon points="90,310  290,310  240,286  140,286" fill="#3a7e12" opacity="0.5"/>
+          </g>
+          <!-- Light stripe between tier 1 and tier 2 -->
+          <rect x="100" y="280" width="180" height="8" fill="url(#pyrStripe)" rx="1"/>
+
+          <!-- ═══ TIER 2: API (middle) ═══ -->
+          <g filter="url(#pyrShadow)">
+            <!-- Left face -->
+            <polygon points="90,270  190,270  190,190  130,190" fill="url(#pyrBlue1)"/>
+            <!-- Right face -->
+            <polygon points="190,270  290,270  250,190  190,190" fill="url(#pyrBlue2)"/>
+            <!-- Top face -->
+            <polygon points="130,190  250,190  218,172  162,172" fill="#0068c4" opacity="0.5"/>
+          </g>
+          <!-- Light stripe between tier 2 and tier 3 -->
+          <rect x="138" y="166" width="104" height="8" fill="url(#pyrStripe)" rx="1"/>
+
+          <!-- ═══ TIER 3: MCP/AI (top, narrowest) ═══ -->
+          <g filter="url(#pyrShadow)">
+            <!-- Left face -->
+            <polygon points="130,158  190,158  190,85  165,85" fill="url(#pyrTeal1)"/>
+            <!-- Right face -->
+            <polygon points="190,158  250,158  215,85  190,85" fill="url(#pyrTeal2)"/>
+            <!-- Top face / peak -->
+            <polygon points="165,85  215,85  200,72  180,72" fill="#247a8c" opacity="0.5"/>
+          </g>
+
+          <!-- ═══ MCP icon at peak ═══ -->
+          <g transform="translate(175,30)">
+            <circle cx="15" cy="18" r="16" fill="rgba(26,90,105,0.15)" stroke="var(--ocean-blue)" stroke-width="1"/>
+            <path d="M10 14 L15 10 L20 14 M10 18 L15 22 L20 18 M8 16 L15 16 L22 16" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </g>
+
+          <!-- ═══ Layer labels on pyramid faces ═══ -->
+          <!-- CLI label -->
+          <text x="190" y="350" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="18" font-weight="700" fill="white" opacity="0.85">CLI</text>
+          <text x="190" y="368" text-anchor="middle" font-family="Source Code Pro, monospace" font-size="10" fill="white" opacity="0.5">zyra [command]</text>
+
+          <!-- API label -->
+          <text x="190" y="232" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="16" font-weight="700" fill="white" opacity="0.85">API</text>
+          <text x="190" y="248" text-anchor="middle" font-family="Source Code Pro, monospace" font-size="9.5" fill="white" opacity="0.5">import zyra</text>
+
+          <!-- MCP label -->
+          <text x="190" y="124" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="14" font-weight="700" fill="white" opacity="0.85">MCP</text>
+          <text x="190" y="140" text-anchor="middle" font-family="Source Code Pro, monospace" font-size="9" fill="white" opacity="0.5">tools/discover</text>
+
+          <!-- ═══ Connector lines from pyramid to description cards ═══ -->
+          <!-- CLI → right col bottom -->
+          <!-- API → right col middle -->
+          <!-- MCP → left col top -->
+          <!-- Thin dotted connector lines -->
+          <line x1="42" y1="348" x2="4" y2="348" stroke="var(--leaf-green)" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>
+          <line x1="92" y1="230" x2="4" y2="230" stroke="var(--cable-blue)" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>
+          <line x1="132" y1="122" x2="4" y2="122" stroke="var(--ocean-blue)" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>
+
+        </svg>
+      </div>
+
+      <!-- RIGHT COLUMN: empty spacer for visual balance — cards are on the left -->
+      <div class="foundation-col col-right" style="visibility:hidden;">
+        <!-- Mirror for layout balance -->
+        <div class="foundation-layer-card" style="flex:1 1 0;"></div>
+        <div class="foundation-layer-card" style="flex:1 1 0;"></div>
+        <div class="foundation-layer-card" style="flex:1 1 0;"></div>
+      </div>
+
+    </div>
+
+    <!-- Highlight cards row -->
+    <div class="foundation-highlights">
+
+      <div class="foundation-highlight-card fhc-cli">
+        <div class="fhc-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        </div>
+        <div class="fhc-text">
+          <strong>Streaming CLI Pipes</strong>
+          Chain stages via <code>stdin/stdout</code> — acquire, process, and visualize in a single Unix pipeline with zero intermediate files.
+        </div>
+      </div>
+
+      <div class="foundation-highlight-card fhc-api">
+        <div class="fhc-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <div class="fhc-text">
+          <strong>FastAPI Service Mode</strong>
+          Run <code>zyra serve</code> to expose all pipeline stages as a REST API, enabling web dashboards and automated integrations.
+        </div>
+      </div>
+
+      <div class="foundation-highlight-card fhc-mcp">
+        <div class="fhc-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="fhc-text">
+          <strong>MCP Tool Discovery</strong>
+          LLM agents discover available pipeline tools at runtime — no hardcoded prompts. Zyra's MCP server advertises capabilities dynamically.
+        </div>
+      </div>
+
+      <div class="foundation-highlight-card fhc-fast">
+        <div class="fhc-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+        </div>
+        <div class="fhc-text">
+          <strong>Same Pipeline, Every Layer</strong>
+          Whether invoked from bash, Python, REST, or an AI agent — every execution follows the same 8-stage architecture with full provenance.
+        </div>
+      </div>
+
+    </div>
+
+  </div>

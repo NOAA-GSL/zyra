@@ -53,7 +53,7 @@ Mixed/broad conference audience:
 
 ---
 
-## Poster Layout (10 Sections)
+## Poster Layout (11 Sections)
 
 ### Section 1: Header (full width, top)
 Title, logo, author, badges. See `section-prompts/01-header.md`.
@@ -76,14 +76,17 @@ Orchestration diagram + provider table. See `section-prompts/06-narration.md`.
 ### Section 7: Reproducible Pipelines (half column)
 YAML config example + dry-run capability. See `section-prompts/07-pipelines.md`.
 
-### Section 8: Visualization Gallery (full width)
-2x2 grid of generated images. See `section-prompts/08-gallery.md`.
+### Section 8: Building Off the Foundation (full width)
+Three-layer architecture pyramid (CLI → API → MCP) with highlight cards. See `section-prompts/08-foundation.md`.
 
-### Section 9: Key Features (half column or sidebar)
-Bullet list of capabilities. See `section-prompts/09-features.md`.
+### Section 9: Visualization Gallery (full width)
+2x2 grid of generated images. See `section-prompts/09-gallery.md`.
 
-### Section 10: Get Started (bottom, full width)
-Install command, resource links, optional QR code. See `section-prompts/10-get-started.md`.
+### Section 10: Key Features (half column or sidebar)
+Bullet list of capabilities. See `section-prompts/10-features.md`.
+
+### Section 11: Get Started (bottom, full width)
+Install command, resource links, optional QR code. See `section-prompts/11-get-started.md`.
 
 ---
 

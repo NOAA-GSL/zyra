@@ -1,0 +1,4089 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zyra Conference Poster — Header & Challenge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;0,700&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+
+  /* ═══════════════════════════════════════════
+     DESIGN SYSTEM TOKENS (zyra-colors.json)
+     ═══════════════════════════════════════════ */
+  :root {
+    /* Primary */
+    --navy:        #00172D;
+    --ocean-blue:  #1A5A69;
+    --cable-blue:  #00529E;
+    /* Accent */
+    --seafoam:     #5F9DAE;
+    --mist:        #9AB2B1;
+    --deep-teal:   #091A1B;
+    /* Earth */
+    --leaf-green:  #2C670C;
+    --olive:       #576216;
+    --soil:        #50452C;
+    /* Semantic */
+    --amber:       #FFC107;
+    --red:         #F44336;
+    /* Neutrals */
+    --neutral-900: #232323;
+    --neutral-700: #8B8985;
+    --neutral-600: #A3A29D;
+    --neutral-400: #D8D7D3;
+    --neutral-200: #F7F5EE;
+    --neutral-50:  #FEFEFE;
+
+/* Typography — design-system-guide.md recommends
+   "Clean sans-serif (Inter, Source Sans Pro, Roboto, or system defaults)"
+   Using Source Sans 3 (Google Fonts name for Source Sans Pro) */
+--font-sans: 'Source Sans 3', 'Source Sans Pro', system-ui, -apple-system, sans-serif;
+--font-mono: 'Source Code Pro', 'Fira Code', 'Consolas', monospace;
+
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+background: #e0deda;
+display: flex;
+justify-content: center;
+padding: 40px 20px;
+font-family: var(--font-sans);
+}
+
+/* ═══════════════════════════════════════════
+POSTER FRAME — 48×36" landscape, 1920px web
+═══════════════════════════════════════════ */
+.poster {
+width: 100%;
+max-width: 1920px;
+background: var(--neutral-50);
+box-shadow: 0 8px 40px rgba(0,23,45,0.10);
+overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════
+SECTION 1: HEADER — REV 5
+The tree illustration is placed as a contained
+element on the left, not a background crop.
+This preserves the full tree + root cross-section.
+═══════════════════════════════════════════ */
+.header {
+position: relative;
+overflow: hidden;
+background: url('light-slide-background.png') center center / cover no-repeat;
+}
+
+/* Bottom accent */
+.header::after {
+content: '';
+position: absolute;
+bottom: 0; left: 0; right: 0;
+height: 4px;
+background: linear-gradient(90deg,
+transparent 0%, var(--mist) 20%,
+var(--seafoam) 50%, var(--mist) 80%,
+transparent 100%);
+z-index: 10;
+}
+
+/* Main layout: text overlays the background image */
+.header-content {
+position: relative;
+z-index: 5;
+display: flex;
+align-items: stretch;
+min-height: 480px;
+}
+
+/* ── Left: hidden since image is now the full background ── */
+.header-left {
+display: none;
+}
+
+.header-left img {
+display: none;
+}
+
+/* No longer needed — image is the background */
+.header-left::after {
+display: none;
+}
+
+/* ── Right: text panel overlaying the background ── */
+.header-right {
+flex: 1;
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+text-align: center;
+padding: 48px 72px 48px 72px;
+position: relative;
+background: radial-gradient(
+  ellipse at center 60%,
+  rgba(247,245,238,0.88) 0%,
+  rgba(247,245,238,0.65) 50%,
+  rgba(247,245,238,0.3) 100%
+);
+}
+
+/* Data-viz textures on the text panel */
+.header-dataviz {
+position: absolute;
+inset: 0;
+z-index: 0;
+pointer-events: none;
+overflow: hidden;
+}
+.header-dataviz svg {
+position: absolute;
+inset: 0;
+width: 100%;
+height: 100%;
+}
+
+/* All text content above the texture layer */
+.header-right > *:not(.header-dataviz) {
+position: relative;
+z-index: 1;
+}
+
+.project-name {
+font-size: 62px;
+font-weight: 800;
+color: var(--navy);
+line-height: 1.0;
+letter-spacing: -1.5px;
+margin-bottom: 8px;
+}
+
+.poster-title {
+font-size: 28px;
+font-weight: 600;
+color: var(--ocean-blue);
+line-height: 1.26;
+letter-spacing: -0.3px;
+margin-bottom: 14px;
+max-width: 620px;
+}
+
+.poster-subtitle {
+font-size: 16.5px;
+font-weight: 400;
+color: var(--neutral-700);
+letter-spacing: 0.1px;
+margin-bottom: 24px;
+line-height: 1.4;
+}
+
+.vine-divider {
+width: 180px;
+height: 22px;
+margin-bottom: 18px;
+opacity: 0.5;
+}
+.vine-divider img {
+width: 100%;
+height: 100%;
+object-fit: contain;
+object-position: left center;
+}
+
+.author-block {
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 3px;
+margin-bottom: 22px;
+}
+.author-name { font-size: 15.5px; font-weight: 600; color: var(--neutral-900); }
+.author-org  { font-size: 13.5px; color: var(--neutral-700); }
+.author-orcid {
+font-size: 12px;
+color: var(--neutral-600);
+display: flex;
+align-items: center;
+gap: 5px;
+margin-top: 2px;
+}
+.orcid-dot {
+display: inline-flex;
+width: 15px; height: 15px;
+border-radius: 50%;
+background: #A6CE39;
+align-items: center;
+justify-content: center;
+font-size: 8.5px;
+font-weight: 700;
+color: #fff;
+}
+
+.badges { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; }
+.badge {
+display: inline-flex;
+align-items: center;
+gap: 5px;
+padding: 5px 12px;
+border-radius: 16px;
+font-size: 11.5px;
+font-weight: 500;
+color: var(--navy);
+background: rgba(254,254,254,0.92);
+border: 1px solid var(--neutral-600);
+text-decoration: none;
+box-shadow: 0 1px 3px rgba(0,23,45,0.12);
+}
+.badge-pip {
+display: inline-flex;
+width: 16px; height: 16px;
+border-radius: 3px;
+align-items: center;
+justify-content: center;
+font-size: 7.5px;
+font-weight: 700;
+color: #fff;
+}
+.pip-pypi { background: #3775A9; }
+.pip-docs { background: var(--ocean-blue); }
+.pip-doi  { background: var(--amber); color: var(--navy); }
+.pip-lic  { background: var(--neutral-700); }
+.pip-gh   { background: var(--neutral-900); }
+.badge-label { color: var(--neutral-700); }
+.badge-value { font-weight: 600; color: var(--navy); }
+
+/* ═══════════════════════════════════════════
+SECTION 2: THE CHALLENGE — REV 1
+Illustrated card with vine-cable border frame,
+dramatic tangled-paths SVG, soil-tone transition.
+═══════════════════════════════════════════ */
+
+/* Transition gradient from header's earth tones */
+.challenge-transition {
+height: 28px;
+background: linear-gradient(180deg,
+#d4dbb0 0%,       /* picks up header's horizon zone */
+#e3dfc6 30%,
+var(--neutral-200) 70%,
+var(--neutral-50) 100%
+);
+}
+
+.challenge-section {
+padding: 12px 72px 28px 72px;
+position: relative;
+}
+
+/* The main card container */
+.challenge-card {
+position: relative;
+display: flex;
+gap: 40px;
+align-items: stretch;
+padding: 0;
+overflow: hidden;
+}
+
+/* ── Illustrated vine-cable border frame ── */
+.challenge-frame {
+position: absolute;
+inset: 0;
+z-index: 0;
+pointer-events: none;
+}
+.challenge-frame img {
+width: 100%;
+height: 100%;
+object-fit: fill;
+opacity: 0.10;
+}
+
+/* Inner content area with padding inside the frame */
+.challenge-inner {
+position: relative;
+z-index: 1;
+display: flex;
+gap: 40px;
+align-items: stretch;
+width: 100%;
+/* Padding accounts for the vine border illustration */
+padding: 36px 44px;
+background: rgba(247, 245, 238, 0.85);
+border-radius: 6px;
+}
+
+/* Subtle texture — fine diagonal lines (retained, more subtle) */
+.challenge-inner::before {
+content: '';
+position: absolute;
+inset: 0;
+border-radius: 6px;
+background: repeating-linear-gradient(
+135deg,
+transparent, transparent 28px,
+rgba(0,82,158,0.012) 28px,
+rgba(0,82,158,0.012) 29px
+);
+pointer-events: none;
+}
+
+/* ── Text column ── */
+.challenge-text {
+flex: 1 1 55%;
+min-width: 0;
+position: relative;
+z-index: 1;
+}
+
+/* Section tag */
+.section-tag {
+display: inline-flex;
+align-items: center;
+gap: 7px;
+margin-bottom: 10px;
+}
+.section-tag .diamond {
+width: 7px; height: 7px;
+background: var(--cable-blue);
+border-radius: 1.5px;
+transform: rotate(45deg);
+flex-shrink: 0;
+}
+.section-tag span {
+font-family: var(--font-sans);
+font-size: 10.5px;
+font-weight: 600;
+letter-spacing: 1.5px;
+text-transform: uppercase;
+color: var(--cable-blue);
+}
+
+/* Heading with subtle underline accent */
+.challenge-heading {
+font-family: var(--font-sans);
+font-size: 26px;
+font-weight: 700;
+color: var(--navy);
+line-height: 1.25;
+margin-bottom: 6px;
+position: relative;
+display: inline-block;
+}
+.challenge-heading::after {
+content: '';
+display: block;
+width: 64px;
+height: 3px;
+background: linear-gradient(90deg, var(--cable-blue), var(--seafoam));
+border-radius: 2px;
+margin-top: 8px;
+margin-bottom: 12px;
+}
+
+/* Body text */
+.challenge-body {
+position: relative;
+}
+.challenge-body p {
+font-family: var(--font-sans);
+font-size: 15px;
+font-weight: 400;
+color: var(--neutral-900);
+line-height: 1.72;
+max-width: 920px;
+}
+.challenge-body p + p {
+margin-top: 12px;
+}
+
+.em-bold {
+font-weight: 600;
+color: var(--navy);
+}
+
+/* Protocol/format tokens */
+.tok {
+font-family: var(--font-mono);
+font-size: 12.5px;
+font-weight: 500;
+color: var(--cable-blue);
+background: rgba(0,82,158,0.06);
+border: 1px solid rgba(0,82,158,0.10);
+padding: 1px 6px;
+border-radius: 3px;
+letter-spacing: 0.3px;
+white-space: nowrap;
+}
+
+/* ── Graphic column ── */
+.challenge-graphic {
+flex: 0 0 380px;
+display: flex;
+align-items: center;
+justify-content: center;
+position: relative;
+z-index: 1;
+}
+
+.challenge-graphic svg {
+width: 100%;
+height: auto;
+max-width: 380px;
+}
+
+/* SVG text styles */
+.cg-node {
+font-family: var(--font-mono);
+font-size: 10.5px;
+font-weight: 600;
+letter-spacing: 0.4px;
+}
+.cg-label {
+font-family: var(--font-sans);
+font-size: 9.5px;
+font-weight: 600;
+letter-spacing: 1.2px;
+text-transform: uppercase;
+}
+
+/* ── Flow cue: vine-cable arrow ── */
+.flow-cue {
+display: flex;
+justify-content: center;
+padding: 10px 0 2px 0;
+}
+.flow-cue img {
+width: 60px;
+height: auto;
+opacity: 0.35;
+transform: rotate(90deg);
+}
+
+/* ── Responsive ── */
+@media (max-width: 960px) {
+.challenge-section { padding: 12px 28px 20px; }
+.challenge-inner { flex-direction: column; padding: 24px; gap: 24px; }
+.challenge-graphic { flex: none; max-width: 300px; margin: 0 auto; }
+.challenge-heading { font-size: 22px; }
+}
+
+/* ═══════════════════════════════════════════
+ SECTION 3: THE PIPELINE
+ Hero visual — 8-stage architecture.
+ ═══════════════════════════════════════════ */
+
+.pipeline-section {
+padding: 24px 72px 32px 72px;
+}
+.pipeline-section .section-tag { margin-bottom: 8px; }
+.pipeline-heading {
+font-family: var(--font-sans);
+font-size: 26px;
+font-weight: 700;
+color: var(--navy);
+line-height: 1.25;
+margin-bottom: 4px;
+}
+.pipeline-sub {
+font-family: var(--font-sans);
+font-size: 14px;
+color: var(--neutral-700);
+margin-bottom: 20px;
+}
+
+/* Pipeline visual container — centered, preserves infographic proportions */
+/* Responsive wrapper: scales the fixed-size visual to fit the viewport */
+.pipeline-visual-wrap {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  cursor: zoom-in;
+  border-radius: 8px;
+  border: 1px solid var(--neutral-400);
+  background: var(--neutral-50);
+}
+.pipeline-visual-wrap .zoom-hint {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0,23,45,0.72);
+  color: var(--neutral-50);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.pipeline-visual-wrap .zoom-hint svg { width: 14px; height: 14px; }
+.pipeline-visual-wrap:hover .zoom-hint { opacity: 1; }
+
+.pipeline-visual {
+position: relative;
+margin: 0 auto;
+width: 1440px;
+height: 620px;
+background: var(--neutral-50);
+border-radius: 0;
+border: none;
+overflow: visible;
+transform-origin: top left;
+}
+
+/* Lightbox modal for full-size viewing */
+.pipeline-lightbox {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0,0,0,0.85);
+  cursor: zoom-out;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 40px;
+}
+.pipeline-lightbox.active { display: flex; justify-content: center; align-items: flex-start; }
+.pipeline-lightbox .pipeline-visual {
+  transform: none !important;
+  flex-shrink: 0;
+  border: 1px solid var(--neutral-400);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 20px 80px rgba(0,0,0,0.5);
+  background: var(--neutral-50);
+}
+.pipeline-lightbox .lb-close {
+  position: fixed;
+  top: 16px;
+  right: 24px;
+  z-index: 10001;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  backdrop-filter: blur(8px);
+}
+.pipeline-lightbox .lb-close:hover { background: rgba(255,255,255,0.3); }
+.pipeline-visual .flow-bg {
+position: absolute;
+inset: 0;
+z-index: 0;
+}
+
+/* Phase group labels */
+.phase-label {
+position: absolute;
+font-family: var(--font-sans);
+font-size: 18px;
+font-weight: 700;
+letter-spacing: -0.2px;
+z-index: 5;
+}
+.pl-ingest { top: 16px; left: 55px; color: var(--cable-blue); }
+.pl-viz    { top: 16px; left: 510px; color: var(--ocean-blue); }
+.pl-export { top: 16px; right: 95px; color: var(--leaf-green); }
+
+/* Source / Output icon stacks */
+.source-stack {
+position: absolute;
+left: 25px; top: 110px;
+display: flex; flex-direction: column; gap: 22px;
+z-index: 5;
+}
+.output-stack {
+position: absolute;
+right: 20px; top: 100px;
+display: flex; flex-direction: column; gap: 22px;
+z-index: 5;
+}
+.source-item {
+display: flex; align-items: center; gap: 9px;
+}
+.source-icon {
+width: 48px; height: 48px;
+border-radius: 12px;
+display: flex; align-items: center; justify-content: center;
+box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+}
+.source-label {
+font-family: var(--font-sans);
+font-size: 12px;
+font-weight: 700;
+color: var(--navy);
+}
+
+/* Stage bubbles */
+.stage-bubble {
+position: absolute;
+z-index: 10;
+text-align: center;
+}
+.stage-circle {
+width: 74px; height: 74px;
+border-radius: 50%;
+display: flex; align-items: center; justify-content: center;
+margin: 0 auto;
+box-shadow: 0 5px 20px rgba(0,0,0,0.11);
+position: relative;
+}
+.stage-circle svg { width: 32px; height: 32px; }
+.stage-circle.planned {
+box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+border: 2.5px dashed var(--neutral-700);
+background: rgba(139,137,133,0.12) !important;
+}
+.stage-label-txt {
+font-family: var(--font-sans);
+font-size: 12px;
+font-weight: 700;
+margin-top: 5px;
+color: var(--navy);
+}
+.stage-cli-txt {
+font-family: var(--font-mono);
+font-size: 10px;
+color: var(--cable-blue);
+background: rgba(0,82,158,0.07);
+border-radius: 3px;
+padding: 1px 6px;
+display: inline-block;
+margin-top: 2px;
+}
+.stage-cli-txt.planned-cli {
+color: var(--neutral-700);
+background: rgba(139,137,133,0.12);
+}
+
+/* Callout cards */
+.callout {
+position: absolute;
+z-index: 15;
+background: white;
+border-radius: 10px;
+padding: 12px 14px;
+box-shadow: 0 3px 16px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.03);
+max-width: 200px;
+}
+.callout-arrow {
+position: absolute;
+top: -5px;
+width: 10px; height: 10px;
+background: white;
+transform: rotate(45deg);
+box-shadow: -1px -1px 2px rgba(0,0,0,0.03);
+}
+.callout-title, .callout-text { position: relative; z-index: 2; }
+.callout-title {
+font-family: var(--font-sans);
+font-size: 10.5px;
+font-weight: 700;
+color: var(--navy);
+margin-bottom: 3px;
+display: flex; align-items: center; gap: 5px;
+}
+.ct-tag {
+font-family: var(--font-mono);
+font-size: 8.5px;
+font-weight: 600;
+color: white;
+padding: 1px 5px;
+border-radius: 3px;
+}
+.callout-text {
+font-family: var(--font-sans);
+font-size: 10px;
+color: var(--neutral-700);
+line-height: 1.4;
+}
+
+/* Format pills */
+.format-pills {
+position: absolute;
+display: flex; gap: 5px;
+z-index: 12;
+}
+.fpill {
+font-family: var(--font-mono);
+font-size: 9.5px;
+font-weight: 600;
+padding: 3px 10px;
+border-radius: 6px;
+color: white;
+box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* Phase summaries at bottom of visual */
+.phase-summaries {
+position: absolute;
+bottom: 8px;
+left: 0; right: 0;
+display: flex;
+z-index: 5;
+}
+.phase-summary {
+flex: 1;
+text-align: center;
+font-family: var(--font-sans);
+font-size: 11px;
+color: var(--neutral-700);
+line-height: 1.4;
+padding: 0 36px;
+}
+
+/* ── Below pipeline: table + code ── */
+.pipeline-details {
+display: flex;
+gap: 28px;
+margin-top: 20px;
+align-items: flex-start;
+}
+
+/* Compact table */
+.pipeline-table-wrap {
+flex: 1 1 62%;
+min-width: 0;
+}
+.pipeline-table {
+width: 100%;
+border-collapse: collapse;
+font-family: var(--font-sans);
+font-size: 12.5px;
+}
+.pipeline-table th {
+text-align: left;
+font-weight: 600;
+color: var(--navy);
+padding: 6px 10px;
+border-bottom: 2px solid var(--neutral-400);
+font-size: 11px;
+text-transform: uppercase;
+letter-spacing: 0.5px;
+}
+.pipeline-table td {
+padding: 5px 10px;
+border-bottom: 1px solid var(--neutral-400);
+color: var(--neutral-900);
+vertical-align: top;
+}
+.pipeline-table tr:last-child td { border-bottom: none; }
+.pipeline-table .stage-num {
+font-weight: 700;
+color: var(--cable-blue);
+width: 28px;
+text-align: center;
+}
+.pipeline-table .cli-cell {
+font-family: var(--font-mono);
+font-size: 11px;
+color: var(--cable-blue);
+}
+.pipeline-table .status-impl {
+color: var(--leaf-green);
+font-weight: 600;
+font-size: 11px;
+}
+.pipeline-table .status-plan {
+color: var(--neutral-700);
+font-weight: 500;
+font-size: 11px;
+font-style: italic;
+}
+.pipeline-table .status-partial {
+color: var(--amber);
+font-weight: 600;
+font-size: 11px;
+}
+
+/* Streaming code block */
+.stream-block {
+flex: 1 1 38%;
+min-width: 0;
+}
+.stream-label {
+font-family: var(--font-sans);
+font-size: 11px;
+font-weight: 600;
+text-transform: uppercase;
+letter-spacing: 1px;
+color: var(--ocean-blue);
+margin-bottom: 6px;
+}
+.stream-code {
+background: var(--neutral-200);
+border: 1px solid var(--neutral-400);
+border-radius: 6px;
+padding: 14px 16px;
+font-family: var(--font-mono);
+font-size: 11.5px;
+color: var(--neutral-900);
+line-height: 1.6;
+white-space: pre-wrap;
+word-break: break-all;
+overflow-x: auto;
+}
+.stream-code .sc-cmd { color: var(--cable-blue); font-weight: 600; }
+.stream-code .sc-pipe { color: var(--leaf-green); font-weight: 700; }
+.stream-code .sc-flag { color: var(--ocean-blue); }
+.stream-note {
+font-family: var(--font-sans);
+font-size: 11px;
+color: var(--neutral-700);
+margin-top: 8px;
+line-height: 1.5;
+}
+
+/* ═══════════════════════════════════════════
+SECTION 4+: USE CASE CARDS
+Half-column cards for concrete workflows.
+═══════════════════════════════════════════ */
+.usecase-row {
+padding: 28px 72px 32px 72px;
+display: flex;
+gap: 28px;
+align-items: flex-start;
+}
+
+.usecase-card {
+flex: 1 1 50%;
+min-width: 0;
+background: var(--neutral-50);
+border: 1px solid var(--neutral-400);
+border-left: 4px solid var(--cable-blue);
+border-radius: 0 6px 6px 0;
+padding: 28px 30px;
+position: relative;
+}
+
+.usecase-heading {
+font-family: var(--font-sans);
+font-size: 20px;
+font-weight: 700;
+color: var(--ocean-blue);
+line-height: 1.3;
+margin-bottom: 6px;
+}
+
+.usecase-desc {
+font-family: var(--font-sans);
+font-size: 14px;
+color: var(--neutral-900);
+line-height: 1.55;
+margin-bottom: 18px;
+}
+
+/* Code block — follows design system code block styling */
+.usecase-code {
+background: var(--neutral-200);
+border: 1px solid var(--neutral-400);
+border-radius: 6px;
+padding: 16px 18px;
+font-family: var(--font-mono);
+font-size: 11.5px;
+color: var(--neutral-900);
+line-height: 1.7;
+white-space: pre;
+overflow-x: auto;
+margin-bottom: 0;
+position: relative;
+}
+
+/* Step-structured code block */
+.code-steps {
+display: flex;
+flex-direction: column;
+gap: 0;
+margin-bottom: 0;
+}
+.code-step {
+display: flex;
+align-items: flex-start;
+gap: 12px;
+padding: 12px 16px;
+background: var(--neutral-200);
+border: 1px solid var(--neutral-400);
+border-bottom: none;
+position: relative;
+}
+.code-step:first-child {
+border-radius: 6px 6px 0 0;
+}
+.code-step:last-child {
+border-bottom: 1px solid var(--neutral-400);
+border-radius: 0 0 6px 6px;
+}
+.code-step::after {
+content: 'bash';
+position: absolute;
+top: 6px;
+right: 10px;
+font-family: var(--font-mono);
+font-size: 9px;
+font-weight: 500;
+color: var(--neutral-600);
+letter-spacing: 0.5px;
+text-transform: uppercase;
+display: none;
+}
+.code-step:first-child::after {
+display: block;
+}
+.step-dot {
+flex-shrink: 0;
+width: 32px;
+height: 32px;
+border-radius: 50%;
+display: flex;
+align-items: center;
+justify-content: center;
+font-family: var(--font-sans);
+font-size: 11px;
+font-weight: 700;
+color: #fff;
+margin-top: 1px;
+box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+}
+.step-dot svg { width: 16px; height: 16px; }
+.step-dot-import { background: linear-gradient(135deg, var(--cable-blue), #003d7a); }
+.step-dot-process { background: linear-gradient(135deg, var(--leaf-green), #1a4a08); }
+.step-dot-visualize { background: linear-gradient(135deg, var(--olive), #3a4510); }
+
+/* Stage name tag beside the step */
+.step-stage-tag {
+display: inline-block;
+font-family: var(--font-mono);
+font-size: 9px;
+font-weight: 600;
+letter-spacing: 0.5px;
+text-transform: uppercase;
+padding: 2px 8px;
+border-radius: 3px;
+margin-bottom: 4px;
+}
+.step-stage-tag.tag-import {
+background: rgba(0,82,158,0.1);
+color: var(--cable-blue);
+}
+.step-stage-tag.tag-process {
+background: rgba(44,103,12,0.1);
+color: var(--leaf-green);
+}
+.step-stage-tag.tag-visualize {
+background: rgba(87,98,22,0.1);
+color: var(--olive);
+}
+.step-stage-tag.tag-export {
+background: rgba(0,82,158,0.1);
+color: var(--cable-blue);
+}
+.step-dot-export { background: linear-gradient(135deg, var(--cable-blue), #003d7a); }
+.step-code {
+font-family: var(--font-mono);
+font-size: 11.5px;
+color: var(--neutral-900);
+line-height: 1.7;
+white-space: pre-wrap;
+word-break: break-all;
+}
+
+/* User intent speech bubble */
+.user-intent-bubble {
+position: relative;
+background: var(--neutral-200);
+border: 1px solid var(--neutral-400);
+border-radius: 12px 12px 12px 2px;
+padding: 12px 16px;
+margin-bottom: 14px;
+}
+.user-intent-bubble::before {
+content: '';
+position: absolute;
+bottom: -8px;
+left: 14px;
+width: 0;
+height: 0;
+border-left: 8px solid var(--neutral-400);
+border-right: 8px solid transparent;
+border-top: 8px solid var(--neutral-200);
+border-bottom: 8px solid transparent;
+}
+.user-intent-label {
+display: flex;
+align-items: center;
+gap: 6px;
+margin-bottom: 6px;
+}
+.user-intent-avatar {
+width: 22px;
+height: 22px;
+border-radius: 50%;
+background: var(--soil);
+display: flex;
+align-items: center;
+justify-content: center;
+}
+.user-intent-avatar svg { width: 12px; height: 12px; }
+.user-intent-name {
+font-family: var(--font-sans);
+font-size: 10px;
+font-weight: 600;
+color: var(--neutral-700);
+text-transform: uppercase;
+letter-spacing: 0.5px;
+}
+.user-intent-text {
+font-family: var(--font-sans);
+font-size: 13px;
+font-style: italic;
+color: var(--navy);
+line-height: 1.5;
+}
+.user-intent-text em {
+font-style: normal;
+font-weight: 600;
+color: var(--ocean-blue);
+}
+
+/* Flow connector between code and output */
+.flow-connector {
+display: flex;
+align-items: center;
+justify-content: center;
+padding: 8px 0;
+color: var(--neutral-600);
+}
+.flow-connector svg {
+opacity: 0.5;
+}
+
+/* Faint CONUS watermark on HRRR card */
+.hrrr-card {
+position: relative;
+overflow: hidden;
+}
+.hrrr-card::before {
+content: '';
+position: absolute;
+top: 50%;
+right: -20px;
+width: 200px;
+height: 140px;
+background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 140'%3E%3Cpath d='M30,20 Q40,15 55,18 L70,15 Q85,12 95,18 L110,22 Q125,20 140,15 L155,18 Q168,22 175,28 L178,35 Q180,45 175,55 L170,65 Q165,72 160,78 L155,85 Q148,92 140,95 L130,98 Q118,102 105,100 L90,95 Q78,90 68,85 L55,80 Q42,75 35,68 L28,58 Q22,48 25,38 L28,28 Q28,22 30,20Z' fill='none' stroke='%231A5A69' stroke-width='0.8' opacity='0.06'/%3E%3C/svg%3E") no-repeat center center;
+background-size: contain;
+pointer-events: none;
+opacity: 0.5;
+}
+.usecase-code .cc-cmd {
+color: var(--cable-blue);
+font-weight: 600;
+}
+.usecase-code .cc-url {
+color: var(--ocean-blue);
+}
+.usecase-code .cc-flag {
+color: var(--olive);
+}
+.usecase-code .cc-file {
+color: var(--leaf-green);
+font-weight: 500;
+}
+/* Small language tag in corner */
+.usecase-code::after {
+content: 'bash';
+position: absolute;
+top: 6px;
+right: 10px;
+font-family: var(--font-mono);
+font-size: 9px;
+font-weight: 500;
+color: var(--neutral-600);
+letter-spacing: 0.5px;
+text-transform: uppercase;
+}
+
+/* Image placeholder / container */
+.usecase-image-wrap {
+border-radius: 6px;
+overflow: hidden;
+border: 1px solid var(--neutral-400);
+background: var(--neutral-200);
+position: relative;
+}
+.usecase-image-wrap img {
+width: 100%;
+display: block;
+}
+/* Placeholder state */
+.usecase-placeholder {
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+height: 260px;
+gap: 10px;
+color: var(--neutral-600);
+}
+.usecase-placeholder svg {
+opacity: 0.35;
+}
+.usecase-placeholder span {
+font-family: var(--font-sans);
+font-size: 12px;
+font-weight: 500;
+letter-spacing: 0.3px;
+}
+
+.usecase-caption {
+font-family: var(--font-sans);
+font-size: 12px;
+font-style: italic;
+color: var(--neutral-700);
+margin-top: 8px;
+text-align: center;
+}
+.usecase-caption code {
+font-family: var(--font-mono);
+font-size: 11px;
+font-style: normal;
+color: var(--cable-blue);
+background: rgba(0,82,158,0.06);
+padding: 0 4px;
+border-radius: 2px;
+}
+
+/* ── DAG diagram (vertical flowchart) ── */
+.dag-wrap {
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 0;
+margin-bottom: 18px;
+}
+.dag-node {
+display: flex;
+align-items: center;
+gap: 10px;
+width: 100%;
+max-width: 320px;
+}
+.dag-box {
+flex: 1;
+display: flex;
+align-items: center;
+gap: 8px;
+padding: 9px 14px;
+border-radius: 6px;
+color: white;
+font-family: var(--font-mono);
+font-size: 11.5px;
+font-weight: 600;
+letter-spacing: 0.2px;
+box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.dag-box svg { width: 18px; height: 18px; flex-shrink: 0; }
+.dag-stage-tag {
+font-family: var(--font-sans);
+font-size: 9px;
+font-weight: 500;
+color: var(--neutral-600);
+white-space: nowrap;
+min-width: 72px;
+text-align: right;
+}
+.dag-arrow {
+display: flex;
+justify-content: center;
+padding: 2px 0;
+}
+.dag-arrow svg { opacity: 0.4; }
+
+/* Video preview card */
+.video-preview {
+display: block;
+border-radius: 6px;
+overflow: hidden;
+border: 1px solid var(--neutral-400);
+background: var(--navy);
+text-decoration: none;
+position: relative;
+margin-bottom: 10px;
+transition: box-shadow 0.2s;
+}
+.video-preview:hover {
+box-shadow: 0 4px 16px rgba(0,23,45,0.15);
+}
+.video-thumb {
+width: 100%;
+height: 160px;
+background: url('drought-thumb.png') center center / cover no-repeat;
+display: flex;
+align-items: center;
+justify-content: center;
+position: relative;
+overflow: hidden;
+}
+/* Video thumb overlay — subtle darkening for play button contrast */
+.video-thumb::before {
+content: '';
+position: absolute;
+inset: 0;
+background: rgba(0,23,45,0.2);
+}
+.video-play-btn {
+width: 48px; height: 48px;
+border-radius: 50%;
+background: rgba(254,254,254,0.9);
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 1;
+box-shadow: 0 3px 12px rgba(0,0,0,0.25);
+}
+.video-play-btn svg { margin-left: 3px; }
+.video-bar {
+display: flex;
+align-items: center;
+gap: 8px;
+padding: 8px 12px;
+background: var(--navy);
+}
+.video-bar-icon {
+width: 20px; height: 20px;
+flex-shrink: 0;
+}
+.video-bar-text {
+font-family: var(--font-sans);
+font-size: 11px;
+color: rgba(254,254,254,0.7);
+}
+.video-bar-text strong {
+color: var(--neutral-50);
+font-weight: 600;
+}
+
+/* Provenance callout */
+.prov-callout {
+display: flex;
+align-items: flex-start;
+gap: 8px;
+margin-top: 14px;
+padding: 10px 12px;
+background: rgba(0,82,158,0.04);
+border: 1px solid rgba(0,82,158,0.1);
+border-radius: 5px;
+}
+.prov-callout svg { flex-shrink: 0; margin-top: 1px; }
+.prov-callout p {
+font-family: var(--font-sans);
+font-size: 11.5px;
+color: var(--neutral-900);
+line-height: 1.5;
+}
+.prov-callout code {
+font-family: var(--font-mono);
+font-size: 10.5px;
+color: var(--cable-blue);
+background: rgba(0,82,158,0.06);
+padding: 0 3px;
+border-radius: 2px;
+}
+
+/* ── Swarm orchestration diagram (Section 6) ── */
+.swarm-diagram {
+margin-bottom: 16px;
+}
+.swarm-diagram svg {
+width: 100%;
+height: auto;
+}
+
+/* Provider table */
+.provider-table-wrap { margin-bottom: 14px; }
+.provider-table {
+width: 100%;
+border-collapse: collapse;
+font-family: var(--font-sans);
+font-size: 12px;
+}
+.provider-table th {
+text-align: left;
+font-weight: 600;
+font-size: 10px;
+text-transform: uppercase;
+letter-spacing: 0.5px;
+color: var(--navy);
+padding: 5px 10px;
+border-bottom: 2px solid var(--neutral-400);
+}
+.provider-table td {
+padding: 5px 10px;
+border-bottom: 1px solid var(--neutral-400);
+color: var(--neutral-900);
+}
+.provider-table tr:last-child td { border-bottom: none; }
+.provider-table .prov-name {
+font-weight: 600;
+color: var(--ocean-blue);
+}
+.provider-table .prov-usage {
+font-family: var(--font-mono);
+font-size: 10.5px;
+color: var(--cable-blue);
+}
+
+/* Narration chain pills */
+.narration-chain {
+display: flex;
+align-items: center;
+gap: 4px;
+flex-wrap: wrap;
+margin-top: 12px;
+}
+.nc-pill {
+font-family: var(--font-mono);
+font-size: 10px;
+font-weight: 600;
+padding: 3px 10px;
+border-radius: 12px;
+color: white;
+}
+.nc-arrow {
+font-size: 12px;
+color: var(--neutral-600);
+}
+
+/* Guardrails callout */
+.guard-callout {
+display: flex;
+align-items: flex-start;
+gap: 8px;
+margin-top: 12px;
+padding: 9px 12px;
+background: rgba(26,90,105,0.04);
+border: 1px solid rgba(26,90,105,0.1);
+border-radius: 5px;
+}
+.guard-callout svg { flex-shrink: 0; margin-top: 1px; }
+.guard-callout p {
+font-family: var(--font-sans);
+font-size: 11.5px;
+color: var(--neutral-900);
+line-height: 1.5;
+}
+.guard-callout code {
+font-family: var(--font-mono);
+font-size: 10.5px;
+color: var(--ocean-blue);
+background: rgba(26,90,105,0.06);
+padding: 0 3px;
+border-radius: 2px;
+}
+
+/* ── YAML code block (Section 7) ── */
+.yaml-code {
+background: var(--neutral-200);
+border: 1px solid var(--neutral-400);
+border-radius: 6px;
+padding: 16px 18px;
+font-family: var(--font-mono);
+font-size: 11px;
+color: var(--neutral-900);
+line-height: 1.65;
+white-space: pre;
+overflow-x: auto;
+margin-bottom: 16px;
+position: relative;
+}
+.yaml-code::after {
+content: 'yaml';
+position: absolute;
+top: 6px; right: 10px;
+font-family: var(--font-mono);
+font-size: 9px;
+font-weight: 500;
+color: var(--neutral-600);
+letter-spacing: 0.5px;
+text-transform: uppercase;
+}
+.yaml-code .yk { color: var(--ocean-blue); font-weight: 600; }   /* keys */
+.yaml-code .yv { color: var(--cable-blue); }                      /* values */
+.yaml-code .ys { color: var(--leaf-green); }                      /* strings */
+.yaml-code .yn { color: var(--olive); font-weight: 600; }         /* numbers */
+.yaml-code .yd { color: var(--neutral-600); }                     /* dashes/structure */
+.yaml-code .yc { color: var(--neutral-600); font-style: italic; } /* comments */
+
+/* Responsive wrapper for wide code content — scales to fit, click to zoom */
+.code-zoom-wrap {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  cursor: zoom-in;
+  border-radius: 8px;
+}
+.code-zoom-wrap .zoom-hint {
+  position: absolute;
+  top: 8px; right: 10px;
+  z-index: 20;
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(0,23,45,0.72);
+  color: var(--neutral-50);
+  font-family: var(--font-sans);
+  font-size: 11px; font-weight: 600;
+  padding: 4px 10px; border-radius: 16px;
+  pointer-events: none;
+  opacity: 0; transition: opacity 0.25s ease;
+}
+.code-zoom-wrap .zoom-hint svg { width: 13px; height: 13px; }
+.code-zoom-wrap:hover .zoom-hint { opacity: 1; }
+.code-zoom-inner { transform-origin: top left; }
+
+/* Code zoom lightbox */
+.code-lightbox {
+  display: none; position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,0.85);
+  cursor: zoom-out; overflow: auto;
+  -webkit-overflow-scrolling: touch; padding: 40px;
+}
+.code-lightbox.active { display: flex; justify-content: center; align-items: flex-start; }
+.code-lightbox .code-zoom-content {
+  flex-shrink: 0; max-width: 860px;
+  background: var(--neutral-50); border-radius: 10px;
+  padding: 32px; box-shadow: 0 20px 80px rgba(0,0,0,0.5);
+  color: var(--neutral-900);
+}
+/* Reset any dark-background inherited colors in the lightbox */
+.code-lightbox .code-zoom-content .gs-heading { color: var(--navy); }
+.code-lightbox .code-zoom-content .gs-code {
+  background: var(--navy); color: var(--neutral-50);
+  font-size: 15px; line-height: 1.7; padding: 20px 24px;
+  border-radius: 8px; margin-bottom: 16px;
+}
+.code-lightbox .code-zoom-content .gs-cmd { color: #7dd3fc; }
+.code-lightbox .code-zoom-content .gs-dim { color: rgba(255,255,255,0.5); }
+.code-lightbox .code-zoom-content .gs-links { gap: 16px; flex-wrap: wrap; }
+.code-lightbox .code-zoom-content .gs-link-label { color: var(--ocean-blue); }
+.code-lightbox .code-zoom-content .gs-link-url { color: var(--neutral-900); }
+.code-lightbox .code-zoom-content .gs-qr-label { color: var(--neutral-700); }
+.code-lightbox .code-zoom-content .section-tag span { color: var(--ocean-blue); }
+/* Emphasized code in lightbox for YAML/usecase blocks too */
+.code-lightbox .code-zoom-content .yaml-code,
+.code-lightbox .code-zoom-content .usecase-code { font-size: 14px; line-height: 1.7; }
+.code-lightbox .lb-close {
+  position: fixed; top: 16px; right: 24px; z-index: 10001;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  color: white; font-size: 24px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s; backdrop-filter: blur(8px);
+}
+.code-lightbox .lb-close:hover { background: rgba(255,255,255,0.3); }
+
+/* Zoom hint on dark backgrounds */
+.get-started-footer .code-zoom-wrap .zoom-hint {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+/* Feature pills row */
+.feature-pills {
+display: flex;
+gap: 8px;
+flex-wrap: wrap;
+margin-top: 14px;
+}
+.feat-pill {
+display: inline-flex;
+align-items: center;
+gap: 5px;
+padding: 5px 12px;
+border-radius: 14px;
+font-family: var(--font-sans);
+font-size: 11px;
+font-weight: 600;
+background: var(--neutral-200);
+border: 1px solid var(--neutral-400);
+color: var(--navy);
+}
+.feat-pill svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════
+SECTION 8: BUILDING OFF THE FOUNDATION
+Full-width architectural layer showcase
+═══════════════════════════════════════════ */
+.foundation-section {
+  padding: 36px 72px 40px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(175deg, var(--neutral-50) 0%, var(--neutral-200) 100%);
+}
+.foundation-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 600px 400px at 85% 60%, rgba(26,90,105,0.04), transparent),
+    radial-gradient(ellipse 500px 350px at 15% 40%, rgba(0,82,158,0.03), transparent);
+  pointer-events: none;
+}
+.foundation-heading {
+  font-family: var(--font-sans);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.25;
+  margin-bottom: 4px;
+  position: relative;
+}
+.foundation-sub {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--neutral-700);
+  margin-bottom: 28px;
+  position: relative;
+}
+
+/* Three-layer pyramid layout */
+.foundation-layers {
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+  position: relative;
+}
+
+/* The pyramid SVG illustration (center) */
+.foundation-pyramid {
+  flex: 0 0 380px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+}
+
+/* Left and right description columns */
+.foundation-col {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0;
+  position: relative;
+  z-index: 2;
+}
+.foundation-col.col-left {
+  padding-right: 20px;
+}
+.foundation-col.col-right {
+  padding-left: 20px;
+}
+
+/* Individual layer card */
+.foundation-layer-card {
+  padding: 16px 20px;
+  border-radius: 8px;
+  position: relative;
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.foundation-layer-card .flc-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+.foundation-layer-card .flc-title {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 2px;
+}
+.foundation-layer-card .flc-abbrev {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+}
+.foundation-layer-card .flc-desc {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--neutral-900);
+}
+.foundation-layer-card .flc-desc code {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  padding: 0 3px;
+  border-radius: 2px;
+}
+
+/* Connector lines from pyramid to cards */
+.foundation-connector {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Layer-specific coloring */
+.flc-cli .flc-number { background: linear-gradient(135deg, var(--leaf-green), #1a4a08); }
+.flc-cli .flc-title { color: var(--leaf-green); }
+.flc-cli .flc-abbrev { color: var(--leaf-green); }
+.flc-cli .flc-desc code { color: var(--leaf-green); background: rgba(44,103,12,0.08); }
+
+.flc-api .flc-number { background: linear-gradient(135deg, var(--cable-blue), #003d7a); }
+.flc-api .flc-title { color: var(--cable-blue); }
+.flc-api .flc-abbrev { color: var(--cable-blue); }
+.flc-api .flc-desc code { color: var(--cable-blue); background: rgba(0,82,158,0.08); }
+
+.flc-mcp .flc-number { background: linear-gradient(135deg, var(--ocean-blue), #0e3d4a); }
+.flc-mcp .flc-title { color: var(--ocean-blue); }
+.flc-mcp .flc-abbrev { color: var(--ocean-blue); }
+.flc-mcp .flc-desc code { color: var(--ocean-blue); background: rgba(26,90,105,0.08); }
+
+/* Feature highlight row below pyramid */
+.foundation-highlights {
+  display: flex;
+  gap: 16px;
+  margin-top: 28px;
+  position: relative;
+  z-index: 2;
+}
+.foundation-highlight-card {
+  flex: 1 1 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--neutral-50);
+  border: 1px solid var(--neutral-400);
+  border-radius: 6px;
+  border-top: 3px solid var(--neutral-400);
+}
+.foundation-highlight-card .fhc-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.foundation-highlight-card .fhc-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.foundation-highlight-card .fhc-text {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--neutral-900);
+}
+.foundation-highlight-card .fhc-text strong {
+  font-weight: 700;
+  display: block;
+  margin-bottom: 2px;
+}
+.foundation-highlight-card .fhc-text code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 0 3px;
+  border-radius: 2px;
+}
+.fhc-cli { border-top-color: var(--leaf-green); }
+.fhc-cli .fhc-icon { background: rgba(44,103,12,0.08); }
+.fhc-cli .fhc-icon svg { color: var(--leaf-green); }
+.fhc-cli .fhc-text strong { color: var(--leaf-green); }
+.fhc-cli .fhc-text code { color: var(--leaf-green); background: rgba(44,103,12,0.06); }
+
+.fhc-api { border-top-color: var(--cable-blue); }
+.fhc-api .fhc-icon { background: rgba(0,82,158,0.08); }
+.fhc-api .fhc-icon svg { color: var(--cable-blue); }
+.fhc-api .fhc-text strong { color: var(--cable-blue); }
+.fhc-api .fhc-text code { color: var(--cable-blue); background: rgba(0,82,158,0.06); }
+
+.fhc-mcp { border-top-color: var(--ocean-blue); }
+.fhc-mcp .fhc-icon { background: rgba(26,90,105,0.08); }
+.fhc-mcp .fhc-icon svg { color: var(--ocean-blue); }
+.fhc-mcp .fhc-text strong { color: var(--ocean-blue); }
+.fhc-mcp .fhc-text code { color: var(--ocean-blue); background: rgba(26,90,105,0.06); }
+
+.fhc-fast { border-top-color: var(--amber); }
+.fhc-fast .fhc-icon { background: rgba(255,193,7,0.12); }
+.fhc-fast .fhc-icon svg { color: var(--soil); }
+.fhc-fast .fhc-text strong { color: var(--soil); }
+.fhc-fast .fhc-text code { color: var(--soil); background: rgba(80,69,44,0.06); }
+
+/* ═══════════════════════════════════════════
+SECTION 9: VISUALIZATION GALLERY
+Full-width 2×2 image grid.
+═══════════════════════════════════════════ */
+.gallery-section {
+padding: 28px 72px 32px 72px;
+}
+.gallery-heading {
+font-family: var(--font-sans);
+font-size: 26px;
+font-weight: 700;
+color: var(--navy);
+line-height: 1.25;
+margin-bottom: 4px;
+}
+.gallery-sub {
+font-family: var(--font-sans);
+font-size: 13px;
+color: var(--neutral-700);
+margin-bottom: 20px;
+}
+.gallery-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 20px;
+}
+.gallery-item {
+background: var(--neutral-50);
+border: 1px solid var(--neutral-400);
+border-radius: 6px;
+overflow: hidden;
+}
+.gallery-thumb {
+width: 100%;
+aspect-ratio: 4 / 3;
+display: flex;
+align-items: center;
+justify-content: center;
+flex-direction: column;
+gap: 8px;
+position: relative;
+overflow: hidden;
+}
+.gallery-thumb svg { opacity: 0.3; }
+.gallery-thumb .gt-label {
+font-family: var(--font-sans);
+font-size: 11px;
+font-weight: 500;
+color: var(--neutral-600);
+}
+/* Each placeholder gets a unique mini-visualization sketch */
+.gt-heatmap {
+background: linear-gradient(180deg, var(--neutral-200) 0%, var(--neutral-200) 100%);
+}
+.gt-contour {
+background: var(--neutral-200);
+}
+.gt-vector {
+background: var(--neutral-200);
+}
+.gt-timeseries {
+background: var(--neutral-200);
+}
+.gallery-caption {
+padding: 8px 12px;
+border-top: 1px solid var(--neutral-400);
+background: var(--neutral-200);
+display: flex;
+align-items: center;
+gap: 6px;
+}
+.gallery-caption code {
+font-family: var(--font-mono);
+font-size: 11px;
+font-weight: 500;
+color: var(--cable-blue);
+}
+.gallery-caption .gc-dot {
+width: 6px; height: 6px;
+border-radius: 50%;
+flex-shrink: 0;
+}
+
+.gallery-also {
+margin-top: 14px;
+font-family: var(--font-sans);
+font-size: 12px;
+color: var(--neutral-700);
+text-align: center;
+line-height: 1.5;
+}
+.gallery-also strong {
+color: var(--navy);
+font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════
+SECTION 10: KEY FEATURES
+Compact reference list.
+═══════════════════════════════════════════ */
+.features-section {
+padding: 28px 72px 32px 72px;
+display: flex;
+flex-direction: column;
+gap: 28px;
+align-items: stretch;
+}
+.features-card {
+flex: none;
+min-width: 0;
+background: var(--neutral-200);
+border: 1px solid var(--neutral-400);
+border-radius: 6px;
+padding: 26px 28px;
+}
+.features-card h3 {
+font-family: var(--font-sans);
+font-size: 20px;
+font-weight: 700;
+color: var(--navy);
+margin-bottom: 14px;
+}
+.feat-list {
+list-style: none;
+padding: 0;
+margin: 0;
+display: flex;
+flex-direction: column;
+gap: 10px;
+}
+.feat-list li {
+display: flex;
+align-items: flex-start;
+gap: 10px;
+font-family: var(--font-sans);
+font-size: 13px;
+color: var(--neutral-900);
+line-height: 1.5;
+}
+.feat-dot {
+width: 7px; height: 7px;
+border-radius: 50%;
+background: var(--seafoam);
+flex-shrink: 0;
+margin-top: 5px;
+}
+.feat-list li strong {
+color: var(--ocean-blue);
+font-weight: 700;
+}
+.feat-list li code {
+font-family: var(--font-mono);
+font-size: 11px;
+color: var(--cable-blue);
+background: rgba(0,82,158,0.06);
+padding: 0 3px;
+border-radius: 2px;
+}
+.feat-meta {
+margin-top: 14px;
+padding-top: 12px;
+border-top: 1px solid var(--neutral-400);
+display: flex;
+flex-wrap: wrap;
+gap: 6px;
+}
+.feat-meta-pill {
+font-family: var(--font-sans);
+font-size: 11px;
+font-weight: 700;
+color: var(--navy);
+padding: 3px 10px;
+border-radius: 12px;
+background: var(--neutral-50);
+border: 1px solid var(--neutral-400);
+}
+
+/* ═══════════════════════════════════════════
+SECTION 11: GET STARTED FOOTER
+Full-width call to action.
+═══════════════════════════════════════════ */
+.get-started-footer {
+margin: 0 72px 0 72px;
+background: linear-gradient(135deg, var(--navy) 0%, var(--deep-teal) 100%);
+border-radius: 8px;
+padding: 32px 40px;
+display: flex;
+gap: 36px;
+align-items: center;
+position: relative;
+overflow: hidden;
+}
+/* Decorative glow blobs */
+.get-started-footer::before {
+content: '';
+position: absolute;
+top: -50px; right: -10px;
+width: 200px; height: 200px;
+background: radial-gradient(circle, rgba(95,157,174,0.15), transparent 70%);
+border-radius: 50%;
+pointer-events: none;
+}
+.get-started-footer::after {
+content: '';
+position: absolute;
+bottom: -40px; left: 180px;
+width: 160px; height: 160px;
+background: radial-gradient(circle, rgba(0,82,158,0.12), transparent 70%);
+border-radius: 50%;
+pointer-events: none;
+}
+
+.gs-main {
+flex: 1 1 auto;
+min-width: 0;
+z-index: 1;
+}
+.gs-heading {
+font-family: var(--font-sans);
+font-size: 24px;
+font-weight: 700;
+color: var(--neutral-50);
+letter-spacing: -0.3px;
+margin-bottom: 14px;
+}
+.gs-code {
+background: rgba(254,254,254,0.07);
+border: 1px solid rgba(254,254,254,0.1);
+border-radius: 8px;
+padding: 14px 20px;
+font-family: var(--font-mono);
+font-size: 13px;
+line-height: 1.7;
+white-space: pre;
+margin-bottom: 18px;
+color: #cbd5e1;
+}
+.gs-code .gs-cmd { color: #7dd3fc; font-weight: 500; }
+.gs-code .gs-dim { color: #64748b; }
+
+.gs-links {
+display: flex;
+gap: 24px;
+flex-wrap: wrap;
+z-index: 1;
+}
+.gs-link-item {
+text-align: center;
+}
+.gs-link-label {
+font-family: var(--font-sans);
+font-size: 9px;
+font-weight: 700;
+text-transform: uppercase;
+letter-spacing: 1px;
+color: var(--seafoam);
+margin-bottom: 2px;
+}
+.gs-link-url {
+font-family: var(--font-sans);
+font-size: 11px;
+color: rgba(254,254,254,0.6);
+}
+
+/* QR code area */
+.gs-qr {
+flex-shrink: 0;
+z-index: 1;
+text-align: center;
+}
+.gs-qr-box {
+width: 100px; height: 100px;
+background: white;
+border-radius: 6px;
+display: flex;
+align-items: center;
+justify-content: center;
+box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+overflow: hidden;
+}
+.gs-qr-label {
+font-family: var(--font-sans);
+font-size: 9px;
+color: rgba(254,254,254,0.5);
+margin-top: 5px;
+letter-spacing: 0.3px;
+}
+
+/* Bottom spacer */
+.poster-bottom-pad {
+height: 28px;
+}
+
+/* ═══════════════════════════════════════════
+RESPONSIVE / PRINT
+═══════════════════════════════════════════ */
+@media (max-width: 960px) {
+.challenge-section, .pipeline-section, .usecase-row, .gallery-section, .features-section, .foundation-section { padding-left: 28px; padding-right: 28px; }
+.header-content { flex-direction: column; }
+.header-left { display: none; }
+.header-right { padding: 24px 28px 36px; }
+.project-name { font-size: 42px; }
+.poster-title { font-size: 22px; }
+.pipeline-visual { height: auto; min-height: 500px; }
+.pipeline-details { flex-direction: column; }
+.usecase-row { flex-direction: column; }
+.usecase-code { font-size: 10px; }
+.foundation-layers { flex-direction: column; }
+.foundation-pyramid { flex: 0 0 auto; }
+.foundation-highlights { flex-direction: column; }
+}
+
+
+/* ═══════════════════════════════════════════════════
+   POSTER PRINT MODE — 48×36" landscape (4:3)
+   Activated by body.poster-print class or ?print URL
+   ═══════════════════════════════════════════════════ */
+
+.print-mode-toggle {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 9999;
+  background: var(--navy);
+  color: var(--neutral-50);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+.print-mode-toggle a { color: var(--seafoam); text-decoration: underline; cursor: pointer; }
+.print-mode-toggle .pmt-info { display: flex; align-items: center; gap: 12px; }
+.print-mode-toggle .pmt-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--leaf-green);
+  animation: pmt-pulse 2s infinite;
+}
+@keyframes pmt-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+body.poster-print {
+  background: #444;
+  padding: 48px 10px 40px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* ═══ MASTER GRID — 48×36" poster at 100 DPI = 4800×3600px ═══
+   At 300 DPI print, scale 3× → 14400×10800.
+   Browser shows at native size; zoom out to preview full poster.
+   
+   6-row layout:
+   Row 1 (270px):  HEADER
+   Row 2 (660px):  CHALLENGE | PIPELINE
+   Row 3 (900px):  4 use case cards, equal columns
+   Row 4 (460px):  FOUNDATION
+   Row 5 (600px):  GALLERY | FEATURES
+   Row 6 (270px):  FOOTER
+   Subtotal: 3160 + internal padding ≈ 3600
+*/
+body.poster-print .poster {
+  width: 4800px;
+  max-width: 4800px;
+  height: 3600px;
+  overflow: hidden;
+  box-shadow: 0 20px 100px rgba(0,0,0,0.4);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-rows: 360px 770px 830px 270px 600px 370px;
+  grid-template-areas:
+    "header      header      header      header"
+    "challenge   pipeline    pipeline    pipeline"
+    "uc4         uc5         uc6         uc7"
+    "foundation  foundation  foundation  foundation"
+    "gallery     gallery     feat-start  feat-start"
+    "footer      footer      footer      footer";
+  gap: 0;
+}
+
+body.poster-print .challenge-transition,
+body.poster-print .poster-bottom-pad,
+body.poster-print .flow-cue { display: none !important; }
+
+/* ═══ SECTION TAG ═══ */
+body.poster-print .section-tag { margin-bottom: 4px !important; }
+body.poster-print .section-tag span { font-size: 18px; letter-spacing: 2.5px; }
+body.poster-print .section-tag .diamond { width: 14px; height: 14px; }
+
+/* ═══ ROW 1: HEADER — 360px ═══ */
+body.poster-print .header { grid-area: header; overflow: hidden; background: linear-gradient(180deg, var(--neutral-50) 0%, var(--neutral-200) 100%); }
+body.poster-print .header::after { height: 5px; }
+body.poster-print .header-content { min-height: 0; height: 360px; }
+body.poster-print .header-left { display: none; }
+body.poster-print .header-right { padding: 16px 80px 10px; background: none; }
+body.poster-print .header-dataviz { display: none; }
+body.poster-print .project-name { font-size: 72px; margin-bottom: 0; line-height: 1.0; }
+body.poster-print .poster-title { font-size: 36px; margin-bottom: 2px; line-height: 1.2; }
+body.poster-print .poster-subtitle { font-size: 24px; margin-bottom: 4px; }
+body.poster-print .author-block { margin-bottom: 4px; gap: 2px; }
+body.poster-print .author-name { font-size: 26px; }
+body.poster-print .author-org { font-size: 22px; }
+body.poster-print .author-orcid { font-size: 20px; }
+body.poster-print .orcid-dot { font-size: 10px; width: 20px; height: 20px; }
+body.poster-print .badges { gap: 10px; }
+body.poster-print .badge { font-size: 18px; padding: 4px 12px 4px 4px; gap: 5px; border-radius: 12px; }
+body.poster-print .badge-pip { width: 32px; height: 32px; font-size: 14px; border-radius: 9px; }
+body.poster-print .badge-pip svg { width: 16px; height: 16px; }
+body.poster-print .badge-label { font-size: 14px; }
+body.poster-print .badge-value { font-size: 18px; }
+
+/* ═══ ROW 2: CHALLENGE + PIPELINE — 670px ═══ */
+body.poster-print .challenge-section {
+  grid-area: challenge; padding: 20px 16px 20px 40px; overflow: hidden;
+}
+body.poster-print .challenge-card { padding: 24px; height: 100%; overflow: hidden; border-radius: 14px; }
+body.poster-print .challenge-frame { display: none; }
+body.poster-print .challenge-inner { flex-direction: column; gap: 10px; }
+body.poster-print .challenge-heading { font-size: 38px; margin-bottom: 8px; }
+body.poster-print .challenge-body p { font-size: 22px; line-height: 1.4; margin-bottom: 10px; }
+body.poster-print .challenge-body .tok { font-size: 20px; padding: 3px 12px; border-radius: 7px; }
+body.poster-print .challenge-body .em-bold { font-size: 22px; }
+body.poster-print .challenge-graphic { flex: 0 0 auto; max-height: 240px; overflow: hidden; }
+body.poster-print .challenge-graphic svg { max-height: 230px; width: auto; }
+
+body.poster-print .pipeline-section {
+  grid-area: pipeline; padding: 20px 40px 20px 16px; overflow: hidden;
+}
+body.poster-print .pipeline-visual-wrap {
+  border: none; cursor: default; overflow: hidden; height: auto !important;
+}
+body.poster-print .pipeline-visual-wrap .zoom-hint { display: none; }
+body.poster-print .pipeline-heading { font-size: 42px; margin-bottom: 6px; }
+body.poster-print .pipeline-sub { font-size: 24px; margin-bottom: 8px; }
+body.poster-print .pipeline-visual { height: 300px; min-height: 0; width: auto; transform: none !important; }
+body.poster-print .stage-circle { width: 65px; height: 65px; }
+body.poster-print .stage-circle svg { width: 34px; height: 34px; }
+body.poster-print .stage-label-txt { font-size: 18px; }
+body.poster-print .stage-cli-txt { font-size: 14px; }
+body.poster-print .source-icon { width: 48px; height: 48px; }
+body.poster-print .source-icon svg { width: 34px; height: 34px; }
+body.poster-print .source-label { font-size: 16px; }
+body.poster-print .phase-label { font-size: 15px; }
+body.poster-print .callout { display: none; }
+body.poster-print .format-pills { display: none; }
+body.poster-print .phase-summaries { display: none; }
+body.poster-print .pipeline-details { gap: 12px; margin-top: 4px; }
+body.poster-print .pipeline-table-wrap { overflow: hidden; }
+body.poster-print .pipeline-table th,
+body.poster-print .pipeline-table td { padding: 3px 10px; font-size: 16px; }
+body.poster-print .pipeline-table th { font-size: 14px; }
+body.poster-print .stream-label { font-size: 18px; margin-bottom: 3px; }
+body.poster-print .stream-code { font-size: 17px; padding: 10px 16px; line-height: 1.4; border-radius: 8px; }
+body.poster-print .stream-note { font-size: 17px; margin-top: 3px; }
+body.poster-print .stream-note code { font-size: 16px; }
+
+/* ═══ ROW 3: USE CASES — 4 columns, 900px ═══ */
+body.poster-print #uc-row-45 { display: contents; }
+body.poster-print #uc-row-67 { display: contents; }
+body.poster-print #uc-row-45 > .usecase-card:first-child { grid-area: uc4; }
+body.poster-print #uc-row-45 > .usecase-card:last-child  { grid-area: uc5; }
+body.poster-print #uc-row-67 > .usecase-card:first-child { grid-area: uc6; }
+body.poster-print #uc-row-67 > .usecase-card:last-child  { grid-area: uc7; }
+
+body.poster-print .usecase-card {
+  padding: 16px 20px; overflow: hidden;
+  margin: 8px; border-radius: 12px;
+}
+body.poster-print .usecase-heading { font-size: 28px; margin-bottom: 6px; }
+body.poster-print .usecase-desc { font-size: 20px; line-height: 1.35; margin-bottom: 10px; }
+body.poster-print .usecase-code { font-size: 19px; padding: 12px 16px; line-height: 1.5; border-radius: 10px; }
+body.poster-print .usecase-code::after { font-size: 16px; top: 10px; right: 12px; }
+body.poster-print .code-step { padding: 10px 16px; }
+body.poster-print .step-dot { width: 40px; height: 40px; font-size: 18px; border-radius: 10px; }
+body.poster-print .step-dot svg { width: 22px; height: 22px; }
+body.poster-print .step-code { font-size: 19px; line-height: 1.45; }
+body.poster-print .step-stage-tag { font-size: 15px; padding: 3px 12px; border-radius: 6px; }
+body.poster-print .dag-wrap { margin-bottom: 10px; gap: 4px; }
+body.poster-print .dag-box { padding: 8px 14px; font-size: 20px; border-radius: 8px; gap: 8px; }
+body.poster-print .dag-box svg { width: 28px; height: 28px; }
+body.poster-print .dag-stage-tag { font-size: 16px; min-width: 120px; padding: 3px 12px; border-radius: 6px; }
+body.poster-print .dag-arrow { padding: 2px 0; }
+body.poster-print .dag-arrow svg { width: 24px; height: 24px; }
+body.poster-print .usecase-placeholder { height: 160px; border-radius: 10px; }
+body.poster-print .usecase-placeholder svg { transform: scale(0.85); }
+body.poster-print .usecase-placeholder span { font-size: 20px; }
+body.poster-print .usecase-caption { font-size: 20px; margin-top: 6px; }
+body.poster-print .usecase-caption code { font-size: 19px; }
+body.poster-print .video-preview { margin-bottom: 8px; border-radius: 10px; overflow: hidden; }
+body.poster-print .video-thumb { height: 110px; }
+body.poster-print .video-play-btn { width: 48px; height: 48px; }
+body.poster-print .video-play-btn svg { width: 20px; height: 20px; }
+body.poster-print .video-bar { padding: 7px 12px; gap: 10px; }
+body.poster-print .video-bar-icon { width: 28px; height: 28px; }
+body.poster-print .video-bar-text { font-size: 19px; }
+body.poster-print .prov-callout { padding: 10px 14px; margin-top: 8px; gap: 10px; border-radius: 8px; }
+body.poster-print .prov-callout svg { width: 24px; height: 24px; }
+body.poster-print .prov-callout p { font-size: 19px; line-height: 1.4; }
+body.poster-print .prov-callout code { font-size: 18px; }
+body.poster-print .swarm-diagram { margin-bottom: 8px; }
+body.poster-print .swarm-diagram svg { max-height: 280px; }
+body.poster-print .user-intent-bubble { padding: 10px 16px; margin-bottom: 10px; border-radius: 12px; }
+body.poster-print .user-intent-bubble::before { display: none; }
+body.poster-print .user-intent-avatar { width: 32px; height: 32px; }
+body.poster-print .user-intent-avatar svg { width: 18px; height: 18px; }
+body.poster-print .user-intent-name { font-size: 15px; }
+body.poster-print .user-intent-text { font-size: 20px; line-height: 1.4; }
+body.poster-print .provider-table-wrap { margin-top: 6px; margin-bottom: 6px; }
+body.poster-print .provider-table { font-size: 19px; border-radius: 8px; }
+body.poster-print .provider-table th { font-size: 17px; padding: 5px 12px; }
+body.poster-print .provider-table td { padding: 5px 12px; }
+body.poster-print .prov-name { font-size: 19px; }
+body.poster-print .prov-usage { font-size: 17px; }
+body.poster-print .narration-chain { margin-top: 6px; gap: 6px; }
+body.poster-print .nc-pill { font-size: 18px; padding: 5px 14px; border-radius: 14px; }
+body.poster-print .nc-arrow { font-size: 20px; }
+body.poster-print .guard-callout { padding: 8px 12px; margin-top: 6px; border-radius: 8px; }
+body.poster-print .guard-callout svg { width: 24px; height: 24px; }
+body.poster-print .guard-callout p { font-size: 19px; }
+body.poster-print .guard-callout code { font-size: 18px; }
+body.poster-print .yaml-code { font-size: 18px; padding: 12px 16px; line-height: 1.4; margin-bottom: 8px; border-radius: 10px; }
+body.poster-print .yaml-code::after { font-size: 15px; }
+body.poster-print .code-zoom-wrap { cursor: default; overflow: visible; height: auto !important; }
+body.poster-print .code-zoom-wrap .zoom-hint { display: none; }
+body.poster-print .code-zoom-inner { transform: none !important; }
+/* The Get Started zoom wrap must be transparent to the grid */
+body.poster-print .get-started-footer .code-zoom-wrap { display: contents; }
+body.poster-print .get-started-footer .code-zoom-inner { display: flex; gap: 24px; align-items: flex-start; }
+body.poster-print .feature-pills { gap: 8px; margin-top: 8px; }
+body.poster-print .feat-pill { font-size: 18px; padding: 5px 14px; gap: 5px; border-radius: 14px; }
+body.poster-print .feat-pill svg { width: 20px; height: 20px; }
+
+/* ═══ ROW 4: FOUNDATION — 320px ═══ */
+body.poster-print .foundation-section {
+  grid-area: foundation; padding: 10px 40px; overflow: hidden;
+}
+body.poster-print .foundation-heading { font-size: 34px; margin-bottom: 2px; }
+body.poster-print .foundation-sub { font-size: 20px; margin-bottom: 6px; }
+body.poster-print .foundation-layers { gap: 16px; flex-direction: row !important; flex-wrap: nowrap; }
+body.poster-print .foundation-pyramid { display: none; }
+body.poster-print .foundation-col { flex-direction: row !important; gap: 12px !important; flex-wrap: nowrap; }
+body.poster-print .foundation-col.col-left { padding-right: 0; }
+body.poster-print .foundation-col.col-right { padding-left: 0; }
+body.poster-print .foundation-layer-card { padding: 10px 14px; border-radius: 8px; text-align: left !important; flex: 1 1 0; }
+body.poster-print .foundation-layer-card .flc-number { width: 28px; height: 28px; font-size: 15px; margin-bottom: 2px; }
+body.poster-print .foundation-layer-card .flc-title { font-size: 20px; }
+body.poster-print .foundation-layer-card .flc-abbrev { font-size: 14px; margin-bottom: 2px; }
+body.poster-print .foundation-layer-card .flc-desc { font-size: 16px; line-height: 1.3; }
+body.poster-print .foundation-layer-card .flc-desc code { font-size: 15px; }
+body.poster-print .foundation-layer-card div[style*="flex-end"] { justify-content: flex-start !important; }
+body.poster-print .foundation-highlights { display: none; }
+
+/* ═══ ROW 5: GALLERY + FEATURES — 600px ═══ */
+body.poster-print .gallery-section {
+  grid-area: gallery; padding: 12px 16px 12px 40px; overflow: hidden;
+}
+body.poster-print .gallery-heading { font-size: 36px; margin-bottom: 4px; }
+body.poster-print .gallery-sub { font-size: 22px; margin-bottom: 10px; }
+body.poster-print .gallery-sub code { font-size: 21px; }
+body.poster-print .gallery-grid { gap: 12px; }
+body.poster-print .gallery-thumb { aspect-ratio: 16/9; border-radius: 10px; }
+body.poster-print .gallery-thumb svg { transform: scale(0.9); }
+body.poster-print .gallery-thumb .gt-label { font-size: 18px; }
+body.poster-print .gallery-caption { padding: 8px 12px; }
+body.poster-print .gallery-caption code { font-size: 20px; }
+body.poster-print .gc-dot { width: 10px; height: 10px; }
+body.poster-print .gallery-also { font-size: 20px; margin-top: 6px; }
+
+body.poster-print .features-section { display: contents; }
+body.poster-print .features-section > .features-card:first-child {
+  grid-area: feat-start; padding: 12px 40px 12px 16px;
+  overflow: hidden;
+}
+body.poster-print .features-card { padding: 20px 24px; border-radius: 12px; }
+body.poster-print .features-card h3 { font-size: 30px; margin-bottom: 10px; }
+body.poster-print .feat-list { gap: 8px; }
+body.poster-print .feat-list li { font-size: 22px; line-height: 1.35; gap: 12px; }
+body.poster-print .feat-dot { width: 10px; height: 10px; margin-top: 7px; }
+body.poster-print .feat-list li strong { font-size: 22px; }
+body.poster-print .feat-list li code { font-size: 19px; }
+body.poster-print .feat-meta { margin-top: 10px; padding-top: 10px; gap: 8px; }
+body.poster-print .feat-meta-pill { font-size: 19px; padding: 4px 12px; border-radius: 10px; }
+
+/* ═══ ROW 6: FOOTER — 270px ═══ */
+body.poster-print .features-section > .features-card:last-child { display: contents; }
+body.poster-print .get-started-footer { 
+  grid-area: footer; margin: 0 24px; padding: 20px 36px; gap: 24px; border-radius: 14px;
+  display: flex; align-items: center;
+}
+body.poster-print .get-started-footer::before,
+body.poster-print .get-started-footer::after { display: none; }
+body.poster-print .gs-heading { font-size: 32px; margin-bottom: 10px; }
+body.poster-print .gs-code { font-size: 24px; padding: 12px 20px; margin-bottom: 12px; line-height: 1.5; border-radius: 10px; }
+body.poster-print .gs-cmd { font-size: 24px; }
+body.poster-print .gs-dim { font-size: 22px; }
+body.poster-print .gs-links { gap: 20px; flex-wrap: wrap; }
+body.poster-print .gs-link-item { gap: 3px; }
+body.poster-print .gs-link-label { font-size: 18px; }
+body.poster-print .gs-link-url { font-size: 22px; }
+body.poster-print .gs-qr { display: flex; flex-direction: column; align-items: center; }
+body.poster-print .gs-qr-box { width: 130px; height: 130px; border-radius: 12px; }
+body.poster-print .gs-qr-box img { width: 110px !important; height: 110px !important; }
+body.poster-print .gs-qr-label { font-size: 17px; }
+
+body.poster-print .poster-bottom-pad { display: none; }
+
+
+@media print {
+body { background: none !important; padding: 0 !important; }
+.poster { box-shadow: none !important; }
+.print-mode-toggle { display: none !important; }
+}
+
+</style>
+
+</head>
+<body>
+
+<!-- Print mode toggle banner (shown in both modes) -->
+<div class="print-mode-toggle" id="modeToggle" style="display:none;">
+  <div class="pmt-info">
+    <div class="pmt-dot"></div>
+    <span id="modeLabel">Print Preview — 48×36" poster at 4:3 ratio (1600×1200px)</span>
+  </div>
+  <div>
+    <a id="toggleLink" href="#">Switch to Web View</a>
+  </div>
+</div>
+
+<div class="poster">
+
+
+  <!-- ════════════ SECTION 1: HEADER ════════════ -->
+
+  <div class="header">
+
+<div class="header-content">
+
+  <!-- Left: full tree illustration, contained (not cropped) -->
+  <div class="header-left">
+    <img src="light-slide-background.png" alt="Illustrated tree with roots transitioning to ethernet cables underground">
+  </div>
+
+  <!-- Right: text with data-viz textures -->
+  <div class="header-right">
+
+    <!-- Data-viz texture background -->
+    <div class="header-dataviz">
+      <svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+        <defs>
+          <pattern id="dotgrid" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
+            <circle cx="14" cy="14" r="1" fill="#1A5A69" opacity="0.07"/>
+          </pattern>
+          <pattern id="contour" x="0" y="0" width="360" height="360" patternUnits="userSpaceOnUse">
+            <ellipse cx="180" cy="180" rx="160" ry="105" fill="none" stroke="#1A5A69" stroke-width="0.6" opacity="0.06"/>
+            <ellipse cx="180" cy="180" rx="120" ry="78" fill="none" stroke="#1A5A69" stroke-width="0.5" opacity="0.05"/>
+            <ellipse cx="180" cy="180" rx="80" ry="50" fill="none" stroke="#1A5A69" stroke-width="0.45" opacity="0.045"/>
+            <ellipse cx="180" cy="180" rx="42" ry="25" fill="none" stroke="#1A5A69" stroke-width="0.4" opacity="0.04"/>
+          </pattern>
+          <pattern id="hashmarks" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="0" x2="0" y2="3" stroke="#00529E" stroke-width="0.5" opacity="0.05"/>
+            <line x1="0" y1="0" x2="3" y2="0" stroke="#00529E" stroke-width="0.5" opacity="0.05"/>
+          </pattern>
+        </defs>
+
+        <rect width="100%" height="100%" fill="url(#contour)"/>
+        <rect width="100%" height="100%" fill="url(#dotgrid)"/>
+        <rect width="100%" height="100%" fill="url(#hashmarks)"/>
+
+        <!-- Freeform contour lines -->
+        <path d="M20,60 Q140,30 280,55 Q420,85 540,50 Q680,15 820,45" fill="none" stroke="#5F9DAE" stroke-width="0.7" opacity="0.045"/>
+        <path d="M10,100 Q150,70 300,95 Q440,125 560,90 Q700,55 840,80" fill="none" stroke="#5F9DAE" stroke-width="0.6" opacity="0.04"/>
+        <path d="M30,150 Q160,125 300,145 Q430,170 570,135 Q710,100 850,125" fill="none" stroke="#5F9DAE" stroke-width="0.5" opacity="0.035"/>
+
+        <path d="M40,340 Q180,315 320,335 Q460,360 580,325 Q720,290 860,315" fill="none" stroke="#1A5A69" stroke-width="0.6" opacity="0.035"/>
+        <path d="M50,375 Q190,350 340,370 Q470,395 600,358 Q740,320 880,345" fill="none" stroke="#1A5A69" stroke-width="0.5" opacity="0.03"/>
+
+        <!-- Weather station markers -->
+        <circle cx="200" cy="80" r="2.5" fill="none" stroke="#00529E" stroke-width="0.6" opacity="0.055"/>
+        <line x1="200" y1="76" x2="200" y2="84" stroke="#00529E" stroke-width="0.4" opacity="0.045"/>
+        <line x1="196" y1="80" x2="204" y2="80" stroke="#00529E" stroke-width="0.4" opacity="0.045"/>
+
+        <circle cx="550" cy="140" r="2.5" fill="none" stroke="#00529E" stroke-width="0.6" opacity="0.055"/>
+        <line x1="550" y1="136" x2="550" y2="144" stroke="#00529E" stroke-width="0.4" opacity="0.045"/>
+        <line x1="546" y1="140" x2="554" y2="140" stroke="#00529E" stroke-width="0.4" opacity="0.045"/>
+
+        <circle cx="380" cy="310" r="2.5" fill="none" stroke="#00529E" stroke-width="0.6" opacity="0.05"/>
+        <line x1="380" y1="306" x2="380" y2="314" stroke="#00529E" stroke-width="0.4" opacity="0.04"/>
+        <line x1="376" y1="310" x2="384" y2="310" stroke="#00529E" stroke-width="0.4" opacity="0.04"/>
+
+        <circle cx="720" cy="260" r="2.5" fill="none" stroke="#00529E" stroke-width="0.6" opacity="0.05"/>
+        <line x1="720" y1="256" x2="720" y2="264" stroke="#00529E" stroke-width="0.4" opacity="0.04"/>
+        <line x1="716" y1="260" x2="724" y2="260" stroke="#00529E" stroke-width="0.4" opacity="0.04"/>
+
+        <!-- Faint lat/lon dashes -->
+        <line x1="250" y1="0" x2="250" y2="480" stroke="#1A5A69" stroke-width="0.3" opacity="0.02" stroke-dasharray="4 14"/>
+        <line x1="550" y1="0" x2="550" y2="480" stroke="#1A5A69" stroke-width="0.3" opacity="0.02" stroke-dasharray="4 14"/>
+        <line x1="0" y1="160" x2="900" y2="160" stroke="#1A5A69" stroke-width="0.3" opacity="0.018" stroke-dasharray="4 14"/>
+        <line x1="0" y1="320" x2="900" y2="320" stroke="#1A5A69" stroke-width="0.3" opacity="0.018" stroke-dasharray="4 14"/>
+      </svg>
+    </div>
+
+    <div class="project-name">Zyra</div>
+    <h1 class="poster-title">Modular, Reproducible Data&nbsp;Workflows for&nbsp;Science</h1>
+    <p class="poster-subtitle">An Open-Source Python Framework by NOAA Global Systems Laboratory</p>
+
+    <div class="author-block">
+      <span class="author-name">Eric Hackathorn</span>
+      <span class="author-org">NOAA Global Systems Laboratory</span>
+      <span class="author-orcid">
+        <span class="orcid-dot">iD</span>
+        0000-0002-9693-2093
+      </span>
+    </div>
+
+    <div class="badges">
+      <a href="https://pypi.org/project/zyra/" class="badge">
+        <span class="badge-pip pip-pypi">Pi</span>
+        <span class="badge-label">PyPI</span>
+        <span class="badge-value">zyra</span>
+      </a>
+      <a href="https://github.com/NOAA-GSL/zyra" class="badge">
+        <span class="badge-pip pip-gh"><svg width="10" height="10" viewBox="0 0 16 16" fill="white"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></span>
+        <span class="badge-label">GitHub</span>
+        <span class="badge-value">NOAA-GSL/zyra</span>
+      </a>
+      <a href="https://noaa-gsl.github.io/zyra/" class="badge">
+        <span class="badge-pip pip-docs"><svg width="9" height="9" viewBox="0 0 10 10" fill="none"><rect x="1" y="0" width="8" height="10" rx="1" stroke="white" stroke-width="1.2" fill="none"/><line x1="3" y1="3" x2="7" y2="3" stroke="white" stroke-width="0.8"/><line x1="3" y1="5" x2="7" y2="5" stroke="white" stroke-width="0.8"/><line x1="3" y1="7" x2="5.5" y2="7" stroke="white" stroke-width="0.8"/></svg></span>
+        <span class="badge-label">Docs</span>
+        <span class="badge-value">Sphinx</span>
+      </a>
+      <a href="https://doi.org/10.5281/zenodo.16923323" class="badge">
+        <span class="badge-pip pip-doi">DOI</span>
+        <span class="badge-label">DOI</span>
+        <span class="badge-value">10.5281/zenodo.16923323</span>
+      </a>
+      <span class="badge">
+        <span class="badge-pip pip-lic"><svg width="9" height="9" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="white" stroke-width="1.2" fill="none"/><path d="M3.5 5.5 L4.5 6.5 L7 4" stroke="white" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="badge-label">License</span>
+        <span class="badge-value">Apache-2.0</span>
+      </span>
+    </div>
+  </div>
+</div>
+
+  </div>
+
+  <!-- Gradient bridge from header -->
+
+  <div class="challenge-transition"></div>
+
+  <div class="challenge-transition"></div>
+
+  <!-- ════════════ SECTION 2: THE CHALLENGE ════════════ -->
+
+  <div class="challenge-section">
+    <div class="challenge-card">
+
+  <!-- Illustrated vine-cable border frame -->
+  <div class="challenge-frame">
+    <img src="zyra-light-border.png" alt="" aria-hidden="true">
+  </div>
+
+  <div class="challenge-inner">
+
+    <!-- Left: Problem text -->
+    <div class="challenge-text">
+      <div class="section-tag">
+        <div class="diamond"></div>
+        <span>Problem Statement</span>
+      </div>
+
+      <h2 class="challenge-heading">The Challenge</h2>
+
+      <div class="challenge-body">
+        <p>
+          Environmental and scientific workflows span
+          <span class="em-bold">heterogeneous data sources</span>&hairsp;—&hairsp;<span class="tok">HTTP</span>&ensp;<span class="tok">FTP</span>&ensp;<span class="tok">S3</span>&ensp;<span class="tok">APIs</span>&hairsp;—&hairsp;and
+          <span class="em-bold">diverse formats</span> such as
+          <span class="tok">GRIB2</span>&ensp;<span class="tok">NetCDF</span>&ensp;<span class="tok">GeoTIFF</span>.
+          They require repeatable transformation chains and produce outputs ranging from static maps and animations to interactive pages and publishable datasets.
+          Existing approaches often rely on ad-hoc scripts that break when data changes and lack reproducibility across teams and environments.
+        </p>
+        <p>
+          <span class="em-bold">Zyra</span> (pronounced <em>Zy-rah</em>) provides a light-weight, CLI-first framework that
+          standardizes these common steps while remaining fully extensible for domain-specific logic.
+          Think of it as a garden for your data: you plant seeds (from the web, satellites, or experiments), Zyra helps you nurture them (through filtering, analysis, and processing), and you harvest insights as visualizations, reports, and interactive media.
+          It's designed to make science not just rigorous, but also accessible, transparent, and beautiful.
+        </p>
+      </div>
+    </div>
+
+    <!-- Right: Tangled paths graphic (dramatically revised) -->
+    <div class="challenge-graphic">
+      <svg viewBox="0 0 380 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- Subtle grid background -->
+          <pattern id="grid" width="22" height="22" patternUnits="userSpaceOnUse">
+            <path d="M 22 0 L 0 0 0 22" fill="none" stroke="#D8D7D3" stroke-width="0.5" opacity="0.4"/>
+          </pattern>
+
+          <!-- Glow for break markers -->
+          <filter id="warn-glow">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+
+          <!-- Source node gradient -->
+          <linearGradient id="srcGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#00172D"/>
+            <stop offset="100%" stop-color="#002a4a"/>
+          </linearGradient>
+
+          <!-- Tangled path gradients -->
+          <linearGradient id="tangleA" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#5F9DAE"/>
+            <stop offset="100%" stop-color="#9AB2B1"/>
+          </linearGradient>
+          <linearGradient id="tangleB" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#9AB2B1"/>
+            <stop offset="50%" stop-color="#A3A29D"/>
+            <stop offset="100%" stop-color="#D8D7D3"/>
+          </linearGradient>
+
+          <!-- Break X marker -->
+          <symbol id="breakX" viewBox="0 0 20 20">
+            <circle cx="10" cy="10" r="9" fill="#F44336" fill-opacity="0.12" stroke="#F44336" stroke-width="1.2" stroke-opacity="0.5"/>
+            <line x1="6" y1="6" x2="14" y2="14" stroke="#F44336" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+            <line x1="14" y1="6" x2="6" y2="14" stroke="#F44336" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+          </symbol>
+        </defs>
+
+        <!-- Background grid -->
+        <rect width="380" height="300" fill="url(#grid)" rx="5"/>
+
+        <!-- ── LAYER: Tangled connection lines (thicker, more dramatic) ── -->
+        <!-- HTTP → Map (semi-clean) -->
+        <path d="M62 68 C62 105, 80 135, 75 165 C70 190, 50 205, 55 238"
+              stroke="url(#tangleA)" stroke-width="3" opacity="0.45" stroke-linecap="round"/>
+        <!-- HTTP → Dataset (wild crossing) -->
+        <path d="M62 68 C85 100, 260 95, 300 238"
+              stroke="url(#tangleB)" stroke-width="2.5" opacity="0.3" stroke-dasharray="6 4" stroke-linecap="round"/>
+        <!-- FTP → Animation (dramatic tangle) -->
+        <path d="M148 68 C148 95, 40 125, 160 170 C220 195, 160 210, 165 238"
+              stroke="url(#tangleA)" stroke-width="3" opacity="0.4" stroke-linecap="round"/>
+        <!-- FTP → Map (crossing back over) -->
+        <path d="M148 68 C130 100, 105 140, 55 238"
+              stroke="url(#tangleB)" stroke-width="2.5" opacity="0.25" stroke-dasharray="8 5" stroke-linecap="round"/>
+        <!-- S3 → Dataset (somewhat clean) -->
+        <path d="M238 68 C238 105, 275 170, 300 238"
+              stroke="url(#tangleA)" stroke-width="3" opacity="0.4" stroke-linecap="round"/>
+        <!-- S3 → Map (long dramatic crossing) -->
+        <path d="M238 68 C210 100, 110 145, 55 238"
+              stroke="url(#tangleB)" stroke-width="2.5" opacity="0.25" stroke-dasharray="5 5" stroke-linecap="round"/>
+        <!-- API → Animation (tangled) -->
+        <path d="M322 68 C322 95, 270 115, 220 145 C170 170, 185 200, 165 238"
+              stroke="url(#tangleA)" stroke-width="3" opacity="0.4" stroke-linecap="round"/>
+        <!-- API → Dataset (short) -->
+        <path d="M322 68 C315 115, 305 175, 300 238"
+              stroke="url(#tangleB)" stroke-width="2.5" opacity="0.35" stroke-linecap="round"/>
+        <!-- Extra chaos lines -->
+        <path d="M62 68 C90 110, 180 100, 165 238"
+              stroke="#A3A29D" stroke-width="1.5" opacity="0.15" stroke-dasharray="3 6" stroke-linecap="round"/>
+        <path d="M322 68 C280 110, 100 165, 55 238"
+              stroke="#A3A29D" stroke-width="1.5" opacity="0.12" stroke-dasharray="4 7" stroke-linecap="round"/>
+
+        <!-- ── LAYER: Break/warning markers (larger, more alarming) ── -->
+        <g filter="url(#warn-glow)">
+          <use href="#breakX" x="108" y="108" width="20" height="20"/>
+          <use href="#breakX" x="80" y="158" width="18" height="18"/>
+          <use href="#breakX" x="240" y="128" width="18" height="18"/>
+          <use href="#breakX" x="185" y="178" width="16" height="16"/>
+        </g>
+
+        <!-- ── LAYER: Category labels ── -->
+        <text x="190" y="16" class="cg-label" fill="#8B8985" text-anchor="middle">Sources</text>
+        <text x="190" y="296" class="cg-label" fill="#8B8985" text-anchor="middle">Outputs</text>
+
+        <!-- ── LAYER: Source nodes (top row — bolder with icons) ── -->
+        <!-- HTTP -->
+        <rect x="22" y="28" width="76" height="34" rx="5" fill="url(#srcGrad)"/>
+        <svg x="28" y="33" width="18" height="18" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" stroke="#5F9DAE" stroke-width="1.5" fill="none"/>
+          <ellipse cx="12" cy="12" rx="4.5" ry="9" stroke="#5F9DAE" stroke-width="1" fill="none"/>
+          <line x1="3" y1="12" x2="21" y2="12" stroke="#5F9DAE" stroke-width="1"/>
+        </svg>
+        <text x="64" y="50" class="cg-node" fill="#FEFEFE" text-anchor="middle">HTTP</text>
+
+        <!-- FTP -->
+        <rect x="112" y="28" width="72" height="34" rx="5" fill="url(#srcGrad)"/>
+        <svg x="118" y="33" width="18" height="18" viewBox="0 0 24 24">
+          <rect x="4" y="4" width="16" height="16" rx="2" stroke="#5F9DAE" stroke-width="1.5" fill="none"/>
+          <line x1="4" y1="10" x2="20" y2="10" stroke="#5F9DAE" stroke-width="1"/>
+          <line x1="12" y1="10" x2="12" y2="20" stroke="#5F9DAE" stroke-width="1"/>
+        </svg>
+        <text x="152" y="50" class="cg-node" fill="#FEFEFE" text-anchor="middle">FTP</text>
+
+        <!-- S3 -->
+        <rect x="200" y="28" width="68" height="34" rx="5" fill="url(#srcGrad)"/>
+        <svg x="206" y="33" width="18" height="18" viewBox="0 0 24 24">
+          <path d="M5 8 C5 5, 19 5, 19 8 L19 16 C19 19, 5 19, 5 16 Z" stroke="#5F9DAE" stroke-width="1.5" fill="none"/>
+          <path d="M5 8 C5 11, 19 11, 19 8" stroke="#5F9DAE" stroke-width="1" fill="none"/>
+        </svg>
+        <text x="240" y="50" class="cg-node" fill="#FEFEFE" text-anchor="middle">S3</text>
+
+        <!-- API -->
+        <rect x="282" y="28" width="72" height="34" rx="5" fill="url(#srcGrad)"/>
+        <svg x="288" y="34" width="16" height="16" viewBox="0 0 24 24">
+          <path d="M8 4 L4 8 L8 12" stroke="#5F9DAE" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M16 4 L20 8 L16 12" stroke="#5F9DAE" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="14" y1="3" x2="10" y2="13" stroke="#5F9DAE" stroke-width="1.2"/>
+        </svg>
+        <text x="322" y="50" class="cg-node" fill="#FEFEFE" text-anchor="middle">API</text>
+
+        <!-- ── LAYER: Format pills (bold, solid background) ── -->
+        <rect x="30" y="138" width="68" height="24" rx="12" fill="#00529E" fill-opacity="0.10" stroke="#00529E" stroke-width="1.2" stroke-opacity="0.35"/>
+        <text x="64" y="154" class="cg-node" font-size="9.5" fill="#00529E" text-anchor="middle" font-weight="600">GRIB2</text>
+
+        <rect x="148" y="150" width="76" height="24" rx="12" fill="#00529E" fill-opacity="0.10" stroke="#00529E" stroke-width="1.2" stroke-opacity="0.35"/>
+        <text x="186" y="166" class="cg-node" font-size="9.5" fill="#00529E" text-anchor="middle" font-weight="600">NetCDF</text>
+
+        <rect x="268" y="133" width="80" height="24" rx="12" fill="#00529E" fill-opacity="0.10" stroke="#00529E" stroke-width="1.2" stroke-opacity="0.35"/>
+        <text x="308" y="149" class="cg-node" font-size="9.5" fill="#00529E" text-anchor="middle" font-weight="600">GeoTIFF</text>
+
+        <!-- ── LAYER: Output nodes (bottom row — bolder with icons) ── -->
+        <!-- Maps -->
+        <rect x="14" y="242" width="80" height="34" rx="5" fill="none" stroke="#1A5A69" stroke-width="2"/>
+        <svg x="20" y="247" width="20" height="20" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="18" height="18" rx="2" stroke="#1A5A69" stroke-width="1.5" fill="none"/>
+          <polyline points="5,17 9,11 12,14 16,9 19,13" fill="none" stroke="#5F9DAE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <text x="62" y="264" class="cg-node" font-size="10" fill="#1A5A69" text-anchor="middle">Maps</text>
+
+        <!-- Animations -->
+        <rect x="122" y="242" width="92" height="34" rx="5" fill="none" stroke="#1A5A69" stroke-width="2"/>
+        <svg x="128" y="248" width="18" height="18" viewBox="0 0 24 24">
+          <polygon points="6,4 20,12 6,20" fill="none" stroke="#1A5A69" stroke-width="1.8" stroke-linejoin="round"/>
+        </svg>
+        <text x="176" y="264" class="cg-node" font-size="10" fill="#1A5A69" text-anchor="middle">Animations</text>
+
+        <!-- Datasets -->
+        <rect x="242" y="242" width="96" height="34" rx="5" fill="none" stroke="#1A5A69" stroke-width="2"/>
+        <svg x="250" y="248" width="18" height="18" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="18" height="18" rx="1.5" stroke="#1A5A69" stroke-width="1.5" fill="none"/>
+          <line x1="3" y1="9" x2="21" y2="9" stroke="#1A5A69" stroke-width="1"/>
+          <line x1="3" y1="15" x2="21" y2="15" stroke="#1A5A69" stroke-width="1"/>
+          <line x1="10" y1="3" x2="10" y2="21" stroke="#1A5A69" stroke-width="1"/>
+        </svg>
+        <text x="298" y="264" class="cg-node" font-size="10" fill="#1A5A69" text-anchor="middle">Datasets</text>
+
+        <!-- ── LAYER: "ad-hoc scripts" caption (larger, more alarming) ── -->
+        <rect x="115" y="190" width="152" height="26" rx="13" fill="#F44336" fill-opacity="0.08" stroke="#F44336" stroke-width="1" stroke-opacity="0.4"/>
+        <text x="191" y="207" font-family="Source Sans 3, sans-serif" font-size="10.5" font-weight="600" fill="#F44336" text-anchor="middle" opacity="0.8">ad-hoc scripts break here</text>
+
+      </svg>
+    </div>
+
+  </div>
+</div>
+
+<!-- Flow cue: vine-cable arrow pointing down -->
+<div class="flow-cue">
+  <img src="zyra-straight-arrow.png" alt="→">
+</div>
+
+  </div>
+
+  <!-- ════════════ SECTION 3: THE PIPELINE ════════════ -->
+
+  <div class="pipeline-section">
+
+<div class="section-tag">
+  <div class="diamond"></div>
+  <span>Architecture</span>
+</div>
+<h2 class="pipeline-heading">The Pipeline: 8 Composable Stages</h2>
+<p class="pipeline-sub">Use only what you need. Each stage streams via stdin/stdout for Unix-style chaining.</p>
+
+<!-- ── Hero pipeline visual ── -->
+<div class="pipeline-visual-wrap" id="pipelineWrap" onclick="openPipelineLightbox()">
+  <span class="zoom-hint">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>
+    Click to zoom
+  </span>
+<div class="pipeline-visual" id="pipelineVisual">
+
+  <!-- FLOWING SVG BACKGROUND -->
+  <svg class="flow-bg" viewBox="0 0 1360 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Main flowing river path -->
+    <path d="M 160 190 C 250 170, 300 250, 400 220 C 500 190, 520 130, 620 160 C 720 190, 750 270, 850 240 C 950 210, 980 150, 1080 180 C 1180 210, 1200 270, 1200 240"
+          stroke="url(#mainFlow)" stroke-width="56" stroke-linecap="round" opacity="0.06"/>
+    <path d="M 160 190 C 250 170, 300 250, 400 220 C 500 190, 520 130, 620 160 C 720 190, 750 270, 850 240 C 950 210, 980 150, 1080 180 C 1180 210, 1200 270, 1200 240"
+          stroke="url(#mainFlow)" stroke-width="24" stroke-linecap="round" opacity="0.09"/>
+
+    <!-- Animated dots along path -->
+    <circle r="3.5" fill="var(--cable-blue)" opacity="0.3">
+      <animateMotion dur="8s" repeatCount="indefinite"
+        path="M 160 190 C 250 170, 300 250, 400 220 C 500 190, 520 130, 620 160 C 720 190, 750 270, 850 240 C 950 210, 980 150, 1080 180 C 1180 210, 1200 270, 1200 240"/>
+    </circle>
+    <circle r="3" fill="var(--ocean-blue)" opacity="0.25">
+      <animateMotion dur="8s" repeatCount="indefinite" begin="2.5s"
+        path="M 160 190 C 250 170, 300 250, 400 220 C 500 190, 520 130, 620 160 C 720 190, 750 270, 850 240 C 950 210, 980 150, 1080 180 C 1180 210, 1200 270, 1200 240"/>
+    </circle>
+    <circle r="3" fill="var(--leaf-green)" opacity="0.25">
+      <animateMotion dur="8s" repeatCount="indefinite" begin="5s"
+        path="M 160 190 C 250 170, 300 250, 400 220 C 500 190, 520 130, 620 160 C 720 190, 750 270, 850 240 C 950 210, 980 150, 1080 180 C 1180 210, 1200 270, 1200 240"/>
+    </circle>
+
+    <!-- Secondary decorative dashes -->
+    <path d="M 160 210 C 280 240, 350 170, 420 200" stroke="var(--cable-blue)" stroke-width="1.5" stroke-dasharray="4,8" opacity="0.12"/>
+    <path d="M 580 140 C 650 110, 700 190, 780 150" stroke="var(--ocean-blue)" stroke-width="1.5" stroke-dasharray="4,8" opacity="0.12"/>
+    <path d="M 1020 160 C 1080 190, 1120 140, 1200 170" stroke="var(--leaf-green)" stroke-width="1.5" stroke-dasharray="4,8" opacity="0.12"/>
+
+    <!-- Connecting arrows from sources -->
+    <path d="M 120 155 C 155 155, 180 175, 210 180" stroke="var(--cable-blue)" stroke-width="2" fill="none" marker-end="url(#arrowBlue)"/>
+    <path d="M 120 210 C 155 210, 185 200, 215 195" stroke="var(--cable-blue)" stroke-width="2" fill="none" marker-end="url(#arrowBlue)"/>
+    <path d="M 120 268 C 155 258, 180 230, 215 215" stroke="var(--cable-blue)" stroke-width="2" fill="none" marker-end="url(#arrowBlue)"/>
+
+    <!-- Arrows to outputs -->
+    <path d="M 1200 195 C 1230 170, 1260 150, 1280 145" stroke="var(--leaf-green)" stroke-width="2" fill="none" marker-end="url(#arrowGreen)" opacity="0.45"/>
+    <path d="M 1200 205 C 1240 205, 1260 200, 1280 200" stroke="var(--leaf-green)" stroke-width="2" fill="none" marker-end="url(#arrowGreen)" opacity="0.45"/>
+    <path d="M 1200 215 C 1230 240, 1260 255, 1280 255" stroke="var(--leaf-green)" stroke-width="2" fill="none" marker-end="url(#arrowGreen)" opacity="0.45"/>
+
+    <!-- Decorative scattered dots -->
+    <circle cx="350" cy="270" r="2.5" fill="var(--cable-blue)" opacity="0.08"/>
+    <circle cx="500" cy="120" r="2" fill="var(--ocean-blue)" opacity="0.08"/>
+    <circle cx="700" cy="290" r="2.5" fill="var(--ocean-blue)" opacity="0.06"/>
+    <circle cx="900" cy="120" r="2" fill="var(--ocean-blue)" opacity="0.08"/>
+    <circle cx="1100" cy="270" r="2" fill="var(--leaf-green)" opacity="0.08"/>
+
+    <defs>
+      <linearGradient id="mainFlow" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="var(--cable-blue)"/>
+        <stop offset="45%" stop-color="var(--ocean-blue)"/>
+        <stop offset="100%" stop-color="var(--leaf-green)"/>
+      </linearGradient>
+      <marker id="arrowBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--cable-blue)"/>
+      </marker>
+      <marker id="arrowTeal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ocean-blue)"/>
+      </marker>
+      <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--leaf-green)"/>
+      </marker>
+    </defs>
+  </svg>
+
+  <!-- PHASE LABELS -->
+  <div class="phase-label pl-ingest">Data Ingestion &amp; Transformation</div>
+  <div class="phase-label pl-viz">Visualization &amp; AI Narration</div>
+  <div class="phase-label pl-export">Verification &amp; Export</div>
+
+  <!-- SOURCE ICONS (left) -->
+  <div class="source-stack">
+    <div class="source-item">
+      <div class="source-icon" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--cable-blue)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+      </div>
+      <div class="source-label">HTTP</div>
+    </div>
+    <div class="source-item">
+      <div class="source-icon" style="background:linear-gradient(135deg,#fef3c7,#fde68a)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round"><path d="M4 8l8-5 8 5M4 8v8l8 5M4 8l8 5M20 8v8l-8 5M20 8l-8 5M12 13v8"/></svg>
+      </div>
+      <div class="source-label">S3</div>
+    </div>
+    <div class="source-item">
+      <div class="source-icon" style="background:linear-gradient(135deg,#e0e7ff,#c7d2fe)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--ocean-blue)" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="18" rx="3"/><path d="M2 9h20M8 9v12"/></svg>
+      </div>
+      <div class="source-label">FTP</div>
+    </div>
+  </div>
+
+  <!-- STAGE BUBBLES -->
+  <!-- 1 Import -->
+  <div class="stage-bubble" style="left:230px; top:140px">
+    <div class="stage-circle" style="background:linear-gradient(135deg,var(--cable-blue),#003d7a)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+    </div>
+    <div class="stage-label-txt">Import</div>
+    <div class="stage-cli-txt">acquire</div>
+  </div>
+
+  <!-- 2 Process -->
+  <div class="stage-bubble" style="left:395px; top:150px">
+    <div class="stage-circle" style="background:linear-gradient(135deg,var(--leaf-green),#1a4a08)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    </div>
+    <div class="stage-label-txt">Process</div>
+    <div class="stage-cli-txt">transform</div>
+  </div>
+
+  <!-- 3 Simulate (planned) -->
+  <div class="stage-bubble" style="left:540px; top:135px">
+    <div class="stage-circle planned">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--neutral-700)" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+    </div>
+    <div class="stage-label-txt" style="color:var(--neutral-700)">Simulate</div>
+    <div class="stage-cli-txt planned-cli">planned</div>
+  </div>
+
+  <!-- 4 Decide (planned) -->
+  <div class="stage-bubble" style="left:685px; top:112px">
+    <div class="stage-circle planned">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--neutral-700)" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+    </div>
+    <div class="stage-label-txt" style="color:var(--neutral-700)">Decide</div>
+    <div class="stage-cli-txt planned-cli">planned</div>
+  </div>
+
+  <!-- 5 Visualize -->
+  <div class="stage-bubble" style="left:830px; top:180px">
+    <div class="stage-circle" style="background:linear-gradient(135deg,var(--olive),#3a4510)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l4-4 4 4 4-6 5 6"/></svg>
+    </div>
+    <div class="stage-label-txt">Visualize</div>
+    <div class="stage-cli-txt">render</div>
+  </div>
+
+  <!-- 6 Narrate -->
+  <div class="stage-bubble" style="left:975px; top:175px">
+    <div class="stage-circle" style="background:linear-gradient(135deg,var(--ocean-blue),#0e3a44)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v3M8 22h8"/></svg>
+    </div>
+    <div class="stage-label-txt">Narrate</div>
+    <div class="stage-cli-txt">AI-driven</div>
+  </div>
+
+  <!-- 7 Verify -->
+  <div class="stage-bubble" style="left:1035px; top:130px">
+    <div class="stage-circle" style="background:linear-gradient(135deg,var(--seafoam),#3d7585)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M9 12l2 2 4-4M20.618 5.984A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+    </div>
+    <div class="stage-label-txt">Verify</div>
+    <div class="stage-cli-txt">validate</div>
+  </div>
+
+  <!-- 8 Export -->
+  <div class="stage-bubble" style="left:1145px; top:160px">
+    <div class="stage-circle" style="background:linear-gradient(135deg,var(--cable-blue),#003d7a)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+    </div>
+    <div class="stage-label-txt">Export</div>
+    <div class="stage-cli-txt">disseminate</div>
+  </div>
+
+  <!-- OUTPUT ICONS (right) -->
+  <div class="output-stack" style="right:18px; top:100px;">
+    <div class="source-item" style="flex-direction:row-reverse;">
+      <div class="source-icon" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--leaf-green)" stroke-width="2" stroke-linecap="round"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg>
+      </div>
+      <div class="source-label">Cloud</div>
+    </div>
+    <div class="source-item" style="flex-direction:row-reverse;">
+      <div class="source-icon" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--cable-blue)" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1" fill="var(--cable-blue)"/><circle cx="6" cy="18" r="1" fill="var(--cable-blue)"/></svg>
+      </div>
+      <div class="source-label">S3</div>
+    </div>
+    <div class="source-item" style="flex-direction:row-reverse;">
+      <div class="source-icon" style="background:linear-gradient(135deg,#fef3c7,#fde68a)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+      </div>
+      <div class="source-label">Local</div>
+    </div>
+  </div>
+
+  <!-- CALLOUT CARDS -->
+  <div class="callout" style="left:170px; top:330px">
+    <div class="callout-arrow" style="left:60px;"></div>
+    <div class="callout-title"><span class="ct-tag" style="background:var(--cable-blue)">Import</span> zyra acquire</div>
+    <div class="callout-text">Fetch from S3, FTP, REST APIs, or HTTP endpoints with automatic retry and checksum validation.</div>
+  </div>
+
+  <div class="callout" style="left:275px; top:385px">
+    <div class="callout-arrow" style="left:110px;"></div>
+    <div class="callout-title"><span class="ct-tag" style="background:var(--leaf-green)">Process</span> zyra transform</div>
+    <div class="callout-text">Regrid, subset, and convert GRIB2, NetCDF, and GeoTIFF through configurable processing chains.</div>
+  </div>
+
+  <div class="callout" style="left:430px; top:340px; max-width:185px;">
+    <div class="callout-arrow" style="left:65px;"></div>
+    <div class="callout-title"><span class="ct-tag" style="background:var(--neutral-700)">Simulate</span> planned</div>
+    <div class="callout-text">Future stage for ensemble simulations and model experiments within the pipeline.</div>
+  </div>
+
+  <div class="callout" style="left:585px; top:265px; max-width:185px;">
+    <div class="callout-arrow" style="left:65px;"></div>
+    <div class="callout-title"><span class="ct-tag" style="background:var(--neutral-700)">Decide</span> planned</div>
+    <div class="callout-text">Future stage for automated decision-support logic and threshold-based alerting.</div>
+  </div>
+
+  <div class="callout" style="left:715px; top:340px">
+    <div class="callout-arrow" style="left:85px;"></div>
+    <div class="callout-title"><span class="ct-tag" style="background:var(--olive)">Visualize</span> zyra render</div>
+    <div class="callout-text">Generate publication-quality maps, plots, and multi-frame GIF animations from processed datasets.</div>
+  </div>
+
+  <div class="callout" style="left:890px; top:390px">
+    <div class="callout-arrow" style="left:62px;"></div>
+    <div class="callout-title"><span class="ct-tag" style="background:var(--ocean-blue)">Narrate</span> zyra narrate</div>
+    <div class="callout-text">AI-driven scientific captions via multi-agent critique with OpenAI, Ollama, or Gemini providers.</div>
+  </div>
+
+  <div class="callout" style="left:950px; top:275px; max-width:180px;">
+    <div class="callout-arrow" style="left:72px;"></div>
+    <div class="callout-title"><span class="ct-tag" style="background:var(--seafoam)">Verify</span> zyra validate</div>
+    <div class="callout-text">Check metadata, provenance records, and output integrity.</div>
+  </div>
+
+  <div class="callout" style="left:1100px; top:365px; max-width:170px;">
+    <div class="callout-arrow" style="left:42px;"></div>
+    <div class="callout-title"><span class="ct-tag" style="background:var(--cable-blue)">Export</span> disseminate</div>
+    <div class="callout-text">Push final products to S3, cloud, or local with full audit trail.</div>
+  </div>
+
+  <!-- FORMAT PILLS -->
+  <div class="format-pills" style="left:325px; top:278px">
+    <span class="fpill" style="background:var(--cable-blue)">GRIB2</span>
+    <span class="fpill" style="background:var(--ocean-blue)">NetCDF</span>
+    <span class="fpill" style="background:var(--seafoam)">GeoTIFF</span>
+  </div>
+
+  <!-- PHASE SUMMARIES -->
+  <div class="phase-summaries">
+    <div class="phase-summary" style="flex:1.2">
+      Acquire data via HTTP, S3, or FTP<br>and transform into usable formats.
+    </div>
+    <div class="phase-summary" style="flex:1.6">
+      Generate maps, plots, and animations while AI agents<br>produce automated scientific summaries and reports.
+    </div>
+    <div class="phase-summary" style="flex:1">
+      Validate metadata quality before<br>disseminating to cloud or local storage.
+    </div>
+  </div>
+</div>
+</div><!-- end .pipeline-visual-wrap -->
+
+<!-- ── Table + Streaming example ── -->
+<div class="pipeline-details">
+
+  <div class="pipeline-table-wrap">
+    <table class="pipeline-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Stage</th>
+          <th>Purpose</th>
+          <th>CLI</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="stage-num">1</td><td>Import</td><td>Fetch from HTTP/S, S3, FTP, REST API</td><td class="cli-cell">zyra acquire</td><td class="status-impl">Implemented</td></tr>
+        <tr><td class="stage-num">2</td><td>Process</td><td>Decode, subset, convert (GRIB2, NetCDF, GeoTIFF)</td><td class="cli-cell">zyra process</td><td class="status-impl">Implemented</td></tr>
+        <tr><td class="stage-num">3</td><td>Simulate</td><td>Generate synthetic/test data</td><td class="cli-cell">—</td><td class="status-plan">Planned</td></tr>
+        <tr><td class="stage-num">4</td><td>Decide</td><td>Parameter optimization and selection</td><td class="cli-cell">—</td><td class="status-plan">Planned</td></tr>
+        <tr><td class="stage-num">5</td><td>Visualize</td><td>Static maps, plots, animations, interactive</td><td class="cli-cell">zyra visualize</td><td class="status-impl">Implemented</td></tr>
+        <tr><td class="stage-num">6</td><td>Narrate</td><td>AI-driven captions, summaries, reports</td><td class="cli-cell">zyra narrate</td><td class="status-impl">Implemented</td></tr>
+        <tr><td class="stage-num">7</td><td>Verify</td><td>Quality checks and metadata validation</td><td class="cli-cell">zyra verify</td><td class="status-partial">Partial</td></tr>
+        <tr><td class="stage-num">8</td><td>Export</td><td>Push to S3, FTP, Vimeo, local, HTTP POST</td><td class="cli-cell">zyra export</td><td class="status-impl">Implemented</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="stream-block">
+    <div class="stream-label">Unix-Style Streaming</div>
+    <div class="stream-code"><span class="sc-cmd">zyra acquire</span> http $URL <span class="sc-flag">-o -</span> <span class="sc-pipe">|</span> \
+<span class="sc-cmd">zyra process</span> convert-format - netcdf <span class="sc-flag">--stdout</span> <span class="sc-pipe">|</span>   
+<span class="sc-cmd">zyra visualize</span> heatmap <span class="sc-flag">--input -</span> <span class="sc-flag">--var</span> TMP <span class="sc-flag">-o</span> plot.png</div>
+<p class="stream-note">
+Stages are composable — pipe any stage's output directly into the next. Every stage supports <code style="font-family:var(--font-mono);font-size:11px;color:var(--cable-blue)">stdin</code>/<code style="font-family:var(--font-mono);font-size:11px;color:var(--cable-blue)">stdout</code> for seamless chaining.
+</p>
+</div>
+
+</div>
+
+  </div>
+
+  <!-- ════════════ SECTION 4: HRRR USE CASE ════════════ -->
+
+  <div class="usecase-row" id="uc-row-45">
+
+<div class="usecase-card hrrr-card">
+
+  <div class="section-tag" style="margin-bottom:6px;">
+    <div class="diamond"></div>
+    <span>Use Case</span>
+  </div>
+
+  <h3 class="usecase-heading">HRRR Weather Model Processing</h3>
+  <p class="usecase-desc">
+    Acquire the latest High-Resolution Rapid Refresh forecast, convert to NetCDF, and visualize temperature — three commands, one pipeline.
+  </p>
+
+  <!-- Three-step code block with stage-colored indicators -->
+  <div class="code-steps">
+    <div class="code-step">
+      <div class="step-dot step-dot-import">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      </div>
+      <div class="step-code"><span class="step-stage-tag tag-import">① Import</span>
+<span class="cc-cmd">zyra acquire</span> http \
+  <span class="cc-url">https://noaa-hrrr-bdp-pds.s3.amazonaws.com/</span>
+  <span class="cc-url">hrrr.20240101/conus/hrrr.t00z.wrfsfcf00.grib2</span> \
+  <span class="cc-flag">-o</span> <span class="cc-file">hrrr.grib2</span></div>
+    </div>
+    <div class="code-step">
+      <div class="step-dot step-dot-process">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      </div>
+      <div class="step-code"><span class="step-stage-tag tag-process">② Process</span>
+<span class="cc-cmd">zyra process</span> convert-format \
+  <span class="cc-file">hrrr.grib2</span> netcdf <span class="cc-flag">-o</span> <span class="cc-file">hrrr.nc</span></div>
+    </div>
+    <div class="code-step">
+      <div class="step-dot step-dot-visualize">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l4-4 4 4 4-6 5 6"/></svg>
+      </div>
+      <div class="step-code"><span class="step-stage-tag tag-visualize">③ Visualize</span>
+<span class="cc-cmd">zyra visualize</span> heatmap \
+  <span class="cc-flag">--input</span> <span class="cc-file">hrrr.nc</span> <span class="cc-flag">--var</span> TMP \
+  <span class="cc-flag">--colorbar</span> <span class="cc-flag">--output</span> <span class="cc-file">hrrr_temp.png</span></div>
+    </div>
+  </div>
+
+  <!-- Flow connector: code → output -->
+  <div class="flow-connector">
+    <svg width="24" height="28" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <line x1="12" y1="2" x2="12" y2="22" stroke="var(--neutral-600)" stroke-width="1.5" stroke-dasharray="3 3"/>
+      <path d="M7 18l5 7 5-7" stroke="var(--neutral-600)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  <div class="usecase-image-wrap">
+    <div class="usecase-placeholder">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="4" width="40" height="40" rx="4" stroke="var(--neutral-600)" stroke-width="1.5" fill="none"/>
+        <path d="M4 34l10-10 8 8 8-12 14 14" stroke="var(--neutral-600)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="16" cy="16" r="4" stroke="var(--neutral-600)" stroke-width="1.5" fill="none"/>
+        <!-- Tiny gradient squares to suggest heatmap -->
+        <rect x="10" y="28" width="4" height="4" rx="0.5" fill="var(--cable-blue)" opacity="0.2"/>
+        <rect x="15" y="28" width="4" height="4" rx="0.5" fill="var(--ocean-blue)" opacity="0.25"/>
+        <rect x="20" y="28" width="4" height="4" rx="0.5" fill="var(--leaf-green)" opacity="0.25"/>
+        <rect x="25" y="28" width="4" height="4" rx="0.5" fill="var(--amber)" opacity="0.3"/>
+        <rect x="30" y="28" width="4" height="4" rx="0.5" fill="var(--red)" opacity="0.25"/>
+      </svg>
+      <span>heatmap.png — replace with generated asset</span>
+    </div>
+  </div>
+  <p class="usecase-caption">Heatmap rendered by <code>zyra visualize heatmap</code></p>
+
+</div>
+
+<!-- ════════════ SECTION 5: DROUGHT PIPELINE ════════════ -->
+<div class="usecase-card">
+
+  <div class="section-tag" style="margin-bottom:6px;">
+    <div class="diamond"></div>
+    <span>Use Case</span>
+  </div>
+
+  <h3 class="usecase-heading">Drought Animation Pipeline</h3>
+  <p class="usecase-desc">
+    A production workflow syncs weekly drought risk frames from NOAA FTP, fills gaps, and composes an MP4 animation — five stages, one pipeline.
+  </p>
+
+  <!-- Five-step code block with stage-colored indicators -->
+  <div class="code-steps">
+    <div class="code-step">
+      <div class="step-dot step-dot-import">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      </div>
+      <div class="step-code"><span class="step-stage-tag tag-import">① Import</span>
+<span class="cc-cmd">zyra acquire</span> ftp \
+  <span class="cc-url">ftp://ftp.nnvl.noaa.gov/SOS/DroughtRisk_Weekly</span> \
+  <span class="cc-flag">--sync-dir</span> <span class="cc-file">./frames</span> <span class="cc-flag">--since</span> P1Y</div>
+    </div>
+    <div class="code-step">
+      <div class="step-dot step-dot-process">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35"/></svg>
+      </div>
+      <div class="step-code"><span class="step-stage-tag tag-process">② Process</span>
+<span class="cc-cmd">zyra process</span> scan-metadata \
+  <span class="cc-file">./frames</span> <span class="cc-flag">--output</span> <span class="cc-file">manifest.json</span></div>
+    </div>
+    <div class="code-step">
+      <div class="step-dot step-dot-process">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>
+      </div>
+      <div class="step-code"><span class="step-stage-tag tag-process">③ Process</span>
+<span class="cc-cmd">zyra process</span> pad-missing \
+  <span class="cc-file">./frames</span> <span class="cc-flag">--fill</span> basemap</div>
+    </div>
+    <div class="code-step">
+      <div class="step-dot step-dot-visualize">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><polygon points="5,3 19,12 5,21"/></svg>
+      </div>
+      <div class="step-code"><span class="step-stage-tag tag-visualize">④ Visualize</span>
+<span class="cc-cmd">zyra visualize</span> compose-video \
+  <span class="cc-file">./frames</span> <span class="cc-flag">--fps</span> 4 <span class="cc-flag">--output</span> <span class="cc-file">video.mp4</span></div>
+    </div>
+    <div class="code-step">
+      <div class="step-dot step-dot-export">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      </div>
+      <div class="step-code"><span class="step-stage-tag tag-export">⑤ Export</span>
+<span class="cc-cmd">zyra export</span> vimeo \
+  <span class="cc-file">video.mp4</span> <span class="cc-flag">--title</span> <span class="cc-url">"Drought Risk Weekly"</span></div>
+    </div>
+  </div>
+
+  <!-- Flow connector: pipeline → output -->
+  <div class="flow-connector">
+    <svg width="24" height="28" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <line x1="12" y1="2" x2="12" y2="22" stroke="var(--neutral-600)" stroke-width="1.5" stroke-dasharray="3 3"/>
+      <path d="M7 18l5 7 5-7" stroke="var(--neutral-600)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  <!-- Video preview link -->
+  <a href="https://vimeo.com/900195230/43090ded31" target="_blank" class="video-preview">
+    <div class="video-thumb">
+      <div class="video-play-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--navy)"><polygon points="6,3 20,12 6,21"/></svg>
+      </div>
+    </div>
+    <div class="video-bar">
+      <svg class="video-bar-icon" viewBox="0 0 24 24" fill="none" stroke="var(--seafoam)" stroke-width="2" stroke-linecap="round"><polygon points="5,3 19,12 5,21"/></svg>
+      <div class="video-bar-text"><strong>Watch on Vimeo</strong> — Drought Risk Weekly animation output</div>
+    </div>
+  </a>
+
+  <!-- Provenance callout -->
+  <div class="prov-callout">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cable-blue)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+    <p>Each stage logs <strong>provenance</strong> — start time, duration, command, and exit code — to a <code>SQLite</code> store for full reproducibility.</p>
+  </div>
+
+</div>
+
+  </div>
+
+  <!-- ════════════ SECTIONS 6 & 7: NARRATION + PIPELINES ════════════ -->
+
+  <div class="usecase-row" id="uc-row-67">
+
+<!-- SECTION 6: AI/LLM NARRATION SWARM -->
+<div class="usecase-card" style="border-left-color:var(--ocean-blue);">
+
+  <div class="section-tag" style="margin-bottom:6px;">
+    <div class="diamond" style="background:var(--ocean-blue);"></div>
+    <span>Use Case</span>
+  </div>
+
+  <h3 class="usecase-heading">AI/LLM Narration Swarm</h3>
+  <p class="usecase-desc">
+    Zyra orchestrates multi-agent workflows where LLM-powered agents generate, critique, and refine narrative outputs — from intent to validated publication.
+  </p>
+
+  <!-- User intent example -->
+  <div class="user-intent-bubble">
+    <div class="user-intent-label">
+      <div class="user-intent-avatar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <span class="user-intent-name">Scientist</span>
+    </div>
+    <div class="user-intent-text">
+      "Summarize this week's <em>HRRR temperature anomalies</em> for the Colorado Front Range and generate a <em>narrated briefing</em> with publication-quality maps."
+    </div>
+  </div>
+
+  <!-- Swarm orchestration SVG diagram -->
+  <div class="swarm-diagram">
+    <svg viewBox="0 0 420 380" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="sArrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M0 0 L8 4 L0 8z" fill="#5F9DAE"/>
+        </marker>
+      </defs>
+
+      <!-- ── Vertical spine arrows ── -->
+      <line x1="210" y1="42" x2="210" y2="68" stroke="#5F9DAE" stroke-width="1.5" marker-end="url(#sArrow)"/>
+      <line x1="210" y1="102" x2="210" y2="128" stroke="#5F9DAE" stroke-width="1.5" marker-end="url(#sArrow)"/>
+      <line x1="210" y1="162" x2="210" y2="188" stroke="#5F9DAE" stroke-width="1.5" marker-end="url(#sArrow)"/>
+
+      <!-- ── Fan-out arrows from DAG to agents ── -->
+      <path d="M160 228 C130 240, 85 255, 75 265" stroke="#5F9DAE" stroke-width="1.2" fill="none" marker-end="url(#sArrow)"/>
+      <path d="M190 228 C180 245, 165 255, 160 265" stroke="#5F9DAE" stroke-width="1.2" fill="none" marker-end="url(#sArrow)"/>
+      <path d="M230 228 C240 245, 255 255, 260 265" stroke="#5F9DAE" stroke-width="1.2" fill="none" marker-end="url(#sArrow)"/>
+      <path d="M260 228 C290 240, 335 255, 345 265" stroke="#5F9DAE" stroke-width="1.2" fill="none" marker-end="url(#sArrow)"/>
+
+      <!-- ── Converge arrows from agents to Provenance ── -->
+      <path d="M75 305 C85 320, 150 340, 175 345" stroke="#5F9DAE" stroke-width="1.2" fill="none" marker-end="url(#sArrow)"/>
+      <path d="M160 305 C170 320, 185 335, 195 345" stroke="#5F9DAE" stroke-width="1.2" fill="none" marker-end="url(#sArrow)"/>
+      <path d="M260 305 C250 320, 235 335, 225 345" stroke="#5F9DAE" stroke-width="1.2" fill="none" marker-end="url(#sArrow)"/>
+      <path d="M345 305 C335 320, 270 340, 245 345" stroke="#5F9DAE" stroke-width="1.2" fill="none" marker-end="url(#sArrow)"/>
+
+      <!-- ═══ NODES ═══ -->
+
+      <!-- User Intent -->
+      <rect x="125" y="10" width="170" height="32" rx="6" fill="#50452C"/>
+      <text x="210" y="31" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" font-weight="600" fill="#FEFEFE">User Intent</text>
+      <text x="210" y="10" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="7.5" fill="#D8D7D3" dy="-2">natural language</text>
+
+      <!-- Planner -->
+      <rect x="125" y="70" width="170" height="32" rx="6" fill="#1A5A69"/>
+      <text x="210" y="91" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" font-weight="600" fill="#FEFEFE">Planner</text>
+      <text x="320" y="90" font-family="Source Code Pro, monospace" font-size="8.5" fill="#8B8985">zyra plan</text>
+
+      <!-- Value Engine -->
+      <rect x="125" y="130" width="170" height="32" rx="6" fill="#FFC107"/>
+      <text x="210" y="151" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" font-weight="600" fill="#00172D">Value Engine</text>
+      <text x="320" y="150" font-family="Source Sans 3, sans-serif" font-size="8" fill="#8B8985">suggest augmentations</text>
+
+      <!-- Execution DAG -->
+      <rect x="120" y="190" width="180" height="38" rx="6" fill="#00529E"/>
+      <text x="210" y="214" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="12" font-weight="700" fill="#FEFEFE">Execution DAG</text>
+      <text x="210" y="203" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="7.5" fill="#bdd4f0">parallel / sequential</text>
+
+      <!-- Stage Agent: acquire -->
+      <rect x="30" y="270" width="90" height="34" rx="5" fill="#2C670C"/>
+      <text x="75" y="283" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="7.5" fill="#bbf7d0">Stage Agent</text>
+      <text x="75" y="296" text-anchor="middle" font-family="Source Code Pro, monospace" font-size="9.5" font-weight="600" fill="#FEFEFE">acquire</text>
+
+      <!-- Stage Agent: process -->
+      <rect x="130" y="270" width="90" height="34" rx="5" fill="#2C670C"/>
+      <text x="175" y="283" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="7.5" fill="#bbf7d0">Stage Agent</text>
+      <text x="175" y="296" text-anchor="middle" font-family="Source Code Pro, monospace" font-size="9.5" font-weight="600" fill="#FEFEFE">process</text>
+
+      <!-- Stage Agent: visualize -->
+      <rect x="230" y="270" width="90" height="34" rx="5" fill="#576216"/>
+      <text x="275" y="283" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="7.5" fill="#e8ecc8">Stage Agent</text>
+      <text x="275" y="296" text-anchor="middle" font-family="Source Code Pro, monospace" font-size="9.5" font-weight="600" fill="#FEFEFE">visualize</text>
+
+      <!-- LLM Agent: narrate -->
+      <rect x="330" y="270" width="80" height="34" rx="5" fill="#1A5A69"/>
+      <text x="370" y="283" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="7.5" fill="#a8d4df">LLM Agent</text>
+      <text x="370" y="296" text-anchor="middle" font-family="Source Code Pro, monospace" font-size="9.5" font-weight="600" fill="#FEFEFE">narrate</text>
+
+      <!-- Provenance -->
+      <rect x="140" y="346" width="140" height="30" rx="5" fill="#5F9DAE"/>
+      <text x="210" y="365" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" font-weight="600" fill="#00172D">Provenance (SQLite)</text>
+
+    </svg>
+  </div>
+
+  <!-- Narration chain -->
+  <div style="font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--navy);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.8px;">Narration Swarm Chain</div>
+  <div class="narration-chain">
+    <span class="nc-pill" style="background:var(--ocean-blue);">context</span>
+    <span class="nc-arrow">&rarr;</span>
+    <span class="nc-pill" style="background:var(--cable-blue);">summary</span>
+    <span class="nc-arrow">&rarr;</span>
+    <span class="nc-pill" style="background:var(--amber);color:var(--navy);">critic</span>
+    <span class="nc-arrow">&rarr;</span>
+    <span class="nc-pill" style="background:var(--leaf-green);">editor</span>
+  </div>
+
+  <!-- Provider table -->
+  <div class="provider-table-wrap" style="margin-top:14px;">
+    <table class="provider-table">
+      <thead>
+        <tr><th>Provider</th><th>Usage</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="prov-name">OpenAI</td><td class="prov-usage">--provider openai --model gpt-4</td></tr>
+        <tr><td class="prov-name">Ollama</td><td class="prov-usage">--provider ollama --model gemma</td></tr>
+        <tr><td class="prov-name">Gemini</td><td class="prov-usage">--provider gemini</td></tr>
+        <tr><td class="prov-name">Mock</td><td class="prov-usage">--provider mock <span style="color:var(--neutral-600);font-family:var(--font-sans);font-size:10px;">(offline testing)</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Guardrails callout -->
+  <div class="guard-callout">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ocean-blue)" stroke-width="2" stroke-linecap="round"><path d="M9 12l2 2 4-4M20.618 5.984A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+    <p>Outputs validated against <code>Pydantic</code> schemas with optional guardrails via <code>RAIL</code> files for structured, reproducible results.</p>
+  </div>
+
+  <!-- Swarm orchestration command -->
+  <div style="font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--navy);margin:14px 0 5px;text-transform:uppercase;letter-spacing:0.8px;">Swarm Orchestration</div>
+  <div class="usecase-code" style="margin-bottom:0;"><span class="cc-cmd">zyra swarm</span> <span class="cc-file">drought_animation.yaml</span> \
+  <span class="cc-flag">--parallel</span> <span class="cc-flag">--memory</span> <span class="cc-file">provenance.sqlite</span></div>
+
+</div>
+
+<!-- SECTION 7: REPRODUCIBLE PIPELINE CONFIGS -->
+<div class="usecase-card">
+
+  <div class="section-tag" style="margin-bottom:6px;">
+    <div class="diamond"></div>
+    <span>Use Case</span>
+  </div>
+
+  <h3 class="usecase-heading">Reproducible Pipeline Configs</h3>
+  <p class="usecase-desc">
+    Define multi-stage pipelines as YAML — no scripting required. Override parameters at runtime, dry-run to preview commands, and share configs across teams.
+  </p>
+
+  <!-- YAML config block + commands — responsive zoom wrapper -->
+  <div class="code-zoom-wrap" id="configWrap" onclick="openCodeLightbox('configWrap')">
+    <span class="zoom-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>
+      Click to zoom
+    </span>
+    <div class="code-zoom-inner" id="configInner">
+
+  <!-- YAML config block -->
+  <div class="yaml-code"><span class="yk">name</span>: <span class="ys">FTP to Local Video</span>
+
+<span class="yk">stages</span>:
+<span class="yd">-</span> <span class="yk">stage</span>: <span class="yv">acquire</span>
+<span class="yk">command</span>: <span class="yv">ftp</span>
+<span class="yk">args</span>:
+<span class="yk">path</span>: <span class="ys">ftp://ftp.nnvl.noaa.gov/SOS/DroughtRisk_Weekly</span>
+<span class="yk">sync_dir</span>: <span class="ys">./frames</span>
+<span class="yk">since_period</span>: <span class="ys">"P1Y"</span>
+
+<span class="yd">-</span> <span class="yk">stage</span>: <span class="yv">visualize</span>
+<span class="yk">command</span>: <span class="yv">compose-video</span>
+<span class="yk">args</span>:
+<span class="yk">frames</span>: <span class="ys">./frames</span>
+<span class="yk">output</span>: <span class="ys">video.mp4</span>
+<span class="yk">fps</span>: <span class="yn">4</span>
+
+<span class="yd">-</span> <span class="yk">stage</span>: <span class="yv">export</span>
+<span class="yk">command</span>: <span class="yv">local</span>
+<span class="yk">args</span>:
+<span class="yk">input</span>: <span class="ys">video.mp4</span>
+<span class="yk">path</span>: <span class="ys">/output/video.mp4</span></div>
+
+  <!-- Run commands -->
+  <div class="usecase-code" style="margin-bottom:12px;"><span class="cc-cmd">zyra run</span> <span class="cc-file">pipeline.yaml</span>                          <span class="yc"># execute</span>
+
+<span class="cc-cmd">zyra run</span> <span class="cc-file">pipeline.yaml</span> <span class="cc-flag">--dry-run</span>                 <span class="yc"># preview commands</span>
+<span class="cc-cmd">zyra run</span> <span class="cc-file">pipeline.yaml</span> <span class="cc-flag">--set</span> visualize.fps=<span class="yn">8</span>     <span class="yc"># override parameters</span></div>
+
+  <!-- Feature pills -->
+  <div class="feature-pills">
+    <span class="feat-pill">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--cable-blue)" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Declarative YAML
+    </span>
+    <span class="feat-pill">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--leaf-green)" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      Dry-Run Preview
+    </span>
+    <span class="feat-pill">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--ocean-blue)" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Runtime Overrides
+    </span>
+    <span class="feat-pill">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Team Sharing
+    </span>
+  </div>
+
+    </div><!-- .code-zoom-inner -->
+  </div><!-- .code-zoom-wrap -->
+
+</div>
+
+  </div>
+
+  <!-- ════════════ SECTION 8: BUILDING OFF THE FOUNDATION ════════════ -->
+
+  <div class="foundation-section">
+
+    <div class="section-tag" style="margin-bottom:6px;">
+      <div class="diamond" style="background:var(--ocean-blue);"></div>
+      <span>Architecture</span>
+    </div>
+
+    <h2 class="foundation-heading">Building Off the Foundation</h2>
+    <p class="foundation-sub">Three layers of access — from terminal commands to autonomous AI agents — all sharing the same pipeline architecture.</p>
+
+    <div class="foundation-layers">
+
+      <!-- LEFT COLUMN: API (layer 2) -->
+      <div class="foundation-col col-left">
+
+        <div class="foundation-layer-card flc-mcp" style="text-align:right;">
+          <div style="display:flex;justify-content:flex-end;"><div class="flc-number">3</div></div>
+          <div class="flc-abbrev" style="text-align:right;">MCP + AI Agents</div>
+          <div class="flc-title">Model Context Protocol</div>
+          <p class="flc-desc">Zyra exposes every pipeline stage as an <code>MCP tool</code>, letting LLM agents like Claude autonomously discover, compose, and execute scientific workflows. The AI layer transforms conversational intent into reproducible pipeline runs.</p>
+        </div>
+
+        <div class="foundation-layer-card flc-api" style="text-align:right;">
+          <div style="display:flex;justify-content:flex-end;"><div class="flc-number">2</div></div>
+          <div class="flc-abbrev" style="text-align:right;">Python API</div>
+          <div class="flc-title">Application Programming Interface</div>
+          <p class="flc-desc">Zyra's modular Python API extends the CLI with programmatic access — enabling custom processing modules, integration into existing data workflows, and automated dissemination pipelines via <code>import zyra</code>.</p>
+        </div>
+
+        <div class="foundation-layer-card flc-cli" style="text-align:right;">
+          <div style="display:flex;justify-content:flex-end;"><div class="flc-number">1</div></div>
+          <div class="flc-abbrev" style="text-align:right;">Command Line Interface</div>
+          <div class="flc-title">CLI — The Foundation</div>
+          <p class="flc-desc">The CLI empowers researchers and developers to quickly build, test, and reproduce visualization pipelines with simple, scriptable commands. Every stage streams via <code>stdin/stdout</code> for Unix-style composition.</p>
+        </div>
+
+      </div>
+
+      <!-- CENTER: Pyramid SVG -->
+      <div class="foundation-pyramid">
+        <svg viewBox="0 0 380 420" width="380" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <!-- Pyramid face gradients -->
+            <linearGradient id="pyrGreen1" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#2C670C"/>
+              <stop offset="100%" stop-color="#1a4a08"/>
+            </linearGradient>
+            <linearGradient id="pyrGreen2" x1="1" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#3a7e12"/>
+              <stop offset="100%" stop-color="#2C670C"/>
+            </linearGradient>
+            <linearGradient id="pyrBlue1" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#00529E"/>
+              <stop offset="100%" stop-color="#003d7a"/>
+            </linearGradient>
+            <linearGradient id="pyrBlue2" x1="1" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#0068c4"/>
+              <stop offset="100%" stop-color="#00529E"/>
+            </linearGradient>
+            <linearGradient id="pyrTeal1" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#1A5A69"/>
+              <stop offset="100%" stop-color="#0e3d4a"/>
+            </linearGradient>
+            <linearGradient id="pyrTeal2" x1="1" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#247a8c"/>
+              <stop offset="100%" stop-color="#1A5A69"/>
+            </linearGradient>
+            <!-- Light stripe gradient -->
+            <linearGradient id="pyrStripe" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.0)"/>
+              <stop offset="30%" stop-color="rgba(255,255,255,0.35)"/>
+              <stop offset="70%" stop-color="rgba(255,255,255,0.35)"/>
+              <stop offset="100%" stop-color="rgba(255,255,255,0.0)"/>
+            </linearGradient>
+            <!-- Subtle shadow for depth -->
+            <filter id="pyrShadow">
+              <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00172D" flood-opacity="0.12"/>
+            </filter>
+          </defs>
+
+          <!-- ═══ TIER 1: CLI (bottom, widest) ═══ -->
+          <g filter="url(#pyrShadow)">
+            <!-- Left face -->
+            <polygon points="40,390  190,390  190,310  90,310" fill="url(#pyrGreen1)"/>
+            <!-- Right face -->
+            <polygon points="190,390  340,390  290,310  190,310" fill="url(#pyrGreen2)"/>
+            <!-- Top face -->
+            <polygon points="90,310  290,310  240,286  140,286" fill="#3a7e12" opacity="0.5"/>
+          </g>
+          <!-- Light stripe between tier 1 and tier 2 -->
+          <rect x="100" y="280" width="180" height="8" fill="url(#pyrStripe)" rx="1"/>
+
+          <!-- ═══ TIER 2: API (middle) ═══ -->
+          <g filter="url(#pyrShadow)">
+            <!-- Left face -->
+            <polygon points="90,270  190,270  190,190  130,190" fill="url(#pyrBlue1)"/>
+            <!-- Right face -->
+            <polygon points="190,270  290,270  250,190  190,190" fill="url(#pyrBlue2)"/>
+            <!-- Top face -->
+            <polygon points="130,190  250,190  218,172  162,172" fill="#0068c4" opacity="0.5"/>
+          </g>
+          <!-- Light stripe between tier 2 and tier 3 -->
+          <rect x="138" y="166" width="104" height="8" fill="url(#pyrStripe)" rx="1"/>
+
+          <!-- ═══ TIER 3: MCP/AI (top, narrowest) ═══ -->
+          <g filter="url(#pyrShadow)">
+            <!-- Left face -->
+            <polygon points="130,158  190,158  190,85  165,85" fill="url(#pyrTeal1)"/>
+            <!-- Right face -->
+            <polygon points="190,158  250,158  215,85  190,85" fill="url(#pyrTeal2)"/>
+            <!-- Top face / peak -->
+            <polygon points="165,85  215,85  200,72  180,72" fill="#247a8c" opacity="0.5"/>
+          </g>
+
+          <!-- ═══ MCP icon at peak ═══ -->
+          <g transform="translate(175,30)">
+            <circle cx="15" cy="18" r="16" fill="rgba(26,90,105,0.15)" stroke="var(--ocean-blue)" stroke-width="1"/>
+            <path d="M10 14 L15 10 L20 14 M10 18 L15 22 L20 18 M8 16 L15 16 L22 16" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </g>
+
+          <!-- ═══ Layer labels on pyramid faces ═══ -->
+          <!-- CLI label -->
+          <text x="190" y="350" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="18" font-weight="700" fill="white" opacity="0.85">CLI</text>
+          <text x="190" y="368" text-anchor="middle" font-family="Source Code Pro, monospace" font-size="10" fill="white" opacity="0.5">zyra [command]</text>
+
+          <!-- API label -->
+          <text x="190" y="232" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="16" font-weight="700" fill="white" opacity="0.85">API</text>
+          <text x="190" y="248" text-anchor="middle" font-family="Source Code Pro, monospace" font-size="9.5" fill="white" opacity="0.5">import zyra</text>
+
+          <!-- MCP label -->
+          <text x="190" y="124" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="14" font-weight="700" fill="white" opacity="0.85">MCP</text>
+          <text x="190" y="140" text-anchor="middle" font-family="Source Code Pro, monospace" font-size="9" fill="white" opacity="0.5">tools/discover</text>
+
+          <!-- ═══ Connector lines from pyramid to description cards ═══ -->
+          <!-- CLI → right col bottom -->
+          <!-- API → right col middle -->
+          <!-- MCP → left col top -->
+          <!-- Thin dotted connector lines -->
+          <line x1="42" y1="348" x2="4" y2="348" stroke="var(--leaf-green)" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>
+          <line x1="92" y1="230" x2="4" y2="230" stroke="var(--cable-blue)" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>
+          <line x1="132" y1="122" x2="4" y2="122" stroke="var(--ocean-blue)" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>
+
+        </svg>
+      </div>
+
+      <!-- RIGHT COLUMN: empty spacer for visual balance — cards are on the left -->
+      <div class="foundation-col col-right" style="visibility:hidden;">
+        <!-- Mirror for layout balance -->
+        <div class="foundation-layer-card" style="flex:1 1 0;"></div>
+        <div class="foundation-layer-card" style="flex:1 1 0;"></div>
+        <div class="foundation-layer-card" style="flex:1 1 0;"></div>
+      </div>
+
+    </div>
+
+    <!-- Highlight cards row -->
+    <div class="foundation-highlights">
+
+      <div class="foundation-highlight-card fhc-cli">
+        <div class="fhc-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        </div>
+        <div class="fhc-text">
+          <strong>Streaming CLI Pipes</strong>
+          Chain stages via <code>stdin/stdout</code> — acquire, process, and visualize in a single Unix pipeline with zero intermediate files.
+        </div>
+      </div>
+
+      <div class="foundation-highlight-card fhc-api">
+        <div class="fhc-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <div class="fhc-text">
+          <strong>FastAPI Service Mode</strong>
+          Run <code>zyra serve</code> to expose all pipeline stages as a REST API, enabling web dashboards and automated integrations.
+        </div>
+      </div>
+
+      <div class="foundation-highlight-card fhc-mcp">
+        <div class="fhc-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="fhc-text">
+          <strong>MCP Tool Discovery</strong>
+          LLM agents discover available pipeline tools at runtime — no hardcoded prompts. Zyra's MCP server advertises capabilities dynamically.
+        </div>
+      </div>
+
+      <div class="foundation-highlight-card fhc-fast">
+        <div class="fhc-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+        </div>
+        <div class="fhc-text">
+          <strong>Same Pipeline, Every Layer</strong>
+          Whether invoked from bash, Python, REST, or an AI agent — every execution follows the same 8-stage architecture with full provenance.
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ════════════ SECTION 9: VISUALIZATION GALLERY ════════════ -->
+
+  <div class="gallery-section">
+
+<div class="section-tag">
+  <div class="diamond" style="background:var(--olive);"></div>
+  <span>Gallery</span>
+</div>
+<h2 class="gallery-heading">Visualization Gallery</h2>
+<p class="gallery-sub">Publication-quality outputs generated by <code style="font-family:var(--font-mono);font-size:12px;color:var(--cable-blue);">zyra visualize</code></p>
+
+<div class="gallery-grid">
+
+  <!-- Heatmap -->
+  <div class="gallery-item">
+    <div class="gallery-thumb gt-heatmap">
+      <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Mini heatmap grid sketch -->
+        <rect x="10" y="8" width="80" height="55" rx="2" fill="none" stroke="#A3A29D" stroke-width="0.8"/>
+        <!-- Heat cells -->
+        <rect x="12" y="10" width="12" height="8" fill="#00529E" opacity="0.25"/><rect x="25" y="10" width="12" height="8" fill="#1A5A69" opacity="0.3"/>
+        <rect x="38" y="10" width="12" height="8" fill="#2C670C" opacity="0.25"/><rect x="51" y="10" width="12" height="8" fill="#576216" opacity="0.3"/>
+        <rect x="64" y="10" width="12" height="8" fill="#FFC107" opacity="0.3"/><rect x="77" y="10" width="10" height="8" fill="#F44336" opacity="0.2"/>
+        <rect x="12" y="20" width="12" height="8" fill="#1A5A69" opacity="0.2"/><rect x="25" y="20" width="12" height="8" fill="#2C670C" opacity="0.3"/>
+        <rect x="38" y="20" width="12" height="8" fill="#576216" opacity="0.35"/><rect x="51" y="20" width="12" height="8" fill="#FFC107" opacity="0.35"/>
+        <rect x="64" y="20" width="12" height="8" fill="#FFC107" opacity="0.25"/><rect x="77" y="20" width="10" height="8" fill="#F44336" opacity="0.25"/>
+        <rect x="12" y="30" width="12" height="8" fill="#00529E" opacity="0.15"/><rect x="25" y="30" width="12" height="8" fill="#1A5A69" opacity="0.2"/>
+        <rect x="38" y="30" width="12" height="8" fill="#2C670C" opacity="0.3"/><rect x="51" y="30" width="12" height="8" fill="#2C670C" opacity="0.25"/>
+        <rect x="64" y="30" width="12" height="8" fill="#576216" opacity="0.25"/><rect x="77" y="30" width="10" height="8" fill="#FFC107" opacity="0.2"/>
+        <rect x="12" y="40" width="12" height="8" fill="#00529E" opacity="0.1"/><rect x="25" y="40" width="12" height="8" fill="#00529E" opacity="0.2"/>
+        <rect x="38" y="40" width="12" height="8" fill="#1A5A69" opacity="0.2"/><rect x="51" y="40" width="12" height="8" fill="#1A5A69" opacity="0.2"/>
+        <rect x="64" y="40" width="12" height="8" fill="#2C670C" opacity="0.2"/><rect x="77" y="40" width="10" height="8" fill="#576216" opacity="0.15"/>
+        <rect x="12" y="50" width="12" height="8" fill="#00529E" opacity="0.08"/><rect x="25" y="50" width="12" height="8" fill="#00529E" opacity="0.12"/>
+        <rect x="38" y="50" width="12" height="8" fill="#1A5A69" opacity="0.15"/><rect x="51" y="50" width="12" height="8" fill="#00529E" opacity="0.15"/>
+        <rect x="64" y="50" width="12" height="8" fill="#1A5A69" opacity="0.15"/><rect x="77" y="50" width="10" height="8" fill="#2C670C" opacity="0.1"/>
+        <!-- Colorbar -->
+        <rect x="96" y="10" width="6" height="48" rx="1" fill="url(#cbGrad)" opacity="0.5"/>
+        <text x="96" y="7" font-family="Source Sans 3" font-size="4" fill="#8B8985">max</text>
+        <text x="96" y="64" font-family="Source Sans 3" font-size="4" fill="#8B8985">min</text>
+        <!-- Placeholder label -->
+        <text x="50" y="75" text-anchor="middle" font-family="Source Sans 3" font-size="5" fill="#A3A29D">heatmap.png</text>
+        <defs><linearGradient id="cbGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F44336"/><stop offset="30%" stop-color="#FFC107"/><stop offset="60%" stop-color="#2C670C"/><stop offset="100%" stop-color="#00529E"/></linearGradient></defs>
+      </svg>
+      <span class="gt-label">Replace with heatmap.png</span>
+    </div>
+    <div class="gallery-caption">
+      <span class="gc-dot" style="background:var(--cable-blue);"></span>
+      <code>zyra visualize heatmap</code>
+    </div>
+  </div>
+
+  <!-- Contour -->
+  <div class="gallery-item">
+    <div class="gallery-thumb gt-contour">
+      <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="10" y="8" width="80" height="55" rx="2" fill="none" stroke="#A3A29D" stroke-width="0.8"/>
+        <!-- Contour rings -->
+        <ellipse cx="50" cy="35" rx="32" ry="20" fill="none" stroke="#00529E" stroke-width="0.8" opacity="0.2"/>
+        <ellipse cx="50" cy="35" rx="24" ry="15" fill="none" stroke="#1A5A69" stroke-width="0.8" opacity="0.25"/>
+        <ellipse cx="50" cy="35" rx="16" ry="10" fill="none" stroke="#2C670C" stroke-width="0.8" opacity="0.3"/>
+        <ellipse cx="50" cy="35" rx="8" ry="5" fill="none" stroke="#FFC107" stroke-width="0.8" opacity="0.35"/>
+        <ellipse cx="50" cy="35" rx="3" ry="2" fill="#F44336" opacity="0.2"/>
+        <!-- Colorbar -->
+        <rect x="96" y="10" width="6" height="48" rx="1" fill="url(#cbGrad)" opacity="0.5"/>
+        <text x="50" y="75" text-anchor="middle" font-family="Source Sans 3" font-size="5" fill="#A3A29D">contour.png</text>
+      </svg>
+      <span class="gt-label">Replace with contour.png</span>
+    </div>
+    <div class="gallery-caption">
+      <span class="gc-dot" style="background:var(--ocean-blue);"></span>
+      <code>zyra visualize contour</code>
+    </div>
+  </div>
+
+  <!-- Vector -->
+  <div class="gallery-item">
+    <div class="gallery-thumb gt-vector">
+      <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="10" y="8" width="80" height="55" rx="2" fill="none" stroke="#A3A29D" stroke-width="0.8"/>
+        <!-- Quiver arrows -->
+        <line x1="20" y1="20" x2="30" y2="16" stroke="#1A5A69" stroke-width="0.8" opacity="0.35" marker-end="url(#qA)"/>
+        <line x1="40" y1="18" x2="52" y2="15" stroke="#1A5A69" stroke-width="0.8" opacity="0.4" marker-end="url(#qA)"/>
+        <line x1="60" y1="20" x2="70" y2="18" stroke="#1A5A69" stroke-width="0.8" opacity="0.3" marker-end="url(#qA)"/>
+        <line x1="18" y1="32" x2="28" y2="28" stroke="#00529E" stroke-width="0.8" opacity="0.35" marker-end="url(#qA)"/>
+        <line x1="38" y1="30" x2="50" y2="26" stroke="#00529E" stroke-width="0.8" opacity="0.4" marker-end="url(#qA)"/>
+        <line x1="58" y1="32" x2="68" y2="28" stroke="#00529E" stroke-width="0.8" opacity="0.35" marker-end="url(#qA)"/>
+        <line x1="78" y1="30" x2="84" y2="24" stroke="#00529E" stroke-width="0.8" opacity="0.3" marker-end="url(#qA)"/>
+        <line x1="20" y1="44" x2="32" y2="40" stroke="#2C670C" stroke-width="0.8" opacity="0.3" marker-end="url(#qA)"/>
+        <line x1="40" y1="42" x2="52" y2="38" stroke="#2C670C" stroke-width="0.8" opacity="0.35" marker-end="url(#qA)"/>
+        <line x1="60" y1="44" x2="70" y2="40" stroke="#2C670C" stroke-width="0.8" opacity="0.3" marker-end="url(#qA)"/>
+        <line x1="22" y1="55" x2="30" y2="52" stroke="#576216" stroke-width="0.8" opacity="0.25" marker-end="url(#qA)"/>
+        <line x1="42" y1="54" x2="50" y2="50" stroke="#576216" stroke-width="0.8" opacity="0.3" marker-end="url(#qA)"/>
+        <line x1="62" y1="55" x2="72" y2="50" stroke="#576216" stroke-width="0.8" opacity="0.25" marker-end="url(#qA)"/>
+        <text x="50" y="75" text-anchor="middle" font-family="Source Sans 3" font-size="5" fill="#A3A29D">vector.png</text>
+        <defs><marker id="qA" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0 L6 3 L0 6z" fill="#1A5A69" opacity="0.5"/></marker></defs>
+      </svg>
+      <span class="gt-label">Replace with vector.png</span>
+    </div>
+    <div class="gallery-caption">
+      <span class="gc-dot" style="background:var(--leaf-green);"></span>
+      <code>zyra visualize vector</code>
+    </div>
+  </div>
+
+  <!-- Time Series -->
+  <div class="gallery-item">
+    <div class="gallery-thumb gt-timeseries">
+      <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="10" y="8" width="85" height="55" rx="2" fill="none" stroke="#A3A29D" stroke-width="0.8"/>
+        <!-- Axes -->
+        <line x1="18" y1="12" x2="18" y2="58" stroke="#D8D7D3" stroke-width="0.6"/>
+        <line x1="18" y1="58" x2="90" y2="58" stroke="#D8D7D3" stroke-width="0.6"/>
+        <!-- Grid lines -->
+        <line x1="18" y1="25" x2="90" y2="25" stroke="#D8D7D3" stroke-width="0.3" stroke-dasharray="2,3"/>
+        <line x1="18" y1="42" x2="90" y2="42" stroke="#D8D7D3" stroke-width="0.3" stroke-dasharray="2,3"/>
+        <!-- Line 1 -->
+        <polyline points="20,48 30,42 40,38 50,30 60,34 70,24 80,28 88,20" fill="none" stroke="#00529E" stroke-width="1.2" opacity="0.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Line 2 -->
+        <polyline points="20,52 30,50 40,46 50,44 60,40 70,36 80,38 88,32" fill="none" stroke="#5F9DAE" stroke-width="1.2" opacity="0.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Dots -->
+        <circle cx="50" cy="30" r="1.5" fill="#00529E" opacity="0.5"/><circle cx="70" cy="24" r="1.5" fill="#00529E" opacity="0.5"/>
+        <circle cx="60" cy="40" r="1.5" fill="#5F9DAE" opacity="0.4"/><circle cx="80" cy="38" r="1.5" fill="#5F9DAE" opacity="0.4"/>
+        <text x="52" y="75" text-anchor="middle" font-family="Source Sans 3" font-size="5" fill="#A3A29D">timeseries.png</text>
+      </svg>
+      <span class="gt-label">Replace with timeseries.png</span>
+    </div>
+    <div class="gallery-caption">
+      <span class="gc-dot" style="background:var(--olive);"></span>
+      <code>zyra visualize timeseries</code>
+    </div>
+  </div>
+
+</div>
+
+<p class="gallery-also">
+  <strong>Also supported:</strong> particle advection, animated frames, interactive maps (Folium, Plotly)
+</p>
+
+  </div>
+
+  <!-- ════════════ SECTIONS 10 & 11: FEATURES + GET STARTED ════════════ -->
+
+  <div class="features-section">
+
+<!-- SECTION 10: KEY FEATURES -->
+<div class="features-card">
+
+  <div class="section-tag" style="margin-bottom:6px;">
+    <div class="diamond" style="background:var(--seafoam);"></div>
+    <span>Capabilities</span>
+  </div>
+
+  <h3>Key Features</h3>
+
+  <ul class="feat-list">
+    <li>
+      <span class="feat-dot"></span>
+      <div><strong>Scientific formats:</strong> GRIB2, NetCDF, GeoTIFF with xarray, cfgrib, rasterio</div>
+    </li>
+    <li>
+      <span class="feat-dot"></span>
+      <div><strong>Connectors:</strong> HTTP/S, S3, FTP, REST API, Vimeo</div>
+    </li>
+    <li>
+      <span class="feat-dot"></span>
+      <div><strong>Visualization:</strong> Heatmaps, contours, vectors, particles, animations, interactive maps (Folium, Plotly)</div>
+    </li>
+    <li>
+      <span class="feat-dot"></span>
+      <div><strong>AI integration:</strong> Multi-agent narration swarm, planning engine, value engine, guardrails</div>
+    </li>
+    <li>
+      <span class="feat-dot"></span>
+      <div><strong>Provenance:</strong> SQLite-based event logging for full reproducibility</div>
+    </li>
+    <li>
+      <span class="feat-dot"></span>
+      <div><strong>Service mode:</strong> FastAPI REST API + MCP tools for LLM integration</div>
+    </li>
+    <li>
+      <span class="feat-dot"></span>
+      <div><strong>Modular extras:</strong> <code>pip install "zyra[visualization]"</code>, <code>"zyra[processing]"</code>, <code>"zyra[llm]"</code>, or <code>"zyra[all]"</code></div>
+    </li>
+  </ul>
+
+  <div class="feat-meta">
+    <span class="feat-meta-pill">Python 3.10+</span>
+    <span class="feat-meta-pill">Apache 2.0</span>
+    <span class="feat-meta-pill">CLI-first</span>
+    <span class="feat-meta-pill">Streaming-friendly</span>
+  </div>
+
+</div>
+
+<!-- SECTION 11: GET STARTED -->
+<div class="features-card" style="background:transparent;border:none;padding:0;flex:1 1 50%;">
+
+  <div class="get-started-footer" style="margin:0;">
+
+  <div class="code-zoom-wrap" id="getStartedWrap" onclick="openCodeLightbox('getStartedWrap')">
+    <span class="zoom-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>
+      Click to zoom
+    </span>
+    <div class="code-zoom-inner" id="getStartedInner" style="display:flex;gap:24px;align-items:flex-start;">
+
+    <div class="gs-main">
+      <div class="section-tag" style="margin-bottom:6px;">
+        <div class="diamond" style="background:var(--seafoam);"></div>
+        <span style="color:var(--seafoam);">Getting Started</span>
+      </div>
+
+      <h3 class="gs-heading">Get Started</h3>
+
+      <div class="gs-code"><span class="gs-cmd">pip install</span> zyra          <span class="gs-dim"># core</span>
+
+<span class="gs-cmd">pip install</span> "zyra[all]"   <span class="gs-dim"># everything</span>
+<span class="gs-cmd">zyra</span> --help               <span class="gs-dim"># explore CLI</span></div>
+
+      <div class="gs-links">
+        <div class="gs-link-item">
+          <div class="gs-link-label">GitHub</div>
+          <div class="gs-link-url">github.com/NOAA-GSL/zyra</div>
+        </div>
+        <div class="gs-link-item">
+          <div class="gs-link-label">PyPI</div>
+          <div class="gs-link-url">pypi.org/project/zyra</div>
+        </div>
+        <div class="gs-link-item">
+          <div class="gs-link-label">Docs</div>
+          <div class="gs-link-url">noaa-gsl.github.io/zyra</div>
+        </div>
+        <div class="gs-link-item">
+          <div class="gs-link-label">Wiki</div>
+          <div class="gs-link-url">github.com/NOAA-GSL/zyra/wiki</div>
+        </div>
+        <div class="gs-link-item">
+          <div class="gs-link-label">DOI</div>
+          <div class="gs-link-url">10.5281/zenodo.16923323</div>
+        </div>
+        <div class="gs-link-item">
+          <div class="gs-link-label">Assistant</div>
+          <div class="gs-link-url">assistant.zyra-project.org</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="gs-qr">
+      <div class="gs-qr-box">
+        <img src="zyra-qr-code.png" alt="QR code linking to github.com/NOAA-GSL/zyra" width="84" height="84" style="display:block;border-radius:4px;">
+      </div>
+      <div class="gs-qr-label">Scan for repo</div>
+    </div>
+
+    </div><!-- .code-zoom-inner -->
+  </div><!-- .code-zoom-wrap -->
+
+  </div>
+
+</div>
+
+  </div>
+
+  <div class="poster-bottom-pad"></div>
+
+</div>
+
+<!-- Pipeline lightbox modal -->
+<div class="pipeline-lightbox" id="pipelineLightbox">
+  <button class="lb-close" onclick="closePipelineLightbox()">&times;</button>
+</div>
+
+<!-- Code zoom lightbox modal -->
+<div class="code-lightbox" id="codeLightbox">
+  <button class="lb-close" onclick="closeCodeLightbox()">&times;</button>
+</div>
+
+<script>
+(function() {
+  var toggle = document.getElementById('modeToggle');
+  var link = document.getElementById('toggleLink');
+  var label = document.getElementById('modeLabel');
+  var isPrint = false;
+
+  toggle.style.display = 'flex';
+
+  function applyMode() {
+    if (isPrint) {
+      document.body.classList.add('poster-print');
+      label.textContent = 'Print Preview \u2014 48\u00d736\u201d poster at 4:3 ratio (4800\u00d73600px)';
+      link.textContent = 'Switch to Web View';
+    } else {
+      document.body.classList.remove('poster-print');
+      label.textContent = 'Web View \u2014 scrolling layout for screens';
+      link.textContent = 'Switch to Print Preview (48\u00d736\u201d)';
+      setTimeout(function() { scalePipeline(); scaleCodeZooms(); }, 50);
+    }
+    window.scrollTo(0, 0);
+    setTimeout(scalePrintPreview, 10);
+  }
+
+  link.href = 'javascript:void(0)';
+  link.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    isPrint = !isPrint;
+    applyMode();
+    return false;
+  });
+
+  // ── Print mode auto-scale to fit viewport ──
+  function scalePrintPreview() {
+    var poster = document.querySelector('.poster');
+    if (!poster) return;
+    if (isPrint) {
+      var vw = window.innerWidth - 20; // small margin
+      var vh = window.innerHeight - 80; // room for toggle banner
+      var scaleX = vw / 4800;
+      var scaleY = vh / 3600;
+      var scale = Math.min(scaleX, scaleY, 1); // never scale up
+      if (scale < 1) {
+        poster.style.transform = 'scale(' + scale + ')';
+        poster.style.transformOrigin = 'top left';
+        // Set a wrapper size so the body doesn't show empty space
+        poster.style.marginBottom = '-' + (3600 - (3600 * scale)) + 'px';
+        poster.style.marginRight = '-' + (4800 - (4800 * scale)) + 'px';
+      } else {
+        poster.style.transform = '';
+        poster.style.marginBottom = '';
+        poster.style.marginRight = '';
+      }
+    } else {
+      poster.style.transform = '';
+      poster.style.transformOrigin = '';
+      poster.style.marginBottom = '';
+      poster.style.marginRight = '';
+    }
+  }
+
+  applyMode();
+  scalePrintPreview();
+  window.addEventListener('resize', function() {
+    scalePipeline();
+    scaleCodeZooms();
+    scalePrintPreview();
+  });
+
+  // ── Responsive pipeline scaling (web mode only) ──
+  function scalePipeline() {
+    if (document.body.classList.contains('poster-print')) return;
+    var wrap = document.getElementById('pipelineWrap');
+    var visual = document.getElementById('pipelineVisual');
+    if (!wrap || !visual) return;
+    
+    var wrapWidth = wrap.clientWidth;
+    var nativeWidth = 1440;
+    var nativeHeight = 620;
+    var scale = Math.min(1, wrapWidth / nativeWidth);
+    
+    visual.style.transform = 'scale(' + scale + ')';
+    visual.style.transformOrigin = 'top left';
+    // Set wrapper height to match scaled visual
+    wrap.style.height = (nativeHeight * scale) + 'px';
+  }
+
+  // Run on load and resize
+  if (!isPrint) {
+    scalePipeline();
+    window.addEventListener('resize', scalePipeline);
+    setTimeout(scalePipeline, 200);
+  }
+
+  // ── Responsive code-zoom scaling (web mode only) ──
+  function scaleCodeZooms() {
+    if (document.body.classList.contains('poster-print')) return;
+    document.querySelectorAll('.code-zoom-wrap').forEach(function(wrap) {
+      var inner = wrap.querySelector('.code-zoom-inner');
+      if (!inner) return;
+      inner.style.transform = 'none';
+      wrap.style.height = 'auto';
+      var nativeWidth = inner.scrollWidth;
+      var nativeHeight = inner.scrollHeight;
+      var wrapWidth = wrap.clientWidth;
+      var scale = Math.min(1, wrapWidth / nativeWidth);
+      if (scale < 1) {
+        inner.style.transform = 'scale(' + scale + ')';
+        inner.style.transformOrigin = 'top left';
+        wrap.style.height = (nativeHeight * scale) + 'px';
+      }
+    });
+  }
+  if (!isPrint) {
+    scaleCodeZooms();
+    window.addEventListener('resize', scaleCodeZooms);
+    setTimeout(scaleCodeZooms, 250);
+  }
+
+  // ── Pipeline lightbox ──
+  window.openPipelineLightbox = function() {
+    if (document.body.classList.contains('poster-print')) return;
+    var lb = document.getElementById('pipelineLightbox');
+    var visual = document.getElementById('pipelineVisual');
+    if (!lb || !visual) return;
+    
+    // Clone the pipeline visual into the lightbox
+    var clone = visual.cloneNode(true);
+    clone.id = '';
+    clone.style.transform = 'none';
+    
+    // Remove previous clone if any
+    var old = lb.querySelector('.pipeline-visual');
+    if (old) old.remove();
+    
+    lb.appendChild(clone);
+    lb.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closePipelineLightbox = function() {
+    var lb = document.getElementById('pipelineLightbox');
+    lb.classList.remove('active');
+    document.body.style.overflow = '';
+    var clone = lb.querySelector('.pipeline-visual');
+    if (clone) clone.remove();
+  };
+
+  // Close on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { closePipelineLightbox(); closeCodeLightbox(); }
+  });
+
+  // Close on clicking backdrop
+  document.getElementById('pipelineLightbox').addEventListener('click', function(e) {
+    if (e.target === this) closePipelineLightbox();
+  });
+
+  // ── Code zoom lightbox ──
+  window.openCodeLightbox = function(wrapId) {
+    if (document.body.classList.contains('poster-print')) return;
+    var wrap = document.getElementById(wrapId);
+    var lb = document.getElementById('codeLightbox');
+    if (!wrap || !lb) return;
+    var inner = wrap.querySelector('.code-zoom-inner');
+    if (!inner) return;
+    var clone = inner.cloneNode(true);
+    clone.style.transform = 'none';
+    clone.className = 'code-zoom-content';
+    var old = lb.querySelector('.code-zoom-content');
+    if (old) old.remove();
+    lb.appendChild(clone);
+    lb.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closeCodeLightbox = function() {
+    var lb = document.getElementById('codeLightbox');
+    lb.classList.remove('active');
+    document.body.style.overflow = '';
+    var clone = lb.querySelector('.code-zoom-content');
+    if (clone) clone.remove();
+  };
+
+  document.getElementById('codeLightbox').addEventListener('click', function(e) {
+    if (e.target === this) closeCodeLightbox();
+  });
+})();
+</script>
+
+</body>
+</html>

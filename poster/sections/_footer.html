@@ -1,0 +1,207 @@
+  <div class="poster-bottom-pad"></div>
+
+</div>
+
+<!-- Pipeline lightbox modal -->
+<div class="pipeline-lightbox" id="pipelineLightbox">
+  <button class="lb-close" onclick="closePipelineLightbox()">&times;</button>
+</div>
+
+<!-- Code zoom lightbox modal -->
+<div class="code-lightbox" id="codeLightbox">
+  <button class="lb-close" onclick="closeCodeLightbox()">&times;</button>
+</div>
+
+<script>
+(function() {
+  var toggle = document.getElementById('modeToggle');
+  var link = document.getElementById('toggleLink');
+  var label = document.getElementById('modeLabel');
+  var isPrint = false;
+
+  toggle.style.display = 'flex';
+
+  function applyMode() {
+    if (isPrint) {
+      document.body.classList.add('poster-print');
+      label.textContent = 'Print Preview \u2014 48\u00d736\u201d poster at 4:3 ratio (4800\u00d73600px)';
+      link.textContent = 'Switch to Web View';
+    } else {
+      document.body.classList.remove('poster-print');
+      label.textContent = 'Web View \u2014 scrolling layout for screens';
+      link.textContent = 'Switch to Print Preview (48\u00d736\u201d)';
+      setTimeout(function() { scalePipeline(); scaleCodeZooms(); }, 50);
+    }
+    window.scrollTo(0, 0);
+    setTimeout(scalePrintPreview, 10);
+  }
+
+  link.href = 'javascript:void(0)';
+  link.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    isPrint = !isPrint;
+    applyMode();
+    return false;
+  });
+
+  // ── Print mode auto-scale to fit viewport ──
+  function scalePrintPreview() {
+    var poster = document.querySelector('.poster');
+    if (!poster) return;
+    if (isPrint) {
+      var vw = window.innerWidth - 20; // small margin
+      var vh = window.innerHeight - 80; // room for toggle banner
+      var scaleX = vw / 4800;
+      var scaleY = vh / 3600;
+      var scale = Math.min(scaleX, scaleY, 1); // never scale up
+      if (scale < 1) {
+        poster.style.transform = 'scale(' + scale + ')';
+        poster.style.transformOrigin = 'top left';
+        // Set a wrapper size so the body doesn't show empty space
+        poster.style.marginBottom = '-' + (3600 - (3600 * scale)) + 'px';
+        poster.style.marginRight = '-' + (4800 - (4800 * scale)) + 'px';
+      } else {
+        poster.style.transform = '';
+        poster.style.marginBottom = '';
+        poster.style.marginRight = '';
+      }
+    } else {
+      poster.style.transform = '';
+      poster.style.transformOrigin = '';
+      poster.style.marginBottom = '';
+      poster.style.marginRight = '';
+    }
+  }
+
+  applyMode();
+  scalePrintPreview();
+  window.addEventListener('resize', function() {
+    scalePipeline();
+    scaleCodeZooms();
+    scalePrintPreview();
+  });
+
+  // ── Responsive pipeline scaling (web mode only) ──
+  function scalePipeline() {
+    if (document.body.classList.contains('poster-print')) return;
+    var wrap = document.getElementById('pipelineWrap');
+    var visual = document.getElementById('pipelineVisual');
+    if (!wrap || !visual) return;
+    
+    var wrapWidth = wrap.clientWidth;
+    var nativeWidth = 1440;
+    var nativeHeight = 620;
+    var scale = Math.min(1, wrapWidth / nativeWidth);
+    
+    visual.style.transform = 'scale(' + scale + ')';
+    visual.style.transformOrigin = 'top left';
+    // Set wrapper height to match scaled visual
+    wrap.style.height = (nativeHeight * scale) + 'px';
+  }
+
+  // Run on load and resize
+  if (!isPrint) {
+    scalePipeline();
+    window.addEventListener('resize', scalePipeline);
+    setTimeout(scalePipeline, 200);
+  }
+
+  // ── Responsive code-zoom scaling (web mode only) ──
+  function scaleCodeZooms() {
+    if (document.body.classList.contains('poster-print')) return;
+    document.querySelectorAll('.code-zoom-wrap').forEach(function(wrap) {
+      var inner = wrap.querySelector('.code-zoom-inner');
+      if (!inner) return;
+      inner.style.transform = 'none';
+      wrap.style.height = 'auto';
+      var nativeWidth = inner.scrollWidth;
+      var nativeHeight = inner.scrollHeight;
+      var wrapWidth = wrap.clientWidth;
+      var scale = Math.min(1, wrapWidth / nativeWidth);
+      if (scale < 1) {
+        inner.style.transform = 'scale(' + scale + ')';
+        inner.style.transformOrigin = 'top left';
+        wrap.style.height = (nativeHeight * scale) + 'px';
+      }
+    });
+  }
+  if (!isPrint) {
+    scaleCodeZooms();
+    window.addEventListener('resize', scaleCodeZooms);
+    setTimeout(scaleCodeZooms, 250);
+  }
+
+  // ── Pipeline lightbox ──
+  window.openPipelineLightbox = function() {
+    if (document.body.classList.contains('poster-print')) return;
+    var lb = document.getElementById('pipelineLightbox');
+    var visual = document.getElementById('pipelineVisual');
+    if (!lb || !visual) return;
+    
+    // Clone the pipeline visual into the lightbox
+    var clone = visual.cloneNode(true);
+    clone.id = '';
+    clone.style.transform = 'none';
+    
+    // Remove previous clone if any
+    var old = lb.querySelector('.pipeline-visual');
+    if (old) old.remove();
+    
+    lb.appendChild(clone);
+    lb.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closePipelineLightbox = function() {
+    var lb = document.getElementById('pipelineLightbox');
+    lb.classList.remove('active');
+    document.body.style.overflow = '';
+    var clone = lb.querySelector('.pipeline-visual');
+    if (clone) clone.remove();
+  };
+
+  // Close on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { closePipelineLightbox(); closeCodeLightbox(); }
+  });
+
+  // Close on clicking backdrop
+  document.getElementById('pipelineLightbox').addEventListener('click', function(e) {
+    if (e.target === this) closePipelineLightbox();
+  });
+
+  // ── Code zoom lightbox ──
+  window.openCodeLightbox = function(wrapId) {
+    if (document.body.classList.contains('poster-print')) return;
+    var wrap = document.getElementById(wrapId);
+    var lb = document.getElementById('codeLightbox');
+    if (!wrap || !lb) return;
+    var inner = wrap.querySelector('.code-zoom-inner');
+    if (!inner) return;
+    var clone = inner.cloneNode(true);
+    clone.style.transform = 'none';
+    clone.className = 'code-zoom-content';
+    var old = lb.querySelector('.code-zoom-content');
+    if (old) old.remove();
+    lb.appendChild(clone);
+    lb.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closeCodeLightbox = function() {
+    var lb = document.getElementById('codeLightbox');
+    lb.classList.remove('active');
+    document.body.style.overflow = '';
+    var clone = lb.querySelector('.code-zoom-content');
+    if (clone) clone.remove();
+  };
+
+  document.getElementById('codeLightbox').addEventListener('click', function(e) {
+    if (e.target === this) closeCodeLightbox();
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,314 @@
+  <!-- ════════════ SECTION 3: THE PIPELINE ════════════ -->
+
+  <div class="pipeline-section">
+
+<div class="section-tag">
+  <div class="diamond"></div>
+  <span>Architecture</span>
+</div>
+<h2 class="pipeline-heading">The Pipeline: 8 Composable Stages</h2>
+<p class="pipeline-sub">Use only what you need. Each stage streams via stdin/stdout for Unix-style chaining.</p>
+
+<!-- ── Hero pipeline visual ── -->
+<div class="pipeline-visual-wrap" id="pipelineWrap" onclick="openPipelineLightbox()">
+  <span class="zoom-hint">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>
+    Click to zoom
+  </span>
+<div class="pipeline-visual" id="pipelineVisual">
+
+  <!-- FLOWING SVG BACKGROUND -->
+  <svg class="flow-bg" viewBox="0 0 1360 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Main flowing river path -->
+    <path d="M 160 190 C 250 170, 300 250, 400 220 C 500 190, 520 130, 620 160 C 720 190, 750 270, 850 240 C 950 210, 980 150, 1080 180 C 1180 210, 1200 270, 1200 240"
+          stroke="url(#mainFlow)" stroke-width="56" stroke-linecap="round" opacity="0.06"/>
+    <path d="M 160 190 C 250 170, 300 250, 400 220 C 500 190, 520 130, 620 160 C 720 190, 750 270, 850 240 C 950 210, 980 150, 1080 180 C 1180 210, 1200 270, 1200 240"
+          stroke="url(#mainFlow)" stroke-width="24" stroke-linecap="round" opacity="0.09"/>
+
+    <!-- Animated dots along path -->
+    <circle r="3.5" fill="var(--cable-blue)" opacity="0.3">
+      <animateMotion dur="8s" repeatCount="indefinite"
+        path="M 160 190 C 250 170, 300 250, 400 220 C 500 190, 520 130, 620 160 C 720 190, 750 270, 850 240 C 950 210, 980 150, 1080 180 C 1180 210, 1200 270, 1200 240"/>
+    </circle>
+    <circle r="3" fill="var(--ocean-blue)" opacity="0.25">
+      <animateMotion dur="8s" repeatCount="indefinite" begin="2.5s"
+        path="M 160 190 C 250 170, 300 250, 400 220 C 500 190, 520 130, 620 160 C 720 190, 750 270, 850 240 C 950 210, 980 150, 1080 180 C 1180 210, 1200 270, 1200 240"/>
+    </circle>
+    <circle r="3" fill="var(--leaf-green)" opacity="0.25">
+      <animateMotion dur="8s" repeatCount="indefinite" begin="5s"
+        path="M 160 190 C 250 170, 300 250, 400 220 C 500 190, 520 130, 620 160 C 720 190, 750 270, 850 240 C 950 210, 980 150, 1080 180 C 1180 210, 1200 270, 1200 240"/>
+    </circle>
+
+    <!-- Secondary decorative dashes -->
+    <path d="M 160 210 C 280 240, 350 170, 420 200" stroke="var(--cable-blue)" stroke-width="1.5" stroke-dasharray="4,8" opacity="0.12"/>
+    <path d="M 580 140 C 650 110, 700 190, 780 150" stroke="var(--ocean-blue)" stroke-width="1.5" stroke-dasharray="4,8" opacity="0.12"/>
+    <path d="M 1020 160 C 1080 190, 1120 140, 1200 170" stroke="var(--leaf-green)" stroke-width="1.5" stroke-dasharray="4,8" opacity="0.12"/>
+
+    <!-- Connecting arrows from sources -->
+    <path d="M 120 155 C 155 155, 180 175, 210 180" stroke="var(--cable-blue)" stroke-width="2" fill="none" marker-end="url(#arrowBlue)"/>
+    <path d="M 120 210 C 155 210, 185 200, 215 195" stroke="var(--cable-blue)" stroke-width="2" fill="none" marker-end="url(#arrowBlue)"/>
+    <path d="M 120 268 C 155 258, 180 230, 215 215" stroke="var(--cable-blue)" stroke-width="2" fill="none" marker-end="url(#arrowBlue)"/>
+
+    <!-- Arrows to outputs -->
+    <path d="M 1200 195 C 1230 170, 1260 150, 1280 145" stroke="var(--leaf-green)" stroke-width="2" fill="none" marker-end="url(#arrowGreen)" opacity="0.45"/>
+    <path d="M 1200 205 C 1240 205, 1260 200, 1280 200" stroke="var(--leaf-green)" stroke-width="2" fill="none" marker-end="url(#arrowGreen)" opacity="0.45"/>
+    <path d="M 1200 215 C 1230 240, 1260 255, 1280 255" stroke="var(--leaf-green)" stroke-width="2" fill="none" marker-end="url(#arrowGreen)" opacity="0.45"/>
+
+    <!-- Decorative scattered dots -->
+    <circle cx="350" cy="270" r="2.5" fill="var(--cable-blue)" opacity="0.08"/>
+    <circle cx="500" cy="120" r="2" fill="var(--ocean-blue)" opacity="0.08"/>
+    <circle cx="700" cy="290" r="2.5" fill="var(--ocean-blue)" opacity="0.06"/>
+    <circle cx="900" cy="120" r="2" fill="var(--ocean-blue)" opacity="0.08"/>
+    <circle cx="1100" cy="270" r="2" fill="var(--leaf-green)" opacity="0.08"/>
+
+    <defs>
+      <linearGradient id="mainFlow" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="var(--cable-blue)"/>
+        <stop offset="45%" stop-color="var(--ocean-blue)"/>
+        <stop offset="100%" stop-color="var(--leaf-green)"/>
+      </linearGradient>
+      <marker id="arrowBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--cable-blue)"/>
+      </marker>
+      <marker id="arrowTeal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ocean-blue)"/>
+      </marker>
+      <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--leaf-green)"/>
+      </marker>
+    </defs>
+  </svg>
+
+  <!-- PHASE LABELS -->
+  <div class="phase-label pl-ingest">Data Ingestion &amp; Transformation</div>
+  <div class="phase-label pl-viz">Visualization &amp; AI Narration</div>
+  <div class="phase-label pl-export">Verification &amp; Export</div>
+
+  <!-- SOURCE ICONS (left) -->
+  <div class="source-stack">
+    <div class="source-item">
+      <div class="source-icon" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--cable-blue)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+      </div>
+      <div class="source-label">HTTP</div>
+    </div>
+    <div class="source-item">
+      <div class="source-icon" style="background:linear-gradient(135deg,#fef3c7,#fde68a)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round"><path d="M4 8l8-5 8 5M4 8v8l8 5M4 8l8 5M20 8v8l-8 5M20 8l-8 5M12 13v8"/></svg>
+      </div>
+      <div class="source-label">S3</div>
+    </div>
+    <div class="source-item">
+      <div class="source-icon" style="background:linear-gradient(135deg,#e0e7ff,#c7d2fe)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--ocean-blue)" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="18" rx="3"/><path d="M2 9h20M8 9v12"/></svg>
+      </div>
+      <div class="source-label">FTP</div>
+    </div>
+  </div>
+
+  <!-- STAGE BUBBLES -->
+  <!-- 1 Import -->
+  <div class="stage-bubble" style="left:230px; top:140px">
+    <div class="stage-circle" style="background:linear-gradient(135deg,var(--cable-blue),#003d7a)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+    </div>
+    <div class="stage-label-txt">Import</div>
+    <div class="stage-cli-txt">acquire</div>
+  </div>
+
+  <!-- 2 Process -->
+  <div class="stage-bubble" style="left:395px; top:150px">
+    <div class="stage-circle" style="background:linear-gradient(135deg,var(--leaf-green),#1a4a08)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    </div>
+    <div class="stage-label-txt">Process</div>
+    <div class="stage-cli-txt">transform</div>
+  </div>
+
+  <!-- 3 Simulate (planned) -->
+  <div class="stage-bubble" style="left:540px; top:135px">
+    <div class="stage-circle planned">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--neutral-700)" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+    </div>
+    <div class="stage-label-txt" style="color:var(--neutral-700)">Simulate</div>
+    <div class="stage-cli-txt planned-cli">planned</div>
+  </div>
+
+  <!-- 4 Decide (planned) -->
+  <div class="stage-bubble" style="left:685px; top:112px">
+    <div class="stage-circle planned">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--neutral-700)" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+    </div>
+    <div class="stage-label-txt" style="color:var(--neutral-700)">Decide</div>
+    <div class="stage-cli-txt planned-cli">planned</div>
+  </div>
+
+  <!-- 5 Visualize -->
+  <div class="stage-bubble" style="left:830px; top:180px">
+    <div class="stage-circle" style="background:linear-gradient(135deg,var(--olive),#3a4510)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l4-4 4 4 4-6 5 6"/></svg>
+    </div>
+    <div class="stage-label-txt">Visualize</div>
+    <div class="stage-cli-txt">render</div>
+  </div>
+
+  <!-- 6 Narrate -->
+  <div class="stage-bubble" style="left:975px; top:175px">
+    <div class="stage-circle" style="background:linear-gradient(135deg,var(--ocean-blue),#0e3a44)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v3M8 22h8"/></svg>
+    </div>
+    <div class="stage-label-txt">Narrate</div>
+    <div class="stage-cli-txt">AI-driven</div>
+  </div>
+
+  <!-- 7 Verify -->
+  <div class="stage-bubble" style="left:1035px; top:130px">
+    <div class="stage-circle" style="background:linear-gradient(135deg,var(--seafoam),#3d7585)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M9 12l2 2 4-4M20.618 5.984A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+    </div>
+    <div class="stage-label-txt">Verify</div>
+    <div class="stage-cli-txt">validate</div>
+  </div>
+
+  <!-- 8 Export -->
+  <div class="stage-bubble" style="left:1145px; top:160px">
+    <div class="stage-circle" style="background:linear-gradient(135deg,var(--cable-blue),#003d7a)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+    </div>
+    <div class="stage-label-txt">Export</div>
+    <div class="stage-cli-txt">disseminate</div>
+  </div>
+
+  <!-- OUTPUT ICONS (right) -->
+  <div class="output-stack" style="right:18px; top:100px;">
+    <div class="source-item" style="flex-direction:row-reverse;">
+      <div class="source-icon" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--leaf-green)" stroke-width="2" stroke-linecap="round"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg>
+      </div>
+      <div class="source-label">Cloud</div>
+    </div>
+    <div class="source-item" style="flex-direction:row-reverse;">
+      <div class="source-icon" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--cable-blue)" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1" fill="var(--cable-blue)"/><circle cx="6" cy="18" r="1" fill="var(--cable-blue)"/></svg>
+      </div>
+      <div class="source-label">S3</div>
+    </div>
+    <div class="source-item" style="flex-direction:row-reverse;">
+      <div class="source-icon" style="background:linear-gradient(135deg,#fef3c7,#fde68a)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+      </div>
+      <div class="source-label">Local</div>
+    </div>
+  </div>
+
+  <!-- CALLOUT CARDS -->
+  <div class="callout" style="left:170px; top:330px">
+    <div class="callout-arrow" style="left:60px;"></div>
+    <div class="callout-title"><span class="ct-tag" style="background:var(--cable-blue)">Import</span> zyra acquire</div>
+    <div class="callout-text">Fetch from S3, FTP, REST APIs, or HTTP endpoints with automatic retry and checksum validation.</div>
+  </div>
+
+  <div class="callout" style="left:275px; top:385px">
+    <div class="callout-arrow" style="left:110px;"></div>
+    <div class="callout-title"><span class="ct-tag" style="background:var(--leaf-green)">Process</span> zyra transform</div>
+    <div class="callout-text">Regrid, subset, and convert GRIB2, NetCDF, and GeoTIFF through configurable processing chains.</div>
+  </div>
+
+  <div class="callout" style="left:430px; top:340px; max-width:185px;">
+    <div class="callout-arrow" style="left:65px;"></div>
+    <div class="callout-title"><span class="ct-tag" style="background:var(--neutral-700)">Simulate</span> planned</div>
+    <div class="callout-text">Future stage for ensemble simulations and model experiments within the pipeline.</div>
+  </div>
+
+  <div class="callout" style="left:585px; top:265px; max-width:185px;">
+    <div class="callout-arrow" style="left:65px;"></div>
+    <div class="callout-title"><span class="ct-tag" style="background:var(--neutral-700)">Decide</span> planned</div>
+    <div class="callout-text">Future stage for automated decision-support logic and threshold-based alerting.</div>
+  </div>
+
+  <div class="callout" style="left:715px; top:340px">
+    <div class="callout-arrow" style="left:85px;"></div>
+    <div class="callout-title"><span class="ct-tag" style="background:var(--olive)">Visualize</span> zyra render</div>
+    <div class="callout-text">Generate publication-quality maps, plots, and multi-frame GIF animations from processed datasets.</div>
+  </div>
+
+  <div class="callout" style="left:890px; top:390px">
+    <div class="callout-arrow" style="left:62px;"></div>
+    <div class="callout-title"><span class="ct-tag" style="background:var(--ocean-blue)">Narrate</span> zyra narrate</div>
+    <div class="callout-text">AI-driven scientific captions via multi-agent critique with OpenAI, Ollama, or Gemini providers.</div>
+  </div>
+
+  <div class="callout" style="left:950px; top:275px; max-width:180px;">
+    <div class="callout-arrow" style="left:72px;"></div>
+    <div class="callout-title"><span class="ct-tag" style="background:var(--seafoam)">Verify</span> zyra validate</div>
+    <div class="callout-text">Check metadata, provenance records, and output integrity.</div>
+  </div>
+
+  <div class="callout" style="left:1100px; top:365px; max-width:170px;">
+    <div class="callout-arrow" style="left:42px;"></div>
+    <div class="callout-title"><span class="ct-tag" style="background:var(--cable-blue)">Export</span> disseminate</div>
+    <div class="callout-text">Push final products to S3, cloud, or local with full audit trail.</div>
+  </div>
+
+  <!-- FORMAT PILLS -->
+  <div class="format-pills" style="left:325px; top:278px">
+    <span class="fpill" style="background:var(--cable-blue)">GRIB2</span>
+    <span class="fpill" style="background:var(--ocean-blue)">NetCDF</span>
+    <span class="fpill" style="background:var(--seafoam)">GeoTIFF</span>
+  </div>
+
+  <!-- PHASE SUMMARIES -->
+  <div class="phase-summaries">
+    <div class="phase-summary" style="flex:1.2">
+      Acquire data via HTTP, S3, or FTP<br>and transform into usable formats.
+    </div>
+    <div class="phase-summary" style="flex:1.6">
+      Generate maps, plots, and animations while AI agents<br>produce automated scientific summaries and reports.
+    </div>
+    <div class="phase-summary" style="flex:1">
+      Validate metadata quality before<br>disseminating to cloud or local storage.
+    </div>
+  </div>
+</div>
+</div><!-- end .pipeline-visual-wrap -->
+
+<!-- ── Table + Streaming example ── -->
+<div class="pipeline-details">
+
+  <div class="pipeline-table-wrap">
+    <table class="pipeline-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Stage</th>
+          <th>Purpose</th>
+          <th>CLI</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="stage-num">1</td><td>Import</td><td>Fetch from HTTP/S, S3, FTP, REST API</td><td class="cli-cell">zyra acquire</td><td class="status-impl">Implemented</td></tr>
+        <tr><td class="stage-num">2</td><td>Process</td><td>Decode, subset, convert (GRIB2, NetCDF, GeoTIFF)</td><td class="cli-cell">zyra process</td><td class="status-impl">Implemented</td></tr>
+        <tr><td class="stage-num">3</td><td>Simulate</td><td>Generate synthetic/test data</td><td class="cli-cell">—</td><td class="status-plan">Planned</td></tr>
+        <tr><td class="stage-num">4</td><td>Decide</td><td>Parameter optimization and selection</td><td class="cli-cell">—</td><td class="status-plan">Planned</td></tr>
+        <tr><td class="stage-num">5</td><td>Visualize</td><td>Static maps, plots, animations, interactive</td><td class="cli-cell">zyra visualize</td><td class="status-impl">Implemented</td></tr>
+        <tr><td class="stage-num">6</td><td>Narrate</td><td>AI-driven captions, summaries, reports</td><td class="cli-cell">zyra narrate</td><td class="status-impl">Implemented</td></tr>
+        <tr><td class="stage-num">7</td><td>Verify</td><td>Quality checks and metadata validation</td><td class="cli-cell">zyra verify</td><td class="status-partial">Partial</td></tr>
+        <tr><td class="stage-num">8</td><td>Export</td><td>Push to S3, FTP, Vimeo, local, HTTP POST</td><td class="cli-cell">zyra export</td><td class="status-impl">Implemented</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="stream-block">
+    <div class="stream-label">Unix-Style Streaming</div>
+    <div class="stream-code"><span class="sc-cmd">zyra acquire</span> http $URL <span class="sc-flag">-o -</span> <span class="sc-pipe">|</span> \
+<span class="sc-cmd">zyra process</span> convert-format - netcdf <span class="sc-flag">--stdout</span> <span class="sc-pipe">|</span>   
+<span class="sc-cmd">zyra visualize</span> heatmap <span class="sc-flag">--input -</span> <span class="sc-flag">--var</span> TMP <span class="sc-flag">-o</span> plot.png</div>
+<p class="stream-note">
+Stages are composable — pipe any stage's output directly into the next. Every stage supports <code style="font-family:var(--font-mono);font-size:11px;color:var(--cable-blue)">stdin</code>/<code style="font-family:var(--font-mono);font-size:11px;color:var(--cable-blue)">stdout</code> for seamless chaining.
+</p>
+</div>
+
+</div>
+
+  </div>

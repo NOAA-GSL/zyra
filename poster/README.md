@@ -184,6 +184,30 @@ zyra run pipeline.yaml --set visualize.fps=8     # override parameters
 
 ---
 
+## Building Off the Foundation
+
+Zyra provides three layers of access — from terminal commands to autonomous AI agents — all sharing the same 8-stage pipeline architecture:
+
+```mermaid
+graph BT
+    CLI["1. CLI\nzyra [command]"] --> API["2. Python API\nimport zyra"]
+    API --> MCP["3. MCP + AI Agents\ntools/discover"]
+
+    style CLI fill:#2C670C,stroke:#00172D,color:#FEFEFE,stroke-width:2px
+    style API fill:#00529E,stroke:#00172D,color:#FEFEFE,stroke-width:2px
+    style MCP fill:#1A5A69,stroke:#00172D,color:#FEFEFE,stroke-width:2px
+```
+
+| Layer | Description |
+|-------|-------------|
+| **CLI** | Scriptable, streaming commands via `stdin/stdout` for Unix-style pipeline composition |
+| **Python API** | Programmatic access via `import zyra` for custom modules and automated workflows |
+| **MCP + AI Agents** | Every pipeline stage exposed as an MCP tool for LLM agent discovery and execution |
+
+Whether invoked from bash, Python, REST (`zyra serve`), or an AI agent, every execution follows the same architecture with full provenance tracking.
+
+---
+
 ## Visualization Gallery
 
 <table>

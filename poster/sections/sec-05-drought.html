@@ -1,0 +1,88 @@
+<!-- ════════════ SECTION 5: DROUGHT PIPELINE ════════════ -->
+<div class="usecase-card">
+
+  <div class="section-tag" style="margin-bottom:6px;">
+    <div class="diamond"></div>
+    <span>Use Case</span>
+  </div>
+
+  <h3 class="usecase-heading">Drought Animation Pipeline</h3>
+  <p class="usecase-desc">
+    A production workflow syncs weekly drought risk frames from NOAA FTP, fills gaps, and composes an MP4 animation — five stages, one pipeline.
+  </p>
+
+  <!-- Five-step code block with stage-colored indicators -->
+  <div class="code-steps">
+    <div class="code-step">
+      <div class="step-dot step-dot-import">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      </div>
+      <div class="step-code"><span class="step-stage-tag tag-import">① Import</span>
+<span class="cc-cmd">zyra acquire</span> ftp \
+  <span class="cc-url">ftp://ftp.nnvl.noaa.gov/SOS/DroughtRisk_Weekly</span> \
+  <span class="cc-flag">--sync-dir</span> <span class="cc-file">./frames</span> <span class="cc-flag">--since</span> P1Y</div>
+    </div>
+    <div class="code-step">
+      <div class="step-dot step-dot-process">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35"/></svg>
+      </div>
+      <div class="step-code"><span class="step-stage-tag tag-process">② Process</span>
+<span class="cc-cmd">zyra process</span> scan-metadata \
+  <span class="cc-file">./frames</span> <span class="cc-flag">--output</span> <span class="cc-file">manifest.json</span></div>
+    </div>
+    <div class="code-step">
+      <div class="step-dot step-dot-process">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>
+      </div>
+      <div class="step-code"><span class="step-stage-tag tag-process">③ Process</span>
+<span class="cc-cmd">zyra process</span> pad-missing \
+  <span class="cc-file">./frames</span> <span class="cc-flag">--fill</span> basemap</div>
+    </div>
+    <div class="code-step">
+      <div class="step-dot step-dot-visualize">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><polygon points="5,3 19,12 5,21"/></svg>
+      </div>
+      <div class="step-code"><span class="step-stage-tag tag-visualize">④ Visualize</span>
+<span class="cc-cmd">zyra visualize</span> compose-video \
+  <span class="cc-file">./frames</span> <span class="cc-flag">--fps</span> 4 <span class="cc-flag">--output</span> <span class="cc-file">video.mp4</span></div>
+    </div>
+    <div class="code-step">
+      <div class="step-dot step-dot-export">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      </div>
+      <div class="step-code"><span class="step-stage-tag tag-export">⑤ Export</span>
+<span class="cc-cmd">zyra export</span> vimeo \
+  <span class="cc-file">video.mp4</span> <span class="cc-flag">--title</span> <span class="cc-url">"Drought Risk Weekly"</span></div>
+    </div>
+  </div>
+
+  <!-- Flow connector: pipeline → output -->
+  <div class="flow-connector">
+    <svg width="24" height="28" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <line x1="12" y1="2" x2="12" y2="22" stroke="var(--neutral-600)" stroke-width="1.5" stroke-dasharray="3 3"/>
+      <path d="M7 18l5 7 5-7" stroke="var(--neutral-600)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  <!-- Video preview link -->
+  <a href="https://vimeo.com/900195230/43090ded31" target="_blank" class="video-preview">
+    <div class="video-thumb">
+      <div class="video-play-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--navy)"><polygon points="6,3 20,12 6,21"/></svg>
+      </div>
+    </div>
+    <div class="video-bar">
+      <svg class="video-bar-icon" viewBox="0 0 24 24" fill="none" stroke="var(--seafoam)" stroke-width="2" stroke-linecap="round"><polygon points="5,3 19,12 5,21"/></svg>
+      <div class="video-bar-text"><strong>Watch on Vimeo</strong> — Drought Risk Weekly animation output</div>
+    </div>
+  </a>
+
+  <!-- Provenance callout -->
+  <div class="prov-callout">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cable-blue)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+    <p>Each stage logs <strong>provenance</strong> — start time, duration, command, and exit code — to a <code>SQLite</code> store for full reproducibility.</p>
+  </div>
+
+</div>
+
+  </div>
