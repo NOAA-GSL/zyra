@@ -42,7 +42,7 @@ jobs:
         run: |
           test -f poster/html/zyra-poster.html || { echo "ERROR: poster HTML not found"; exit 1; }
           echo "Poster size: $(du -h poster/html/zyra-poster.html | cut -f1)"
-          echo "Image assets: $(ls poster/html/*.png | wc -l) files"
+          echo "Image assets: $(find poster/html -name '*.png' | wc -l) files"
 
       - name: Assemble site (dry run)
         run: |
