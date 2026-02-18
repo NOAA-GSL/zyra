@@ -168,6 +168,16 @@ class AcquireFtpArgs(BaseModel):
     credentials: dict[str, str] | None = None
     credential: list[str] | None = None
     credential_file: str | None = None
+    # Sync mode options
+    sync_dir: str | None = None
+    overwrite_existing: bool | None = None
+    recheck_existing: bool | None = None
+    min_remote_size: str | int | None = None
+    prefer_remote: bool | None = None
+    prefer_remote_if_meta_newer: bool | None = None
+    skip_if_local_done: bool | None = None
+    recheck_missing_meta: bool | None = None
+    frames_meta: str | None = None
 
     @model_validator(mode="after")
     def _require_path_or_listing(self):  # type: ignore[override]
