@@ -20,7 +20,7 @@
 
 Environmental and scientific workflows span heterogeneous data sources (HTTP, FTP, S3, APIs) and formats (GRIB2, NetCDF, GeoTIFF). They require repeatable transformation chains and produce diverse outputs -- static maps, animations, interactive pages, and datasets. Existing approaches often rely on ad-hoc scripts that break when data changes and lack reproducibility across teams and environments.
 
-**Zyra** provides a light-weight, CLI-first framework that standardizes common steps while remaining extensible for domain-specific logic.
+**Zyra** provides a lightweight, CLI-first framework that standardizes common steps while remaining extensible for domain-specific logic.
 
 ---
 

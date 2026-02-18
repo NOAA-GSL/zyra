@@ -106,6 +106,14 @@
     </div>
   </div>
 
+  <!-- DISCOVERY ANNOTATION (precursor to Import) -->
+  <div style="position:absolute; left:14px; top:295px; z-index:12;">
+    <span class="fpill" style="background:var(--seafoam); font-size:8.5px;">zyra search</span>
+    <div style="font-family:var(--font-sans); font-size:9px; color:var(--neutral-700); margin-top:3px; max-width:105px; line-height:1.3;">
+      Discover datasets via SOS catalog, OGC, or APIs
+    </div>
+  </div>
+
   <!-- STAGE BUBBLES -->
   <!-- 1 Import -->
   <div class="stage-bubble" style="left:230px; top:140px">
@@ -260,7 +268,7 @@
   <!-- PHASE SUMMARIES -->
   <div class="phase-summaries">
     <div class="phase-summary" style="flex:1.2">
-      Acquire data via HTTP, S3, or FTP<br>and transform into usable formats.
+      Discover datasets via search, then acquire<br>via HTTP, S3, or FTP and transform.
     </div>
     <div class="phase-summary" style="flex:1.6">
       Generate maps, plots, and animations while AI agents<br>produce automated scientific summaries and reports.
@@ -287,6 +295,7 @@
         </tr>
       </thead>
       <tbody>
+        <tr class="search-row"><td class="stage-num" style="color:var(--seafoam);">D</td><td>Discover</td><td>Search local SOS catalog, OGC WMS/Records, remote APIs</td><td class="cli-cell">zyra search</td><td class="status-impl">Implemented</td></tr>
         <tr><td class="stage-num">1</td><td>Import</td><td>Fetch from HTTP/S, S3, FTP, REST API</td><td class="cli-cell">zyra acquire</td><td class="status-impl">Implemented</td></tr>
         <tr><td class="stage-num">2</td><td>Process</td><td>Decode, subset, convert (GRIB2, NetCDF, GeoTIFF)</td><td class="cli-cell">zyra process</td><td class="status-impl">Implemented</td></tr>
         <tr><td class="stage-num">3</td><td>Simulate</td><td>Generate synthetic/test data</td><td class="cli-cell">—</td><td class="status-plan">Planned</td></tr>

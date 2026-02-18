@@ -115,20 +115,24 @@
     <span class="nc-pill" style="background:var(--leaf-green);">editor</span>
   </div>
 
-  <!-- Provider table -->
-  <div class="provider-table-wrap" style="margin-top:14px;">
-    <table class="provider-table">
-      <thead>
-        <tr><th>Provider</th><th>Usage</th></tr>
-      </thead>
-      <tbody>
-        <tr><td class="prov-name">OpenAI</td><td class="prov-usage">--provider openai --model gpt-4</td></tr>
-        <tr><td class="prov-name">Ollama</td><td class="prov-usage">--provider ollama --model gemma</td></tr>
-        <tr><td class="prov-name">Gemini</td><td class="prov-usage">--provider gemini</td></tr>
-        <tr><td class="prov-name">Mock</td><td class="prov-usage">--provider mock <span style="color:var(--neutral-600);font-family:var(--font-sans);font-size:10px;">(offline testing)</span></td></tr>
-      </tbody>
-    </table>
+  <!-- LLM Agnostic callout (replaces provider table) -->
+  <div class="guard-callout" style="margin-top:14px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ocean-blue)" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    <p><strong style="color:var(--ocean-blue);">LLM Agnostic</strong> &mdash; swap providers via <code>--provider</code>: OpenAI, Ollama, Gemini, or any compatible backend. Mock mode for offline testing.</p>
   </div>
+
+  <!-- zyra plan output example -->
+  <div style="font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--navy);margin:14px 0 5px;text-transform:uppercase;letter-spacing:0.8px;">Intent &rarr; Executable Plan</div>
+  <div class="usecase-code" style="font-size:10px; line-height:1.55; margin-bottom:10px;"><span class="cc-cmd">zyra plan</span> <span class="cc-flag">--intent</span> <span class="cc-url">"Sync drought frames, fill gaps, render animation"</span>
+<span style="color:var(--neutral-600);">{ <span class="cc-flag">"agents"</span>: [
+    {<span class="cc-flag">"id"</span>: <span class="cc-url">"fetch_frames"</span>,      <span class="cc-flag">"stage"</span>: <span class="cc-url">"acquire"</span>},
+    {<span class="cc-flag">"id"</span>: <span class="cc-url">"scan_frames"</span>,      <span class="cc-flag">"stage"</span>: <span class="cc-url">"process"</span>},
+    {<span class="cc-flag">"id"</span>: <span class="cc-url">"pad_missing"</span>,      <span class="cc-flag">"stage"</span>: <span class="cc-url">"process"</span>},
+    {<span class="cc-flag">"id"</span>: <span class="cc-url">"compose_animation"</span>, <span class="cc-flag">"stage"</span>: <span class="cc-url">"visualize"</span>},
+    {<span class="cc-flag">"id"</span>: <span class="cc-url">"save_local"</span>,        <span class="cc-flag">"stage"</span>: <span class="cc-url">"decimate"</span>}  ],
+  <span class="cc-flag">"suggestions"</span>: [
+    {<span class="cc-flag">"stage"</span>: <span class="cc-url">"narrate"</span>, <span class="cc-flag">"confidence"</span>: <span style="color:var(--olive);font-weight:600;">0.88</span>}
+  ] }</span></div>
 
   <!-- Guardrails callout -->
   <div class="guard-callout">

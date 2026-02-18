@@ -22,7 +22,14 @@ OUTPUT_FILE = REPO_ROOT / "poster" / "html" / "zyra-poster.html"
 
 def _read(path: Path) -> str:
     """Read a file preserving original line endings."""
-    return path.read_text(encoding="utf-8", errors="strict")
+    try:
+        return path.read_text(encoding="utf-8", errors="strict")
+    except FileNotFoundError:
+        print(f"ERROR: Missing file: {path}", file=sys.stderr)
+        sys.exit(1)
+    except OSError as exc:
+        print(f"ERROR: Cannot read {path}: {exc}", file=sys.stderr)
+        sys.exit(1)
 
 
 def build() -> None:

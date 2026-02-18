@@ -994,6 +994,17 @@ background: rgba(0,82,158,0.1);
 color: var(--cable-blue);
 }
 .step-dot-export { background: linear-gradient(135deg, var(--cable-blue), #003d7a); }
+.step-dot-search { background: linear-gradient(135deg, var(--seafoam), #3d7585); }
+.step-stage-tag.tag-search {
+background: rgba(95,157,174,0.12);
+color: var(--seafoam);
+}
+
+/* Discovery row in pipeline table — visually separated from numbered stages */
+.pipeline-table .search-row td {
+font-style: italic;
+border-top: 2px solid var(--seafoam);
+}
 .step-code {
 font-family: var(--font-mono);
 font-size: 11.5px;
@@ -2526,7 +2537,7 @@ body { background: none !important; padding: 0 !important; }
           Existing approaches often rely on ad-hoc scripts that break when data changes and lack reproducibility across teams and environments.
         </p>
         <p>
-          <span class="em-bold">Zyra</span> (pronounced <em>Zy-rah</em>) provides a light-weight, CLI-first framework that
+          <span class="em-bold">Zyra</span> (pronounced <em>Zy-rah</em>) provides a lightweight, CLI-first framework that
           standardizes these common steps while remaining fully extensible for domain-specific logic.
           Think of it as a garden for your data: you plant seeds (from the web, satellites, or experiments), Zyra helps you nurture them (through filtering, analysis, and processing), and you harvest insights as visualizations, reports, and interactive media.
           It's designed to make science not just rigorous, but also accessible, transparent, and beautiful.
@@ -2817,6 +2828,14 @@ body { background: none !important; padding: 0 !important; }
     </div>
   </div>
 
+  <!-- DISCOVERY ANNOTATION (precursor to Import) -->
+  <div style="position:absolute; left:14px; top:295px; z-index:12;">
+    <span class="fpill" style="background:var(--seafoam); font-size:8.5px;">zyra search</span>
+    <div style="font-family:var(--font-sans); font-size:9px; color:var(--neutral-700); margin-top:3px; max-width:105px; line-height:1.3;">
+      Discover datasets via SOS catalog, OGC, or APIs
+    </div>
+  </div>
+
   <!-- STAGE BUBBLES -->
   <!-- 1 Import -->
   <div class="stage-bubble" style="left:230px; top:140px">
@@ -2971,7 +2990,7 @@ body { background: none !important; padding: 0 !important; }
   <!-- PHASE SUMMARIES -->
   <div class="phase-summaries">
     <div class="phase-summary" style="flex:1.2">
-      Acquire data via HTTP, S3, or FTP<br>and transform into usable formats.
+      Discover datasets via search, then acquire<br>via HTTP, S3, or FTP and transform.
     </div>
     <div class="phase-summary" style="flex:1.6">
       Generate maps, plots, and animations while AI agents<br>produce automated scientific summaries and reports.
@@ -2998,6 +3017,7 @@ body { background: none !important; padding: 0 !important; }
         </tr>
       </thead>
       <tbody>
+        <tr class="search-row"><td class="stage-num" style="color:var(--seafoam);">D</td><td>Discover</td><td>Search local SOS catalog, OGC WMS/Records, remote APIs</td><td class="cli-cell">zyra search</td><td class="status-impl">Implemented</td></tr>
         <tr><td class="stage-num">1</td><td>Import</td><td>Fetch from HTTP/S, S3, FTP, REST API</td><td class="cli-cell">zyra acquire</td><td class="status-impl">Implemented</td></tr>
         <tr><td class="stage-num">2</td><td>Process</td><td>Decode, subset, convert (GRIB2, NetCDF, GeoTIFF)</td><td class="cli-cell">zyra process</td><td class="status-impl">Implemented</td></tr>
         <tr><td class="stage-num">3</td><td>Simulate</td><td>Generate synthetic/test data</td><td class="cli-cell">—</td><td class="status-plan">Planned</td></tr>
@@ -3109,11 +3129,18 @@ Stages are composable — pipe any stage's output directly into the next. Every 
 
   <h3 class="usecase-heading">Drought Animation Pipeline</h3>
   <p class="usecase-desc">
-    A production workflow syncs weekly drought risk frames from NOAA FTP, fills gaps, and composes an MP4 animation — five stages, one pipeline.
+    Discover datasets via SOS catalog, sync weekly drought risk frames from NOAA FTP, fill gaps, and compose an MP4 animation — six steps, one pipeline.
   </p>
 
-  <!-- Five-step code block with stage-colored indicators -->
+  <!-- Six-step code block with stage-colored indicators -->
   <div class="code-steps">
+    <div class="code-step">
+      <div class="step-dot step-dot-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </div>
+      <div class="step-code"><span class="step-stage-tag tag-search">D Discover</span>
+<span class="cc-cmd">zyra search</span> <span class="cc-url">"drought risk"</span> <span class="cc-flag">--profile</span> <span class="cc-file">sos</span> <span class="cc-flag">--select</span> 1</div>
+    </div>
     <div class="code-step">
       <div class="step-dot step-dot-import">
         <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
@@ -3305,20 +3332,24 @@ Stages are composable — pipe any stage's output directly into the next. Every 
     <span class="nc-pill" style="background:var(--leaf-green);">editor</span>
   </div>
 
-  <!-- Provider table -->
-  <div class="provider-table-wrap" style="margin-top:14px;">
-    <table class="provider-table">
-      <thead>
-        <tr><th>Provider</th><th>Usage</th></tr>
-      </thead>
-      <tbody>
-        <tr><td class="prov-name">OpenAI</td><td class="prov-usage">--provider openai --model gpt-4</td></tr>
-        <tr><td class="prov-name">Ollama</td><td class="prov-usage">--provider ollama --model gemma</td></tr>
-        <tr><td class="prov-name">Gemini</td><td class="prov-usage">--provider gemini</td></tr>
-        <tr><td class="prov-name">Mock</td><td class="prov-usage">--provider mock <span style="color:var(--neutral-600);font-family:var(--font-sans);font-size:10px;">(offline testing)</span></td></tr>
-      </tbody>
-    </table>
+  <!-- LLM Agnostic callout (replaces provider table) -->
+  <div class="guard-callout" style="margin-top:14px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ocean-blue)" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    <p><strong style="color:var(--ocean-blue);">LLM Agnostic</strong> &mdash; swap providers via <code>--provider</code>: OpenAI, Ollama, Gemini, or any compatible backend. Mock mode for offline testing.</p>
   </div>
+
+  <!-- zyra plan output example -->
+  <div style="font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--navy);margin:14px 0 5px;text-transform:uppercase;letter-spacing:0.8px;">Intent &rarr; Executable Plan</div>
+  <div class="usecase-code" style="font-size:10px; line-height:1.55; margin-bottom:10px;"><span class="cc-cmd">zyra plan</span> <span class="cc-flag">--intent</span> <span class="cc-url">"Sync drought frames, fill gaps, render animation"</span>
+<span style="color:var(--neutral-600);">{ <span class="cc-flag">"agents"</span>: [
+    {<span class="cc-flag">"id"</span>: <span class="cc-url">"fetch_frames"</span>,      <span class="cc-flag">"stage"</span>: <span class="cc-url">"acquire"</span>},
+    {<span class="cc-flag">"id"</span>: <span class="cc-url">"scan_frames"</span>,      <span class="cc-flag">"stage"</span>: <span class="cc-url">"process"</span>},
+    {<span class="cc-flag">"id"</span>: <span class="cc-url">"pad_missing"</span>,      <span class="cc-flag">"stage"</span>: <span class="cc-url">"process"</span>},
+    {<span class="cc-flag">"id"</span>: <span class="cc-url">"compose_animation"</span>, <span class="cc-flag">"stage"</span>: <span class="cc-url">"visualize"</span>},
+    {<span class="cc-flag">"id"</span>: <span class="cc-url">"save_local"</span>,        <span class="cc-flag">"stage"</span>: <span class="cc-url">"decimate"</span>}  ],
+  <span class="cc-flag">"suggestions"</span>: [
+    {<span class="cc-flag">"stage"</span>: <span class="cc-url">"narrate"</span>, <span class="cc-flag">"confidence"</span>: <span style="color:var(--olive);font-weight:600;">0.88</span>}
+  ] }</span></div>
 
   <!-- Guardrails callout -->
   <div class="guard-callout">

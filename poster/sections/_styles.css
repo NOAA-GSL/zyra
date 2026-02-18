@@ -982,6 +982,17 @@ background: rgba(0,82,158,0.1);
 color: var(--cable-blue);
 }
 .step-dot-export { background: linear-gradient(135deg, var(--cable-blue), #003d7a); }
+.step-dot-search { background: linear-gradient(135deg, var(--seafoam), #3d7585); }
+.step-stage-tag.tag-search {
+background: rgba(95,157,174,0.12);
+color: var(--seafoam);
+}
+
+/* Discovery row in pipeline table — visually separated from numbered stages */
+.pipeline-table .search-row td {
+font-style: italic;
+border-top: 2px solid var(--seafoam);
+}
 .step-code {
 font-family: var(--font-mono);
 font-size: 11.5px;

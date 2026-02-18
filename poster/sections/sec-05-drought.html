@@ -8,11 +8,18 @@
 
   <h3 class="usecase-heading">Drought Animation Pipeline</h3>
   <p class="usecase-desc">
-    A production workflow syncs weekly drought risk frames from NOAA FTP, fills gaps, and composes an MP4 animation — five stages, one pipeline.
+    Discover datasets via SOS catalog, sync weekly drought risk frames from NOAA FTP, fill gaps, and compose an MP4 animation — six steps, one pipeline.
   </p>
 
-  <!-- Five-step code block with stage-colored indicators -->
+  <!-- Six-step code block with stage-colored indicators -->
   <div class="code-steps">
+    <div class="code-step">
+      <div class="step-dot step-dot-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </div>
+      <div class="step-code"><span class="step-stage-tag tag-search">D Discover</span>
+<span class="cc-cmd">zyra search</span> <span class="cc-url">"drought risk"</span> <span class="cc-flag">--profile</span> <span class="cc-file">sos</span> <span class="cc-flag">--select</span> 1</div>
+    </div>
     <div class="code-step">
       <div class="step-dot step-dot-import">
         <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
