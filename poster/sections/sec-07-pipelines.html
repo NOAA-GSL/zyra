@@ -1,0 +1,77 @@
+<!-- SECTION 7: REPRODUCIBLE PIPELINE CONFIGS -->
+<div class="usecase-card">
+
+  <div class="section-tag" style="margin-bottom:6px;">
+    <div class="diamond"></div>
+    <span>Use Case</span>
+  </div>
+
+  <h3 class="usecase-heading">Reproducible Pipeline Configs</h3>
+  <p class="usecase-desc">
+    Define multi-stage pipelines as YAML — no scripting required. Override parameters at runtime, dry-run to preview commands, and share configs across teams.
+  </p>
+
+  <!-- YAML config block + commands — responsive zoom wrapper -->
+  <div class="code-zoom-wrap" id="configWrap" onclick="openCodeLightbox('configWrap')">
+    <span class="zoom-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>
+      Click to zoom
+    </span>
+    <div class="code-zoom-inner" id="configInner">
+
+  <!-- YAML config block -->
+  <div class="yaml-code"><span class="yk">name</span>: <span class="ys">FTP to Local Video</span>
+
+<span class="yk">stages</span>:
+<span class="yd">-</span> <span class="yk">stage</span>: <span class="yv">acquire</span>
+<span class="yk">command</span>: <span class="yv">ftp</span>
+<span class="yk">args</span>:
+<span class="yk">path</span>: <span class="ys">ftp://ftp.nnvl.noaa.gov/SOS/DroughtRisk_Weekly</span>
+<span class="yk">sync_dir</span>: <span class="ys">./frames</span>
+<span class="yk">since_period</span>: <span class="ys">"P1Y"</span>
+
+<span class="yd">-</span> <span class="yk">stage</span>: <span class="yv">visualize</span>
+<span class="yk">command</span>: <span class="yv">compose-video</span>
+<span class="yk">args</span>:
+<span class="yk">frames</span>: <span class="ys">./frames</span>
+<span class="yk">output</span>: <span class="ys">video.mp4</span>
+<span class="yk">fps</span>: <span class="yn">4</span>
+
+<span class="yd">-</span> <span class="yk">stage</span>: <span class="yv">export</span>
+<span class="yk">command</span>: <span class="yv">local</span>
+<span class="yk">args</span>:
+<span class="yk">input</span>: <span class="ys">video.mp4</span>
+<span class="yk">path</span>: <span class="ys">/output/video.mp4</span></div>
+
+  <!-- Run commands -->
+  <div class="usecase-code" style="margin-bottom:12px;"><span class="cc-cmd">zyra run</span> <span class="cc-file">pipeline.yaml</span>                          <span class="yc"># execute</span>
+
+<span class="cc-cmd">zyra run</span> <span class="cc-file">pipeline.yaml</span> <span class="cc-flag">--dry-run</span>                 <span class="yc"># preview commands</span>
+<span class="cc-cmd">zyra run</span> <span class="cc-file">pipeline.yaml</span> <span class="cc-flag">--set</span> visualize.fps=<span class="yn">8</span>     <span class="yc"># override parameters</span></div>
+
+  <!-- Feature pills -->
+  <div class="feature-pills">
+    <span class="feat-pill">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--cable-blue)" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Declarative YAML
+    </span>
+    <span class="feat-pill">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--leaf-green)" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      Dry-Run Preview
+    </span>
+    <span class="feat-pill">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--ocean-blue)" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Runtime Overrides
+    </span>
+    <span class="feat-pill">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Team Sharing
+    </span>
+  </div>
+
+    </div><!-- .code-zoom-inner -->
+  </div><!-- .code-zoom-wrap -->
+
+</div>
+
+  </div>

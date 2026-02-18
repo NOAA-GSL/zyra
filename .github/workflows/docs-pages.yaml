@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -37,6 +39,13 @@ jobs:
       - name: Build Sphinx HTML
         working-directory: docs
         run: sphinx-build -b html source build
+
+      - name: Build poster and copy into docs output
+        run: |
+          python poster/scripts/build_poster.py
+          mkdir -p docs/build/poster
+          cp poster/html/zyra-poster.html docs/build/poster/
+          cp poster/html/*.png docs/build/poster/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

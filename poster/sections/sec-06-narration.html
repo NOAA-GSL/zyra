@@ -1,0 +1,148 @@
+  <!-- ════════════ SECTIONS 6 & 7: NARRATION + PIPELINES ════════════ -->
+
+  <div class="usecase-row" id="uc-row-67">
+
+<!-- SECTION 6: AI/LLM NARRATION SWARM -->
+<div class="usecase-card" style="border-left-color:var(--ocean-blue);">
+
+  <div class="section-tag" style="margin-bottom:6px;">
+    <div class="diamond" style="background:var(--ocean-blue);"></div>
+    <span>Use Case</span>
+  </div>
+
+  <h3 class="usecase-heading">AI/LLM Narration Swarm</h3>
+  <p class="usecase-desc">
+    Zyra orchestrates multi-agent workflows where LLM-powered agents generate, critique, and refine narrative outputs — from intent to validated publication.
+  </p>
+
+  <!-- User intent example -->
+  <div class="user-intent-bubble">
+    <div class="user-intent-label">
+      <div class="user-intent-avatar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <span class="user-intent-name">Scientist</span>
+    </div>
+    <div class="user-intent-text">
+      "Summarize this week's <em>HRRR temperature anomalies</em> for the Colorado Front Range and generate a <em>narrated briefing</em> with publication-quality maps."
+    </div>
+  </div>
+
+  <!-- Swarm orchestration SVG diagram -->
+  <div class="swarm-diagram">
+    <svg viewBox="0 0 420 380" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="sArrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M0 0 L8 4 L0 8z" fill="#5F9DAE"/>
+        </marker>
+      </defs>
+
+      <!-- ── Vertical spine arrows ── -->
+      <line x1="210" y1="42" x2="210" y2="68" stroke="#5F9DAE" stroke-width="1.5" marker-end="url(#sArrow)"/>
+      <line x1="210" y1="102" x2="210" y2="128" stroke="#5F9DAE" stroke-width="1.5" marker-end="url(#sArrow)"/>
+      <line x1="210" y1="162" x2="210" y2="188" stroke="#5F9DAE" stroke-width="1.5" marker-end="url(#sArrow)"/>
+
+      <!-- ── Fan-out arrows from DAG to agents ── -->
+      <path d="M160 228 C130 240, 85 255, 75 265" stroke="#5F9DAE" stroke-width="1.2" fill="none" marker-end="url(#sArrow)"/>
+      <path d="M190 228 C180 245, 165 255, 160 265" stroke="#5F9DAE" stroke-width="1.2" fill="none" marker-end="url(#sArrow)"/>
+      <path d="M230 228 C240 245, 255 255, 260 265" stroke="#5F9DAE" stroke-width="1.2" fill="none" marker-end="url(#sArrow)"/>
+      <path d="M260 228 C290 240, 335 255, 345 265" stroke="#5F9DAE" stroke-width="1.2" fill="none" marker-end="url(#sArrow)"/>
+
+      <!-- ── Converge arrows from agents to Provenance ── -->
+      <path d="M75 305 C85 320, 150 340, 175 345" stroke="#5F9DAE" stroke-width="1.2" fill="none" marker-end="url(#sArrow)"/>
+      <path d="M160 305 C170 320, 185 335, 195 345" stroke="#5F9DAE" stroke-width="1.2" fill="none" marker-end="url(#sArrow)"/>
+      <path d="M260 305 C250 320, 235 335, 225 345" stroke="#5F9DAE" stroke-width="1.2" fill="none" marker-end="url(#sArrow)"/>
+      <path d="M345 305 C335 320, 270 340, 245 345" stroke="#5F9DAE" stroke-width="1.2" fill="none" marker-end="url(#sArrow)"/>
+
+      <!-- ═══ NODES ═══ -->
+
+      <!-- User Intent -->
+      <rect x="125" y="10" width="170" height="32" rx="6" fill="#50452C"/>
+      <text x="210" y="31" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" font-weight="600" fill="#FEFEFE">User Intent</text>
+      <text x="210" y="10" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="7.5" fill="#D8D7D3" dy="-2">natural language</text>
+
+      <!-- Planner -->
+      <rect x="125" y="70" width="170" height="32" rx="6" fill="#1A5A69"/>
+      <text x="210" y="91" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" font-weight="600" fill="#FEFEFE">Planner</text>
+      <text x="320" y="90" font-family="Source Code Pro, monospace" font-size="8.5" fill="#8B8985">zyra plan</text>
+
+      <!-- Value Engine -->
+      <rect x="125" y="130" width="170" height="32" rx="6" fill="#FFC107"/>
+      <text x="210" y="151" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" font-weight="600" fill="#00172D">Value Engine</text>
+      <text x="320" y="150" font-family="Source Sans 3, sans-serif" font-size="8" fill="#8B8985">suggest augmentations</text>
+
+      <!-- Execution DAG -->
+      <rect x="120" y="190" width="180" height="38" rx="6" fill="#00529E"/>
+      <text x="210" y="214" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="12" font-weight="700" fill="#FEFEFE">Execution DAG</text>
+      <text x="210" y="203" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="7.5" fill="#bdd4f0">parallel / sequential</text>
+
+      <!-- Stage Agent: acquire -->
+      <rect x="30" y="270" width="90" height="34" rx="5" fill="#2C670C"/>
+      <text x="75" y="283" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="7.5" fill="#bbf7d0">Stage Agent</text>
+      <text x="75" y="296" text-anchor="middle" font-family="Source Code Pro, monospace" font-size="9.5" font-weight="600" fill="#FEFEFE">acquire</text>
+
+      <!-- Stage Agent: process -->
+      <rect x="130" y="270" width="90" height="34" rx="5" fill="#2C670C"/>
+      <text x="175" y="283" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="7.5" fill="#bbf7d0">Stage Agent</text>
+      <text x="175" y="296" text-anchor="middle" font-family="Source Code Pro, monospace" font-size="9.5" font-weight="600" fill="#FEFEFE">process</text>
+
+      <!-- Stage Agent: visualize -->
+      <rect x="230" y="270" width="90" height="34" rx="5" fill="#576216"/>
+      <text x="275" y="283" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="7.5" fill="#e8ecc8">Stage Agent</text>
+      <text x="275" y="296" text-anchor="middle" font-family="Source Code Pro, monospace" font-size="9.5" font-weight="600" fill="#FEFEFE">visualize</text>
+
+      <!-- LLM Agent: narrate -->
+      <rect x="330" y="270" width="80" height="34" rx="5" fill="#1A5A69"/>
+      <text x="370" y="283" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="7.5" fill="#a8d4df">LLM Agent</text>
+      <text x="370" y="296" text-anchor="middle" font-family="Source Code Pro, monospace" font-size="9.5" font-weight="600" fill="#FEFEFE">narrate</text>
+
+      <!-- Provenance -->
+      <rect x="140" y="346" width="140" height="30" rx="5" fill="#5F9DAE"/>
+      <text x="210" y="365" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" font-weight="600" fill="#00172D">Provenance (SQLite)</text>
+
+    </svg>
+  </div>
+
+  <!-- Narration chain -->
+  <div style="font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--navy);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.8px;">Narration Swarm Chain</div>
+  <div class="narration-chain">
+    <span class="nc-pill" style="background:var(--ocean-blue);">context</span>
+    <span class="nc-arrow">&rarr;</span>
+    <span class="nc-pill" style="background:var(--cable-blue);">summary</span>
+    <span class="nc-arrow">&rarr;</span>
+    <span class="nc-pill" style="background:var(--amber);color:var(--navy);">critic</span>
+    <span class="nc-arrow">&rarr;</span>
+    <span class="nc-pill" style="background:var(--leaf-green);">editor</span>
+  </div>
+
+  <!-- LLM Agnostic callout (replaces provider table) -->
+  <div class="guard-callout" style="margin-top:14px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ocean-blue)" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    <p><strong style="color:var(--ocean-blue);">LLM Agnostic</strong> &mdash; swap providers via <code>--provider</code>: OpenAI, Ollama, Gemini, or any compatible backend. Mock mode for offline testing.</p>
+  </div>
+
+  <!-- zyra plan output example -->
+  <div style="font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--navy);margin:14px 0 5px;text-transform:uppercase;letter-spacing:0.8px;">Intent &rarr; Executable Plan</div>
+  <div class="usecase-code" style="font-size:10px; line-height:1.55; margin-bottom:10px;"><span class="cc-cmd">zyra plan</span> <span class="cc-flag">--intent</span> <span class="cc-url">"Sync drought frames, fill gaps, render animation"</span>
+<span style="color:var(--neutral-600);">{ <span class="cc-flag">"agents"</span>: [
+    {<span class="cc-flag">"id"</span>: <span class="cc-url">"fetch_frames"</span>,      <span class="cc-flag">"stage"</span>: <span class="cc-url">"acquire"</span>},
+    {<span class="cc-flag">"id"</span>: <span class="cc-url">"scan_frames"</span>,      <span class="cc-flag">"stage"</span>: <span class="cc-url">"process"</span>},
+    {<span class="cc-flag">"id"</span>: <span class="cc-url">"pad_missing"</span>,      <span class="cc-flag">"stage"</span>: <span class="cc-url">"process"</span>},
+    {<span class="cc-flag">"id"</span>: <span class="cc-url">"compose_animation"</span>, <span class="cc-flag">"stage"</span>: <span class="cc-url">"visualize"</span>},
+    {<span class="cc-flag">"id"</span>: <span class="cc-url">"save_local"</span>,        <span class="cc-flag">"stage"</span>: <span class="cc-url">"decimate"</span>}  ],
+  <span class="cc-flag">"suggestions"</span>: [
+    {<span class="cc-flag">"stage"</span>: <span class="cc-url">"narrate"</span>, <span class="cc-flag">"confidence"</span>: <span style="color:var(--olive);font-weight:600;">0.88</span>}
+  ] }</span></div>
+
+  <!-- Guardrails callout -->
+  <div class="guard-callout">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ocean-blue)" stroke-width="2" stroke-linecap="round"><path d="M9 12l2 2 4-4M20.618 5.984A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+    <p>Outputs validated against <code>Pydantic</code> schemas with optional guardrails via <code>RAIL</code> files for structured, reproducible results.</p>
+  </div>
+
+  <!-- Swarm orchestration command -->
+  <div style="font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--navy);margin:14px 0 5px;text-transform:uppercase;letter-spacing:0.8px;">Swarm Orchestration</div>
+  <div class="usecase-code" style="margin-bottom:0;"><span class="cc-cmd">zyra swarm</span> <span class="cc-file">drought_animation.yaml</span> \
+  <span class="cc-flag">--parallel</span> <span class="cc-flag">--memory</span> <span class="cc-file">provenance.sqlite</span></div>
+
+</div>
