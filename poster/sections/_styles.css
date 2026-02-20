@@ -1476,9 +1476,10 @@ text-transform: uppercase;
 }
 .code-lightbox .code-zoom-content .gs-cmd { color: #7dd3fc; }
 .code-lightbox .code-zoom-content .gs-dim { color: rgba(255,255,255,0.5); }
-.code-lightbox .code-zoom-content .gs-links { gap: 16px; flex-wrap: wrap; }
-.code-lightbox .code-zoom-content .gs-link-label { color: var(--ocean-blue); }
-.code-lightbox .code-zoom-content .gs-link-url { color: var(--neutral-900); }
+.code-lightbox .code-zoom-content .gs-links { gap: 10px; flex-wrap: wrap; }
+.code-lightbox .code-zoom-content .gs-badge { background: rgba(0,23,45,0.06); border-color: var(--neutral-400); color: var(--navy); }
+.code-lightbox .code-zoom-content .gs-badge-label { color: var(--neutral-700); }
+.code-lightbox .code-zoom-content .gs-badge-value { color: var(--navy); }
 .code-lightbox .code-zoom-content .gs-qr-label { color: var(--neutral-700); }
 .code-lightbox .code-zoom-content .section-tag span { color: var(--ocean-blue); }
 /* Emphasized code in lightbox for YAML/usecase blocks too */
@@ -1985,27 +1986,38 @@ color: #cbd5e1;
 
 .gs-links {
 display: flex;
-gap: 24px;
+gap: 10px;
 flex-wrap: wrap;
 z-index: 1;
 }
-.gs-link-item {
-text-align: center;
+.gs-badge {
+display: inline-flex;
+align-items: center;
+gap: 5px;
+padding: 5px 12px 5px 5px;
+border-radius: 16px;
+font-size: 11.5px;
+font-weight: 500;
+color: var(--neutral-50);
+background: rgba(254,254,254,0.08);
+border: 1px solid rgba(254,254,254,0.18);
+text-decoration: none;
+transition: background 0.15s, border-color 0.15s;
 }
-.gs-link-label {
-font-family: var(--font-sans);
-font-size: 9px;
+.gs-badge:hover { background: rgba(254,254,254,0.15); border-color: rgba(254,254,254,0.3); }
+.gs-badge-pip {
+display: inline-flex;
+width: 18px; height: 18px;
+border-radius: 4px;
+align-items: center;
+justify-content: center;
+font-size: 7.5px;
 font-weight: 700;
-text-transform: uppercase;
-letter-spacing: 1px;
-color: var(--seafoam);
-margin-bottom: 2px;
+color: #fff;
 }
-.gs-link-url {
-font-family: var(--font-sans);
-font-size: 11px;
-color: rgba(254,254,254,0.6);
-}
+.pip-assist { background: var(--seafoam); }
+.gs-badge-label { color: rgba(254,254,254,0.55); font-size: 10px; }
+.gs-badge-value { font-weight: 600; color: var(--neutral-50); }
 
 /* QR code area */
 .gs-qr {
@@ -2057,8 +2069,7 @@ RESPONSIVE / PRINT
 
 
 /* ═══════════════════════════════════════════════════
-   POSTER PRINT MODE — 48×36" landscape (4:3)
-   Activated by body.poster-print class or ?print URL
+   MODE BANNER — links to dedicated print page
    ═══════════════════════════════════════════════════ */
 
 .print-mode-toggle {
@@ -2083,275 +2094,5 @@ RESPONSIVE / PRINT
 }
 @keyframes pmt-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-body.poster-print {
-  background: #444;
-  padding: 48px 10px 40px;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-}
-
-/* ═══ MASTER GRID — 48×36" poster at 100 DPI = 4800×3600px ═══
-   At 300 DPI print, scale 3× → 14400×10800.
-   Browser shows at native size; zoom out to preview full poster.
-   
-   6-row layout:
-   Row 1 (270px):  HEADER
-   Row 2 (660px):  CHALLENGE | PIPELINE
-   Row 3 (900px):  4 use case cards, equal columns
-   Row 4 (460px):  FOUNDATION
-   Row 5 (600px):  GALLERY | FEATURES
-   Row 6 (270px):  FOOTER
-   Subtotal: 3160 + internal padding ≈ 3600
-*/
-body.poster-print .poster {
-  width: 4800px;
-  max-width: 4800px;
-  height: 3600px;
-  overflow: hidden;
-  box-shadow: 0 20px 100px rgba(0,0,0,0.4);
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  grid-template-rows: 360px 770px 830px 270px 600px 370px;
-  grid-template-areas:
-    "header      header      header      header"
-    "challenge   pipeline    pipeline    pipeline"
-    "uc4         uc5         uc6         uc7"
-    "foundation  foundation  foundation  foundation"
-    "gallery     gallery     feat-start  feat-start"
-    "footer      footer      footer      footer";
-  gap: 0;
-}
-
-body.poster-print .challenge-transition,
-body.poster-print .poster-bottom-pad,
-body.poster-print .flow-cue { display: none !important; }
-
-/* ═══ SECTION TAG ═══ */
-body.poster-print .section-tag { margin-bottom: 4px !important; }
-body.poster-print .section-tag span { font-size: 18px; letter-spacing: 2.5px; }
-body.poster-print .section-tag .diamond { width: 14px; height: 14px; }
-
-/* ═══ ROW 1: HEADER — 360px ═══ */
-body.poster-print .header { grid-area: header; overflow: hidden; background: linear-gradient(180deg, var(--neutral-50) 0%, var(--neutral-200) 100%); }
-body.poster-print .header::after { height: 5px; }
-body.poster-print .header-content { min-height: 0; height: 360px; }
-body.poster-print .header-left { display: none; }
-body.poster-print .header-right { padding: 16px 80px 10px; background: none; }
-body.poster-print .header-dataviz { display: none; }
-body.poster-print .project-name { font-size: 72px; margin-bottom: 0; line-height: 1.0; }
-body.poster-print .poster-title { font-size: 36px; margin-bottom: 2px; line-height: 1.2; }
-body.poster-print .poster-subtitle { font-size: 24px; margin-bottom: 4px; }
-body.poster-print .author-block { margin-bottom: 4px; gap: 2px; }
-body.poster-print .author-name { font-size: 26px; }
-body.poster-print .author-org { font-size: 22px; }
-body.poster-print .author-orcid { font-size: 20px; }
-body.poster-print .orcid-dot { font-size: 10px; width: 20px; height: 20px; }
-body.poster-print .badges { gap: 10px; }
-body.poster-print .badge { font-size: 18px; padding: 4px 12px 4px 4px; gap: 5px; border-radius: 12px; }
-body.poster-print .badge-pip { width: 32px; height: 32px; font-size: 14px; border-radius: 9px; }
-body.poster-print .badge-pip svg { width: 16px; height: 16px; }
-body.poster-print .badge-label { font-size: 14px; }
-body.poster-print .badge-value { font-size: 18px; }
-
-/* ═══ ROW 2: CHALLENGE + PIPELINE — 670px ═══ */
-body.poster-print .challenge-section {
-  grid-area: challenge; padding: 20px 16px 20px 40px; overflow: hidden;
-}
-body.poster-print .challenge-card { padding: 24px; height: 100%; overflow: hidden; border-radius: 14px; }
-body.poster-print .challenge-frame { display: none; }
-body.poster-print .challenge-inner { flex-direction: column; gap: 10px; }
-body.poster-print .challenge-heading { font-size: 38px; margin-bottom: 8px; }
-body.poster-print .challenge-body p { font-size: 22px; line-height: 1.4; margin-bottom: 10px; }
-body.poster-print .challenge-body .tok { font-size: 20px; padding: 3px 12px; border-radius: 7px; }
-body.poster-print .challenge-body .em-bold { font-size: 22px; }
-body.poster-print .challenge-graphic { flex: 0 0 auto; max-height: 240px; overflow: hidden; }
-body.poster-print .challenge-graphic svg { max-height: 230px; width: auto; }
-
-body.poster-print .pipeline-section {
-  grid-area: pipeline; padding: 20px 40px 20px 16px; overflow: hidden;
-}
-body.poster-print .pipeline-visual-wrap {
-  border: none; cursor: default; overflow: hidden; height: auto !important;
-}
-body.poster-print .pipeline-visual-wrap .zoom-hint { display: none; }
-body.poster-print .pipeline-heading { font-size: 42px; margin-bottom: 6px; }
-body.poster-print .pipeline-sub { font-size: 24px; margin-bottom: 8px; }
-body.poster-print .pipeline-visual { height: 300px; min-height: 0; width: auto; transform: none !important; }
-body.poster-print .stage-circle { width: 65px; height: 65px; }
-body.poster-print .stage-circle svg { width: 34px; height: 34px; }
-body.poster-print .stage-label-txt { font-size: 18px; }
-body.poster-print .stage-cli-txt { font-size: 14px; }
-body.poster-print .source-icon { width: 48px; height: 48px; }
-body.poster-print .source-icon svg { width: 34px; height: 34px; }
-body.poster-print .source-label { font-size: 16px; }
-body.poster-print .phase-label { font-size: 15px; }
-body.poster-print .callout { display: none; }
-body.poster-print .format-pills { display: none; }
-body.poster-print .phase-summaries { display: none; }
-body.poster-print .pipeline-details { gap: 12px; margin-top: 4px; }
-body.poster-print .pipeline-table-wrap { overflow: hidden; }
-body.poster-print .pipeline-table th,
-body.poster-print .pipeline-table td { padding: 3px 10px; font-size: 16px; }
-body.poster-print .pipeline-table th { font-size: 14px; }
-body.poster-print .stream-label { font-size: 18px; margin-bottom: 3px; }
-body.poster-print .stream-code { font-size: 17px; padding: 10px 16px; line-height: 1.4; border-radius: 8px; }
-body.poster-print .stream-note { font-size: 17px; margin-top: 3px; }
-body.poster-print .stream-note code { font-size: 16px; }
-
-/* ═══ ROW 3: USE CASES — 4 columns, 900px ═══ */
-body.poster-print #uc-row-45 { display: contents; }
-body.poster-print #uc-row-67 { display: contents; }
-body.poster-print #uc-row-45 > .usecase-card:first-child { grid-area: uc4; }
-body.poster-print #uc-row-45 > .usecase-card:last-child  { grid-area: uc5; }
-body.poster-print #uc-row-67 > .usecase-card:first-child { grid-area: uc6; }
-body.poster-print #uc-row-67 > .usecase-card:last-child  { grid-area: uc7; }
-
-body.poster-print .usecase-card {
-  padding: 16px 20px; overflow: hidden;
-  margin: 8px; border-radius: 12px;
-}
-body.poster-print .usecase-heading { font-size: 28px; margin-bottom: 6px; }
-body.poster-print .usecase-desc { font-size: 20px; line-height: 1.35; margin-bottom: 10px; }
-body.poster-print .usecase-code { font-size: 19px; padding: 12px 16px; line-height: 1.5; border-radius: 10px; }
-body.poster-print .usecase-code::after { font-size: 16px; top: 10px; right: 12px; }
-body.poster-print .code-step { padding: 10px 16px; }
-body.poster-print .step-dot { width: 40px; height: 40px; font-size: 18px; border-radius: 10px; }
-body.poster-print .step-dot svg { width: 22px; height: 22px; }
-body.poster-print .step-code { font-size: 19px; line-height: 1.45; }
-body.poster-print .step-stage-tag { font-size: 15px; padding: 3px 12px; border-radius: 6px; }
-body.poster-print .dag-wrap { margin-bottom: 10px; gap: 4px; }
-body.poster-print .dag-box { padding: 8px 14px; font-size: 20px; border-radius: 8px; gap: 8px; }
-body.poster-print .dag-box svg { width: 28px; height: 28px; }
-body.poster-print .dag-stage-tag { font-size: 16px; min-width: 120px; padding: 3px 12px; border-radius: 6px; }
-body.poster-print .dag-arrow { padding: 2px 0; }
-body.poster-print .dag-arrow svg { width: 24px; height: 24px; }
-body.poster-print .usecase-placeholder { height: 160px; border-radius: 10px; }
-body.poster-print .usecase-placeholder svg { transform: scale(0.85); }
-body.poster-print .usecase-placeholder span { font-size: 20px; }
-body.poster-print .usecase-caption { font-size: 20px; margin-top: 6px; }
-body.poster-print .usecase-caption code { font-size: 19px; }
-body.poster-print .video-preview { margin-bottom: 8px; border-radius: 10px; overflow: hidden; }
-body.poster-print .video-thumb { height: 110px; }
-body.poster-print .video-play-btn { width: 48px; height: 48px; }
-body.poster-print .video-play-btn svg { width: 20px; height: 20px; }
-body.poster-print .video-bar { padding: 7px 12px; gap: 10px; }
-body.poster-print .video-bar-icon { width: 28px; height: 28px; }
-body.poster-print .video-bar-text { font-size: 19px; }
-body.poster-print .prov-callout { padding: 10px 14px; margin-top: 8px; gap: 10px; border-radius: 8px; }
-body.poster-print .prov-callout svg { width: 24px; height: 24px; }
-body.poster-print .prov-callout p { font-size: 19px; line-height: 1.4; }
-body.poster-print .prov-callout code { font-size: 18px; }
-body.poster-print .swarm-diagram { margin-bottom: 8px; }
-body.poster-print .swarm-diagram svg { max-height: 280px; }
-body.poster-print .user-intent-bubble { padding: 10px 16px; margin-bottom: 10px; border-radius: 12px; }
-body.poster-print .user-intent-bubble::before { display: none; }
-body.poster-print .user-intent-avatar { width: 32px; height: 32px; }
-body.poster-print .user-intent-avatar svg { width: 18px; height: 18px; }
-body.poster-print .user-intent-name { font-size: 15px; }
-body.poster-print .user-intent-text { font-size: 20px; line-height: 1.4; }
-body.poster-print .provider-table-wrap { margin-top: 6px; margin-bottom: 6px; }
-body.poster-print .provider-table { font-size: 19px; border-radius: 8px; }
-body.poster-print .provider-table th { font-size: 17px; padding: 5px 12px; }
-body.poster-print .provider-table td { padding: 5px 12px; }
-body.poster-print .prov-name { font-size: 19px; }
-body.poster-print .prov-usage { font-size: 17px; }
-body.poster-print .narration-chain { margin-top: 6px; gap: 6px; }
-body.poster-print .nc-pill { font-size: 18px; padding: 5px 14px; border-radius: 14px; }
-body.poster-print .nc-arrow { font-size: 20px; }
-body.poster-print .guard-callout { padding: 8px 12px; margin-top: 6px; border-radius: 8px; }
-body.poster-print .guard-callout svg { width: 24px; height: 24px; }
-body.poster-print .guard-callout p { font-size: 19px; }
-body.poster-print .guard-callout code { font-size: 18px; }
-body.poster-print .yaml-code { font-size: 18px; padding: 12px 16px; line-height: 1.4; margin-bottom: 8px; border-radius: 10px; }
-body.poster-print .yaml-code::after { font-size: 15px; }
-body.poster-print .code-zoom-wrap { cursor: default; overflow: visible; height: auto !important; }
-body.poster-print .code-zoom-wrap .zoom-hint { display: none; }
-body.poster-print .code-zoom-inner { transform: none !important; }
-/* The Get Started zoom wrap must be transparent to the grid */
-body.poster-print .get-started-footer .code-zoom-wrap { display: contents; }
-body.poster-print .get-started-footer .code-zoom-inner { display: flex; gap: 24px; align-items: flex-start; }
-body.poster-print .feature-pills { gap: 8px; margin-top: 8px; }
-body.poster-print .feat-pill { font-size: 18px; padding: 5px 14px; gap: 5px; border-radius: 14px; }
-body.poster-print .feat-pill svg { width: 20px; height: 20px; }
-
-/* ═══ ROW 4: FOUNDATION — 320px ═══ */
-body.poster-print .foundation-section {
-  grid-area: foundation; padding: 10px 40px; overflow: hidden;
-}
-body.poster-print .foundation-heading { font-size: 34px; margin-bottom: 2px; }
-body.poster-print .foundation-sub { font-size: 20px; margin-bottom: 6px; }
-body.poster-print .foundation-layers { gap: 16px; flex-direction: row !important; flex-wrap: nowrap; }
-body.poster-print .foundation-pyramid { display: none; }
-body.poster-print .foundation-col { flex-direction: row !important; gap: 12px !important; flex-wrap: nowrap; }
-body.poster-print .foundation-col.col-left { padding-right: 0; }
-body.poster-print .foundation-col.col-right { padding-left: 0; }
-body.poster-print .foundation-layer-card { padding: 10px 14px; border-radius: 8px; text-align: left !important; flex: 1 1 0; }
-body.poster-print .foundation-layer-card .flc-number { width: 28px; height: 28px; font-size: 15px; margin-bottom: 2px; }
-body.poster-print .foundation-layer-card .flc-title { font-size: 20px; }
-body.poster-print .foundation-layer-card .flc-abbrev { font-size: 14px; margin-bottom: 2px; }
-body.poster-print .foundation-layer-card .flc-desc { font-size: 16px; line-height: 1.3; }
-body.poster-print .foundation-layer-card .flc-desc code { font-size: 15px; }
-body.poster-print .foundation-layer-card div[style*="flex-end"] { justify-content: flex-start !important; }
-body.poster-print .foundation-highlights { display: none; }
-
-/* ═══ ROW 5: GALLERY + FEATURES — 600px ═══ */
-body.poster-print .gallery-section {
-  grid-area: gallery; padding: 12px 16px 12px 40px; overflow: hidden;
-}
-body.poster-print .gallery-heading { font-size: 36px; margin-bottom: 4px; }
-body.poster-print .gallery-sub { font-size: 22px; margin-bottom: 10px; }
-body.poster-print .gallery-sub code { font-size: 21px; }
-body.poster-print .gallery-grid { gap: 12px; }
-body.poster-print .gallery-thumb { aspect-ratio: 16/9; border-radius: 10px; }
-body.poster-print .gallery-thumb svg { transform: scale(0.9); }
-body.poster-print .gallery-thumb .gt-label { font-size: 18px; }
-body.poster-print .gallery-caption { padding: 8px 12px; }
-body.poster-print .gallery-caption code { font-size: 20px; }
-body.poster-print .gc-dot { width: 10px; height: 10px; }
-body.poster-print .gallery-also { font-size: 20px; margin-top: 6px; }
-
-body.poster-print .features-section { display: contents; }
-body.poster-print .features-section > .features-card:first-child {
-  grid-area: feat-start; padding: 12px 40px 12px 16px;
-  overflow: hidden;
-}
-body.poster-print .features-card { padding: 20px 24px; border-radius: 12px; }
-body.poster-print .features-card h3 { font-size: 30px; margin-bottom: 10px; }
-body.poster-print .feat-list { gap: 8px; }
-body.poster-print .feat-list li { font-size: 22px; line-height: 1.35; gap: 12px; }
-body.poster-print .feat-dot { width: 10px; height: 10px; margin-top: 7px; }
-body.poster-print .feat-list li strong { font-size: 22px; }
-body.poster-print .feat-list li code { font-size: 19px; }
-body.poster-print .feat-meta { margin-top: 10px; padding-top: 10px; gap: 8px; }
-body.poster-print .feat-meta-pill { font-size: 19px; padding: 4px 12px; border-radius: 10px; }
-
-/* ═══ ROW 6: FOOTER — 270px ═══ */
-body.poster-print .features-section > .features-card:last-child { display: contents; }
-body.poster-print .get-started-footer { 
-  grid-area: footer; margin: 0 24px; padding: 20px 36px; gap: 24px; border-radius: 14px;
-  display: flex; align-items: center;
-}
-body.poster-print .get-started-footer::before,
-body.poster-print .get-started-footer::after { display: none; }
-body.poster-print .gs-heading { font-size: 32px; margin-bottom: 10px; }
-body.poster-print .gs-code { font-size: 24px; padding: 12px 20px; margin-bottom: 12px; line-height: 1.5; border-radius: 10px; }
-body.poster-print .gs-cmd { font-size: 24px; }
-body.poster-print .gs-dim { font-size: 22px; }
-body.poster-print .gs-links { gap: 20px; flex-wrap: wrap; }
-body.poster-print .gs-link-item { gap: 3px; }
-body.poster-print .gs-link-label { font-size: 18px; }
-body.poster-print .gs-link-url { font-size: 22px; }
-body.poster-print .gs-qr { display: flex; flex-direction: column; align-items: center; }
-body.poster-print .gs-qr-box { width: 130px; height: 130px; border-radius: 12px; }
-body.poster-print .gs-qr-box img { width: 110px !important; height: 110px !important; }
-body.poster-print .gs-qr-label { font-size: 17px; }
-
-body.poster-print .poster-bottom-pad { display: none; }
-
-
-@media print {
-body { background: none !important; padding: 0 !important; }
-.poster { box-shadow: none !important; }
-.print-mode-toggle { display: none !important; }
-}
+/* Print layout is now in a dedicated page (zyra-poster-print.html)
+   with its own stylesheet (_print.css). No body.poster-print rules needed. */
