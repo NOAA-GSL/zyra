@@ -82,9 +82,7 @@ def build() -> None:
     footer_print = _read(SECTIONS_DIR / "_footer-print.html")
 
     print_sections = [
-        (sf, _read(sf))
-        for sf in section_files
-        if sf.stem not in PRINT_EXCLUDE
+        (sf, _read(sf)) for sf in section_files if sf.stem not in PRINT_EXCLUDE
     ]
     print_parts = [
         head_print,
