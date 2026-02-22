@@ -1,11 +1,16 @@
-const { chromium } = require('/opt/node22/lib/node_modules/playwright/node_modules/playwright-core');
+const { chromium } = require('playwright-core');
 const path = require('path');
 
 (async () => {
-  const browser = await chromium.launch({
-    executablePath: '/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome',
+  const launchOptions = {
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  };
+
+  if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
+    launchOptions.executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+  }
+
+  const browser = await chromium.launch(launchOptions);
 
   const posterPath = path.resolve(__dirname, '../html/zyra-poster.html');
   const fileUrl = `file://${posterPath}`;
@@ -22,13 +27,13 @@ const path = require('path');
   });
   console.log('Web view screenshot saved.');
 
-  // Print view
+  // Print view — use the dedicated print page
   console.log('Taking print preview screenshot...');
+  const printPath = path.resolve(__dirname, '../html/zyra-poster-print.html');
+  const printUrl = `file://${printPath}`;
   const printPage = await browser.newPage();
   await printPage.setViewportSize({ width: 14500, height: 11000 });
-  await printPage.goto(fileUrl, { waitUntil: 'networkidle' });
-  await printPage.waitForTimeout(500);
-  await printPage.click('#toggleLink');
+  await printPage.goto(printUrl, { waitUntil: 'networkidle' });
   await printPage.waitForTimeout(1500);
 
   // Crop individual sections for comparison

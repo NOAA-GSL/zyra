@@ -1,11 +1,16 @@
-const { chromium } = require('/opt/node22/lib/node_modules/playwright/node_modules/playwright-core');
+const { chromium } = require('playwright-core');
 const path = require('path');
 
 (async () => {
-  const browser = await chromium.launch({
-    executablePath: '/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome',
+  const launchOptions = {
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  };
+
+  if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
+    launchOptions.executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+  }
+
+  const browser = await chromium.launch(launchOptions);
 
   // Use the dedicated print page — no toggle needed
   const posterPath = path.resolve(__dirname, '../html/zyra-poster-print.html');

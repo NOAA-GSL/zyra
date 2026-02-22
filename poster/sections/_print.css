@@ -21,8 +21,8 @@
      Row 1 (1200px):  HEADER                             (12 cols)
      Row 2 (2200px):  CHALLENGE (3)  |  PIPELINE (9)
      Row 3 (2600px):  FEATURES (4)   |  REPRO (3)  |  FOUNDATION (5)
-     Row 4 (2800px):  NARRATION (3)  |  DROUGHT (5)  |  HRRR (4)
-     Row 5 (2000px):  NARRATION (3)  |  DROUGHT (5)  |  GET STARTED (4)
+     Row 4 (3100px):  NARRATION (3)  |  DROUGHT (5)  |  HRRR (4)
+     Row 5 (1700px):  NARRATION (3)  |  DROUGHT (5)  |  GET STARTED (4)
    ═══════════════════════════════════════════════════════════════════ */
 
 
@@ -1721,8 +1721,11 @@ body {
                       background: rgba(254,254,254,0.08); border: 3px solid rgba(254,254,254,0.18); }
 .gs-badge-pip       { width: 63px; height: 63px; border-radius: 16px; }
 .gs-badge-pip svg   { width: 36px; height: 36px; }
-.gs-badge-pip.pip-pypi { font-size: 30px; }
-.gs-badge-pip.pip-doi  { font-size: 30px; }
+.gs-badge-pip.pip-pypi   { font-size: 30px; }
+.gs-badge-pip.pip-doi    { font-size: 30px; }
+.gs-badge-pip.pip-gh     { background: var(--neutral-900); }
+.gs-badge-pip.pip-docs   { background: var(--ocean-blue); }
+.gs-badge-pip.pip-assist { background: var(--seafoam); }
 .gs-badge-label     { font-size: 42px; color: rgba(254,254,254,0.55); }
 .gs-badge-value     { font-size: 54px; font-weight: 600; color: var(--neutral-50); }
 .gs-qr         { display: flex; flex-direction: column; align-items: center; }
