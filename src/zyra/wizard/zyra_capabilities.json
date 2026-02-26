@@ -2419,6 +2419,188 @@
     },
     "returns": "bytes"
   },
+  "process geotiff-to-cog": {
+    "description": "Convert one or more GeoTIFF inputs into Cloud Optimized GeoTIFFs (COGs) with optional reprojection, tiled compression, and overview generation.",
+    "doc": "Convert one or more GeoTIFF inputs into Cloud Optimized GeoTIFFs (COGs) with optional reprojection, tiled compression, and overview generation.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--input-dir",
+          "--pattern",
+          "--output",
+          "--output-dir",
+          "--name-template",
+          "--datetime-format",
+          "--output-datetime-format",
+          "--dst-crs",
+          "--resampling",
+          "--overview-resampling",
+          "--overview-levels",
+          "--blocksize",
+          "--compression",
+          "--predictor",
+          "--bigtiff",
+          "--num-threads",
+          "--overwrite",
+          "--dry-run",
+          "--recursive",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Input GeoTIFF path (repeatable). Directories will be scanned using --pattern",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--input-dir": {
+        "help": "Directory containing GeoTIFF files to convert",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--pattern": {
+        "help": "Glob pattern used when scanning directories (default: *.tif)",
+        "type": "str",
+        "default": "*.tif"
+      },
+      "--output": {
+        "help": "Output path for a single input file",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs (required for multiple inputs)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--name-template": {
+        "help": "Filename template when writing to --output-dir. Supports {stem}, {name}, {timestamp}",
+        "type": "str",
+        "default": "{stem}.tif"
+      },
+      "--datetime-format": "Datetime format to extract timestamps from source filenames (for {timestamp})",
+      "--output-datetime-format": {
+        "help": "Strftime pattern used when formatting {timestamp} (default: %Y%m%dT%H%M%SZ)",
+        "path_arg": true,
+        "type": "path",
+        "default": "%Y%m%dT%H%M%SZ"
+      },
+      "--dst-crs": "Destination CRS (e.g., EPSG:4326). Defaults to the source CRS",
+      "--resampling": {
+        "help": "Resampling kernel to use when reprojecting (default: bilinear)",
+        "choices": [
+          "average",
+          "bilinear",
+          "cubic",
+          "cubic_spline",
+          "gauss",
+          "lanczos",
+          "max",
+          "med",
+          "min",
+          "mode",
+          "nearest",
+          "q1",
+          "q3",
+          "rms",
+          "sum"
+        ],
+        "type": "str",
+        "default": "bilinear"
+      },
+      "--overview-resampling": {
+        "help": "Resampling kernel to use for overview generation (default: match --resampling)",
+        "choices": [
+          "average",
+          "bilinear",
+          "cubic",
+          "cubic_spline",
+          "gauss",
+          "lanczos",
+          "max",
+          "med",
+          "min",
+          "mode",
+          "nearest",
+          "q1",
+          "q3",
+          "rms",
+          "sum"
+        ],
+        "type": "str"
+      },
+      "--overview-levels": "Comma-separated overview decimation levels (default: auto)",
+      "--blocksize": {
+        "help": "Internal tile size in pixels (default: 512)",
+        "type": "int",
+        "default": 512
+      },
+      "--compression": {
+        "help": "Compression codec for output tiles (default: DEFLATE)",
+        "type": "str",
+        "default": "DEFLATE"
+      },
+      "--predictor": {
+        "help": "Predictor to use (auto, 1, 2, or 3)",
+        "type": "str",
+        "default": "auto"
+      },
+      "--bigtiff": {
+        "help": "Control BigTIFF creation (default: IF_SAFER)",
+        "choices": [
+          "YES",
+          "NO",
+          "IF_NEEDED",
+          "IF_SAFER"
+        ],
+        "type": "str",
+        "default": "IF_SAFER"
+      },
+      "--num-threads": "Value for GDAL NUM_THREADS option (e.g., ALL_CPUS)",
+      "--overwrite": {
+        "help": "Allow overwriting existing outputs",
+        "type": "bool",
+        "default": false
+      },
+      "--dry-run": {
+        "help": "Report planned outputs without writing files",
+        "type": "bool",
+        "default": false
+      },
+      "--recursive": {
+        "help": "Recurse into subdirectories when scanning directories",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "process",
+    "args_schema": null,
+    "example_args": null
+  },
   "process enrich-metadata": {
     "description": "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin.",
     "doc": "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin.",
@@ -2688,6 +2870,207 @@
       "callable": "_cmd_update_dataset"
     },
     "returns": "path"
+  },
+  "process shapefile-to-geojson": {
+    "description": "Convert a shapefile to GeoJSON. Optionally normalize local time fields into ISO timestamps using timezone hints.",
+    "doc": "Convert a shapefile to GeoJSON. Optionally normalize local time fields into ISO timestamps using timezone hints.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--time-field",
+          "--time-format",
+          "--timezone",
+          "--year-field",
+          "--month-field",
+          "--day-field",
+          "--default-year",
+          "--fallback-date",
+          "--local-time-property",
+          "--utc-time-property",
+          "--indent",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Path to input .shp file",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--time-field": "Field containing local time strings (repeatable)",
+      "--time-format": "Custom strptime format for local time (repeatable)",
+      "--timezone": {
+        "help": "Timezone name for local time parsing (default: UTC)",
+        "type": "str",
+        "default": "UTC"
+      },
+      "--year-field": {
+        "help": "Field containing year values used when time strings omit a year",
+        "type": "str",
+        "default": "Year"
+      },
+      "--month-field": {
+        "help": "Field containing month values used when time strings omit a month",
+        "type": "str",
+        "default": "Month"
+      },
+      "--day-field": {
+        "help": "Field containing day values used when time strings omit a day",
+        "type": "str",
+        "default": "Day"
+      },
+      "--default-year": {
+        "help": "Fallback year when no year field is present",
+        "type": "int"
+      },
+      "--fallback-date": "Fallback date (YYYY-MM-DD) when month/day are missing",
+      "--local-time-property": {
+        "help": "Output property name for normalized local timestamp",
+        "type": "str",
+        "default": "time_local_iso"
+      },
+      "--utc-time-property": {
+        "help": "Output property name for normalized UTC timestamp",
+        "type": "str",
+        "default": "time_utc_iso"
+      },
+      "--indent": {
+        "help": "Indentation level for GeoJSON output",
+        "type": "int",
+        "default": 2
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "process",
+    "args_schema": null,
+    "example_args": null
+  },
+  "process csv-to-geojson": {
+    "description": "Convert a tabular CSV with latitude/longitude columns into GeoJSON points, optionally normalizing local timestamps.",
+    "doc": "Convert a tabular CSV with latitude/longitude columns into GeoJSON points, optionally normalizing local timestamps.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--lat-field",
+          "--lon-field",
+          "--local-time-field",
+          "--utc-time-field",
+          "--time-format",
+          "--timezone",
+          "--event-date",
+          "--local-time-property",
+          "--utc-time-property",
+          "--indent",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Path to CSV file",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--lat-field": {
+        "help": "Column containing latitude values (default: Lat)",
+        "type": "str",
+        "default": "Lat"
+      },
+      "--lon-field": {
+        "help": "Column containing longitude values (default: Lon)",
+        "type": "str",
+        "default": "Lon"
+      },
+      "--local-time-field": "Column containing local time strings (repeatable)",
+      "--utc-time-field": "Column containing UTC time strings (HH:MM, repeatable)",
+      "--time-format": "Custom strptime format for local time strings (repeatable)",
+      "--timezone": {
+        "help": "Local timezone name for interpreting local time strings",
+        "type": "str",
+        "default": "UTC"
+      },
+      "--event-date": "Event date (YYYY-MM-DD) used when local/UTC fields omit a date",
+      "--local-time-property": {
+        "help": "Output property name for normalized local timestamp",
+        "type": "str",
+        "default": "time_local_iso"
+      },
+      "--utc-time-property": {
+        "help": "Output property name for normalized UTC timestamp",
+        "type": "str",
+        "default": "time_utc_iso"
+      },
+      "--indent": {
+        "help": "Indentation level for GeoJSON output",
+        "type": "int",
+        "default": 2
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "process",
+    "args_schema": null,
+    "example_args": null
   },
   "visualize heatmap": {
     "description": "zyra visualize heatmap",
@@ -3466,6 +3849,9 @@
           "--units",
           "--show-timestamp",
           "--timestamps-csv",
+          "--overlay",
+          "--overlay-time-key",
+          "--overlay-time-tolerance",
           "--timestamp-loc",
           "--map-type",
           "--tile-source",
@@ -3473,6 +3859,8 @@
           "--xarray-engine",
           "--crs",
           "--reproject",
+          "--features",
+          "--manifest",
           "--to-video",
           "--fps",
           "--grid-mode",
@@ -3586,6 +3974,13 @@
         "default": false
       },
       "--timestamps-csv": "",
+      "--overlay": "Overlay specification: [alias=]path[:style] (repeatable)",
+      "--overlay-time-key": "Overlay time property mapping (alias=property or property)",
+      "--overlay-time-tolerance": {
+        "help": "Seconds to allow when matching overlay timestamps (default: 900)",
+        "type": "int",
+        "default": 900
+      },
       "--timestamp-loc": {
         "help": "",
         "choices": [
@@ -3618,6 +4013,12 @@
         "help": "",
         "type": "bool",
         "default": false
+      },
+      "--features": "Comma-separated features: coastline,borders,gridlines",
+      "--manifest": {
+        "help": "Optional manifest output path (JSON); when omitted, manifest is only logged",
+        "path_arg": true,
+        "type": "path"
       },
       "--to-video": "",
       "--fps": {
@@ -4724,6 +5125,9 @@
           "--units",
           "--show-timestamp",
           "--timestamps-csv",
+          "--overlay",
+          "--overlay-time-key",
+          "--overlay-time-tolerance",
           "--timestamp-loc",
           "--map-type",
           "--tile-source",
@@ -4731,6 +5135,8 @@
           "--xarray-engine",
           "--crs",
           "--reproject",
+          "--features",
+          "--manifest",
           "--to-video",
           "--fps",
           "--grid-mode",
@@ -4844,6 +5250,13 @@
         "default": false
       },
       "--timestamps-csv": "",
+      "--overlay": "Overlay specification: [alias=]path[:style] (repeatable)",
+      "--overlay-time-key": "Overlay time property mapping (alias=property or property)",
+      "--overlay-time-tolerance": {
+        "help": "Seconds to allow when matching overlay timestamps (default: 900)",
+        "type": "int",
+        "default": 900
+      },
       "--timestamp-loc": {
         "help": "",
         "choices": [
@@ -4876,6 +5289,12 @@
         "help": "",
         "type": "bool",
         "default": false
+      },
+      "--features": "Comma-separated features: coastline,borders,gridlines",
+      "--manifest": {
+        "help": "Optional manifest output path (JSON); when omitted, manifest is only logged",
+        "path_arg": true,
+        "type": "path"
       },
       "--to-video": "",
       "--fps": {
@@ -6394,6 +6813,188 @@
     },
     "returns": "bytes"
   },
+  "transform geotiff-to-cog": {
+    "description": "Convert one or more GeoTIFF inputs into Cloud Optimized GeoTIFFs (COGs) with optional reprojection, tiled compression, and overview generation.",
+    "doc": "Convert one or more GeoTIFF inputs into Cloud Optimized GeoTIFFs (COGs) with optional reprojection, tiled compression, and overview generation.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--input-dir",
+          "--pattern",
+          "--output",
+          "--output-dir",
+          "--name-template",
+          "--datetime-format",
+          "--output-datetime-format",
+          "--dst-crs",
+          "--resampling",
+          "--overview-resampling",
+          "--overview-levels",
+          "--blocksize",
+          "--compression",
+          "--predictor",
+          "--bigtiff",
+          "--num-threads",
+          "--overwrite",
+          "--dry-run",
+          "--recursive",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Input GeoTIFF path (repeatable). Directories will be scanned using --pattern",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--input-dir": {
+        "help": "Directory containing GeoTIFF files to convert",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--pattern": {
+        "help": "Glob pattern used when scanning directories (default: *.tif)",
+        "type": "str",
+        "default": "*.tif"
+      },
+      "--output": {
+        "help": "Output path for a single input file",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs (required for multiple inputs)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--name-template": {
+        "help": "Filename template when writing to --output-dir. Supports {stem}, {name}, {timestamp}",
+        "type": "str",
+        "default": "{stem}.tif"
+      },
+      "--datetime-format": "Datetime format to extract timestamps from source filenames (for {timestamp})",
+      "--output-datetime-format": {
+        "help": "Strftime pattern used when formatting {timestamp} (default: %Y%m%dT%H%M%SZ)",
+        "path_arg": true,
+        "type": "path",
+        "default": "%Y%m%dT%H%M%SZ"
+      },
+      "--dst-crs": "Destination CRS (e.g., EPSG:4326). Defaults to the source CRS",
+      "--resampling": {
+        "help": "Resampling kernel to use when reprojecting (default: bilinear)",
+        "choices": [
+          "average",
+          "bilinear",
+          "cubic",
+          "cubic_spline",
+          "gauss",
+          "lanczos",
+          "max",
+          "med",
+          "min",
+          "mode",
+          "nearest",
+          "q1",
+          "q3",
+          "rms",
+          "sum"
+        ],
+        "type": "str",
+        "default": "bilinear"
+      },
+      "--overview-resampling": {
+        "help": "Resampling kernel to use for overview generation (default: match --resampling)",
+        "choices": [
+          "average",
+          "bilinear",
+          "cubic",
+          "cubic_spline",
+          "gauss",
+          "lanczos",
+          "max",
+          "med",
+          "min",
+          "mode",
+          "nearest",
+          "q1",
+          "q3",
+          "rms",
+          "sum"
+        ],
+        "type": "str"
+      },
+      "--overview-levels": "Comma-separated overview decimation levels (default: auto)",
+      "--blocksize": {
+        "help": "Internal tile size in pixels (default: 512)",
+        "type": "int",
+        "default": 512
+      },
+      "--compression": {
+        "help": "Compression codec for output tiles (default: DEFLATE)",
+        "type": "str",
+        "default": "DEFLATE"
+      },
+      "--predictor": {
+        "help": "Predictor to use (auto, 1, 2, or 3)",
+        "type": "str",
+        "default": "auto"
+      },
+      "--bigtiff": {
+        "help": "Control BigTIFF creation (default: IF_SAFER)",
+        "choices": [
+          "YES",
+          "NO",
+          "IF_NEEDED",
+          "IF_SAFER"
+        ],
+        "type": "str",
+        "default": "IF_SAFER"
+      },
+      "--num-threads": "Value for GDAL NUM_THREADS option (e.g., ALL_CPUS)",
+      "--overwrite": {
+        "help": "Allow overwriting existing outputs",
+        "type": "bool",
+        "default": false
+      },
+      "--dry-run": {
+        "help": "Report planned outputs without writing files",
+        "type": "bool",
+        "default": false
+      },
+      "--recursive": {
+        "help": "Recurse into subdirectories when scanning directories",
+        "type": "bool",
+        "default": false
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "transform",
+    "args_schema": null,
+    "example_args": null
+  },
   "transform enrich-metadata": {
     "description": "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin.",
     "doc": "Enrich a frames metadata JSON with dataset_id, Vimeo URI, and updated_at; read from file or stdin.",
@@ -6663,6 +7264,207 @@
       "callable": "_cmd_update_dataset"
     },
     "returns": "path"
+  },
+  "transform shapefile-to-geojson": {
+    "description": "Convert a shapefile to GeoJSON. Optionally normalize local time fields into ISO timestamps using timezone hints.",
+    "doc": "Convert a shapefile to GeoJSON. Optionally normalize local time fields into ISO timestamps using timezone hints.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--time-field",
+          "--time-format",
+          "--timezone",
+          "--year-field",
+          "--month-field",
+          "--day-field",
+          "--default-year",
+          "--fallback-date",
+          "--local-time-property",
+          "--utc-time-property",
+          "--indent",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Path to input .shp file",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--time-field": "Field containing local time strings (repeatable)",
+      "--time-format": "Custom strptime format for local time (repeatable)",
+      "--timezone": {
+        "help": "Timezone name for local time parsing (default: UTC)",
+        "type": "str",
+        "default": "UTC"
+      },
+      "--year-field": {
+        "help": "Field containing year values used when time strings omit a year",
+        "type": "str",
+        "default": "Year"
+      },
+      "--month-field": {
+        "help": "Field containing month values used when time strings omit a month",
+        "type": "str",
+        "default": "Month"
+      },
+      "--day-field": {
+        "help": "Field containing day values used when time strings omit a day",
+        "type": "str",
+        "default": "Day"
+      },
+      "--default-year": {
+        "help": "Fallback year when no year field is present",
+        "type": "int"
+      },
+      "--fallback-date": "Fallback date (YYYY-MM-DD) when month/day are missing",
+      "--local-time-property": {
+        "help": "Output property name for normalized local timestamp",
+        "type": "str",
+        "default": "time_local_iso"
+      },
+      "--utc-time-property": {
+        "help": "Output property name for normalized UTC timestamp",
+        "type": "str",
+        "default": "time_utc_iso"
+      },
+      "--indent": {
+        "help": "Indentation level for GeoJSON output",
+        "type": "int",
+        "default": 2
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "transform",
+    "args_schema": null,
+    "example_args": null
+  },
+  "transform csv-to-geojson": {
+    "description": "Convert a tabular CSV with latitude/longitude columns into GeoJSON points, optionally normalizing local timestamps.",
+    "doc": "Convert a tabular CSV with latitude/longitude columns into GeoJSON points, optionally normalizing local timestamps.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--lat-field",
+          "--lon-field",
+          "--local-time-field",
+          "--utc-time-field",
+          "--time-format",
+          "--timezone",
+          "--event-date",
+          "--local-time-property",
+          "--utc-time-property",
+          "--indent",
+          "--output",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Path to CSV file",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--lat-field": {
+        "help": "Column containing latitude values (default: Lat)",
+        "type": "str",
+        "default": "Lat"
+      },
+      "--lon-field": {
+        "help": "Column containing longitude values (default: Lon)",
+        "type": "str",
+        "default": "Lon"
+      },
+      "--local-time-field": "Column containing local time strings (repeatable)",
+      "--utc-time-field": "Column containing UTC time strings (HH:MM, repeatable)",
+      "--time-format": "Custom strptime format for local time strings (repeatable)",
+      "--timezone": {
+        "help": "Local timezone name for interpreting local time strings",
+        "type": "str",
+        "default": "UTC"
+      },
+      "--event-date": "Event date (YYYY-MM-DD) used when local/UTC fields omit a date",
+      "--local-time-property": {
+        "help": "Output property name for normalized local timestamp",
+        "type": "str",
+        "default": "time_local_iso"
+      },
+      "--utc-time-property": {
+        "help": "Output property name for normalized UTC timestamp",
+        "type": "str",
+        "default": "time_utc_iso"
+      },
+      "--indent": {
+        "help": "Indentation level for GeoJSON output",
+        "type": "int",
+        "default": 2
+      },
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "transform",
+    "args_schema": null,
+    "example_args": null
   },
   "search api": {
     "description": "zyra search api",

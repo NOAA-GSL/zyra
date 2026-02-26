@@ -4,13 +4,35 @@ from __future__ import annotations
 import contextlib
 import re
 import tempfile
+from pathlib import Path
 from typing import Iterable, Iterator
+from urllib.parse import urlparse
+
+import requests
 
 from .io_utils import open_input  # re-export
 
 
 def read_all_bytes(path_or_dash: str) -> bytes:
-    """Read all bytes from a path or '-' (stdin)."""
+    """Read all bytes from a file path, URL, or '-' (stdin)."""
+
+    parsed = urlparse(path_or_dash)
+    if parsed.scheme in {"http", "https"}:
+        resp = requests.get(path_or_dash, timeout=60)
+        resp.raise_for_status()
+        return resp.content
+
+    if parsed.scheme and parsed.scheme != "file":
+        with open_input(path_or_dash) as f:
+            return f.read()
+
+    try:
+        p = Path(path_or_dash)
+    except Exception:
+        p = None
+    if p and p.exists():
+        return p.read_bytes()
+
     with open_input(path_or_dash) as f:
         return f.read()
 
