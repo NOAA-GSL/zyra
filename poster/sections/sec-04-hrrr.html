@@ -9,39 +9,45 @@
     <span>Use Case</span>
   </div>
 
-  <h3 class="usecase-heading">HRRR Weather Model Processing</h3>
+  <h3 class="usecase-heading">HRRR Wind Analysis: GRIB2 to Interactive Map</h3>
   <p class="usecase-desc">
-    Acquire the latest High-Resolution Rapid Refresh forecast, convert to NetCDF, and visualize temperature — three commands, one pipeline.
+    Fetch only the variables you need from a 300 MB GRIB2 file using the <code>.idx</code> byte-range trick, convert to NetCDF, and render an interactive wind-streamline map — four commands, one pipeline.
   </p>
 
-  <!-- Three-step code block with stage-colored indicators -->
+  <!-- Four-step code block with stage-colored indicators -->
   <div class="code-steps">
     <div class="code-step">
       <div class="step-dot step-dot-import">
         <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
       </div>
       <div class="step-code"><span class="step-stage-tag tag-import">① Import</span>
-<span class="cc-cmd">zyra acquire</span> http \
-  <span class="cc-url">https://noaa-hrrr-bdp-pds.s3.amazonaws.com/</span>
-  <span class="cc-url">hrrr.20240101/conus/hrrr.t00z.wrfsfcf00.grib2</span> \
-  <span class="cc-flag">-o</span> <span class="cc-file">hrrr.grib2</span></div>
+<span class="cc-cmd">zyra acquire</span> http <span class="cc-flag">--idx</span> <span class="cc-url">noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20250101/conus/hrrr.t00z.wrfsfcf00.grib2</span> \
+  <span class="cc-flag">--select</span> <span class="cc-url">"TMP:2 m|UGRD:10 m|VGRD:10 m"</span> <span class="cc-flag">-o</span> <span class="cc-file">hrrr.grib2</span>   <span class="cc-comment"># 5.5 MB, not 300 MB</span></div>
     </div>
     <div class="code-step">
       <div class="step-dot step-dot-process">
         <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
       </div>
       <div class="step-code"><span class="step-stage-tag tag-process">② Process</span>
-<span class="cc-cmd">zyra process</span> convert-format \
-  <span class="cc-file">hrrr.grib2</span> netcdf <span class="cc-flag">-o</span> <span class="cc-file">hrrr.nc</span></div>
+<span class="cc-cmd">zyra process</span> convert-format <span class="cc-file">hrrr.grib2</span> netcdf <span class="cc-flag">-o</span> <span class="cc-file">hrrr_t2m.nc</span>
+<span class="cc-cmd">zyra process</span> convert-format <span class="cc-file">hrrr.grib2</span> netcdf <span class="cc-flag">--var</span> UGRD <span class="cc-flag">-o</span> <span class="cc-file">hrrr_wind.nc</span></div>
+    </div>
+    <div class="code-step">
+      <div class="step-dot step-dot-process">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17.5h7M17.5 14v7"/></svg>
+      </div>
+      <div class="step-code"><span class="step-stage-tag tag-process">③ Process — Coming Soon</span>
+<span class="cc-cmd">zyra process</span> merge-nc <span class="cc-file">hrrr_t2m.nc</span> <span class="cc-file">hrrr_wind.nc</span> <span class="cc-flag">-o</span> <span class="cc-file">hrrr_merged.nc</span>   <span class="cc-comment"># Coming soon: merge multiple NetCDF files into one dataset</span></div>
     </div>
     <div class="code-step">
       <div class="step-dot step-dot-visualize">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l4-4 4 4 4-6 5 6"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
       </div>
-      <div class="step-code"><span class="step-stage-tag tag-visualize">③ Visualize</span>
-<span class="cc-cmd">zyra visualize</span> heatmap \
-  <span class="cc-flag">--input</span> <span class="cc-file">hrrr.nc</span> <span class="cc-flag">--var</span> TMP \
-  <span class="cc-flag">--colorbar</span> <span class="cc-flag">--output</span> <span class="cc-file">hrrr_temp.png</span></div>
+      <div class="step-code"><span class="step-stage-tag tag-visualize">④ Visualize</span>
+<span class="cc-cmd">zyra visualize</span> interactive \
+  <span class="cc-flag">--input</span> <span class="cc-file">hrrr_merged.nc</span> <span class="cc-flag">--var</span> t2m <span class="cc-flag">--uvar</span> u10 <span class="cc-flag">--vvar</span> v10 \
+  <span class="cc-flag">--mode</span> vector <span class="cc-flag">--streamlines</span> <span class="cc-flag">--engine</span> folium <span class="cc-flag">--colorbar</span> \
+  <span class="cc-flag">--output</span> <span class="cc-file">hrrr_wind.html</span>   <span class="cc-comment"># 151 KB standalone HTML</span></div>
     </div>
   </div>
 
@@ -53,22 +59,38 @@
     </svg>
   </div>
 
-  <div class="usecase-image-wrap">
-    <div class="usecase-placeholder">
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="4" y="4" width="40" height="40" rx="4" stroke="var(--neutral-600)" stroke-width="1.5" fill="none"/>
-        <path d="M4 34l10-10 8 8 8-12 14 14" stroke="var(--neutral-600)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="16" cy="16" r="4" stroke="var(--neutral-600)" stroke-width="1.5" fill="none"/>
-        <!-- Tiny gradient squares to suggest heatmap -->
-        <rect x="10" y="28" width="4" height="4" rx="0.5" fill="var(--cable-blue)" opacity="0.2"/>
-        <rect x="15" y="28" width="4" height="4" rx="0.5" fill="var(--ocean-blue)" opacity="0.25"/>
-        <rect x="20" y="28" width="4" height="4" rx="0.5" fill="var(--leaf-green)" opacity="0.25"/>
-        <rect x="25" y="28" width="4" height="4" rx="0.5" fill="var(--amber)" opacity="0.3"/>
-        <rect x="30" y="28" width="4" height="4" rx="0.5" fill="var(--red)" opacity="0.25"/>
-      </svg>
-      <span>heatmap.png — replace with generated asset</span>
+  <!-- WEB ONLY: embedded interactive folium maps -->
+  <div class="usecase-interactive-embed">
+    <iframe
+      src="hrrr_wind_interactive.html"
+      title="HRRR 10m Wind Streamlines over CONUS — 2025-01-01 00Z"
+      loading="lazy"
+      allowfullscreen
+    ></iframe>
+    <p class="usecase-caption"><strong>10m Wind Streamlines</strong> — Velocity vectors from the HRRR GRIB2 file, rendered as streamlines colored by wind speed. Pan, zoom, and explore. Generated by <code>zyra visualize interactive --mode vector --streamlines</code></p>
+  </div>
+
+  <div class="usecase-interactive-embed">
+    <iframe
+      src="hrrr_temp_interactive.html"
+      title="HRRR 2m Temperature over CONUS — 2025-01-01 00Z"
+      loading="lazy"
+      allowfullscreen
+    ></iframe>
+    <p class="usecase-caption"><strong>2m Temperature</strong> — Surface temperature heatmap from the same GRIB2 file, extracted alongside the wind variables in a single <code>zyra acquire</code> command. Generated by <code>zyra visualize interactive --mode heatmap</code></p>
+  </div>
+
+  <!-- PRINT ONLY: two static images side-by-side -->
+  <div class="usecase-print-images">
+    <div class="usecase-print-img-wrap">
+      <img src="hrrr_temp_print.png" alt="HRRR 2m Temperature heatmap over CONUS, 2025-01-01 00Z" loading="lazy">
+      <p class="usecase-caption">2m Temperature — <code>zyra visualize heatmap</code></p>
+    </div>
+    <div class="usecase-print-img-wrap">
+      <img src="hrrr_wind_print.png" alt="HRRR 10m wind streamlines over CONUS, 2025-01-01 00Z" loading="lazy">
+      <p class="usecase-caption">10m Wind Streamlines — <code>zyra visualize vector</code></p>
     </div>
   </div>
-  <p class="usecase-caption">Heatmap rendered by <code>zyra visualize heatmap</code></p>
 
 </div>
+

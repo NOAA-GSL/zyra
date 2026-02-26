@@ -27,7 +27,11 @@
     </li>
     <li>
       <span class="feat-dot"></span>
-      <div><strong>AI integration:</strong> Multi-agent narration swarm, planning engine, value engine, guardrails</div>
+      <div><strong>Agentic orchestration:</strong> Natural language intent → <code>zyra plan</code> generates an execution DAG; <code>zyra swarm</code> dispatches stage agents in parallel with provenance tracking</div>
+    </li>
+    <li>
+      <span class="feat-dot"></span>
+      <div><strong>Narration swarm:</strong> Multi-agent LLM chain (context → summary → critic → editor) generates validated scientific narrative; LLM-agnostic via <code>--provider</code></div>
     </li>
     <li>
       <span class="feat-dot"></span>
@@ -35,7 +39,11 @@
     </li>
     <li>
       <span class="feat-dot"></span>
-      <div><strong>Service mode:</strong> FastAPI REST API + MCP tools for LLM integration</div>
+      <div><strong>MCP server:</strong> Exposes Zyra's full pipeline as <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener noreferrer" style="color:var(--cable-blue);">Model Context Protocol</a> tools — letting AI assistants like <strong>Claude</strong> or <strong>ChatGPT</strong> acquire data, run transforms, and generate visualizations on demand via natural language</div>
+    </li>
+    <li>
+      <span class="feat-dot"></span>
+      <div><strong>REST API:</strong> FastAPI service mode exposes the same stage toolset over HTTP for integration with custom apps and workflows</div>
     </li>
     <li>
       <span class="feat-dot"></span>
@@ -48,8 +56,47 @@
     <span class="feat-meta-pill">Apache 2.0</span>
     <span class="feat-meta-pill">CLI-first</span>
     <span class="feat-meta-pill">Streaming-friendly</span>
+    <span class="feat-meta-pill">MCP-ready</span>
   </div>
 
+</div>
+
+<!-- SURVEY CTA -->
+<div class="survey-cta-card">
+  <!-- decorative blobs -->
+  <div class="survey-cta-blob survey-cta-blob--tl" aria-hidden="true"></div>
+  <div class="survey-cta-blob survey-cta-blob--br" aria-hidden="true"></div>
+
+  <div class="survey-cta-inner">
+
+    <div class="survey-cta-left">
+      <div class="section-tag" style="margin-bottom:8px;">
+        <div class="diamond" style="background:var(--amber);"></div>
+        <span style="color:var(--amber);">Community</span>
+      </div>
+      <h3 class="survey-cta-heading">Help Shape the Future of Agentic Science</h3>
+      <p class="survey-cta-body">We're exploring how intelligent agents can automate and coordinate complex scientific workflows — and we're asking for your help. Share how you actually work with data through the <strong>Zyra Workflow Insights Survey</strong>.</p>
+    </div>
+
+    <div class="survey-cta-middle">
+      <p class="survey-cta-prompt">By sharing your workflow practices and challenges, you'll help us identify:</p>
+      <ul class="survey-bullet-list">
+        <li>Which agentic tools offer the greatest real-world value</li>
+        <li>Where current automation still falls short</li>
+        <li>How to build an intent dataset to train Zyra's task decomposition system</li>
+      </ul>
+      <p class="survey-cta-sub">Your insights directly guide how we design and prioritize future tools built to amplify human creativity, efficiency, and discovery. Responses are used anonymously for research and system improvement; do not include sensitive or confidential data.</p>
+    </div>
+
+    <div class="survey-cta-right">
+      <a href="https://survey.zyra-project.org/" class="survey-cta-btn" target="_blank" rel="noopener noreferrer">
+        <svg class="survey-btn-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        <span class="survey-btn-label">Take the Survey</span>
+        <span class="survey-btn-url">survey.zyra-project.org</span>
+      </a>
+    </div>
+
+  </div>
 </div>
 
 <!-- SECTION 11: GET STARTED -->
@@ -121,6 +168,37 @@
     </div><!-- .code-zoom-inner -->
   </div><!-- .code-zoom-wrap -->
 
+  <!-- PRINT-ONLY: Survey CTA — hidden in web view, shown in print layout -->
+  <div class="gs-survey-cta">
+    <div class="gs-survey-inner">
+
+      <div class="gs-survey-text">
+        <div class="section-tag" style="margin-bottom:18px;">
+          <div class="diamond" style="background:var(--amber);"></div>
+          <span style="color:var(--amber);">Community</span>
+        </div>
+        <div class="gs-survey-heading">Help Shape the Future of Agentic Science</div>
+        <div class="gs-survey-body">Share how you actually work with data — your insights directly guide Zyra's agentic tools roadmap. We're collecting input from scientists, analysts, and developers on workflow practices and automation challenges.</div>
+        <div class="gs-links" style="margin-top:30px;">
+          <a href="https://survey.zyra-project.org/" class="gs-badge gs-badge--survey" target="_blank" rel="noopener noreferrer">
+            <span class="gs-badge-pip pip-survey">
+              <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            </span>
+            <span class="gs-badge-label">Survey</span>
+            <span class="gs-badge-value">survey.zyra-project.org</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="gs-survey-qr">
+        <div class="gs-qr-box">
+          <img src="survey-qr-code.png" alt="QR code linking to survey.zyra-project.org" width="84" height="84" style="display:block;border-radius:4px;">
+        </div>
+        <div class="gs-qr-label">Take the survey</div>
+        <div class="gs-qr-url">survey.zyra-project.org</div>
+      </div>
+
+    </div>
   </div>
 
 </div>
