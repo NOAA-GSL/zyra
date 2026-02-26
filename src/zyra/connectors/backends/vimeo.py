@@ -92,6 +92,73 @@ def fetch_bytes(video_id: str) -> bytes:  # pragma: no cover - placeholder
     raise NotImplementedError("Ingest from Vimeo is not implemented yet")
 
 
+def get_download_url(
+    video_id: str,
+    *,
+    token: str | None = None,
+    client_id: str | None = None,
+    client_secret: str | None = None,
+) -> str | None:
+    """Return a progressive download URL for the given Vimeo video.
+
+    Requires PyVimeo credentials (access token or client id/secret). When multiple
+    download renditions are available, the highest resolution progressive file is
+    returned.
+    """
+
+    client = _get_client(token=token, client_id=client_id, client_secret=client_secret)
+    video_id = str(video_id).strip("/")
+    if not video_id.startswith("videos/"):
+        video_uri = f"/videos/{video_id}"
+    else:
+        video_uri = f"/{video_id}"
+    try:
+        response = client.get(video_uri)
+    except Exception as exc:  # pragma: no cover - network/SDK dependent
+        raise RuntimeError(_summarize_exception(exc, operation="get")) from exc
+
+    data = None
+    if hasattr(response, "json"):
+        try:
+            data = response.json()
+        except Exception:  # pragma: no cover - defensive
+            data = None
+    if not data:
+        data = getattr(response, "body", None)
+    if not isinstance(data, dict):
+        return None
+
+    downloads = data.get("download") or []
+    best_link = None
+    best_pixels = -1
+    for entry in downloads:
+        if not isinstance(entry, dict):
+            continue
+        link = entry.get("link")
+        if not link:
+            continue
+        if entry.get("quality") == "source":
+            return str(link)
+        width = entry.get("width") or 0
+        height = entry.get("height") or 0
+        pixels = width * height
+        if pixels > best_pixels:
+            best_pixels = pixels
+            best_link = str(link)
+    if best_link:
+        return best_link
+
+    files = data.get("files") or []
+    progressive = [
+        entry
+        for entry in files
+        if entry.get("quality") == "sd" or entry.get("quality") == "hd"
+    ]
+    if progressive:
+        return str(progressive[0].get("link_secure") or progressive[0].get("link"))
+    return None
+
+
 def upload_path(
     video_path: str,
     *,

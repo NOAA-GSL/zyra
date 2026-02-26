@@ -3809,6 +3809,223 @@
       "visualization"
     ]
   },
+  "visualize globe": {
+    "description": "Generate interactive globe bundles using modular renderers such as webgl-sphere or cesium-globe.",
+    "doc": "Generate interactive globe bundles using modular renderers such as webgl-sphere or cesium-globe.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--target",
+          "--output",
+          "--texture",
+          "--pattern",
+          "--texture-pattern",
+          "--frame-list",
+          "--frame-cache",
+          "--video-source",
+          "--start",
+          "--end",
+          "--fps",
+          "--period-seconds",
+          "--frames-meta",
+          "--date-format",
+          "--frame-duration",
+          "--show-controls",
+          "--title",
+          "--description",
+          "--width",
+          "--height",
+          "--animate",
+          "--auto-rotate",
+          "--auto-rotate-speed",
+          "--probe",
+          "--lighting",
+          "--probe-gradient",
+          "--probe-lut",
+          "--probe-data",
+          "--probe-var",
+          "--probe-units",
+          "--legend",
+          "--tile-url",
+          "--tile-type",
+          "--tile-scheme",
+          "--tile-min-level",
+          "--tile-max-level",
+          "--tile-credit",
+          "--tile-token",
+          "--tile-param",
+          "--tile-time-key",
+          "--tile-time-value",
+          "--tile-time-start",
+          "--tile-time-end",
+          "--tile-time-period",
+          "--shared-gradient",
+          "--time-key",
+          "--time-format",
+          "--credential",
+          "--credential-file",
+          "--auth",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--target": {
+        "help": "Renderer backend to use (e.g., webgl-sphere, cesium-globe)",
+        "choices": [
+          "cesium-globe",
+          "webgl-sphere"
+        ],
+        "type": "str",
+        "required": true
+      },
+      "--output": {
+        "help": "Directory for the generated bundle (index.html + assets)",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--texture": "Primary texture image for the globe surface",
+      "--pattern": "Glob pattern for frame textures (animated sequences)",
+      "--texture-pattern": "Glob pattern for frame textures (animated sequences)",
+      "--frame-list": "Text file listing frame paths (optional timestamps)",
+      "--frame-cache": "Directory to stage frames extracted from remote sources",
+      "--video-source": "Video file or URI used to derive frame textures (supports Vimeo URIs)",
+      "--start": "ISO-8601 timestamp for the first frame of the video",
+      "--end": "ISO-8601 timestamp for the final frame (optional; defaults to start + duration)",
+      "--fps": {
+        "help": "Sampling rate when extracting frames from video sources (frames per second)",
+        "type": "float"
+      },
+      "--period-seconds": {
+        "help": "Override cadence between frames (seconds) for timeline metadata",
+        "type": "float"
+      },
+      "--frames-meta": {
+        "help": "Frames metadata JSON (from transform metadata/scan-frames)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--date-format": "strftime-style format used to parse timestamps from frame filenames",
+      "--frame-duration": {
+        "help": "Seconds per frame when animating sequences (default 0.25)",
+        "type": "float"
+      },
+      "--show-controls": {
+        "help": "Toggle playback controls overlay for animated sequences (default: %(default)s)",
+        "type": "str",
+        "default": true
+      },
+      "--title": "Optional overlay title for the globe viewer",
+      "--description": "Optional descriptive text shown under the globe title",
+      "--width": {
+        "help": "Preferred viewport width in pixels",
+        "type": "int"
+      },
+      "--height": {
+        "help": "Preferred viewport height in pixels",
+        "type": "int"
+      },
+      "--animate": {
+        "help": "Animation mode for multi-frame inputs",
+        "choices": [
+          "none",
+          "time"
+        ],
+        "type": "str",
+        "default": "none"
+      },
+      "--auto-rotate": {
+        "help": "Enable continuous auto-rotation (default uses drag-to-rotate) (default: %(default)s)",
+        "type": "str",
+        "default": false
+      },
+      "--auto-rotate-speed": {
+        "help": "Auto-rotation speed in degrees per second when enabled",
+        "type": "float"
+      },
+      "--probe": {
+        "help": "Toggle probe UI in the generated viewer (default: %(default)s)",
+        "type": "str",
+        "default": true
+      },
+      "--lighting": {
+        "help": "Enable lighting/shading for the globe (default off for unlit texture) (default: %(default)s)",
+        "type": "str",
+        "default": false
+      },
+      "--probe-gradient": "Gradient asset for imagery-backed probe decoding",
+      "--probe-lut": "Lookup table for categorical probe decoding",
+      "--probe-data": "JSON/CSV probe dataset packaged with the bundle",
+      "--probe-var": "Variable name used when sampling structured probe datasets",
+      "--probe-units": "Units label rendered with probe values (e.g., Ma, °C)",
+      "--legend": "Legend image path (pkg:, local file, or http/https URL)",
+      "--tile-url": "ArcGIS MapServer/ImageServer endpoint or URL template providing tiled imagery (overrides --texture when supplied)",
+      "--tile-type": {
+        "help": "Provider type for --tile-url (default: arcgis)",
+        "choices": [
+          "arcgis",
+          "template"
+        ],
+        "type": "str"
+      },
+      "--tile-scheme": {
+        "help": "Tiling scheme for --tile-url when using template sources (default: webmercator)",
+        "choices": [
+          "webmercator",
+          "geographic"
+        ],
+        "type": "str"
+      },
+      "--tile-min-level": {
+        "help": "Minimum level for tiled imagery providers",
+        "type": "int"
+      },
+      "--tile-max-level": {
+        "help": "Maximum level for tiled imagery providers",
+        "type": "int"
+      },
+      "--tile-credit": "Attribution string shown for tiled imagery providers",
+      "--tile-token": "Access token passed through to the tiled imagery provider",
+      "--tile-param": "Placeholder substitutions for template tile URLs (repeatable)",
+      "--tile-time-key": "Placeholder key in the tile URL that should be driven by time (e.g., 'time')",
+      "--tile-time-value": "ISO-8601 timestamps used to populate the time placeholder (repeatable)",
+      "--tile-time-start": "Start of the time range (inclusive, ISO-8601)",
+      "--tile-time-end": "End of the time range (inclusive, ISO-8601)",
+      "--tile-time-period": "Step between time samples (e.g., '1d', '6h', '3600s'; default 1d)",
+      "--shared-gradient": "Name-to-path mapping for reusable gradients (repeatable; format NAME=PATH or NAME|PATH; supports local files, pkg: refs, or URLs)",
+      "--time-key": "Metadata key that maps inputs to timestamps",
+      "--time-format": "Format string for rendering timestamps",
+      "--credential": "Inline credential assignment (repeatable)",
+      "--credential-file": "Credential file resolved by the shared helper",
+      "--auth": "Auth helper shorthands (e.g., bearer:token, basic:user:pass)",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "visualize",
+    "args_schema": null,
+    "example_args": null
+  },
   "visualize interactive": {
     "description": "zyra visualize interactive",
     "doc": "",
@@ -5033,6 +5250,223 @@
     "extras": [
       "visualization"
     ]
+  },
+  "render globe": {
+    "description": "Generate interactive globe bundles using modular renderers such as webgl-sphere or cesium-globe.",
+    "doc": "Generate interactive globe bundles using modular renderers such as webgl-sphere or cesium-globe.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--target",
+          "--output",
+          "--texture",
+          "--pattern",
+          "--texture-pattern",
+          "--frame-list",
+          "--frame-cache",
+          "--video-source",
+          "--start",
+          "--end",
+          "--fps",
+          "--period-seconds",
+          "--frames-meta",
+          "--date-format",
+          "--frame-duration",
+          "--show-controls",
+          "--title",
+          "--description",
+          "--width",
+          "--height",
+          "--animate",
+          "--auto-rotate",
+          "--auto-rotate-speed",
+          "--probe",
+          "--lighting",
+          "--probe-gradient",
+          "--probe-lut",
+          "--probe-data",
+          "--probe-var",
+          "--probe-units",
+          "--legend",
+          "--tile-url",
+          "--tile-type",
+          "--tile-scheme",
+          "--tile-min-level",
+          "--tile-max-level",
+          "--tile-credit",
+          "--tile-token",
+          "--tile-param",
+          "--tile-time-key",
+          "--tile-time-value",
+          "--tile-time-start",
+          "--tile-time-end",
+          "--tile-time-period",
+          "--shared-gradient",
+          "--time-key",
+          "--time-format",
+          "--credential",
+          "--credential-file",
+          "--auth",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--target": {
+        "help": "Renderer backend to use (e.g., webgl-sphere, cesium-globe)",
+        "choices": [
+          "cesium-globe",
+          "webgl-sphere"
+        ],
+        "type": "str",
+        "required": true
+      },
+      "--output": {
+        "help": "Directory for the generated bundle (index.html + assets)",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--texture": "Primary texture image for the globe surface",
+      "--pattern": "Glob pattern for frame textures (animated sequences)",
+      "--texture-pattern": "Glob pattern for frame textures (animated sequences)",
+      "--frame-list": "Text file listing frame paths (optional timestamps)",
+      "--frame-cache": "Directory to stage frames extracted from remote sources",
+      "--video-source": "Video file or URI used to derive frame textures (supports Vimeo URIs)",
+      "--start": "ISO-8601 timestamp for the first frame of the video",
+      "--end": "ISO-8601 timestamp for the final frame (optional; defaults to start + duration)",
+      "--fps": {
+        "help": "Sampling rate when extracting frames from video sources (frames per second)",
+        "type": "float"
+      },
+      "--period-seconds": {
+        "help": "Override cadence between frames (seconds) for timeline metadata",
+        "type": "float"
+      },
+      "--frames-meta": {
+        "help": "Frames metadata JSON (from transform metadata/scan-frames)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--date-format": "strftime-style format used to parse timestamps from frame filenames",
+      "--frame-duration": {
+        "help": "Seconds per frame when animating sequences (default 0.25)",
+        "type": "float"
+      },
+      "--show-controls": {
+        "help": "Toggle playback controls overlay for animated sequences (default: %(default)s)",
+        "type": "str",
+        "default": true
+      },
+      "--title": "Optional overlay title for the globe viewer",
+      "--description": "Optional descriptive text shown under the globe title",
+      "--width": {
+        "help": "Preferred viewport width in pixels",
+        "type": "int"
+      },
+      "--height": {
+        "help": "Preferred viewport height in pixels",
+        "type": "int"
+      },
+      "--animate": {
+        "help": "Animation mode for multi-frame inputs",
+        "choices": [
+          "none",
+          "time"
+        ],
+        "type": "str",
+        "default": "none"
+      },
+      "--auto-rotate": {
+        "help": "Enable continuous auto-rotation (default uses drag-to-rotate) (default: %(default)s)",
+        "type": "str",
+        "default": false
+      },
+      "--auto-rotate-speed": {
+        "help": "Auto-rotation speed in degrees per second when enabled",
+        "type": "float"
+      },
+      "--probe": {
+        "help": "Toggle probe UI in the generated viewer (default: %(default)s)",
+        "type": "str",
+        "default": true
+      },
+      "--lighting": {
+        "help": "Enable lighting/shading for the globe (default off for unlit texture) (default: %(default)s)",
+        "type": "str",
+        "default": false
+      },
+      "--probe-gradient": "Gradient asset for imagery-backed probe decoding",
+      "--probe-lut": "Lookup table for categorical probe decoding",
+      "--probe-data": "JSON/CSV probe dataset packaged with the bundle",
+      "--probe-var": "Variable name used when sampling structured probe datasets",
+      "--probe-units": "Units label rendered with probe values (e.g., Ma, °C)",
+      "--legend": "Legend image path (pkg:, local file, or http/https URL)",
+      "--tile-url": "ArcGIS MapServer/ImageServer endpoint or URL template providing tiled imagery (overrides --texture when supplied)",
+      "--tile-type": {
+        "help": "Provider type for --tile-url (default: arcgis)",
+        "choices": [
+          "arcgis",
+          "template"
+        ],
+        "type": "str"
+      },
+      "--tile-scheme": {
+        "help": "Tiling scheme for --tile-url when using template sources (default: webmercator)",
+        "choices": [
+          "webmercator",
+          "geographic"
+        ],
+        "type": "str"
+      },
+      "--tile-min-level": {
+        "help": "Minimum level for tiled imagery providers",
+        "type": "int"
+      },
+      "--tile-max-level": {
+        "help": "Maximum level for tiled imagery providers",
+        "type": "int"
+      },
+      "--tile-credit": "Attribution string shown for tiled imagery providers",
+      "--tile-token": "Access token passed through to the tiled imagery provider",
+      "--tile-param": "Placeholder substitutions for template tile URLs (repeatable)",
+      "--tile-time-key": "Placeholder key in the tile URL that should be driven by time (e.g., 'time')",
+      "--tile-time-value": "ISO-8601 timestamps used to populate the time placeholder (repeatable)",
+      "--tile-time-start": "Start of the time range (inclusive, ISO-8601)",
+      "--tile-time-end": "End of the time range (inclusive, ISO-8601)",
+      "--tile-time-period": "Step between time samples (e.g., '1d', '6h', '3600s'; default 1d)",
+      "--shared-gradient": "Name-to-path mapping for reusable gradients (repeatable; format NAME=PATH or NAME|PATH; supports local files, pkg: refs, or URLs)",
+      "--time-key": "Metadata key that maps inputs to timestamps",
+      "--time-format": "Format string for rendering timestamps",
+      "--credential": "Inline credential assignment (repeatable)",
+      "--credential-file": "Credential file resolved by the shared helper",
+      "--auth": "Auth helper shorthands (e.g., bearer:token, basic:user:pass)",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "render",
+    "args_schema": null,
+    "example_args": null
   },
   "render interactive": {
     "description": "zyra render interactive",
