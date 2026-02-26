@@ -1632,7 +1632,7 @@ body {
   justify-content: center;
   min-width: 0;
 }
-.foundation-col.col-left  { padding-right: 0; padding-left: 600px; text-align: right; order: 1; }
+.foundation-col.col-left  { padding-right: 0; padding-left: 0; text-align: right; order: 1; margin-left: auto; margin-right: auto; }
 .foundation-col.col-right { display: none; }
 .foundation-layer-card {
   padding: 20px 30px;
@@ -1864,6 +1864,7 @@ body {
 .gs-survey-qr .gs-qr-box     { width: 300px; height: 300px; border-radius: 28px; }
 .gs-survey-qr .gs-qr-box img { width: 252px; height: 252px; }
 .gs-survey-qr .gs-qr-label   { font-size: 42px; }
+.gs-survey-qr .gs-qr-url     { font-family: var(--font-mono); font-size: 34px; color: rgba(254,254,254,0.5); margin-top: 8px; }
 .gs-survey-heading {
   font-family: var(--font-sans);
   font-size: 60px;
@@ -2598,8 +2599,8 @@ Stages are composable — pipe any stage's output directly into the next. Every 
       <div class="step-dot step-dot-process">
         <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17.5h7M17.5 14v7"/></svg>
       </div>
-      <div class="step-code"><span class="step-stage-tag tag-process">③ Process</span>
-<span class="cc-cmd">zyra process</span> merge-nc <span class="cc-file">hrrr_t2m.nc</span> <span class="cc-file">hrrr_wind.nc</span> <span class="cc-flag">-o</span> <span class="cc-file">hrrr_merged.nc</span>   <span class="cc-comment"># coming soon</span></div>
+      <div class="step-code"><span class="step-stage-tag tag-process">③ Process — Coming Soon</span>
+<span class="cc-cmd">zyra process</span> merge-nc <span class="cc-file">hrrr_t2m.nc</span> <span class="cc-file">hrrr_wind.nc</span> <span class="cc-flag">-o</span> <span class="cc-file">hrrr_merged.nc</span>   <span class="cc-comment"># Coming soon: merge multiple NetCDF files into one dataset</span></div>
     </div>
     <div class="code-step">
       <div class="step-dot step-dot-visualize">
@@ -3231,7 +3232,7 @@ Stages are composable — pipe any stage's output directly into the next. Every 
     </li>
     <li>
       <span class="feat-dot"></span>
-      <div><strong>Modular extras:</strong> <code>pip install "zyra[visualization]"</code>, <code>"zyra[processing]"</code>, <code>"zyra[llm]"</code>, <code>"zyra[mcp]"</code>, or <code>"zyra[all]"</code></div>
+      <div><strong>Modular extras:</strong> <code>pip install "zyra[visualization]"</code>, <code>"zyra[processing]"</code>, <code>"zyra[llm]"</code>, or <code>"zyra[all]"</code></div>
     </li>
   </ul>
 
@@ -3269,7 +3270,7 @@ Stages are composable — pipe any stage's output directly into the next. Every 
         <li>Where current automation still falls short</li>
         <li>How to build an intent dataset to train Zyra's task decomposition system</li>
       </ul>
-      <p class="survey-cta-sub">Your insights directly guide how we design and prioritize future tools built to amplify human creativity, efficiency, and discovery.</p>
+      <p class="survey-cta-sub">Your insights directly guide how we design and prioritize future tools built to amplify human creativity, efficiency, and discovery. Responses are used anonymously for research and system improvement; do not include sensitive or confidential data.</p>
     </div>
 
     <div class="survey-cta-right">
@@ -3379,6 +3380,7 @@ Stages are composable — pipe any stage's output directly into the next. Every 
           <img src="survey-qr-code.png" alt="QR code linking to survey.zyra-project.org" width="84" height="84" style="display:block;border-radius:4px;">
         </div>
         <div class="gs-qr-label">Take the survey</div>
+        <div class="gs-qr-url">survey.zyra-project.org</div>
       </div>
 
     </div>

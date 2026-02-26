@@ -1999,13 +1999,13 @@ border-radius: 50%;
 pointer-events: none;
 }
 .survey-cta-blob--tl {
-top: -60px; left: -20px;
-width: 220px; height: 220px;
+top: -12%; left: -4%;
+width: clamp(140px, 18vw, 220px); height: clamp(140px, 18vw, 220px);
 background: radial-gradient(circle, rgba(255,193,7,0.10), transparent 70%);
 }
 .survey-cta-blob--br {
-bottom: -50px; right: 60px;
-width: 180px; height: 180px;
+bottom: -10%; right: 8%;
+width: clamp(120px, 14vw, 180px); height: clamp(120px, 14vw, 180px);
 background: radial-gradient(circle, rgba(95,157,174,0.12), transparent 70%);
 }
 
@@ -2249,6 +2249,13 @@ font-size: 9px;
 color: rgba(254,254,254,0.5);
 margin-top: 5px;
 letter-spacing: 0.3px;
+}
+.gs-qr-url {
+font-family: var(--font-mono);
+font-size: 7.5px;
+color: rgba(254,254,254,0.35);
+margin-top: 2px;
+letter-spacing: 0.2px;
 }
 
 /* Bottom spacer */

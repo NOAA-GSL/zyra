@@ -1622,7 +1622,7 @@ body {
   justify-content: center;
   min-width: 0;
 }
-.foundation-col.col-left  { padding-right: 0; padding-left: 600px; text-align: right; order: 1; }
+.foundation-col.col-left  { padding-right: 0; padding-left: 0; text-align: right; order: 1; margin-left: auto; margin-right: auto; }
 .foundation-col.col-right { display: none; }
 .foundation-layer-card {
   padding: 20px 30px;
@@ -1854,6 +1854,7 @@ body {
 .gs-survey-qr .gs-qr-box     { width: 300px; height: 300px; border-radius: 28px; }
 .gs-survey-qr .gs-qr-box img { width: 252px; height: 252px; }
 .gs-survey-qr .gs-qr-label   { font-size: 42px; }
+.gs-survey-qr .gs-qr-url     { font-family: var(--font-mono); font-size: 34px; color: rgba(254,254,254,0.5); margin-top: 8px; }
 .gs-survey-heading {
   font-family: var(--font-sans);
   font-size: 60px;
