@@ -46,6 +46,8 @@ jobs:
           mkdir -p docs/build/poster
           cp poster/html/zyra-poster.html docs/build/poster/
           cp poster/html/zyra-poster-print.html docs/build/poster/
+          cp poster/html/hrrr_wind_interactive.html docs/build/poster/
+          cp poster/html/hrrr_temp_interactive.html docs/build/poster/
           cp poster/html/*.png docs/build/poster/
 
       - name: Upload Pages artifact
