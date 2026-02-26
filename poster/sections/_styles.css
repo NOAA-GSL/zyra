@@ -1924,7 +1924,7 @@ font-family: var(--font-sans);
 font-size: 20px;
 font-weight: 700;
 color: var(--navy);
-margin-bottom: 14px;
+margin-bottom: 10px;
 }
 .feat-list {
 list-style: none;
@@ -1932,16 +1932,16 @@ padding: 0;
 margin: 0;
 display: flex;
 flex-direction: column;
-gap: 10px;
+gap: 7px;
 }
 .feat-list li {
 display: flex;
 align-items: flex-start;
 gap: 10px;
 font-family: var(--font-sans);
-font-size: 13px;
+font-size: 12.5px;
 color: var(--neutral-900);
-line-height: 1.5;
+line-height: 1.45;
 }
 .feat-dot {
 width: 7px; height: 7px;
@@ -1963,8 +1963,8 @@ padding: 0 3px;
 border-radius: 2px;
 }
 .feat-meta {
-margin-top: 14px;
-padding-top: 12px;
+margin-top: 10px;
+padding-top: 10px;
 border-top: 1px solid var(--neutral-400);
 display: flex;
 flex-wrap: wrap;
