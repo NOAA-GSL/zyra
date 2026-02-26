@@ -21,27 +21,26 @@
 
   <!-- YAML config block -->
   <div class="yaml-code"><span class="yk">name</span>: <span class="ys">FTP to Local Video</span>
-
 <span class="yk">stages</span>:
-<span class="yd">-</span> <span class="yk">stage</span>: <span class="yv">acquire</span>
-<span class="yk">command</span>: <span class="yv">ftp</span>
-<span class="yk">args</span>:
-<span class="yk">path</span>: <span class="ys">ftp://ftp.nnvl.noaa.gov/SOS/DroughtRisk_Weekly</span>
-<span class="yk">sync_dir</span>: <span class="ys">./frames</span>
-<span class="yk">since_period</span>: <span class="ys">"P1Y"</span>
+  <span class="yd">-</span> <span class="yk">stage</span>: <span class="yv">acquire</span>
+    <span class="yk">command</span>: <span class="yv">ftp</span>
+    <span class="yk">args</span>:
+      <span class="yk">path</span>: <span class="ys">ftp://ftp.nnvl.noaa.gov/SOS/DroughtRisk_Weekly</span>
+      <span class="yk">sync_dir</span>: <span class="ys">./frames</span>
+      <span class="yk">since_period</span>: <span class="ys">"P1Y"</span>
 
-<span class="yd">-</span> <span class="yk">stage</span>: <span class="yv">visualize</span>
-<span class="yk">command</span>: <span class="yv">compose-video</span>
-<span class="yk">args</span>:
-<span class="yk">frames</span>: <span class="ys">./frames</span>
-<span class="yk">output</span>: <span class="ys">video.mp4</span>
-<span class="yk">fps</span>: <span class="yn">4</span>
+  <span class="yd">-</span> <span class="yk">stage</span>: <span class="yv">visualize</span>
+    <span class="yk">command</span>: <span class="yv">compose-video</span>
+    <span class="yk">args</span>:
+      <span class="yk">frames</span>: <span class="ys">./frames</span>
+      <span class="yk">output</span>: <span class="ys">video.mp4</span>
+      <span class="yk">fps</span>: <span class="yn">4</span>
 
-<span class="yd">-</span> <span class="yk">stage</span>: <span class="yv">export</span>
-<span class="yk">command</span>: <span class="yv">local</span>
-<span class="yk">args</span>:
-<span class="yk">input</span>: <span class="ys">video.mp4</span>
-<span class="yk">path</span>: <span class="ys">/output/video.mp4</span></div>
+  <span class="yd">-</span> <span class="yk">stage</span>: <span class="yv">export</span>
+    <span class="yk">command</span>: <span class="yv">local</span>
+    <span class="yk">args</span>:
+      <span class="yk">input</span>: <span class="ys">video.mp4</span>
+      <span class="yk">path</span>: <span class="ys">/output/video.mp4</span></div>
 
   <!-- Run commands -->
   <div class="usecase-code" style="margin-bottom:12px;"><span class="cc-cmd">zyra run</span> <span class="cc-file">pipeline.yaml</span>                          <span class="yc"># execute</span>

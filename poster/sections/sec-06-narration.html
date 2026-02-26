@@ -10,10 +10,18 @@
     <span>Use Case</span>
   </div>
 
-  <h3 class="usecase-heading">AI/LLM Narration Swarm</h3>
+  <h3 class="usecase-heading">Agentic Pipeline Orchestration</h3>
   <p class="usecase-desc">
-    Zyra orchestrates multi-agent workflows where LLM-powered agents generate, critique, and refine narrative outputs — from intent to validated publication.
+    Describe your goal in plain language — Zyra's planning engine decomposes intent into a concrete execution DAG and dispatches specialized stage agents to run it.
   </p>
+
+  <!-- Zoomable wrapper — click to expand on mobile -->
+  <div class="code-zoom-wrap" id="narrationWrap" onclick="openCodeLightbox('narrationWrap')">
+    <span class="zoom-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>
+      Click to zoom
+    </span>
+    <div class="code-zoom-inner" id="narrationInner">
 
   <!-- User intent example -->
   <div class="user-intent-bubble">
@@ -103,19 +111,7 @@
     </svg>
   </div>
 
-  <!-- Narration chain -->
-  <div style="font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--navy);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.8px;">Narration Swarm Chain</div>
-  <div class="narration-chain">
-    <span class="nc-pill" style="background:var(--ocean-blue);">context</span>
-    <span class="nc-arrow">&rarr;</span>
-    <span class="nc-pill" style="background:var(--cable-blue);">summary</span>
-    <span class="nc-arrow">&rarr;</span>
-    <span class="nc-pill" style="background:var(--amber);color:var(--navy);">critic</span>
-    <span class="nc-arrow">&rarr;</span>
-    <span class="nc-pill" style="background:var(--leaf-green);">editor</span>
-  </div>
-
-  <!-- LLM Agnostic callout (replaces provider table) -->
+  <!-- LLM Agnostic callout -->
   <div class="guard-callout" style="margin-top:14px;">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ocean-blue)" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
     <p><strong style="color:var(--ocean-blue);">LLM Agnostic</strong> &mdash; swap providers via <code>--provider</code>: OpenAI, Ollama, Gemini, or any compatible backend. Mock mode for offline testing.</p>
@@ -144,5 +140,8 @@
   <div style="font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--navy);margin:14px 0 5px;text-transform:uppercase;letter-spacing:0.8px;">Swarm Orchestration</div>
   <div class="usecase-code" style="margin-bottom:0;"><span class="cc-cmd">zyra swarm</span> <span class="cc-file">drought_animation.yaml</span> \
   <span class="cc-flag">--parallel</span> <span class="cc-flag">--memory</span> <span class="cc-file">provenance.sqlite</span></div>
+
+    </div><!-- .code-zoom-inner -->
+  </div><!-- .code-zoom-wrap -->
 
 </div>

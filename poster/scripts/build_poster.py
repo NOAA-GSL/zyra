@@ -25,7 +25,8 @@ OUTPUT_DIR = REPO_ROOT / "poster" / "html"
 WEB_OUTPUT = OUTPUT_DIR / "zyra-poster.html"
 PRINT_OUTPUT = OUTPUT_DIR / "zyra-poster-print.html"
 
-# Sections to exclude from print layout
+# Sections to exclude from each layout
+WEB_EXCLUDE   = {"sec-09-gallery"}
 PRINT_EXCLUDE = {"sec-09-gallery"}
 
 
@@ -66,13 +67,13 @@ def build() -> None:
     body_open = _read(SECTIONS_DIR / "_body-open.html")
     footer = _read(SECTIONS_DIR / "_footer.html")
 
-    sections_html = [_read(sf) for sf in section_files]
-    web_parts = [head, styles, body_open, *sections_html, footer]
+    web_sections = [(sf, _read(sf)) for sf in section_files if sf.stem not in WEB_EXCLUDE]
+    web_parts = [head, styles, body_open, *[html for _, html in web_sections], footer]
     _write(
         WEB_OUTPUT,
         "\n".join(web_parts),
         "web",
-        [f.stem for f in section_files],
+        [sf.stem for sf, _ in web_sections],
     )
 
     # ── Build PRINT version ──

@@ -100,19 +100,42 @@ align-items: stretch;
 min-height: 480px;
 }
 
-/* ── Left: hidden since image is now the full background ── */
+/* ── Left: NOAA logo — floats over background, doesn't affect header-right layout ── */
 .header-left {
-display: none;
+position: absolute;
+left: 52px;
+top: 50%;
+transform: translateY(-50%);
+z-index: 6;
 }
 
 .header-left img {
-display: none;
+display: block;
+height: 168px; /* ~35% of 480px min-height */
+width: auto;
 }
 
-/* No longer needed — image is the background */
+/* ── Right: GSL logo — mirrors NOAA logo positioning on the right ── */
+.header-logo-right {
+position: absolute;
+right: 52px;
+top: 50%;
+transform: translateY(-50%);
+z-index: 6;
+}
+
+.header-logo-right img {
+display: block;
+height: 168px; /* ~35% of 480px min-height */
+width: auto;
+}
+
 .header-left::after {
 display: none;
 }
+
+/* Print-only QR code — hidden in web view */
+.header-poster-qr { display: none; }
 
 /* ── Right: text panel overlaying the background ── */
 .header-right {
@@ -248,11 +271,13 @@ font-size: 7.5px;
 font-weight: 700;
 color: #fff;
 }
-.pip-pypi { background: #3775A9; }
-.pip-docs { background: var(--ocean-blue); }
-.pip-doi  { background: var(--amber); color: var(--navy); }
-.pip-lic  { background: var(--neutral-700); }
-.pip-gh   { background: var(--neutral-900); }
+.pip-pypi   { background: #3775A9; }
+.pip-docs   { background: var(--ocean-blue); }
+.pip-doi    { background: var(--amber); color: var(--navy); }
+.pip-lic    { background: var(--neutral-700); }
+.pip-gh     { background: var(--neutral-900); }
+.pip-survey { background: var(--cable-blue); }
+.badge--survey .badge-value { color: var(--cable-blue); }
 .badge-label { color: var(--neutral-700); }
 .badge-value { font-weight: 600; color: var(--navy); }
 
@@ -860,6 +885,13 @@ display: flex;
 gap: 28px;
 align-items: flex-start;
 }
+#uc-row-45 {
+align-items: stretch;
+}
+#uc-row-45 .usecase-card {
+display: flex;
+flex-direction: column;
+}
 
 .usecase-card {
 flex: 1 1 50%;
@@ -1179,6 +1211,30 @@ padding: 0 4px;
 border-radius: 2px;
 }
 
+/* ── HRRR interactive embed (web only) ── */
+.usecase-interactive-embed {
+border-radius: 6px;
+overflow: hidden;
+border: 1px solid var(--neutral-400);
+background: var(--neutral-200);
+margin-top: 4px;
+}
+.usecase-interactive-embed iframe {
+width: 100%;
+height: 340px;
+border: none;
+display: block;
+}
+
+/* Print images: hidden in web, shown in print */
+.usecase-print-images { display: none; }
+
+/* Comment style in code steps */
+.cc-comment {
+color: var(--neutral-600);
+font-style: italic;
+}
+
 /* ── DAG diagram (vertical flowchart) ── */
 .dag-wrap {
 display: flex;
@@ -1227,7 +1283,9 @@ padding: 2px 0;
 
 /* Video preview card */
 .video-preview {
-display: block;
+display: flex;
+flex-direction: column;
+flex: 1 1 auto;
 border-radius: 6px;
 overflow: hidden;
 border: 1px solid var(--neutral-400);
@@ -1242,7 +1300,8 @@ box-shadow: 0 4px 16px rgba(0,23,45,0.15);
 }
 .video-thumb {
 width: 100%;
-height: 160px;
+flex: 1 1 auto;
+min-height: 160px;
 background: url('drought-thumb.png') center center / cover no-repeat;
 display: flex;
 align-items: center;
@@ -1577,6 +1636,7 @@ Full-width architectural layer showcase
   gap: 0;
   align-items: stretch;
   position: relative;
+  justify-content: center;
 }
 
 /* The pyramid SVG illustration (center) */
@@ -1591,7 +1651,7 @@ Full-width architectural layer showcase
 
 /* Left and right description columns */
 .foundation-col {
-  flex: 1 1 0;
+  flex: 0 0 460px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1603,7 +1663,7 @@ Full-width architectural layer showcase
   padding-right: 20px;
 }
 .foundation-col.col-right {
-  padding-left: 20px;
+  display: none;
 }
 
 /* Individual layer card */
@@ -1934,6 +1994,154 @@ border: 1px solid var(--neutral-400);
 }
 
 /* ═══════════════════════════════════════════
+SURVEY CTA CARD
+Community call-to-action for Workflow Insights Survey.
+═══════════════════════════════════════════ */
+.survey-cta-card {
+background: linear-gradient(135deg, var(--cable-blue) 0%, var(--ocean-blue) 65%, var(--navy) 100%);
+border-radius: 8px;
+padding: 28px 40px;
+position: relative;
+overflow: hidden;
+}
+
+.survey-cta-blob {
+position: absolute;
+border-radius: 50%;
+pointer-events: none;
+}
+.survey-cta-blob--tl {
+top: -60px; left: -20px;
+width: 220px; height: 220px;
+background: radial-gradient(circle, rgba(255,193,7,0.10), transparent 70%);
+}
+.survey-cta-blob--br {
+bottom: -50px; right: 60px;
+width: 180px; height: 180px;
+background: radial-gradient(circle, rgba(95,157,174,0.12), transparent 70%);
+}
+
+.survey-cta-inner {
+position: relative;
+z-index: 1;
+display: flex;
+gap: 32px;
+align-items: center;
+}
+
+.survey-cta-left { flex: 0 0 260px; }
+.survey-cta-middle { flex: 1 1 auto; min-width: 0; }
+.survey-cta-right { flex: 0 0 auto; display: flex; align-items: center; }
+
+.survey-cta-heading {
+font-family: var(--font-sans);
+font-size: 18px;
+font-weight: 700;
+color: var(--neutral-50);
+margin-bottom: 10px;
+line-height: 1.3;
+}
+
+.survey-cta-body {
+font-family: var(--font-sans);
+font-size: 13px;
+color: rgba(254,254,254,0.75);
+line-height: 1.5;
+}
+.survey-cta-body strong { color: var(--neutral-50); font-weight: 700; }
+
+.survey-cta-prompt {
+font-family: var(--font-sans);
+font-size: 12px;
+color: rgba(254,254,254,0.60);
+margin-bottom: 8px;
+}
+
+.survey-bullet-list {
+list-style: none;
+padding: 0;
+margin: 0 0 10px 0;
+display: flex;
+flex-direction: column;
+gap: 6px;
+}
+
+.survey-bullet-list li {
+font-family: var(--font-sans);
+font-size: 13px;
+color: var(--neutral-50);
+line-height: 1.4;
+display: flex;
+align-items: flex-start;
+gap: 9px;
+}
+
+.survey-bullet-list li::before {
+content: '';
+width: 6px;
+height: 6px;
+border-radius: 50%;
+background: var(--amber);
+flex-shrink: 0;
+margin-top: 5px;
+}
+
+.survey-cta-sub {
+font-family: var(--font-sans);
+font-size: 11px;
+color: rgba(254,254,254,0.50);
+font-style: italic;
+line-height: 1.4;
+}
+
+.survey-cta-btn {
+display: flex;
+flex-direction: column;
+align-items: center;
+text-align: center;
+background: var(--amber);
+color: var(--navy);
+text-decoration: none;
+padding: 16px 28px;
+border-radius: 8px;
+min-width: 168px;
+gap: 4px;
+transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+box-shadow: 0 4px 16px rgba(255,193,7,0.25);
+}
+
+.survey-cta-btn:hover {
+background: #ffd234;
+transform: translateY(-2px);
+box-shadow: 0 8px 24px rgba(255,193,7,0.35);
+}
+
+.survey-btn-icon {
+width: 20px;
+height: 20px;
+color: var(--navy);
+margin-bottom: 4px;
+flex-shrink: 0;
+}
+
+.survey-btn-label {
+font-family: var(--font-sans);
+font-size: 14px;
+font-weight: 700;
+color: var(--navy);
+line-height: 1.2;
+}
+
+.survey-btn-url {
+font-family: var(--font-mono);
+font-size: 10px;
+color: rgba(0,23,45,0.60);
+}
+
+/* Print-only survey block: hidden in web */
+.gs-survey-cta { display: none; }
+
+/* ═══════════════════════════════════════════
 SECTION 11: GET STARTED FOOTER
 Full-width call to action.
 ═══════════════════════════════════════════ */
@@ -2134,9 +2342,20 @@ RESPONSIVE / PRINT
 
 <div class="header-content">
 
-  <!-- Left: full tree illustration, contained (not cropped) -->
+  <!-- Left: NOAA logo -->
   <div class="header-left">
-    <img src="light-slide-background.png" alt="Illustrated tree with roots transitioning to ethernet cables underground">
+    <img src="noaa-logo.svg" alt="NOAA — National Oceanic and Atmospheric Administration logo">
+  </div>
+
+  <!-- Right: GSL logo -->
+  <div class="header-logo-right">
+    <img src="Global%20Systems%20Laboratory%203%20Lines%20Dark%403x.png" alt="NOAA Global Systems Laboratory logo">
+  </div>
+
+  <!-- Print only: QR code linking to interactive web poster, sits left of GSL logo -->
+  <div class="header-poster-qr">
+    <img src="poster-qr.svg" alt="QR code — scan to view the interactive web poster">
+    <p class="header-qr-label">Scan for<br>interactive&nbsp;poster</p>
   </div>
 
   <!-- Right: text with data-viz textures -->
@@ -2237,6 +2456,11 @@ RESPONSIVE / PRINT
         <span class="badge-label">License</span>
         <span class="badge-value">Apache-2.0</span>
       </span>
+      <a href="https://survey.zyra-project.org/" class="badge badge--survey" target="_blank" rel="noopener noreferrer">
+        <span class="badge-pip pip-survey"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span>
+        <span class="badge-label">Survey</span>
+        <span class="badge-value">Take the Survey</span>
+      </a>
     </div>
   </div>
 </div>
@@ -2787,39 +3011,45 @@ Stages are composable — pipe any stage's output directly into the next. Every 
     <span>Use Case</span>
   </div>
 
-  <h3 class="usecase-heading">HRRR Weather Model Processing</h3>
+  <h3 class="usecase-heading">HRRR Wind Analysis: GRIB2 to Interactive Map</h3>
   <p class="usecase-desc">
-    Acquire the latest High-Resolution Rapid Refresh forecast, convert to NetCDF, and visualize temperature — three commands, one pipeline.
+    Fetch only the variables you need from a 300 MB GRIB2 file using the <code>.idx</code> byte-range trick, convert to NetCDF, and render an interactive wind-streamline map — four commands, one pipeline.
   </p>
 
-  <!-- Three-step code block with stage-colored indicators -->
+  <!-- Four-step code block with stage-colored indicators -->
   <div class="code-steps">
     <div class="code-step">
       <div class="step-dot step-dot-import">
         <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
       </div>
       <div class="step-code"><span class="step-stage-tag tag-import">① Import</span>
-<span class="cc-cmd">zyra acquire</span> http \
-  <span class="cc-url">https://noaa-hrrr-bdp-pds.s3.amazonaws.com/</span>
-  <span class="cc-url">hrrr.20240101/conus/hrrr.t00z.wrfsfcf00.grib2</span> \
-  <span class="cc-flag">-o</span> <span class="cc-file">hrrr.grib2</span></div>
+<span class="cc-cmd">zyra acquire</span> http <span class="cc-flag">--idx</span> <span class="cc-url">noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20250101/conus/hrrr.t00z.wrfsfcf00.grib2</span> \
+  <span class="cc-flag">--select</span> <span class="cc-url">"TMP:2 m|UGRD:10 m|VGRD:10 m"</span> <span class="cc-flag">-o</span> <span class="cc-file">hrrr.grib2</span>   <span class="cc-comment"># 5.5 MB, not 300 MB</span></div>
     </div>
     <div class="code-step">
       <div class="step-dot step-dot-process">
         <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
       </div>
       <div class="step-code"><span class="step-stage-tag tag-process">② Process</span>
-<span class="cc-cmd">zyra process</span> convert-format \
-  <span class="cc-file">hrrr.grib2</span> netcdf <span class="cc-flag">-o</span> <span class="cc-file">hrrr.nc</span></div>
+<span class="cc-cmd">zyra process</span> convert-format <span class="cc-file">hrrr.grib2</span> netcdf <span class="cc-flag">-o</span> <span class="cc-file">hrrr_t2m.nc</span>
+<span class="cc-cmd">zyra process</span> convert-format <span class="cc-file">hrrr.grib2</span> netcdf <span class="cc-flag">--var</span> UGRD <span class="cc-flag">-o</span> <span class="cc-file">hrrr_wind.nc</span></div>
+    </div>
+    <div class="code-step">
+      <div class="step-dot step-dot-process">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17.5h7M17.5 14v7"/></svg>
+      </div>
+      <div class="step-code"><span class="step-stage-tag tag-process">③ Process</span>
+<span class="cc-cmd">zyra process</span> merge-nc <span class="cc-file">hrrr_t2m.nc</span> <span class="cc-file">hrrr_wind.nc</span> <span class="cc-flag">-o</span> <span class="cc-file">hrrr_merged.nc</span>   <span class="cc-comment"># coming soon</span></div>
     </div>
     <div class="code-step">
       <div class="step-dot step-dot-visualize">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l4-4 4 4 4-6 5 6"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
       </div>
-      <div class="step-code"><span class="step-stage-tag tag-visualize">③ Visualize</span>
-<span class="cc-cmd">zyra visualize</span> heatmap \
-  <span class="cc-flag">--input</span> <span class="cc-file">hrrr.nc</span> <span class="cc-flag">--var</span> TMP \
-  <span class="cc-flag">--colorbar</span> <span class="cc-flag">--output</span> <span class="cc-file">hrrr_temp.png</span></div>
+      <div class="step-code"><span class="step-stage-tag tag-visualize">④ Visualize</span>
+<span class="cc-cmd">zyra visualize</span> interactive \
+  <span class="cc-flag">--input</span> <span class="cc-file">hrrr_merged.nc</span> <span class="cc-flag">--var</span> t2m <span class="cc-flag">--uvar</span> u10 <span class="cc-flag">--vvar</span> v10 \
+  <span class="cc-flag">--mode</span> vector <span class="cc-flag">--streamlines</span> <span class="cc-flag">--engine</span> folium <span class="cc-flag">--colorbar</span> \
+  <span class="cc-flag">--output</span> <span class="cc-file">hrrr_wind.html</span>   <span class="cc-comment"># 151 KB standalone HTML</span></div>
     </div>
   </div>
 
@@ -2831,25 +3061,41 @@ Stages are composable — pipe any stage's output directly into the next. Every 
     </svg>
   </div>
 
-  <div class="usecase-image-wrap">
-    <div class="usecase-placeholder">
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="4" y="4" width="40" height="40" rx="4" stroke="var(--neutral-600)" stroke-width="1.5" fill="none"/>
-        <path d="M4 34l10-10 8 8 8-12 14 14" stroke="var(--neutral-600)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="16" cy="16" r="4" stroke="var(--neutral-600)" stroke-width="1.5" fill="none"/>
-        <!-- Tiny gradient squares to suggest heatmap -->
-        <rect x="10" y="28" width="4" height="4" rx="0.5" fill="var(--cable-blue)" opacity="0.2"/>
-        <rect x="15" y="28" width="4" height="4" rx="0.5" fill="var(--ocean-blue)" opacity="0.25"/>
-        <rect x="20" y="28" width="4" height="4" rx="0.5" fill="var(--leaf-green)" opacity="0.25"/>
-        <rect x="25" y="28" width="4" height="4" rx="0.5" fill="var(--amber)" opacity="0.3"/>
-        <rect x="30" y="28" width="4" height="4" rx="0.5" fill="var(--red)" opacity="0.25"/>
-      </svg>
-      <span>heatmap.png — replace with generated asset</span>
+  <!-- WEB ONLY: embedded interactive folium maps -->
+  <div class="usecase-interactive-embed">
+    <iframe
+      src="hrrr_wind_interactive.html"
+      title="HRRR 10m Wind Streamlines over CONUS — 2025-01-01 00Z"
+      loading="lazy"
+      allowfullscreen
+    ></iframe>
+    <p class="usecase-caption"><strong>10m Wind Streamlines</strong> — Velocity vectors from the HRRR GRIB2 file, rendered as streamlines colored by wind speed. Pan, zoom, and explore. Generated by <code>zyra visualize interactive --mode vector --streamlines</code></p>
+  </div>
+
+  <div class="usecase-interactive-embed">
+    <iframe
+      src="hrrr_temp_interactive.html"
+      title="HRRR 2m Temperature over CONUS — 2025-01-01 00Z"
+      loading="lazy"
+      allowfullscreen
+    ></iframe>
+    <p class="usecase-caption"><strong>2m Temperature</strong> — Surface temperature heatmap from the same GRIB2 file, extracted alongside the wind variables in a single <code>zyra acquire</code> command. Generated by <code>zyra visualize interactive --mode heatmap</code></p>
+  </div>
+
+  <!-- PRINT ONLY: two static images side-by-side -->
+  <div class="usecase-print-images">
+    <div class="usecase-print-img-wrap">
+      <img src="hrrr_temp_print.png" alt="HRRR 2m Temperature heatmap over CONUS, 2025-01-01 00Z" loading="lazy">
+      <p class="usecase-caption">2m Temperature — <code>zyra visualize heatmap</code></p>
+    </div>
+    <div class="usecase-print-img-wrap">
+      <img src="hrrr_wind_print.png" alt="HRRR 10m wind streamlines over CONUS, 2025-01-01 00Z" loading="lazy">
+      <p class="usecase-caption">10m Wind Streamlines — <code>zyra visualize vector</code></p>
     </div>
   </div>
-  <p class="usecase-caption">Heatmap rendered by <code>zyra visualize heatmap</code></p>
 
 </div>
+
 
 <!-- ════════════ SECTION 5: DROUGHT PIPELINE ════════════ -->
 <div class="usecase-card">
@@ -2959,10 +3205,18 @@ Stages are composable — pipe any stage's output directly into the next. Every 
     <span>Use Case</span>
   </div>
 
-  <h3 class="usecase-heading">AI/LLM Narration Swarm</h3>
+  <h3 class="usecase-heading">Agentic Pipeline Orchestration</h3>
   <p class="usecase-desc">
-    Zyra orchestrates multi-agent workflows where LLM-powered agents generate, critique, and refine narrative outputs — from intent to validated publication.
+    Describe your goal in plain language — Zyra's planning engine decomposes intent into a concrete execution DAG and dispatches specialized stage agents to run it.
   </p>
+
+  <!-- Zoomable wrapper — click to expand on mobile -->
+  <div class="code-zoom-wrap" id="narrationWrap" onclick="openCodeLightbox('narrationWrap')">
+    <span class="zoom-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>
+      Click to zoom
+    </span>
+    <div class="code-zoom-inner" id="narrationInner">
 
   <!-- User intent example -->
   <div class="user-intent-bubble">
@@ -3052,19 +3306,7 @@ Stages are composable — pipe any stage's output directly into the next. Every 
     </svg>
   </div>
 
-  <!-- Narration chain -->
-  <div style="font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--navy);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.8px;">Narration Swarm Chain</div>
-  <div class="narration-chain">
-    <span class="nc-pill" style="background:var(--ocean-blue);">context</span>
-    <span class="nc-arrow">&rarr;</span>
-    <span class="nc-pill" style="background:var(--cable-blue);">summary</span>
-    <span class="nc-arrow">&rarr;</span>
-    <span class="nc-pill" style="background:var(--amber);color:var(--navy);">critic</span>
-    <span class="nc-arrow">&rarr;</span>
-    <span class="nc-pill" style="background:var(--leaf-green);">editor</span>
-  </div>
-
-  <!-- LLM Agnostic callout (replaces provider table) -->
+  <!-- LLM Agnostic callout -->
   <div class="guard-callout" style="margin-top:14px;">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ocean-blue)" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
     <p><strong style="color:var(--ocean-blue);">LLM Agnostic</strong> &mdash; swap providers via <code>--provider</code>: OpenAI, Ollama, Gemini, or any compatible backend. Mock mode for offline testing.</p>
@@ -3094,6 +3336,9 @@ Stages are composable — pipe any stage's output directly into the next. Every 
   <div class="usecase-code" style="margin-bottom:0;"><span class="cc-cmd">zyra swarm</span> <span class="cc-file">drought_animation.yaml</span> \
   <span class="cc-flag">--parallel</span> <span class="cc-flag">--memory</span> <span class="cc-file">provenance.sqlite</span></div>
 
+    </div><!-- .code-zoom-inner -->
+  </div><!-- .code-zoom-wrap -->
+
 </div>
 
 <!-- SECTION 7: REPRODUCIBLE PIPELINE CONFIGS -->
@@ -3119,27 +3364,26 @@ Stages are composable — pipe any stage's output directly into the next. Every 
 
   <!-- YAML config block -->
   <div class="yaml-code"><span class="yk">name</span>: <span class="ys">FTP to Local Video</span>
-
 <span class="yk">stages</span>:
-<span class="yd">-</span> <span class="yk">stage</span>: <span class="yv">acquire</span>
-<span class="yk">command</span>: <span class="yv">ftp</span>
-<span class="yk">args</span>:
-<span class="yk">path</span>: <span class="ys">ftp://ftp.nnvl.noaa.gov/SOS/DroughtRisk_Weekly</span>
-<span class="yk">sync_dir</span>: <span class="ys">./frames</span>
-<span class="yk">since_period</span>: <span class="ys">"P1Y"</span>
+  <span class="yd">-</span> <span class="yk">stage</span>: <span class="yv">acquire</span>
+    <span class="yk">command</span>: <span class="yv">ftp</span>
+    <span class="yk">args</span>:
+      <span class="yk">path</span>: <span class="ys">ftp://ftp.nnvl.noaa.gov/SOS/DroughtRisk_Weekly</span>
+      <span class="yk">sync_dir</span>: <span class="ys">./frames</span>
+      <span class="yk">since_period</span>: <span class="ys">"P1Y"</span>
 
-<span class="yd">-</span> <span class="yk">stage</span>: <span class="yv">visualize</span>
-<span class="yk">command</span>: <span class="yv">compose-video</span>
-<span class="yk">args</span>:
-<span class="yk">frames</span>: <span class="ys">./frames</span>
-<span class="yk">output</span>: <span class="ys">video.mp4</span>
-<span class="yk">fps</span>: <span class="yn">4</span>
+  <span class="yd">-</span> <span class="yk">stage</span>: <span class="yv">visualize</span>
+    <span class="yk">command</span>: <span class="yv">compose-video</span>
+    <span class="yk">args</span>:
+      <span class="yk">frames</span>: <span class="ys">./frames</span>
+      <span class="yk">output</span>: <span class="ys">video.mp4</span>
+      <span class="yk">fps</span>: <span class="yn">4</span>
 
-<span class="yd">-</span> <span class="yk">stage</span>: <span class="yv">export</span>
-<span class="yk">command</span>: <span class="yv">local</span>
-<span class="yk">args</span>:
-<span class="yk">input</span>: <span class="ys">video.mp4</span>
-<span class="yk">path</span>: <span class="ys">/output/video.mp4</span></div>
+  <span class="yd">-</span> <span class="yk">stage</span>: <span class="yv">export</span>
+    <span class="yk">command</span>: <span class="yv">local</span>
+    <span class="yk">args</span>:
+      <span class="yk">input</span>: <span class="ys">video.mp4</span>
+      <span class="yk">path</span>: <span class="ys">/output/video.mp4</span></div>
 
   <!-- Run commands -->
   <div class="usecase-code" style="margin-bottom:12px;"><span class="cc-cmd">zyra run</span> <span class="cc-file">pipeline.yaml</span>                          <span class="yc"># execute</span>
@@ -3378,146 +3622,6 @@ Stages are composable — pipe any stage's output directly into the next. Every 
 
   </div>
 
-  <!-- ════════════ SECTION 9: VISUALIZATION GALLERY ════════════ -->
-
-  <div class="gallery-section">
-
-<div class="section-tag">
-  <div class="diamond" style="background:var(--olive);"></div>
-  <span>Gallery</span>
-</div>
-<h2 class="gallery-heading">Visualization Gallery</h2>
-<p class="gallery-sub">Publication-quality outputs generated by <code style="font-family:var(--font-mono);font-size:12px;color:var(--cable-blue);">zyra visualize</code></p>
-
-<div class="gallery-grid">
-
-  <!-- Heatmap -->
-  <div class="gallery-item">
-    <div class="gallery-thumb gt-heatmap">
-      <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Mini heatmap grid sketch -->
-        <rect x="10" y="8" width="80" height="55" rx="2" fill="none" stroke="#A3A29D" stroke-width="0.8"/>
-        <!-- Heat cells -->
-        <rect x="12" y="10" width="12" height="8" fill="#00529E" opacity="0.25"/><rect x="25" y="10" width="12" height="8" fill="#1A5A69" opacity="0.3"/>
-        <rect x="38" y="10" width="12" height="8" fill="#2C670C" opacity="0.25"/><rect x="51" y="10" width="12" height="8" fill="#576216" opacity="0.3"/>
-        <rect x="64" y="10" width="12" height="8" fill="#FFC107" opacity="0.3"/><rect x="77" y="10" width="10" height="8" fill="#F44336" opacity="0.2"/>
-        <rect x="12" y="20" width="12" height="8" fill="#1A5A69" opacity="0.2"/><rect x="25" y="20" width="12" height="8" fill="#2C670C" opacity="0.3"/>
-        <rect x="38" y="20" width="12" height="8" fill="#576216" opacity="0.35"/><rect x="51" y="20" width="12" height="8" fill="#FFC107" opacity="0.35"/>
-        <rect x="64" y="20" width="12" height="8" fill="#FFC107" opacity="0.25"/><rect x="77" y="20" width="10" height="8" fill="#F44336" opacity="0.25"/>
-        <rect x="12" y="30" width="12" height="8" fill="#00529E" opacity="0.15"/><rect x="25" y="30" width="12" height="8" fill="#1A5A69" opacity="0.2"/>
-        <rect x="38" y="30" width="12" height="8" fill="#2C670C" opacity="0.3"/><rect x="51" y="30" width="12" height="8" fill="#2C670C" opacity="0.25"/>
-        <rect x="64" y="30" width="12" height="8" fill="#576216" opacity="0.25"/><rect x="77" y="30" width="10" height="8" fill="#FFC107" opacity="0.2"/>
-        <rect x="12" y="40" width="12" height="8" fill="#00529E" opacity="0.1"/><rect x="25" y="40" width="12" height="8" fill="#00529E" opacity="0.2"/>
-        <rect x="38" y="40" width="12" height="8" fill="#1A5A69" opacity="0.2"/><rect x="51" y="40" width="12" height="8" fill="#1A5A69" opacity="0.2"/>
-        <rect x="64" y="40" width="12" height="8" fill="#2C670C" opacity="0.2"/><rect x="77" y="40" width="10" height="8" fill="#576216" opacity="0.15"/>
-        <rect x="12" y="50" width="12" height="8" fill="#00529E" opacity="0.08"/><rect x="25" y="50" width="12" height="8" fill="#00529E" opacity="0.12"/>
-        <rect x="38" y="50" width="12" height="8" fill="#1A5A69" opacity="0.15"/><rect x="51" y="50" width="12" height="8" fill="#00529E" opacity="0.15"/>
-        <rect x="64" y="50" width="12" height="8" fill="#1A5A69" opacity="0.15"/><rect x="77" y="50" width="10" height="8" fill="#2C670C" opacity="0.1"/>
-        <!-- Colorbar -->
-        <rect x="96" y="10" width="6" height="48" rx="1" fill="url(#cbGrad)" opacity="0.5"/>
-        <text x="96" y="7" font-family="Source Sans 3" font-size="4" fill="#8B8985">max</text>
-        <text x="96" y="64" font-family="Source Sans 3" font-size="4" fill="#8B8985">min</text>
-        <!-- Placeholder label -->
-        <text x="50" y="75" text-anchor="middle" font-family="Source Sans 3" font-size="5" fill="#A3A29D">heatmap.png</text>
-        <defs><linearGradient id="cbGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F44336"/><stop offset="30%" stop-color="#FFC107"/><stop offset="60%" stop-color="#2C670C"/><stop offset="100%" stop-color="#00529E"/></linearGradient></defs>
-      </svg>
-      <span class="gt-label">Replace with heatmap.png</span>
-    </div>
-    <div class="gallery-caption">
-      <span class="gc-dot" style="background:var(--cable-blue);"></span>
-      <code>zyra visualize heatmap</code>
-    </div>
-  </div>
-
-  <!-- Contour -->
-  <div class="gallery-item">
-    <div class="gallery-thumb gt-contour">
-      <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="10" y="8" width="80" height="55" rx="2" fill="none" stroke="#A3A29D" stroke-width="0.8"/>
-        <!-- Contour rings -->
-        <ellipse cx="50" cy="35" rx="32" ry="20" fill="none" stroke="#00529E" stroke-width="0.8" opacity="0.2"/>
-        <ellipse cx="50" cy="35" rx="24" ry="15" fill="none" stroke="#1A5A69" stroke-width="0.8" opacity="0.25"/>
-        <ellipse cx="50" cy="35" rx="16" ry="10" fill="none" stroke="#2C670C" stroke-width="0.8" opacity="0.3"/>
-        <ellipse cx="50" cy="35" rx="8" ry="5" fill="none" stroke="#FFC107" stroke-width="0.8" opacity="0.35"/>
-        <ellipse cx="50" cy="35" rx="3" ry="2" fill="#F44336" opacity="0.2"/>
-        <!-- Colorbar -->
-        <rect x="96" y="10" width="6" height="48" rx="1" fill="url(#cbGrad)" opacity="0.5"/>
-        <text x="50" y="75" text-anchor="middle" font-family="Source Sans 3" font-size="5" fill="#A3A29D">contour.png</text>
-      </svg>
-      <span class="gt-label">Replace with contour.png</span>
-    </div>
-    <div class="gallery-caption">
-      <span class="gc-dot" style="background:var(--ocean-blue);"></span>
-      <code>zyra visualize contour</code>
-    </div>
-  </div>
-
-  <!-- Vector -->
-  <div class="gallery-item">
-    <div class="gallery-thumb gt-vector">
-      <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="10" y="8" width="80" height="55" rx="2" fill="none" stroke="#A3A29D" stroke-width="0.8"/>
-        <!-- Quiver arrows -->
-        <line x1="20" y1="20" x2="30" y2="16" stroke="#1A5A69" stroke-width="0.8" opacity="0.35" marker-end="url(#qA)"/>
-        <line x1="40" y1="18" x2="52" y2="15" stroke="#1A5A69" stroke-width="0.8" opacity="0.4" marker-end="url(#qA)"/>
-        <line x1="60" y1="20" x2="70" y2="18" stroke="#1A5A69" stroke-width="0.8" opacity="0.3" marker-end="url(#qA)"/>
-        <line x1="18" y1="32" x2="28" y2="28" stroke="#00529E" stroke-width="0.8" opacity="0.35" marker-end="url(#qA)"/>
-        <line x1="38" y1="30" x2="50" y2="26" stroke="#00529E" stroke-width="0.8" opacity="0.4" marker-end="url(#qA)"/>
-        <line x1="58" y1="32" x2="68" y2="28" stroke="#00529E" stroke-width="0.8" opacity="0.35" marker-end="url(#qA)"/>
-        <line x1="78" y1="30" x2="84" y2="24" stroke="#00529E" stroke-width="0.8" opacity="0.3" marker-end="url(#qA)"/>
-        <line x1="20" y1="44" x2="32" y2="40" stroke="#2C670C" stroke-width="0.8" opacity="0.3" marker-end="url(#qA)"/>
-        <line x1="40" y1="42" x2="52" y2="38" stroke="#2C670C" stroke-width="0.8" opacity="0.35" marker-end="url(#qA)"/>
-        <line x1="60" y1="44" x2="70" y2="40" stroke="#2C670C" stroke-width="0.8" opacity="0.3" marker-end="url(#qA)"/>
-        <line x1="22" y1="55" x2="30" y2="52" stroke="#576216" stroke-width="0.8" opacity="0.25" marker-end="url(#qA)"/>
-        <line x1="42" y1="54" x2="50" y2="50" stroke="#576216" stroke-width="0.8" opacity="0.3" marker-end="url(#qA)"/>
-        <line x1="62" y1="55" x2="72" y2="50" stroke="#576216" stroke-width="0.8" opacity="0.25" marker-end="url(#qA)"/>
-        <text x="50" y="75" text-anchor="middle" font-family="Source Sans 3" font-size="5" fill="#A3A29D">vector.png</text>
-        <defs><marker id="qA" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0 L6 3 L0 6z" fill="#1A5A69" opacity="0.5"/></marker></defs>
-      </svg>
-      <span class="gt-label">Replace with vector.png</span>
-    </div>
-    <div class="gallery-caption">
-      <span class="gc-dot" style="background:var(--leaf-green);"></span>
-      <code>zyra visualize vector</code>
-    </div>
-  </div>
-
-  <!-- Time Series -->
-  <div class="gallery-item">
-    <div class="gallery-thumb gt-timeseries">
-      <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="10" y="8" width="85" height="55" rx="2" fill="none" stroke="#A3A29D" stroke-width="0.8"/>
-        <!-- Axes -->
-        <line x1="18" y1="12" x2="18" y2="58" stroke="#D8D7D3" stroke-width="0.6"/>
-        <line x1="18" y1="58" x2="90" y2="58" stroke="#D8D7D3" stroke-width="0.6"/>
-        <!-- Grid lines -->
-        <line x1="18" y1="25" x2="90" y2="25" stroke="#D8D7D3" stroke-width="0.3" stroke-dasharray="2,3"/>
-        <line x1="18" y1="42" x2="90" y2="42" stroke="#D8D7D3" stroke-width="0.3" stroke-dasharray="2,3"/>
-        <!-- Line 1 -->
-        <polyline points="20,48 30,42 40,38 50,30 60,34 70,24 80,28 88,20" fill="none" stroke="#00529E" stroke-width="1.2" opacity="0.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <!-- Line 2 -->
-        <polyline points="20,52 30,50 40,46 50,44 60,40 70,36 80,38 88,32" fill="none" stroke="#5F9DAE" stroke-width="1.2" opacity="0.4" stroke-linecap="round" stroke-linejoin="round"/>
-        <!-- Dots -->
-        <circle cx="50" cy="30" r="1.5" fill="#00529E" opacity="0.5"/><circle cx="70" cy="24" r="1.5" fill="#00529E" opacity="0.5"/>
-        <circle cx="60" cy="40" r="1.5" fill="#5F9DAE" opacity="0.4"/><circle cx="80" cy="38" r="1.5" fill="#5F9DAE" opacity="0.4"/>
-        <text x="52" y="75" text-anchor="middle" font-family="Source Sans 3" font-size="5" fill="#A3A29D">timeseries.png</text>
-      </svg>
-      <span class="gt-label">Replace with timeseries.png</span>
-    </div>
-    <div class="gallery-caption">
-      <span class="gc-dot" style="background:var(--olive);"></span>
-      <code>zyra visualize timeseries</code>
-    </div>
-  </div>
-
-</div>
-
-<p class="gallery-also">
-  <strong>Also supported:</strong> particle advection, animated frames, interactive maps (Folium, Plotly)
-</p>
-
-  </div>
-
   <!-- ════════════ SECTIONS 10 & 11: FEATURES + GET STARTED ════════════ -->
 
   <div class="features-section">
@@ -3547,7 +3651,11 @@ Stages are composable — pipe any stage's output directly into the next. Every 
     </li>
     <li>
       <span class="feat-dot"></span>
-      <div><strong>AI integration:</strong> Multi-agent narration swarm, planning engine, value engine, guardrails</div>
+      <div><strong>Agentic orchestration:</strong> Natural language intent → <code>zyra plan</code> generates an execution DAG; <code>zyra swarm</code> dispatches stage agents in parallel with provenance tracking</div>
+    </li>
+    <li>
+      <span class="feat-dot"></span>
+      <div><strong>Narration swarm:</strong> Multi-agent LLM chain (context → summary → critic → editor) generates validated scientific narrative; LLM-agnostic via <code>--provider</code></div>
     </li>
     <li>
       <span class="feat-dot"></span>
@@ -3555,11 +3663,15 @@ Stages are composable — pipe any stage's output directly into the next. Every 
     </li>
     <li>
       <span class="feat-dot"></span>
-      <div><strong>Service mode:</strong> FastAPI REST API + MCP tools for LLM integration</div>
+      <div><strong>MCP server:</strong> Exposes Zyra's full pipeline as <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener noreferrer" style="color:var(--cable-blue);">Model Context Protocol</a> tools — letting AI assistants like <strong>Claude</strong> or <strong>ChatGPT</strong> acquire data, run transforms, and generate visualizations on demand via natural language</div>
     </li>
     <li>
       <span class="feat-dot"></span>
-      <div><strong>Modular extras:</strong> <code>pip install "zyra[visualization]"</code>, <code>"zyra[processing]"</code>, <code>"zyra[llm]"</code>, or <code>"zyra[all]"</code></div>
+      <div><strong>REST API:</strong> FastAPI service mode exposes the same stage toolset over HTTP for integration with custom apps and workflows</div>
+    </li>
+    <li>
+      <span class="feat-dot"></span>
+      <div><strong>Modular extras:</strong> <code>pip install "zyra[visualization]"</code>, <code>"zyra[processing]"</code>, <code>"zyra[llm]"</code>, <code>"zyra[mcp]"</code>, or <code>"zyra[all]"</code></div>
     </li>
   </ul>
 
@@ -3568,8 +3680,47 @@ Stages are composable — pipe any stage's output directly into the next. Every 
     <span class="feat-meta-pill">Apache 2.0</span>
     <span class="feat-meta-pill">CLI-first</span>
     <span class="feat-meta-pill">Streaming-friendly</span>
+    <span class="feat-meta-pill">MCP-ready</span>
   </div>
 
+</div>
+
+<!-- SURVEY CTA -->
+<div class="survey-cta-card">
+  <!-- decorative blobs -->
+  <div class="survey-cta-blob survey-cta-blob--tl" aria-hidden="true"></div>
+  <div class="survey-cta-blob survey-cta-blob--br" aria-hidden="true"></div>
+
+  <div class="survey-cta-inner">
+
+    <div class="survey-cta-left">
+      <div class="section-tag" style="margin-bottom:8px;">
+        <div class="diamond" style="background:var(--amber);"></div>
+        <span style="color:var(--amber);">Community</span>
+      </div>
+      <h3 class="survey-cta-heading">Help Shape the Future of Agentic Science</h3>
+      <p class="survey-cta-body">We're exploring how intelligent agents can automate and coordinate complex scientific workflows — and we're asking for your help. Share how you actually work with data through the <strong>Zyra Workflow Insights Survey</strong>.</p>
+    </div>
+
+    <div class="survey-cta-middle">
+      <p class="survey-cta-prompt">By sharing your workflow practices and challenges, you'll help us identify:</p>
+      <ul class="survey-bullet-list">
+        <li>Which agentic tools offer the greatest real-world value</li>
+        <li>Where current automation still falls short</li>
+        <li>How to build an intent dataset to train Zyra's task decomposition system</li>
+      </ul>
+      <p class="survey-cta-sub">Your insights directly guide how we design and prioritize future tools built to amplify human creativity, efficiency, and discovery.</p>
+    </div>
+
+    <div class="survey-cta-right">
+      <a href="https://survey.zyra-project.org/" class="survey-cta-btn" target="_blank" rel="noopener noreferrer">
+        <svg class="survey-btn-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        <span class="survey-btn-label">Take the Survey</span>
+        <span class="survey-btn-url">survey.zyra-project.org</span>
+      </a>
+    </div>
+
+  </div>
 </div>
 
 <!-- SECTION 11: GET STARTED -->
@@ -3641,6 +3792,36 @@ Stages are composable — pipe any stage's output directly into the next. Every 
     </div><!-- .code-zoom-inner -->
   </div><!-- .code-zoom-wrap -->
 
+  <!-- PRINT-ONLY: Survey CTA — hidden in web view, shown in print layout -->
+  <div class="gs-survey-cta">
+    <div class="gs-survey-inner">
+
+      <div class="gs-survey-text">
+        <div class="section-tag" style="margin-bottom:18px;">
+          <div class="diamond" style="background:var(--amber);"></div>
+          <span style="color:var(--amber);">Community</span>
+        </div>
+        <div class="gs-survey-heading">Help Shape the Future of Agentic Science</div>
+        <div class="gs-survey-body">Share how you actually work with data — your insights directly guide Zyra's agentic tools roadmap. We're collecting input from scientists, analysts, and developers on workflow practices and automation challenges.</div>
+        <div class="gs-links" style="margin-top:30px;">
+          <a href="https://survey.zyra-project.org/" class="gs-badge gs-badge--survey" target="_blank" rel="noopener noreferrer">
+            <span class="gs-badge-pip pip-survey">
+              <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            </span>
+            <span class="gs-badge-label">Survey</span>
+            <span class="gs-badge-value">survey.zyra-project.org</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="gs-survey-qr">
+        <div class="gs-qr-box">
+          <img src="survey-qr-code.png" alt="QR code linking to survey.zyra-project.org" width="84" height="84" style="display:block;border-radius:4px;">
+        </div>
+        <div class="gs-qr-label">Take the survey</div>
+      </div>
+
+    </div>
   </div>
 
 </div>
