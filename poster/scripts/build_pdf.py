@@ -29,14 +29,18 @@ from pathlib import Path
 # ── Paths ──────────────────────────────────────────────────────────────────
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
-HTML_PATH = Path(os.environ.get(
-    "POSTER_HTML",
-    REPO_ROOT / "poster" / "html" / "zyra-poster-print.html",
-))
-PDF_PATH = Path(os.environ.get(
-    "POSTER_PDF",
-    REPO_ROOT / "poster" / "html" / "zyra-poster-print.pdf",
-))
+HTML_PATH = Path(
+    os.environ.get(
+        "POSTER_HTML",
+        REPO_ROOT / "poster" / "html" / "zyra-poster-print.html",
+    )
+)
+PDF_PATH = Path(
+    os.environ.get(
+        "POSTER_PDF",
+        REPO_ROOT / "poster" / "html" / "zyra-poster-print.pdf",
+    )
+)
 
 # ── Poster geometry ─────────────────────────────────────────────────────────
 # The print CSS defines the poster at exactly 14400 × 10800 CSS pixels,
@@ -50,15 +54,16 @@ PDF_PATH = Path(os.environ.get(
 # Text and SVG paths are vector in the PDF, so they print crisply at any size.
 # PNG/JPEG assets are embedded at their original pixel resolution.
 
-PAPER_W_IN = 48   # inches
-PAPER_H_IN = 36   # inches
-CSS_PX_W   = 14400
-CSS_PX_H   = 10800
-CSS_DPI    = 96   # Playwright's assumed CSS px density
-SCALE      = round((PAPER_W_IN * CSS_DPI) / CSS_PX_W, 6)  # ≈ 0.32
+PAPER_W_IN = 48  # inches
+PAPER_H_IN = 36  # inches
+CSS_PX_W = 14400
+CSS_PX_H = 10800
+CSS_DPI = 96  # Playwright's assumed CSS px density
+SCALE = round((PAPER_W_IN * CSS_DPI) / CSS_PX_W, 6)  # ≈ 0.32
 
 
 # ── Dependency bootstrap ────────────────────────────────────────────────────
+
 
 def _ensure_playwright() -> None:
     """Install the playwright Python package and Chromium if missing."""
@@ -73,19 +78,23 @@ def _ensure_playwright() -> None:
     # Verify the Chromium browser binary exists; install if not.
     try:
         from playwright.sync_api import sync_playwright
+
         with sync_playwright() as pw:
             exe = pw.chromium.executable_path
             if not Path(exe).exists():
                 raise FileNotFoundError(exe)
     except Exception:
-        print("Chromium browser not found — running 'playwright install chromium' …",
-              flush=True)
+        print(
+            "Chromium browser not found — running 'playwright install chromium' …",
+            flush=True,
+        )
         subprocess.check_call(
             [sys.executable, "-m", "playwright", "install", "chromium"],
         )
 
 
 # ── Main build ──────────────────────────────────────────────────────────────
+
 
 def build_pdf() -> None:
     _ensure_playwright()
@@ -111,7 +120,7 @@ def build_pdf() -> None:
     with sync_playwright() as pw:
         browser = pw.chromium.launch(
             args=[
-                "--no-sandbox",           # required in WSL / container
+                "--no-sandbox",  # required in WSL / container
                 "--disable-setuid-sandbox",
                 "--disable-dev-shm-usage",  # avoids /dev/shm crashes in containers
                 "--font-render-hinting=none",  # crisper font rendering in PDF
@@ -149,6 +158,7 @@ def build_pdf() -> None:
 def _open_file(path: Path) -> None:
     """Best-effort: open the PDF in the system viewer."""
     import shutil
+
     for cmd in ("xdg-open", "open", "start"):
         if shutil.which(cmd):
             subprocess.Popen([cmd, str(path)])
