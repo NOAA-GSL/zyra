@@ -4,7 +4,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Zyra Conference Poster — Header & Challenge</title>
+<title>Zyra: Modular, Reproducible Data Workflows for Science</title>
+<meta property="og:title" content="Zyra: Modular, Reproducible Data Workflows for Science">
+<meta property="og:description" content="An open-source Python framework for acquiring, processing, visualizing, and narrating scientific data — with agentic orchestration via CLI, API, and MCP.">
+<meta property="og:image" content="zyra-logo.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Zyra: Modular, Reproducible Data Workflows for Science">
+<meta name="twitter:image" content="zyra-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;0,700&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1523,6 +1530,11 @@ text-transform: uppercase;
 .code-zoom-wrap .zoom-hint svg { width: 13px; height: 13px; }
 .code-zoom-wrap:hover .zoom-hint { opacity: 1; }
 .code-zoom-inner { transform-origin: top left; }
+.get-started-footer .code-zoom-inner {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
 
 /* Code zoom lightbox */
 .code-lightbox {
@@ -2293,6 +2305,18 @@ RESPONSIVE / PRINT
 .foundation-layers { flex-direction: column; }
 .foundation-pyramid { flex: 0 0 auto; }
 .foundation-highlights { flex-direction: column; }
+
+/* Survey CTA — stack columns vertically */
+.survey-cta-card { padding: 24px 20px; }
+.survey-cta-inner { flex-direction: column; gap: 20px; align-items: stretch; }
+.survey-cta-left { flex: none; }
+.survey-cta-right { justify-content: center; }
+
+/* Get Started — stack vertically, allow code to wrap */
+.get-started-footer { margin-left: 0; margin-right: 0; padding: 24px 20px; }
+.get-started-footer .code-zoom-inner { flex-direction: column; }
+.gs-code { white-space: pre-wrap; word-break: break-word; }
+.gs-qr { align-self: center; }
 }
 
 
@@ -3741,7 +3765,7 @@ Stages are composable — pipe any stage's output directly into the next. Every 
       <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>
       Click to zoom
     </span>
-    <div class="code-zoom-inner" id="getStartedInner" style="display:flex;gap:24px;align-items:flex-start;">
+    <div class="code-zoom-inner" id="getStartedInner">
 
     <div class="gs-main">
       <div class="section-tag" style="margin-bottom:6px;">
