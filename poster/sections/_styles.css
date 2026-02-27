@@ -1511,6 +1511,11 @@ text-transform: uppercase;
 .code-zoom-wrap .zoom-hint svg { width: 13px; height: 13px; }
 .code-zoom-wrap:hover .zoom-hint { opacity: 1; }
 .code-zoom-inner { transform-origin: top left; }
+.get-started-footer .code-zoom-inner {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
 
 /* Code zoom lightbox */
 .code-lightbox {
@@ -2281,6 +2286,18 @@ RESPONSIVE / PRINT
 .foundation-layers { flex-direction: column; }
 .foundation-pyramid { flex: 0 0 auto; }
 .foundation-highlights { flex-direction: column; }
+
+/* Survey CTA — stack columns vertically */
+.survey-cta-card { padding: 24px 20px; }
+.survey-cta-inner { flex-direction: column; gap: 20px; align-items: stretch; }
+.survey-cta-left { flex: none; }
+.survey-cta-right { justify-content: center; }
+
+/* Get Started — stack vertically, allow code to wrap */
+.get-started-footer { margin-left: 0; margin-right: 0; padding: 24px 20px; }
+.get-started-footer .code-zoom-inner { flex-direction: column; }
+.gs-code { white-space: pre-wrap; word-break: break-word; }
+.gs-qr { align-self: center; }
 }
 
 
