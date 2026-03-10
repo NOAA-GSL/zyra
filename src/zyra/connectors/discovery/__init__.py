@@ -341,7 +341,7 @@ def register_cli(p: argparse.ArgumentParser) -> None:
     )
     p_api.add_argument(
         "--query",
-        dest="query",
+        dest="api_query",
         required=True,
         help="Search query to pass to remote APIs",
     )
@@ -534,7 +534,11 @@ def register_cli(p: argparse.ArgumentParser) -> None:
                     "error: provide at least one --url", file=__import__("sys").stderr
                 )
                 return 2
-            eff_query = getattr(ns, "query", None) or getattr(ns, "q", None)
+            eff_query = (
+                getattr(ns, "api_query", None)
+                or getattr(ns, "query", None)
+                or getattr(ns, "q", None)
+            )
             if not eff_query:
                 print(
                     "error: missing --query; pass it after the subcommand (e.g., zyra search api --query 'text')",

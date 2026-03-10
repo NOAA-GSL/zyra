@@ -94,6 +94,11 @@ def _normalize_args(stage: str, command: str, args: dict[str, Any]) -> dict[str,
             "input": "input",
         },
         # Visualization commands use named flags already
+        # search/api: client sends "query"; argparse dest is "api_query" to avoid
+        # collision with the base parser's positional "query" argument.
+        ("search", "api"): {
+            "query": "api_query",
+        },
     }
 
     out = dict(args)
