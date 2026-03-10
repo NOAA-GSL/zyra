@@ -205,9 +205,8 @@ def _compute_cli_matrix() -> dict[str, Any]:
     discovery.register_cli(_search_parser)
     _search_cmds: dict[str, argparse.ArgumentParser] = {}
     for _action in getattr(_search_parser, "_actions", []):
-        choices = getattr(_action, "choices", None)
-        if isinstance(choices, dict):
-            _search_cmds = dict(choices)
+        if _action.__class__.__name__ == "_SubParsersAction":
+            _search_cmds = dict(getattr(_action, "choices", {}))
             break
     canonical_groups.append(("search", _search_cmds))
     # swarm (single command; attach args directly)
