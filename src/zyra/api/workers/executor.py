@@ -94,11 +94,6 @@ def _normalize_args(stage: str, command: str, args: dict[str, Any]) -> dict[str,
             "input": "input",
         },
         # Visualization commands use named flags already
-        # search/api: client sends "query"; argparse dest is "api_query" to avoid
-        # collision with the base parser's positional "query" argument.
-        ("search", "api"): {
-            "query": "api_query",
-        },
     }
 
     out = dict(args)
@@ -276,11 +271,18 @@ def _args_dict_to_argv(stage: str, command: str, args: dict[str, Any]) -> list[s
                 argv.extend(["--input", str(input_val)])
             argv.append(str(path))
 
+    # Per-(stage, command) overrides where argparse dest differs from
+    # the canonical --flag name (e.g., dest="api_query" but flag is --query).
+    flag_overrides: dict[tuple[str, str], dict[str, str]] = {
+        ("search", "api"): {"api_query": "--query"},
+    }
+    overrides = flag_overrides.get((stage, command), {})
+
     # Remaining keys become long flags
     for key, value in norm_args.items():
         if value is None:
             continue
-        flag = f"--{_to_kebab(key)}"
+        flag = overrides.get(key, f"--{_to_kebab(key)}")
         if isinstance(value, bool):
             if value:
                 argv.append(flag)
