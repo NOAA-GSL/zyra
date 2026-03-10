@@ -56,3 +56,30 @@ def test_aliases_dest_target_and_src():
     assert argv[:2] == ["decimate", "local"]
     # path should be positional at the end
     assert argv[-1] == "./out.bin"
+
+
+def test_search_api_query_flag_override():
+    """api_query key must emit --query (not --api-query)."""
+    argv = _args_dict_to_argv(
+        "search",
+        "api",
+        {"url": "https://example.com/api", "api_query": "temperature"},
+    )
+    assert argv[:2] == ["search", "api"]
+    assert "--query" in argv
+    assert "--api-query" not in argv
+    i = argv.index("--query")
+    assert argv[i + 1] == "temperature"
+
+
+def test_search_api_natural_query_key():
+    """Client-friendly 'query' key must also produce --query."""
+    argv = _args_dict_to_argv(
+        "search",
+        "api",
+        {"url": "https://example.com/api", "query": "temperature"},
+    )
+    assert argv[:2] == ["search", "api"]
+    assert "--query" in argv
+    i = argv.index("--query")
+    assert argv[i + 1] == "temperature"
