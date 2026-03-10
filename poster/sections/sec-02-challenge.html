@@ -1,0 +1,213 @@
+  <!-- ════════════ SECTION 2: THE CHALLENGE ════════════ -->
+
+  <div class="challenge-section">
+    <div class="challenge-card">
+
+  <!-- Illustrated vine-cable border frame -->
+  <div class="challenge-frame">
+    <img src="zyra-light-border.png" alt="" aria-hidden="true">
+  </div>
+
+  <div class="challenge-inner">
+
+    <!-- Left: Problem text -->
+    <div class="challenge-text">
+      <div class="section-tag">
+        <div class="diamond"></div>
+        <span>Problem Statement</span>
+      </div>
+
+      <h2 class="challenge-heading">The Challenge</h2>
+
+      <div class="challenge-body">
+        <p>
+          Environmental and scientific workflows span
+          <span class="em-bold">heterogeneous data sources</span>&hairsp;—&hairsp;<span class="tok">HTTP</span>&ensp;<span class="tok">FTP</span>&ensp;<span class="tok">S3</span>&ensp;<span class="tok">APIs</span>&hairsp;—&hairsp;and
+          <span class="em-bold">diverse formats</span> such as
+          <span class="tok">GRIB2</span>&ensp;<span class="tok">NetCDF</span>&ensp;<span class="tok">GeoTIFF</span>.
+          They require repeatable transformation chains and produce outputs ranging from static maps and animations to interactive pages and publishable datasets.
+          Existing approaches often rely on ad-hoc scripts that break when data changes and lack reproducibility across teams and environments.
+        </p>
+        <p>
+          <span class="em-bold">Zyra</span> (pronounced <em>Zy-rah</em>) provides a lightweight, CLI-first framework that
+          standardizes these common steps while remaining fully extensible for domain-specific logic.
+          Think of it as a garden for your data: you plant seeds (from the web, satellites, or experiments), Zyra helps you nurture them (through filtering, analysis, and processing), and you harvest insights as visualizations, reports, and interactive media.
+          It's designed to make science not just rigorous, but also accessible, transparent, and beautiful.
+        </p>
+      </div>
+    </div>
+
+    <!-- Right: Tangled paths graphic (dramatically revised) -->
+    <div class="challenge-graphic">
+      <svg viewBox="0 0 380 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- Subtle grid background -->
+          <pattern id="grid" width="22" height="22" patternUnits="userSpaceOnUse">
+            <path d="M 22 0 L 0 0 0 22" fill="none" stroke="#D8D7D3" stroke-width="0.5" opacity="0.4"/>
+          </pattern>
+
+          <!-- Glow for break markers -->
+          <filter id="warn-glow">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+
+          <!-- Source node gradient -->
+          <linearGradient id="srcGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#00172D"/>
+            <stop offset="100%" stop-color="#002a4a"/>
+          </linearGradient>
+
+          <!-- Tangled path gradients -->
+          <linearGradient id="tangleA" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#5F9DAE"/>
+            <stop offset="100%" stop-color="#9AB2B1"/>
+          </linearGradient>
+          <linearGradient id="tangleB" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#9AB2B1"/>
+            <stop offset="50%" stop-color="#A3A29D"/>
+            <stop offset="100%" stop-color="#D8D7D3"/>
+          </linearGradient>
+
+          <!-- Break X marker -->
+          <symbol id="breakX" viewBox="0 0 20 20">
+            <circle cx="10" cy="10" r="9" fill="#F44336" fill-opacity="0.12" stroke="#F44336" stroke-width="1.2" stroke-opacity="0.5"/>
+            <line x1="6" y1="6" x2="14" y2="14" stroke="#F44336" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+            <line x1="14" y1="6" x2="6" y2="14" stroke="#F44336" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+          </symbol>
+        </defs>
+
+        <!-- Background grid -->
+        <rect width="380" height="300" fill="url(#grid)" rx="5"/>
+
+        <!-- ── LAYER: Tangled connection lines (thicker, more dramatic) ── -->
+        <!-- HTTP → Map (semi-clean) -->
+        <path d="M62 68 C62 105, 80 135, 75 165 C70 190, 50 205, 55 238"
+              stroke="url(#tangleA)" stroke-width="3" opacity="0.45" stroke-linecap="round"/>
+        <!-- HTTP → Dataset (wild crossing) -->
+        <path d="M62 68 C85 100, 260 95, 300 238"
+              stroke="url(#tangleB)" stroke-width="2.5" opacity="0.3" stroke-dasharray="6 4" stroke-linecap="round"/>
+        <!-- FTP → Animation (dramatic tangle) -->
+        <path d="M148 68 C148 95, 40 125, 160 170 C220 195, 160 210, 165 238"
+              stroke="url(#tangleA)" stroke-width="3" opacity="0.4" stroke-linecap="round"/>
+        <!-- FTP → Map (crossing back over) -->
+        <path d="M148 68 C130 100, 105 140, 55 238"
+              stroke="url(#tangleB)" stroke-width="2.5" opacity="0.25" stroke-dasharray="8 5" stroke-linecap="round"/>
+        <!-- S3 → Dataset (somewhat clean) -->
+        <path d="M238 68 C238 105, 275 170, 300 238"
+              stroke="url(#tangleA)" stroke-width="3" opacity="0.4" stroke-linecap="round"/>
+        <!-- S3 → Map (long dramatic crossing) -->
+        <path d="M238 68 C210 100, 110 145, 55 238"
+              stroke="url(#tangleB)" stroke-width="2.5" opacity="0.25" stroke-dasharray="5 5" stroke-linecap="round"/>
+        <!-- API → Animation (tangled) -->
+        <path d="M322 68 C322 95, 270 115, 220 145 C170 170, 185 200, 165 238"
+              stroke="url(#tangleA)" stroke-width="3" opacity="0.4" stroke-linecap="round"/>
+        <!-- API → Dataset (short) -->
+        <path d="M322 68 C315 115, 305 175, 300 238"
+              stroke="url(#tangleB)" stroke-width="2.5" opacity="0.35" stroke-linecap="round"/>
+        <!-- Extra chaos lines -->
+        <path d="M62 68 C90 110, 180 100, 165 238"
+              stroke="#A3A29D" stroke-width="1.5" opacity="0.15" stroke-dasharray="3 6" stroke-linecap="round"/>
+        <path d="M322 68 C280 110, 100 165, 55 238"
+              stroke="#A3A29D" stroke-width="1.5" opacity="0.12" stroke-dasharray="4 7" stroke-linecap="round"/>
+
+        <!-- ── LAYER: Break/warning markers (larger, more alarming) ── -->
+        <g filter="url(#warn-glow)">
+          <use href="#breakX" x="108" y="108" width="20" height="20"/>
+          <use href="#breakX" x="80" y="158" width="18" height="18"/>
+          <use href="#breakX" x="240" y="128" width="18" height="18"/>
+          <use href="#breakX" x="185" y="178" width="16" height="16"/>
+        </g>
+
+        <!-- ── LAYER: Category labels ── -->
+        <text x="190" y="16" class="cg-label" fill="#8B8985" text-anchor="middle">Sources</text>
+        <text x="190" y="296" class="cg-label" fill="#8B8985" text-anchor="middle">Outputs</text>
+
+        <!-- ── LAYER: Source nodes (top row — bolder with icons) ── -->
+        <!-- HTTP -->
+        <rect x="22" y="28" width="76" height="34" rx="5" fill="url(#srcGrad)"/>
+        <svg x="28" y="33" width="18" height="18" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" stroke="#5F9DAE" stroke-width="1.5" fill="none"/>
+          <ellipse cx="12" cy="12" rx="4.5" ry="9" stroke="#5F9DAE" stroke-width="1" fill="none"/>
+          <line x1="3" y1="12" x2="21" y2="12" stroke="#5F9DAE" stroke-width="1"/>
+        </svg>
+        <text x="64" y="50" class="cg-node" fill="#FEFEFE" text-anchor="middle">HTTP</text>
+
+        <!-- FTP -->
+        <rect x="112" y="28" width="72" height="34" rx="5" fill="url(#srcGrad)"/>
+        <svg x="118" y="33" width="18" height="18" viewBox="0 0 24 24">
+          <rect x="4" y="4" width="16" height="16" rx="2" stroke="#5F9DAE" stroke-width="1.5" fill="none"/>
+          <line x1="4" y1="10" x2="20" y2="10" stroke="#5F9DAE" stroke-width="1"/>
+          <line x1="12" y1="10" x2="12" y2="20" stroke="#5F9DAE" stroke-width="1"/>
+        </svg>
+        <text x="152" y="50" class="cg-node" fill="#FEFEFE" text-anchor="middle">FTP</text>
+
+        <!-- S3 -->
+        <rect x="200" y="28" width="68" height="34" rx="5" fill="url(#srcGrad)"/>
+        <svg x="206" y="33" width="18" height="18" viewBox="0 0 24 24">
+          <path d="M5 8 C5 5, 19 5, 19 8 L19 16 C19 19, 5 19, 5 16 Z" stroke="#5F9DAE" stroke-width="1.5" fill="none"/>
+          <path d="M5 8 C5 11, 19 11, 19 8" stroke="#5F9DAE" stroke-width="1" fill="none"/>
+        </svg>
+        <text x="240" y="50" class="cg-node" fill="#FEFEFE" text-anchor="middle">S3</text>
+
+        <!-- API -->
+        <rect x="282" y="28" width="72" height="34" rx="5" fill="url(#srcGrad)"/>
+        <svg x="288" y="34" width="16" height="16" viewBox="0 0 24 24">
+          <path d="M8 4 L4 8 L8 12" stroke="#5F9DAE" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M16 4 L20 8 L16 12" stroke="#5F9DAE" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="14" y1="3" x2="10" y2="13" stroke="#5F9DAE" stroke-width="1.2"/>
+        </svg>
+        <text x="322" y="50" class="cg-node" fill="#FEFEFE" text-anchor="middle">API</text>
+
+        <!-- ── LAYER: Format pills (bold, solid background) ── -->
+        <rect x="30" y="138" width="68" height="24" rx="12" fill="#00529E" fill-opacity="0.10" stroke="#00529E" stroke-width="1.2" stroke-opacity="0.35"/>
+        <text x="64" y="154" class="cg-node" font-size="9.5" fill="#00529E" text-anchor="middle" font-weight="600">GRIB2</text>
+
+        <rect x="148" y="150" width="76" height="24" rx="12" fill="#00529E" fill-opacity="0.10" stroke="#00529E" stroke-width="1.2" stroke-opacity="0.35"/>
+        <text x="186" y="166" class="cg-node" font-size="9.5" fill="#00529E" text-anchor="middle" font-weight="600">NetCDF</text>
+
+        <rect x="268" y="133" width="80" height="24" rx="12" fill="#00529E" fill-opacity="0.10" stroke="#00529E" stroke-width="1.2" stroke-opacity="0.35"/>
+        <text x="308" y="149" class="cg-node" font-size="9.5" fill="#00529E" text-anchor="middle" font-weight="600">GeoTIFF</text>
+
+        <!-- ── LAYER: Output nodes (bottom row — bolder with icons) ── -->
+        <!-- Maps -->
+        <rect x="14" y="242" width="80" height="34" rx="5" fill="none" stroke="#1A5A69" stroke-width="2"/>
+        <svg x="20" y="247" width="20" height="20" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="18" height="18" rx="2" stroke="#1A5A69" stroke-width="1.5" fill="none"/>
+          <polyline points="5,17 9,11 12,14 16,9 19,13" fill="none" stroke="#5F9DAE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <text x="62" y="264" class="cg-node" font-size="10" fill="#1A5A69" text-anchor="middle">Maps</text>
+
+        <!-- Animations -->
+        <rect x="122" y="242" width="92" height="34" rx="5" fill="none" stroke="#1A5A69" stroke-width="2"/>
+        <svg x="128" y="248" width="18" height="18" viewBox="0 0 24 24">
+          <polygon points="6,4 20,12 6,20" fill="none" stroke="#1A5A69" stroke-width="1.8" stroke-linejoin="round"/>
+        </svg>
+        <text x="176" y="264" class="cg-node" font-size="10" fill="#1A5A69" text-anchor="middle">Animations</text>
+
+        <!-- Datasets -->
+        <rect x="242" y="242" width="96" height="34" rx="5" fill="none" stroke="#1A5A69" stroke-width="2"/>
+        <svg x="250" y="248" width="18" height="18" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="18" height="18" rx="1.5" stroke="#1A5A69" stroke-width="1.5" fill="none"/>
+          <line x1="3" y1="9" x2="21" y2="9" stroke="#1A5A69" stroke-width="1"/>
+          <line x1="3" y1="15" x2="21" y2="15" stroke="#1A5A69" stroke-width="1"/>
+          <line x1="10" y1="3" x2="10" y2="21" stroke="#1A5A69" stroke-width="1"/>
+        </svg>
+        <text x="298" y="264" class="cg-node" font-size="10" fill="#1A5A69" text-anchor="middle">Datasets</text>
+
+        <!-- ── LAYER: "ad-hoc scripts" caption (larger, more alarming) ── -->
+        <rect x="115" y="190" width="152" height="26" rx="13" fill="#F44336" fill-opacity="0.08" stroke="#F44336" stroke-width="1" stroke-opacity="0.4"/>
+        <text x="191" y="207" font-family="Source Sans 3, sans-serif" font-size="10.5" font-weight="600" fill="#F44336" text-anchor="middle" opacity="0.8">ad-hoc scripts break here</text>
+
+      </svg>
+    </div>
+
+  </div>
+</div>
+
+<!-- Flow cue: vine-cable arrow pointing down -->
+<div class="flow-cue">
+  <img src="zyra-straight-arrow.png" alt="" aria-hidden="true">
+</div>
+
+  </div>

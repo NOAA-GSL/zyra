@@ -1,0 +1,23 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#1A5A69', 'primaryTextColor': '#FEFEFE', 'lineColor': '#5F9DAE'}}}%%
+graph TD
+    UI["User Intent\n(natural language)"] --> PL["Planner\n(zyra plan)"]
+    PL --> VE["Value Engine\n(suggest augmentations)"]
+    VE --> DAG["Execution DAG\n(parallel / sequential)"]
+    DAG --> A1["Stage Agent\n(acquire)"]
+    DAG --> A2["Stage Agent\n(process)"]
+    DAG --> A3["Stage Agent\n(visualize)"]
+    DAG --> A4["LLM Agent\n(narrate)"]
+    A1 --> PR["Provenance\n(SQLite)"]
+    A2 --> PR
+    A3 --> PR
+    A4 --> PR
+
+    style UI fill:#50452C,stroke:#00172D,color:#FEFEFE,stroke-width:2px
+    style PL fill:#1A5A69,stroke:#00172D,color:#FEFEFE,stroke-width:2px
+    style VE fill:#FFC107,stroke:#00172D,color:#00172D,stroke-width:2px
+    style DAG fill:#00529E,stroke:#00172D,color:#FEFEFE,stroke-width:2px
+    style A1 fill:#2C670C,stroke:#00172D,color:#FEFEFE,stroke-width:2px
+    style A2 fill:#2C670C,stroke:#00172D,color:#FEFEFE,stroke-width:2px
+    style A3 fill:#576216,stroke:#00172D,color:#FEFEFE,stroke-width:2px
+    style A4 fill:#1A5A69,stroke:#00172D,color:#FEFEFE,stroke-width:2px
+    style PR fill:#5F9DAE,stroke:#00172D,color:#00172D,stroke-width:2px

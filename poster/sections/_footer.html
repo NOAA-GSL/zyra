@@ -1,0 +1,126 @@
+  <div class="poster-bottom-pad"></div>
+
+</div>
+
+<!-- Pipeline lightbox modal -->
+<div class="pipeline-lightbox" id="pipelineLightbox">
+  <button class="lb-close" onclick="closePipelineLightbox()">&times;</button>
+</div>
+
+<!-- Code zoom lightbox modal -->
+<div class="code-lightbox" id="codeLightbox">
+  <button class="lb-close" onclick="closeCodeLightbox()">&times;</button>
+</div>
+
+<script>
+(function() {
+  // ── Responsive pipeline scaling ──
+  function scalePipeline() {
+    var wrap = document.getElementById('pipelineWrap');
+    var visual = document.getElementById('pipelineVisual');
+    if (!wrap || !visual) return;
+
+    var wrapWidth = wrap.clientWidth;
+    var nativeWidth = 1440;
+    var nativeHeight = 620;
+    var scale = Math.min(1, wrapWidth / nativeWidth);
+
+    visual.style.transform = 'scale(' + scale + ')';
+    visual.style.transformOrigin = 'top left';
+    wrap.style.height = (nativeHeight * scale) + 'px';
+  }
+
+  scalePipeline();
+  window.addEventListener('resize', scalePipeline);
+  setTimeout(scalePipeline, 200);
+
+  // ── Responsive code-zoom scaling ──
+  function scaleCodeZooms() {
+    document.querySelectorAll('.code-zoom-wrap').forEach(function(wrap) {
+      var inner = wrap.querySelector('.code-zoom-inner');
+      if (!inner) return;
+      inner.style.transform = 'none';
+      wrap.style.height = 'auto';
+      var nativeWidth = inner.scrollWidth;
+      var nativeHeight = inner.scrollHeight;
+      var wrapWidth = wrap.clientWidth;
+      var scale = Math.min(1, wrapWidth / nativeWidth);
+      if (scale < 1) {
+        inner.style.transform = 'scale(' + scale + ')';
+        inner.style.transformOrigin = 'top left';
+        wrap.style.height = (nativeHeight * scale) + 'px';
+      }
+    });
+  }
+  scaleCodeZooms();
+  window.addEventListener('resize', scaleCodeZooms);
+  setTimeout(scaleCodeZooms, 250);
+
+  // ── Pipeline lightbox ──
+  window.openPipelineLightbox = function() {
+    var lb = document.getElementById('pipelineLightbox');
+    var visual = document.getElementById('pipelineVisual');
+    if (!lb || !visual) return;
+
+    var clone = visual.cloneNode(true);
+    clone.id = '';
+    clone.style.transform = 'none';
+    clone.querySelectorAll('[id]').forEach(function(el) { el.removeAttribute('id'); });
+
+    var old = lb.querySelector('.pipeline-visual');
+    if (old) old.remove();
+
+    lb.appendChild(clone);
+    lb.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closePipelineLightbox = function() {
+    var lb = document.getElementById('pipelineLightbox');
+    lb.classList.remove('active');
+    document.body.style.overflow = '';
+    var clone = lb.querySelector('.pipeline-visual');
+    if (clone) clone.remove();
+  };
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { closePipelineLightbox(); closeCodeLightbox(); }
+  });
+
+  document.getElementById('pipelineLightbox').addEventListener('click', function(e) {
+    if (e.target === this) closePipelineLightbox();
+  });
+
+  // ── Code zoom lightbox ──
+  window.openCodeLightbox = function(wrapId) {
+    var wrap = document.getElementById(wrapId);
+    var lb = document.getElementById('codeLightbox');
+    if (!wrap || !lb) return;
+    var inner = wrap.querySelector('.code-zoom-inner');
+    if (!inner) return;
+    var clone = inner.cloneNode(true);
+    clone.style.transform = 'none';
+    clone.className = 'code-zoom-content';
+    var old = lb.querySelector('.code-zoom-content');
+    if (old) old.remove();
+    lb.appendChild(clone);
+    lb.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closeCodeLightbox = function() {
+    var lb = document.getElementById('codeLightbox');
+    lb.classList.remove('active');
+    document.body.style.overflow = '';
+    var clone = lb.querySelector('.code-zoom-content');
+    if (clone) clone.remove();
+  };
+
+  document.getElementById('codeLightbox').addEventListener('click', function(e) {
+    if (e.target === this) closeCodeLightbox();
+  });
+})();
+</script>
+
+</body>
+</html>

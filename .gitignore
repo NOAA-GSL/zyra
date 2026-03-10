@@ -176,6 +176,10 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# Poster generated artifacts (screenshots, previews)
+poster/html/screenshot-*.png
+poster/html/poster-preview.jpg
+
 # Ruff linter
 .ruff_cache/
 
