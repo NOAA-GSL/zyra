@@ -198,6 +198,9 @@ def _compute_cli_matrix() -> dict[str, Any]:
     canonical_groups.append(("decide", parsers_from_register(decide.register_cli)))
     canonical_groups.append(("narrate", parsers_from_register(narrate.register_cli)))
     canonical_groups.append(("verify", parsers_from_register(verify.register_cli)))
+    # search / discovery
+    import zyra.connectors.discovery as discovery
+    canonical_groups.append(("search", parsers_from_register(discovery.register_cli)))
     # swarm (single command; attach args directly)
     swarm_parser = argparse.ArgumentParser(prog="zyra swarm")
     swarm_cli.register_cli(swarm_parser)
