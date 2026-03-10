@@ -23,6 +23,7 @@ class CLIRunRequest(BaseModel):
         "narrate",
         "verify",
         "run",
+        "search",
         "swarm",
     ]
     command: str = Field(..., description="Subcommand within the selected stage")
