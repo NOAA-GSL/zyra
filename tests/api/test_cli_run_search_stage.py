@@ -27,4 +27,7 @@ def test_cli_run_accepts_search_stage():
                 "args": {"url": "https://example.com/api", "query": "temperature"},
             },
         )
-    assert r.status_code not in (400, 422), f"search stage rejected: {r.json()}"
+    assert r.status_code == 200, f"unexpected status: {r.json()}"
+    body = r.json()
+    assert body.get("status") == "success"
+    assert body.get("stdout") == "ok"

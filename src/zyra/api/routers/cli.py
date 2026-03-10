@@ -204,9 +204,10 @@ def _compute_cli_matrix() -> dict[str, Any]:
     _search_parser = argparse.ArgumentParser(prog="zyra search")
     discovery.register_cli(_search_parser)
     _search_cmds: dict[str, argparse.ArgumentParser] = {}
-    for _action in _search_parser._actions:
-        if isinstance(_action, argparse._SubParsersAction):
-            _search_cmds = dict(_action.choices)
+    for _action in getattr(_search_parser, "_actions", []):
+        choices = getattr(_action, "choices", None)
+        if isinstance(choices, dict):
+            _search_cmds = dict(choices)
             break
     canonical_groups.append(("search", _search_cmds))
     # swarm (single command; attach args directly)
