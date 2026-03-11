@@ -198,6 +198,29 @@ def _compute_cli_matrix() -> dict[str, Any]:
     canonical_groups.append(("decide", parsers_from_register(decide.register_cli)))
     canonical_groups.append(("narrate", parsers_from_register(narrate.register_cli)))
     canonical_groups.append(("verify", parsers_from_register(verify.register_cli)))
+    # search / discovery - register_cli takes a full ArgumentParser (like swarm)
+    import zyra.connectors.discovery as discovery
+
+    _search_parser = argparse.ArgumentParser(prog="zyra search")
+    discovery.register_cli(_search_parser)
+    _search_cmds: dict[str, argparse.ArgumentParser] = {}
+    _subparsers_action_type = getattr(argparse, "_SubParsersAction", None)
+    for _action in getattr(_search_parser, "_actions", []):
+        if _subparsers_action_type is not None and isinstance(
+            _action,
+            _subparsers_action_type,  # type: ignore[arg-type]
+        ):
+            _search_cmds = dict(getattr(_action, "choices", {}))
+            break
+    # NOTE:
+    # - discovery.register_cli registers a full ``zyra search`` CLI, including
+    #   a base command (no subcommand) and one or more subcommands (e.g., ``api``).
+    # - The API CLI matrix intentionally only exposes the subcommands via
+    #   ``_search_cmds``. As a result, /v1/cli/run with stage="search" supports
+    #   only these subcommands and cannot invoke the base ``zyra search`` form
+    #   (e.g., ``zyra search "tsunami" ...``) without a dedicated executor
+    #   special-case similar to the one used for the ``swarm`` stage.
+    canonical_groups.append(("search", _search_cmds))
     # swarm (single command; attach args directly)
     swarm_parser = argparse.ArgumentParser(prog="zyra swarm")
     swarm_cli.register_cli(swarm_parser)
