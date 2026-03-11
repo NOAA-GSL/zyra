@@ -299,6 +299,28 @@ def _parse_json_body(arg: str | None) -> Any | None:
         return None
 
 
+def _extract_name(value: Any) -> str | None:
+    """Extract a human-readable name string from *value*.
+
+    - ``str`` → returned as-is.
+    - ``dict`` → drills into common name-like keys (``name``, ``title``,
+      ``id``, ``path``) and returns the first truthy string found.
+    - Other types → converted via ``str()`` as a last resort.
+    - ``None`` → returns ``None``.
+    """
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        for key in ("name", "title", "id", "path"):
+            v = value.get(key)
+            if v is not None and isinstance(v, str) and v:
+                return v
+        # No recognizable sub-key; fall through to str()
+    return str(value)
+
+
 def _normalize_item(item: dict[str, Any], source_host: str) -> dict[str, Any]:
     """Map remote item to unified row schema.
 
@@ -311,10 +333,10 @@ def _normalize_item(item: dict[str, Any], source_host: str) -> dict[str, Any]:
     )
     desc = item.get("description") or item.get("abstract") or None
     link = item.get("uri") or item.get("link") or item.get("url") or None
-    # Strings only
-    name_s = str(name) if name is not None else None
-    desc_s = str(desc) if desc is not None else None
-    link_s = str(link) if link is not None else None
+    # Strings only — drill into dicts when needed
+    name_s = _extract_name(name)
+    desc_s = _extract_name(desc)
+    link_s = _extract_name(link)
     return {
         "source": source_host,
         "dataset": name_s or "",

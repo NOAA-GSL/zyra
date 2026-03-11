@@ -392,3 +392,43 @@ def test_cli_api_openapi_diagnostics(monkeypatch, capsys):
     assert rc == 0
     out = capsys.readouterr().out
     assert "suggest --param for: q,limit" in out
+
+
+def test_extract_name_string_passthrough():
+    from zyra.connectors.discovery.api_search import _extract_name
+
+    assert _extract_name("hello") == "hello"
+    assert _extract_name(None) is None
+    assert _extract_name(42) == "42"
+
+
+def test_extract_name_drills_into_dict():
+    from zyra.connectors.discovery.api_search import _extract_name
+
+    assert (
+        _extract_name({"name": "Synoptic-UAS", "path": "data/Synoptic-UAS"})
+        == "Synoptic-UAS"
+    )
+    assert _extract_name({"path": "data/Synoptic-UAS"}) == "data/Synoptic-UAS"
+    assert _extract_name({"title": "My Title"}) == "My Title"
+    assert _extract_name({"id": "abc123"}) == "abc123"
+
+
+def test_normalize_item_nested_dataset_dict():
+    from zyra.connectors.discovery.api_search import _normalize_item
+
+    item = {
+        "dataset": {"path": "data/Synoptic-UAS", "name": "Synoptic-UAS"},
+        "score": 1,
+    }
+    row = _normalize_item(item, "example.com")
+    assert row["dataset"] == "Synoptic-UAS"
+    assert row["source"] == "example.com"
+
+
+def test_normalize_item_nested_dataset_dict_no_name():
+    from zyra.connectors.discovery.api_search import _normalize_item
+
+    item = {"dataset": {"path": "data/foo"}}
+    row = _normalize_item(item, "host")
+    assert row["dataset"] == "data/foo"
