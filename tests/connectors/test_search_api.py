@@ -470,3 +470,21 @@ def test_normalize_item_href_link():
     item = {"name": "DS", "href": "http://example.com/ds"}
     row = _normalize_item(item, "host")
     assert row["link"] == "http://example.com/ds"
+
+
+def test_extract_name_mapping_type():
+    from collections import OrderedDict
+
+    from zyra.connectors.discovery.api_search import _extract_name
+
+    assert _extract_name(OrderedDict([("name", "ordered")])) == "ordered"
+    assert _extract_name(OrderedDict([("id", 99)])) == "99"
+
+
+def test_extract_name_skips_unresolvable_nested_dict():
+    from zyra.connectors.discovery.api_search import _extract_name
+
+    # name is a dict with no recognizable keys; should skip to title
+    assert _extract_name({"name": {"foo": "bar"}, "title": "Fallback"}) == "Fallback"
+    # All keys are unresolvable nested dicts → returns None
+    assert _extract_name({"name": {"foo": "bar"}}) is None

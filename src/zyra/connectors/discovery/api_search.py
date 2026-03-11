@@ -306,10 +306,12 @@ def _extract_name(value: Any) -> str | None:
     into a single string representation.
 
     - ``str`` → returned as-is.
-    - ``dict`` → drills into common label-like keys (``name``, ``title``,
-      ``id``, ``path``, ``label``, ``url``, ``href``, ``uri``, ``link``)
-      and returns the first value that is not ``None`` and not the empty
-      string, as a string.  Nested dicts are handled recursively.
+    - ``dict`` (or any ``Mapping``) → drills into common label-like keys
+      (``name``, ``title``, ``id``, ``path``, ``label``, ``url``,
+      ``href``, ``uri``, ``link``) and returns the first value that is
+      not ``None`` and not the empty string, as a string.  Nested dicts
+      are handled recursively; if a nested dict yields no recognizable
+      value, later keys are still tried.
     - Other types → converted via ``str()`` as a last resort.
     - ``None`` → returns ``None``.
     """
@@ -317,7 +319,7 @@ def _extract_name(value: Any) -> str | None:
         return None
     if isinstance(value, str):
         return value
-    if isinstance(value, dict):
+    if isinstance(value, Mapping):
         for key in (
             "name",
             "title",
@@ -330,13 +332,19 @@ def _extract_name(value: Any) -> str | None:
             "link",
         ):
             v = value.get(key)
-            if v is not None and v != "":
-                if isinstance(v, str):
-                    return v
-                if isinstance(v, dict):
-                    return _extract_name(v)
-                return str(v)
-        # No recognizable sub-key; fall through to str()
+            if v is None or v == "":
+                continue
+            if isinstance(v, str):
+                return v
+            if isinstance(v, Mapping):
+                nested = _extract_name(v)
+                if nested not in (None, ""):
+                    return nested
+                # Nested dict had no recognizable sub-key; keep searching
+                continue
+            return str(v)
+        # No recognizable sub-key in this mapping
+        return None
     return str(value)
 
 
