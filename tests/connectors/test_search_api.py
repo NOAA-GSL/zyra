@@ -392,3 +392,81 @@ def test_cli_api_openapi_diagnostics(monkeypatch, capsys):
     assert rc == 0
     out = capsys.readouterr().out
     assert "suggest --param for: q,limit" in out
+
+
+def test_extract_name_string_passthrough():
+    from zyra.connectors.discovery.api_search import _extract_name
+
+    assert _extract_name("hello") == "hello"
+    assert _extract_name(None) is None
+    assert _extract_name(42) == "42"
+
+
+def test_extract_name_drills_into_dict():
+    from zyra.connectors.discovery.api_search import _extract_name
+
+    assert (
+        _extract_name({"name": "Synoptic-UAS", "path": "data/Synoptic-UAS"})
+        == "Synoptic-UAS"
+    )
+    assert _extract_name({"path": "data/Synoptic-UAS"}) == "data/Synoptic-UAS"
+    assert _extract_name({"title": "My Title"}) == "My Title"
+    assert _extract_name({"id": "abc123"}) == "abc123"
+    assert _extract_name({"label": "Atmospheric CO2"}) == "Atmospheric CO2"
+    # Non-string values in name-like keys should be stringified
+    assert _extract_name({"id": 123}) == "123"
+    assert _extract_name({"name": 42}) == "42"
+    # Nested dict in a name-like key is recursively drilled into
+    assert _extract_name({"name": {"id": "x"}}) == "x"
+    assert _extract_name({"name": {"title": "inner", "id": "y"}}) == "inner"
+
+
+def test_normalize_item_nested_dataset_dict():
+    from zyra.connectors.discovery.api_search import _normalize_item
+
+    item = {
+        "dataset": {"path": "data/Synoptic-UAS", "name": "Synoptic-UAS"},
+        "score": 1,
+    }
+    row = _normalize_item(item, "example.com")
+    assert row["dataset"] == "Synoptic-UAS"
+    assert row["source"] == "example.com"
+
+
+def test_normalize_item_nested_dataset_dict_no_name():
+    from zyra.connectors.discovery.api_search import _normalize_item
+
+    item = {"dataset": {"path": "data/foo"}}
+    row = _normalize_item(item, "host")
+    assert row["dataset"] == "data/foo"
+
+
+def test_normalize_item_nested_description_and_link():
+    from zyra.connectors.discovery.api_search import _normalize_item
+
+    item = {
+        "name": "DS1",
+        "description": {"title": "A long description object"},
+        "uri": {"path": "http://example.com/ds1"},
+    }
+    row = _normalize_item(item, "host")
+    assert row["dataset"] == "DS1"
+    assert row["description"] == "A long description object"
+    assert row["link"] == "http://example.com/ds1"
+
+
+def test_extract_name_url_like_dict_keys():
+    from zyra.connectors.discovery.api_search import _extract_name
+
+    assert _extract_name({"url": "http://x/data"}) == "http://x/data"
+    assert _extract_name({"href": "http://x/ref"}) == "http://x/ref"
+    assert _extract_name({"uri": "http://x/uri"}) == "http://x/uri"
+    assert _extract_name({"link": "http://x/link"}) == "http://x/link"
+
+
+def test_normalize_item_href_link():
+    from zyra.connectors.discovery.api_search import _normalize_item
+
+    item = {"name": "DS", "href": "http://example.com/ds"}
+    row = _normalize_item(item, "host")
+    assert row["link"] == "http://example.com/ds"
