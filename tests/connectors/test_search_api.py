@@ -416,8 +416,9 @@ def test_extract_name_drills_into_dict():
     # Non-string values in name-like keys should be stringified
     assert _extract_name({"id": 123}) == "123"
     assert _extract_name({"name": 42}) == "42"
-    # Nested dict in a name-like key falls through to str() of sub-value
-    assert _extract_name({"name": {"id": "x"}}) == "{'id': 'x'}"
+    # Nested dict in a name-like key is recursively drilled into
+    assert _extract_name({"name": {"id": "x"}}) == "x"
+    assert _extract_name({"name": {"title": "inner", "id": "y"}}) == "inner"
 
 
 def test_normalize_item_nested_dataset_dict():

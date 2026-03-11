@@ -308,9 +308,8 @@ def _extract_name(value: Any) -> str | None:
     - ``str`` → returned as-is.
     - ``dict`` → drills into common label-like keys (``name``, ``title``,
       ``id``, ``path``, ``label``, ``url``, ``href``, ``uri``, ``link``)
-      and returns
-      the first value that is not ``None`` and not the empty string, as a
-      string.
+      and returns the first value that is not ``None`` and not the empty
+      string, as a string.  Nested dicts are handled recursively.
     - Other types → converted via ``str()`` as a last resort.
     - ``None`` → returns ``None``.
     """
@@ -332,7 +331,11 @@ def _extract_name(value: Any) -> str | None:
         ):
             v = value.get(key)
             if v is not None and v != "":
-                return str(v) if not isinstance(v, str) else v
+                if isinstance(v, str):
+                    return v
+                if isinstance(v, dict):
+                    return _extract_name(v)
+                return str(v)
         # No recognizable sub-key; fall through to str()
     return str(value)
 
