@@ -451,3 +451,20 @@ def test_normalize_item_nested_description_and_link():
     assert row["dataset"] == "DS1"
     assert row["description"] == "A long description object"
     assert row["link"] == "http://example.com/ds1"
+
+
+def test_extract_name_url_like_dict_keys():
+    from zyra.connectors.discovery.api_search import _extract_name
+
+    assert _extract_name({"url": "http://x/data"}) == "http://x/data"
+    assert _extract_name({"href": "http://x/ref"}) == "http://x/ref"
+    assert _extract_name({"uri": "http://x/uri"}) == "http://x/uri"
+    assert _extract_name({"link": "http://x/link"}) == "http://x/link"
+
+
+def test_normalize_item_href_link():
+    from zyra.connectors.discovery.api_search import _normalize_item
+
+    item = {"name": "DS", "href": "http://example.com/ds"}
+    row = _normalize_item(item, "host")
+    assert row["link"] == "http://example.com/ds"

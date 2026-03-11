@@ -307,8 +307,9 @@ def _extract_name(value: Any) -> str | None:
 
     - ``str`` → returned as-is.
     - ``dict`` → drills into common label-like keys (``name``, ``title``,
-      ``id``, ``path``) and returns the first value that is not ``None``
-      and not the empty string, as a string.
+      ``id``, ``path``, ``url``, ``href``, ``uri``, ``link``) and returns
+      the first value that is not ``None`` and not the empty string, as a
+      string.
     - Other types → converted via ``str()`` as a last resort.
     - ``None`` → returns ``None``.
     """
@@ -317,7 +318,7 @@ def _extract_name(value: Any) -> str | None:
     if isinstance(value, str):
         return value
     if isinstance(value, dict):
-        for key in ("name", "title", "id", "path"):
+        for key in ("name", "title", "id", "path", "url", "href", "uri", "link"):
             v = value.get(key)
             if v is not None and v != "":
                 return str(v) if not isinstance(v, str) else v
@@ -336,7 +337,13 @@ def _normalize_item(item: dict[str, Any], source_host: str) -> dict[str, Any]:
         item.get("name") or item.get("title") or item.get("dataset") or item.get("id")
     )
     desc = item.get("description") or item.get("abstract") or None
-    link = item.get("uri") or item.get("link") or item.get("url") or None
+    link = (
+        item.get("uri")
+        or item.get("link")
+        or item.get("href")
+        or item.get("url")
+        or None
+    )
     # Strings only — drill into dicts when needed
     name_s = _extract_name(name)
     desc_s = _extract_name(desc)
