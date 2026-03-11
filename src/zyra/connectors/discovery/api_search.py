@@ -307,7 +307,8 @@ def _extract_name(value: Any) -> str | None:
 
     - ``str`` → returned as-is.
     - ``dict`` → drills into common label-like keys (``name``, ``title``,
-      ``id``, ``path``) and returns the first truthy value as a string.
+      ``id``, ``path``) and returns the first value that is not ``None``
+      and not the empty string, as a string.
     - Other types → converted via ``str()`` as a last resort.
     - ``None`` → returns ``None``.
     """

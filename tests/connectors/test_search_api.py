@@ -437,3 +437,17 @@ def test_normalize_item_nested_dataset_dict_no_name():
     item = {"dataset": {"path": "data/foo"}}
     row = _normalize_item(item, "host")
     assert row["dataset"] == "data/foo"
+
+
+def test_normalize_item_nested_description_and_link():
+    from zyra.connectors.discovery.api_search import _normalize_item
+
+    item = {
+        "name": "DS1",
+        "description": {"title": "A long description object"},
+        "uri": {"path": "http://example.com/ds1"},
+    }
+    row = _normalize_item(item, "host")
+    assert row["dataset"] == "DS1"
+    assert row["description"] == "A long description object"
+    assert row["link"] == "http://example.com/ds1"
