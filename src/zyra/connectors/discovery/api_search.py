@@ -307,7 +307,8 @@ def _extract_name(value: Any) -> str | None:
 
     - ``str`` → returned as-is.
     - ``dict`` → drills into common label-like keys (``name``, ``title``,
-      ``id``, ``path``, ``url``, ``href``, ``uri``, ``link``) and returns
+      ``id``, ``path``, ``label``, ``url``, ``href``, ``uri``, ``link``)
+      and returns
       the first value that is not ``None`` and not the empty string, as a
       string.
     - Other types → converted via ``str()`` as a last resort.
@@ -318,7 +319,17 @@ def _extract_name(value: Any) -> str | None:
     if isinstance(value, str):
         return value
     if isinstance(value, dict):
-        for key in ("name", "title", "id", "path", "url", "href", "uri", "link"):
+        for key in (
+            "name",
+            "title",
+            "id",
+            "path",
+            "label",
+            "url",
+            "href",
+            "uri",
+            "link",
+        ):
             v = value.get(key)
             if v is not None and v != "":
                 return str(v) if not isinstance(v, str) else v

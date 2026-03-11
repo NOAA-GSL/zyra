@@ -412,6 +412,7 @@ def test_extract_name_drills_into_dict():
     assert _extract_name({"path": "data/Synoptic-UAS"}) == "data/Synoptic-UAS"
     assert _extract_name({"title": "My Title"}) == "My Title"
     assert _extract_name({"id": "abc123"}) == "abc123"
+    assert _extract_name({"label": "Atmospheric CO2"}) == "Atmospheric CO2"
     # Non-string values in name-like keys should be stringified
     assert _extract_name({"id": 123}) == "123"
     assert _extract_name({"name": 42}) == "42"
