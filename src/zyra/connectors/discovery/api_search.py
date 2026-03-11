@@ -348,28 +348,29 @@ def _extract_name(value: Any) -> str | None:
     return str(value)
 
 
+def _first_extractable(item: dict[str, Any], keys: tuple[str, ...]) -> str | None:
+    """Return the first non-empty extracted string from *item* candidate keys."""
+    for key in keys:
+        raw = item.get(key)
+        if raw is None:
+            continue
+        result = _extract_name(raw)
+        if result not in (None, ""):
+            return result
+    return None
+
+
 def _normalize_item(item: dict[str, Any], source_host: str) -> dict[str, Any]:
     """Map remote item to unified row schema.
 
     Attempts common fields used by Zyra and similar APIs; uses best-effort
-    heuristics for generic sources.
+    heuristics for generic sources.  Iterates candidate keys for each field
+    so that an unresolvable value (e.g. a nested dict with no known sub-keys)
+    falls through to the next candidate rather than producing an empty string.
     """
-    # Preferred keys (Zyra API shape)
-    name = (
-        item.get("name") or item.get("title") or item.get("dataset") or item.get("id")
-    )
-    desc = item.get("description") or item.get("abstract") or None
-    link = (
-        item.get("uri")
-        or item.get("link")
-        or item.get("href")
-        or item.get("url")
-        or None
-    )
-    # Strings only — drill into dicts when needed
-    name_s = _extract_name(name)
-    desc_s = _extract_name(desc)
-    link_s = _extract_name(link)
+    name_s = _first_extractable(item, ("name", "title", "dataset", "id"))
+    desc_s = _first_extractable(item, ("description", "abstract"))
+    link_s = _first_extractable(item, ("uri", "link", "href", "url"))
     return {
         "source": source_host,
         "dataset": name_s or "",

@@ -488,3 +488,22 @@ def test_extract_name_skips_unresolvable_nested_dict():
     assert _extract_name({"name": {"foo": "bar"}, "title": "Fallback"}) == "Fallback"
     # All keys are unresolvable nested dicts → returns None
     assert _extract_name({"name": {"foo": "bar"}}) is None
+
+
+def test_normalize_item_falls_back_on_unresolvable_field():
+    from zyra.connectors.discovery.api_search import _normalize_item
+
+    # name is unresolvable dict → should fall back to title
+    item = {"name": {"foo": "bar"}, "title": "Fallback Title", "uri": "http://x"}
+    row = _normalize_item(item, "host")
+    assert row["dataset"] == "Fallback Title"
+
+    # uri is unresolvable dict → should fall back to url
+    item2 = {"name": "DS", "uri": {"foo": "bar"}, "url": "http://example.com"}
+    row2 = _normalize_item(item2, "host")
+    assert row2["link"] == "http://example.com"
+
+    # description is unresolvable dict → should fall back to abstract
+    item3 = {"name": "DS", "description": {"foo": "bar"}, "abstract": "A summary"}
+    row3 = _normalize_item(item3, "host")
+    assert row3["description"] == "A summary"
