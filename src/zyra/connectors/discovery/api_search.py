@@ -300,11 +300,14 @@ def _parse_json_body(arg: str | None) -> Any | None:
 
 
 def _extract_name(value: Any) -> str | None:
-    """Extract a human-readable name string from *value*.
+    """Extract a human-readable string from *value*.
+
+    Used to normalize heterogeneous fields (names, descriptions, links)
+    into a single string representation.
 
     - ``str`` → returned as-is.
-    - ``dict`` → drills into common name-like keys (``name``, ``title``,
-      ``id``, ``path``) and returns the first truthy string found.
+    - ``dict`` → drills into common label-like keys (``name``, ``title``,
+      ``id``, ``path``) and returns the first truthy value as a string.
     - Other types → converted via ``str()`` as a last resort.
     - ``None`` → returns ``None``.
     """
@@ -315,8 +318,8 @@ def _extract_name(value: Any) -> str | None:
     if isinstance(value, dict):
         for key in ("name", "title", "id", "path"):
             v = value.get(key)
-            if v is not None and isinstance(v, str) and v:
-                return v
+            if v is not None and v != "":
+                return str(v) if not isinstance(v, str) else v
         # No recognizable sub-key; fall through to str()
     return str(value)
 

@@ -412,6 +412,11 @@ def test_extract_name_drills_into_dict():
     assert _extract_name({"path": "data/Synoptic-UAS"}) == "data/Synoptic-UAS"
     assert _extract_name({"title": "My Title"}) == "My Title"
     assert _extract_name({"id": "abc123"}) == "abc123"
+    # Non-string values in name-like keys should be stringified
+    assert _extract_name({"id": 123}) == "123"
+    assert _extract_name({"name": 42}) == "42"
+    # Nested dict in a name-like key falls through to str() of sub-value
+    assert _extract_name({"name": {"id": "x"}}) == "{'id': 'x'}"
 
 
 def test_normalize_item_nested_dataset_dict():
