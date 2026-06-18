@@ -354,7 +354,10 @@ def _should_download(
             download_url, headers=headers, timeout=timeout
         )
         if remote_size is None:
-            return options.recheck_existing
+            # Size unknown (server omits/blocks Content-Length): keep the local
+            # copy rather than re-downloading every run. Mirrors the FTP
+            # backend, which only re-downloads on a known size mismatch.
+            return False
         threshold = _parse_min_size(options.min_remote_size, local_size)
         if threshold is not None:
             return remote_size >= threshold

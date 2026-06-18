@@ -234,6 +234,30 @@ def test_sync_directory_overwrite(tmp_path, monkeypatch):
     assert len(written) == 1
 
 
+def test_recheck_existing_keeps_local_when_size_unknown(tmp_path, monkeypatch):
+    # When --recheck-existing is set but the server provides no Content-Length,
+    # the local copy must be kept (no re-download), matching the FTP backend.
+    monkeypatch.setattr(thr.http_backend, "get_size", lambda *a, **k: None)
+    fetched: list[str] = []
+
+    def fake_fetch_bytes(url, *, timeout=60, headers=None):
+        fetched.append(url)
+        return b"NEW"
+
+    monkeypatch.setattr(thr.http_backend, "fetch_bytes", fake_fetch_bytes)
+    (tmp_path / "foo_20240102.grib2").write_bytes(b"OLD")
+    written = thr.sync_directory(
+        CATALOG_URL,
+        str(tmp_path),
+        catalog_xml=FLAT_CATALOG,
+        pattern=r"foo_20240102",
+        sync_options=thr.SyncOptions(recheck_existing=True),
+    )
+    assert written == []
+    assert fetched == []
+    assert (tmp_path / "foo_20240102.grib2").read_bytes() == b"OLD"
+
+
 def test_missing_http_server_defaults_base():
     xml = (
         '<catalog xmlns="http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0">'
