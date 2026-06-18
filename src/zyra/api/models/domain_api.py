@@ -180,3 +180,8 @@ class AcquireFtpRun(DomainRunRequest):
 class AcquireApiRun(DomainRunRequest):
     tool: Literal["api"]
     args: da.AcquireApiArgs  # type: ignore[assignment]
+
+
+class AcquireThreddsRun(DomainRunRequest):
+    tool: Literal["thredds"]
+    args: da.AcquireThreddsArgs  # type: ignore[assignment]

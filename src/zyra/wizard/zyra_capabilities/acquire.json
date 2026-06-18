@@ -699,6 +699,150 @@
       "--output-dir"
     ]
   },
+  "acquire thredds": {
+    "description": "Read a THREDDS catalog.xml, map datasets to fileServer download URLs, and list, sync, or fetch matching datasets. Optionally recurse into nested catalogRef entries.",
+    "doc": "Read a THREDDS catalog.xml, map datasets to fileServer download URLs, and list, sync, or fetch matching datasets. Optionally recurse into nested catalogRef entries.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--list",
+          "--sync-dir",
+          "--output-dir",
+          "--recursive",
+          "--max-depth",
+          "--pattern",
+          "--since",
+          "--since-period",
+          "--until",
+          "--date-format",
+          "--header",
+          "--verbose",
+          "--quiet",
+          "--trace",
+          "--overwrite-existing",
+          "--recheck-existing",
+          "--min-remote-size",
+          "--prefer-remote",
+          "--skip-if-local-done"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--list": {
+        "help": "List fileServer download URLs for matching datasets",
+        "type": "bool",
+        "default": false
+      },
+      "--sync-dir": "Sync matching datasets to a local directory",
+      "--output-dir": {
+        "help": "Directory to write outputs when fetching enumerated datasets",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--recursive": {
+        "help": "Follow nested catalogRef entries",
+        "type": "bool",
+        "default": false
+      },
+      "--max-depth": {
+        "help": "Maximum recursion depth for --recursive (default: 3)",
+        "type": "int",
+        "default": 3
+      },
+      "--pattern": "Regex to filter dataset urlPath",
+      "--since": "ISO date filter (matched against dataset name)",
+      "--since-period": "ISO-8601 duration for lookback (e.g., P1Y, P6M, P7D, PT24H)",
+      "--until": "ISO date filter (matched against dataset name)",
+      "--date-format": "Filename date format for filtering (e.g., YYYYMMDD)",
+      "--header": "Add custom HTTP header 'Name: Value' (repeatable)",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      },
+      "--overwrite-existing": {
+        "help": "Replace local files unconditionally",
+        "type": "bool",
+        "default": false
+      },
+      "--recheck-existing": {
+        "help": "Compare sizes via HTTP Content-Length when deciding to re-download",
+        "type": "bool",
+        "default": false
+      },
+      "--min-remote-size": "Threshold for replacement (absolute bytes or relative percentage)",
+      "--prefer-remote": {
+        "help": "Always prioritize remote versions over local copies",
+        "type": "bool",
+        "default": false
+      },
+      "--skip-if-local-done": {
+        "help": "Skip files that have a .done marker file",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "catalog_url",
+        "help": "URL to a THREDDS catalog.xml document",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "acquire",
+    "args_schema": {
+      "required": [
+        "catalog_url"
+      ],
+      "optional": [
+        "date_format",
+        "header",
+        "list_mode",
+        "max_depth",
+        "min_remote_size",
+        "output",
+        "output_dir",
+        "overwrite_existing",
+        "pattern",
+        "prefer_remote",
+        "recheck_existing",
+        "recursive",
+        "since",
+        "since_period",
+        "skip_if_local_done",
+        "sync_dir",
+        "until"
+      ]
+    },
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_thredds"
+    },
+    "returns": "bytes"
+  },
   "acquire vimeo": {
     "description": "Placeholder for fetching Vimeo videos by id. Not implemented yet.",
     "doc": "Placeholder for fetching Vimeo videos by id. Not implemented yet.",
@@ -1406,6 +1550,150 @@
     "side_effects": [
       "--output-dir"
     ]
+  },
+  "import thredds": {
+    "description": "Read a THREDDS catalog.xml, map datasets to fileServer download URLs, and list, sync, or fetch matching datasets. Optionally recurse into nested catalogRef entries.",
+    "doc": "Read a THREDDS catalog.xml, map datasets to fileServer download URLs, and list, sync, or fetch matching datasets. Optionally recurse into nested catalogRef entries.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--list",
+          "--sync-dir",
+          "--output-dir",
+          "--recursive",
+          "--max-depth",
+          "--pattern",
+          "--since",
+          "--since-period",
+          "--until",
+          "--date-format",
+          "--header",
+          "--verbose",
+          "--quiet",
+          "--trace",
+          "--overwrite-existing",
+          "--recheck-existing",
+          "--min-remote-size",
+          "--prefer-remote",
+          "--skip-if-local-done"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--list": {
+        "help": "List fileServer download URLs for matching datasets",
+        "type": "bool",
+        "default": false
+      },
+      "--sync-dir": "Sync matching datasets to a local directory",
+      "--output-dir": {
+        "help": "Directory to write outputs when fetching enumerated datasets",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--recursive": {
+        "help": "Follow nested catalogRef entries",
+        "type": "bool",
+        "default": false
+      },
+      "--max-depth": {
+        "help": "Maximum recursion depth for --recursive (default: 3)",
+        "type": "int",
+        "default": 3
+      },
+      "--pattern": "Regex to filter dataset urlPath",
+      "--since": "ISO date filter (matched against dataset name)",
+      "--since-period": "ISO-8601 duration for lookback (e.g., P1Y, P6M, P7D, PT24H)",
+      "--until": "ISO date filter (matched against dataset name)",
+      "--date-format": "Filename date format for filtering (e.g., YYYYMMDD)",
+      "--header": "Add custom HTTP header 'Name: Value' (repeatable)",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      },
+      "--overwrite-existing": {
+        "help": "Replace local files unconditionally",
+        "type": "bool",
+        "default": false
+      },
+      "--recheck-existing": {
+        "help": "Compare sizes via HTTP Content-Length when deciding to re-download",
+        "type": "bool",
+        "default": false
+      },
+      "--min-remote-size": "Threshold for replacement (absolute bytes or relative percentage)",
+      "--prefer-remote": {
+        "help": "Always prioritize remote versions over local copies",
+        "type": "bool",
+        "default": false
+      },
+      "--skip-if-local-done": {
+        "help": "Skip files that have a .done marker file",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "catalog_url",
+        "help": "URL to a THREDDS catalog.xml document",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "import",
+    "args_schema": {
+      "required": [
+        "catalog_url"
+      ],
+      "optional": [
+        "date_format",
+        "header",
+        "list_mode",
+        "max_depth",
+        "min_remote_size",
+        "output",
+        "output_dir",
+        "overwrite_existing",
+        "pattern",
+        "prefer_remote",
+        "recheck_existing",
+        "recursive",
+        "since",
+        "since_period",
+        "skip_if_local_done",
+        "sync_dir",
+        "until"
+      ]
+    },
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_thredds"
+    },
+    "returns": "bytes"
   },
   "import vimeo": {
     "description": "Placeholder for fetching Vimeo videos by id. Not implemented yet.",
