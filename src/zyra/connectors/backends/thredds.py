@@ -215,7 +215,7 @@ def enumerate_datasets(
 
     results: list[ThreddsDataset] = []
     seen_urls: set[str] = set()
-    seen_paths: set[str] = set()
+    seen_downloads: set[str] = set()
 
     def _walk(url: str, xml: str | None, depth: int) -> None:
         if url in seen_urls:
@@ -234,8 +234,11 @@ def enumerate_datasets(
             logger.warning("Failed to parse THREDDS catalog %s: %s", url, exc)
             return
         for ds in datasets:
-            if ds.url_path not in seen_paths:
-                seen_paths.add(ds.url_path)
+            # De-duplicate on the fully-resolved download URL: recursion across
+            # different hosts or HTTPServer bases can yield distinct datasets
+            # that share a urlPath.
+            if ds.download_url not in seen_downloads:
+                seen_downloads.add(ds.download_url)
                 results.append(ds)
         if recursive and depth < max_depth:
             for ref in refs:

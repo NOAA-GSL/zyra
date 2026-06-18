@@ -136,6 +136,41 @@ def test_recursion_respects_max_depth():
     assert out == ["https://thredds.example.com/thredds/fileServer/root/top.grib2"]
 
 
+def test_recursion_dedups_on_download_url_not_urlpath():
+    # A cross-host catalogRef whose dataset shares the same urlPath as the root
+    # must NOT be dropped: it resolves to a different download URL.
+    root = """<?xml version="1.0" encoding="UTF-8"?>
+<catalog xmlns="http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0"
+         xmlns:xlink="http://www.w3.org/1999/xlink" name="Root">
+  <service name="http" serviceType="HTTPServer" base="/thredds/fileServer/"/>
+  <dataset name="dup.grib2" urlPath="shared/dup.grib2"/>
+  <catalogRef xlink:href="https://other.example.com/thredds/catalog/x/catalog.xml" xlink:title="Other"/>
+</catalog>
+"""
+    other = """<?xml version="1.0" encoding="UTF-8"?>
+<catalog xmlns="http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0"
+         xmlns:xlink="http://www.w3.org/1999/xlink" name="Other">
+  <service name="http" serviceType="HTTPServer" base="/thredds/fileServer/"/>
+  <dataset name="dup.grib2" urlPath="shared/dup.grib2"/>
+</catalog>
+"""
+
+    def fetcher(url: str) -> str:
+        assert url.startswith("https://other.example.com/")
+        return other
+
+    out = thr.list_files(
+        "https://host.example.com/thredds/catalog/root/catalog.xml",
+        catalog_xml=root,
+        recursive=True,
+        fetcher=fetcher,
+    )
+    assert out == [
+        "https://host.example.com/thredds/fileServer/shared/dup.grib2",
+        "https://other.example.com/thredds/fileServer/shared/dup.grib2",
+    ]
+
+
 def test_recursion_skips_non_xml_subcatalog():
     # A server may return an HTML error page / auth redirect for a catalogRef.
     def fetcher(url: str) -> str:
