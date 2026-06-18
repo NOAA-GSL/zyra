@@ -265,6 +265,12 @@ def _build_argv_for_stage(stage: dict[str, Any]) -> list[str]:
                 argv.append(to_flag(k))
         elif v is None:
             continue
+        elif isinstance(v, (list, tuple)):
+            # Expand to a multi-valued flag (argparse nargs), e.g.
+            # ``inputs: [a, b]`` -> ``--inputs a b`` and
+            # ``extent: [-180, 180, -90, 90]`` -> ``--extent -180 180 -90 90``.
+            argv.append(to_flag(k))
+            argv.extend(str(item) for item in v)
         else:
             argv.extend([to_flag(k), str(v)])
 

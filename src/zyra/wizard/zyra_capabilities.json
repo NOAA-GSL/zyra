@@ -2709,6 +2709,8 @@
           "--height",
           "--dpi",
           "--cmap",
+          "--vmin",
+          "--vmax",
           "--colorbar",
           "--label",
           "--units",
@@ -2784,6 +2786,14 @@
         "help": "",
         "type": "str",
         "default": "YlOrBr"
+      },
+      "--vmin": {
+        "help": "Fixed minimum data value for color scaling (use across frame sequences to avoid flicker)",
+        "type": "float"
+      },
+      "--vmax": {
+        "help": "Fixed maximum data value for color scaling (use across frame sequences to avoid flicker)",
+        "type": "float"
       },
       "--colorbar": {
         "help": "",
@@ -4030,6 +4040,130 @@
       "visualization"
     ]
   },
+  "visualize sos": {
+    "description": "Render gridded data as Science On a Sphere (SOS) frames: full-globe, PlateCarree, 2:1, edge-to-edge PNGs. Use a fixed --vmin/--vmax range to keep color scaling identical across a frame sequence (flicker-free). Supports single (--input/--output) and batch (--inputs/--output-dir) modes.",
+    "doc": "Render gridded data as Science On a Sphere (SOS) frames: full-globe, PlateCarree, 2:1, edge-to-edge PNGs. Use a fixed --vmin/--vmax range to keep color scaling identical across a frame sequence (flicker-free). Supports single (--input/--output) and batch (--inputs/--output-dir) modes.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--inputs",
+          "--var",
+          "--output",
+          "--output-dir",
+          "--basemap",
+          "--extent",
+          "--width",
+          "--height",
+          "--dpi",
+          "--cmap",
+          "--vmin",
+          "--vmax",
+          "--flip",
+          "--xarray-engine",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Path to .nc or .npy input",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "Multiple input paths for batch rendering",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--var": "Variable name for NetCDF inputs",
+      "--output": {
+        "help": "Output PNG path (required when using --input)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs (required when using --inputs)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--basemap": "Optional basemap (path, bare image name, or pkg:ref) drawn under the data",
+      "--extent": {
+        "help": "west east south north (default: global -180 180 -90 90)",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
+      },
+      "--width": {
+        "help": "Output width (px)",
+        "type": "int",
+        "default": 4096
+      },
+      "--height": {
+        "help": "Output height (px)",
+        "type": "int",
+        "default": 2048
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--cmap": {
+        "help": "Colormap name",
+        "type": "str",
+        "default": "YlOrBr"
+      },
+      "--vmin": {
+        "help": "Fixed minimum data value for color scaling (recommended for sequences)",
+        "type": "float"
+      },
+      "--vmax": {
+        "help": "Fixed maximum data value for color scaling (recommended for sequences)",
+        "type": "float"
+      },
+      "--flip": {
+        "help": "Flip data vertically before rendering (for north-up grids)",
+        "type": "bool",
+        "default": false
+      },
+      "--xarray-engine": "xarray engine for NetCDF inputs (e.g., netcdf4, h5netcdf, scipy)",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "visualize",
+    "args_schema": null,
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_sos",
+      "callable": "handle_sos"
+    },
+    "returns": "path"
+  },
   "render heatmap": {
     "description": "zyra render heatmap",
     "doc": "",
@@ -4050,6 +4184,8 @@
           "--height",
           "--dpi",
           "--cmap",
+          "--vmin",
+          "--vmax",
           "--colorbar",
           "--label",
           "--units",
@@ -4125,6 +4261,14 @@
         "help": "",
         "type": "str",
         "default": "YlOrBr"
+      },
+      "--vmin": {
+        "help": "Fixed minimum data value for color scaling (use across frame sequences to avoid flicker)",
+        "type": "float"
+      },
+      "--vmax": {
+        "help": "Fixed maximum data value for color scaling (use across frame sequences to avoid flicker)",
+        "type": "float"
       },
       "--colorbar": {
         "help": "",
@@ -5210,6 +5354,130 @@
     "extras": [
       "visualization"
     ]
+  },
+  "render sos": {
+    "description": "Render gridded data as Science On a Sphere (SOS) frames: full-globe, PlateCarree, 2:1, edge-to-edge PNGs. Use a fixed --vmin/--vmax range to keep color scaling identical across a frame sequence (flicker-free). Supports single (--input/--output) and batch (--inputs/--output-dir) modes.",
+    "doc": "Render gridded data as Science On a Sphere (SOS) frames: full-globe, PlateCarree, 2:1, edge-to-edge PNGs. Use a fixed --vmin/--vmax range to keep color scaling identical across a frame sequence (flicker-free). Supports single (--input/--output) and batch (--inputs/--output-dir) modes.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--inputs",
+          "--var",
+          "--output",
+          "--output-dir",
+          "--basemap",
+          "--extent",
+          "--width",
+          "--height",
+          "--dpi",
+          "--cmap",
+          "--vmin",
+          "--vmax",
+          "--flip",
+          "--xarray-engine",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Path to .nc or .npy input",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "Multiple input paths for batch rendering",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--var": "Variable name for NetCDF inputs",
+      "--output": {
+        "help": "Output PNG path (required when using --input)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs (required when using --inputs)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--basemap": "Optional basemap (path, bare image name, or pkg:ref) drawn under the data",
+      "--extent": {
+        "help": "west east south north (default: global -180 180 -90 90)",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
+      },
+      "--width": {
+        "help": "Output width (px)",
+        "type": "int",
+        "default": 4096
+      },
+      "--height": {
+        "help": "Output height (px)",
+        "type": "int",
+        "default": 2048
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--cmap": {
+        "help": "Colormap name",
+        "type": "str",
+        "default": "YlOrBr"
+      },
+      "--vmin": {
+        "help": "Fixed minimum data value for color scaling (recommended for sequences)",
+        "type": "float"
+      },
+      "--vmax": {
+        "help": "Fixed maximum data value for color scaling (recommended for sequences)",
+        "type": "float"
+      },
+      "--flip": {
+        "help": "Flip data vertically before rendering (for north-up grids)",
+        "type": "bool",
+        "default": false
+      },
+      "--xarray-engine": "xarray engine for NetCDF inputs (e.g., netcdf4, h5netcdf, scipy)",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "render",
+    "args_schema": null,
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_sos",
+      "callable": "handle_sos"
+    },
+    "returns": "path"
   },
   "disseminate local": {
     "description": "Write stdin or an input file to a local destination path, creating parent directories as needed.",

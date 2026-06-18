@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Render Science On a Sphere (SOS) frames from a sequence of gridded NetCDF
+# files (e.g., FV3-Chem output) and compose them into an MP4.
+#
+# Key points for production-quality SOS animations:
+#   * SOS frames are full-globe, PlateCarree, 2:1, edge-to-edge images.
+#   * A FIXED color range (vmin/vmax) keeps the color scaling identical across
+#     every frame, which avoids the flicker caused by per-frame self-scaling.
+#
+# Replace <VAR>, the input paths, and vmin/vmax with values appropriate for
+# your dataset.
+name: "sos: FV3-Chem frames"
+stages:
+  # 1) Render each NetCDF timestep to a 2:1 SOS frame with a fixed color scale.
+  - stage: visualize
+    command: sos
+    args:
+      inputs:
+        - /data/fv3chem/t000.nc
+        - /data/fv3chem/t001.nc
+        - /data/fv3chem/t002.nc
+      output_dir: /data/fv3chem/frames
+      var: <VAR>
+      cmap: YlOrBr
+      width: 4096
+      height: 2048
+      # Fixed range -> consistent colors across frames (no flicker)
+      vmin: 0
+      vmax: 50
+
+  # 2) Compose the rendered frames into an MP4.
+  - stage: visualize
+    command: compose-video
+    args:
+      frames: /data/fv3chem/frames
+      output: /data/output/fv3chem_sos.mp4
+      fps: 24

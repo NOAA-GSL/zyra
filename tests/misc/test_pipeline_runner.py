@@ -13,6 +13,29 @@ def _run_cli(args, input_bytes: bytes | None = None):
     return subprocess.run(cmd, input=input_bytes, capture_output=True)
 
 
+def test_build_argv_expands_list_values():
+    from zyra.pipeline_runner import _build_argv_for_stage
+
+    stage = {
+        "stage": "visualize",
+        "command": "sos",
+        "args": {
+            "inputs": ["/d/a.nc", "/d/b.nc"],
+            "output_dir": "/d/frames",
+            "extent": [-180, 180, -90, 90],
+            "vmin": 0,
+            "vmax": 50,
+        },
+    }
+    argv = _build_argv_for_stage(stage)
+    # nargs flags expand to multiple tokens (not a stringified list)
+    i = argv.index("--inputs")
+    assert argv[i + 1 : i + 3] == ["/d/a.nc", "/d/b.nc"]
+    j = argv.index("--extent")
+    assert argv[j + 1 : j + 5] == ["-180", "180", "-90", "90"]
+    assert "--output-dir" in argv and "/d/frames" in argv
+
+
 @pytest.mark.pipeline
 def test_run_process_convert_format_passthrough(tmp_path: Path):
     # Pipeline: processing convert-format - netcdf --stdout; stdin is demo.nc

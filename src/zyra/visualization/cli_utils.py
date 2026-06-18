@@ -12,6 +12,57 @@ except Exception:  # pragma: no cover - fallback for very old Python
 from zyra.visualization.styles import MAP_STYLES
 
 
+def load_data_array(
+    input_path: str,
+    *,
+    var: str | None = None,
+    xarray_engine: str | None = None,
+):
+    """Load a 2D array from a ``.nc``/``.nc4`` or ``.npy`` file.
+
+    Parameters
+    ----------
+    input_path : str
+        Path to a NetCDF (``.nc``/``.nc4``) or NumPy (``.npy``) file.
+    var : str, optional
+        Variable name to extract; required for NetCDF inputs.
+    xarray_engine : str, optional
+        Engine passed to :func:`xarray.open_dataset` (e.g., ``netcdf4``,
+        ``h5netcdf``, ``scipy``).
+
+    Returns
+    -------
+    numpy.ndarray
+        The loaded array.
+
+    Raises
+    ------
+    ValueError
+        If ``var`` is missing for NetCDF inputs, or the file type is
+        unsupported.
+    """
+    lower = str(input_path).lower()
+    if lower.endswith((".nc", ".nc4")):
+        if not var:
+            raise ValueError("--var is required when reading from NetCDF")
+        import xarray as xr
+
+        ds = (
+            xr.open_dataset(input_path, engine=xarray_engine)
+            if xarray_engine
+            else xr.open_dataset(input_path)
+        )
+        try:
+            return ds[var].values
+        finally:
+            ds.close()
+    if lower.endswith(".npy"):
+        import numpy as np
+
+        return np.load(input_path)
+    raise ValueError("Unsupported input file; use .nc, .nc4, or .npy")
+
+
 def features_from_ns(ns) -> list[str] | None:
     """Build a features list from argparse namespace flags.
 
