@@ -746,7 +746,7 @@
       },
       "--sync-dir": "Sync matching datasets to a local directory",
       "--output-dir": {
-        "help": "Directory to write outputs when fetching enumerated datasets",
+        "help": "Directory to write outputs when fetching enumerated datasets. Files are named by dataset basename, so datasets sharing a basename across catalog folders/hosts overwrite each other (as with s3/ftp).",
         "path_arg": true,
         "type": "path"
       },
@@ -1598,7 +1598,7 @@
       },
       "--sync-dir": "Sync matching datasets to a local directory",
       "--output-dir": {
-        "help": "Directory to write outputs when fetching enumerated datasets",
+        "help": "Directory to write outputs when fetching enumerated datasets. Files are named by dataset basename, so datasets sharing a basename across catalog folders/hosts overwrite each other (as with s3/ftp).",
         "path_arg": true,
         "type": "path"
       },

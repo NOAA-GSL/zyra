@@ -109,12 +109,24 @@ def _server_root(catalog_url: str) -> str:
 
 
 def _build_download_url(catalog_url: str, base: str, url_path: str) -> str:
-    """Build an absolute fileServer download URL from a dataset ``urlPath``."""
-    root = _server_root(catalog_url)
-    base_path = base if base.startswith("/") else "/" + base
-    if not base_path.endswith("/"):
-        base_path += "/"
-    return f"{root}{base_path}{url_path.lstrip('/')}"
+    """Build an absolute fileServer download URL from a dataset ``urlPath``.
+
+    ``base`` is the HTTPServer service base declared by the catalog. It may be
+    relative (e.g. ``/thredds/fileServer/``), in which case it is resolved
+    against the catalog's ``scheme://netloc``; or absolute (e.g.
+    ``https://other.example/thredds/fileServer/``), in which case it is used as
+    the root directly so the download points at the declared host.
+    """
+    base_parsed = urlparse(base)
+    if base_parsed.scheme and base_parsed.netloc:
+        base_url = base
+    else:
+        # Relative service base: resolve against the catalog host.
+        rel = base if base.startswith("/") else "/" + base
+        base_url = urljoin(_server_root(catalog_url), rel)
+    if not base_url.endswith("/"):
+        base_url += "/"
+    return urljoin(base_url, url_path.lstrip("/"))
 
 
 def _dataset_date(el: ET.Element) -> str | None:
@@ -368,6 +380,10 @@ def sync_directory(
 
     Returns the list of local file paths that were downloaded (skipped files are
     not included). Files are named by the dataset ``urlPath`` basename.
+
+    Note: like the s3/ftp backends, local files are named by basename only, so
+    datasets that share a basename across different catalog folders (or hosts,
+    when ``recursive``) will collide and overwrite one another in ``local_dir``.
     """
     options = sync_options or SyncOptions()
     datasets = enumerate_datasets(

@@ -46,6 +46,25 @@ SUB_CATALOG = """<?xml version="1.0" encoding="UTF-8"?>
 """
 
 
+def test_absolute_http_server_base_points_at_declared_host():
+    # A catalog whose HTTPServer service declares an absolute base must yield
+    # download URLs on that host, not the catalog's host.
+    xml = (
+        '<catalog xmlns="http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0">'
+        '<service name="http" serviceType="HTTPServer" '
+        'base="https://files.example.org/thredds/fileServer/"/>'
+        '<dataset name="x.grib2" urlPath="a/x.grib2"/>'
+        "</catalog>"
+    )
+    datasets, _ = thr.parse_catalog(xml, CATALOG_URL)
+    assert (
+        datasets[0].download_url
+        == "https://files.example.org/thredds/fileServer/a/x.grib2"
+    )
+    # Sanity: it did not get rooted at the catalog host.
+    assert "thredds.example.com" not in datasets[0].download_url
+
+
 def test_parse_catalog_builds_fileserver_urls():
     datasets, refs = thr.parse_catalog(FLAT_CATALOG, CATALOG_URL)
     assert refs == []

@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import os
+from pathlib import Path
 from typing import Any
 
 from zyra.cli_common import add_output_option
@@ -21,6 +23,8 @@ from zyra.connectors.credentials import (
 from zyra.utils.cli_helpers import configure_logging_from_env
 from zyra.utils.date_manager import DateManager
 from zyra.utils.io_utils import open_output
+
+logger = logging.getLogger(__name__)
 
 
 def _sanitize_headers_for_validation(values: dict[str, str]) -> dict[str, str]:
@@ -341,6 +345,24 @@ def _cmd_thredds(ns: argparse.Namespace) -> int:
         headers=headers or None,
     )
 
+    # Mode precedence is --list > --sync-dir > fetch. Warn (don't error, to stay
+    # consistent with the other acquire subcommands) when more than one is set.
+    selected = [
+        flag
+        for flag, on in (
+            ("--list", bool(getattr(ns, "list", False))),
+            ("--sync-dir", bool(getattr(ns, "sync_dir", None))),
+            ("--output-dir", bool(getattr(ns, "output_dir", None))),
+        )
+        if on
+    ]
+    if len(selected) > 1:
+        logger.warning(
+            "Multiple THREDDS modes specified (%s); running %s and ignoring the rest",
+            ", ".join(selected),
+            selected[0],
+        )
+
     # Listing mode
     if getattr(ns, "list", False):
         for url in thredds_backend.list_files(ns.catalog_url, **common):
@@ -362,8 +384,6 @@ def _cmd_thredds(ns: argparse.Namespace) -> int:
         return 0
 
     # Fetch enumerated datasets.
-    from pathlib import Path
-
     urls = thredds_backend.list_files(ns.catalog_url, **common)
     # Multi-file fetch requires an explicit output directory.
     if getattr(ns, "output_dir", None):
@@ -1212,7 +1232,11 @@ def register_cli(acq_subparsers: Any) -> None:
     p_thr.add_argument(
         "--output-dir",
         dest="output_dir",
-        help="Directory to write outputs when fetching enumerated datasets",
+        help=(
+            "Directory to write outputs when fetching enumerated datasets. "
+            "Files are named by dataset basename, so datasets sharing a basename "
+            "across catalog folders/hosts overwrite each other (as with s3/ftp)."
+        ),
     )
     p_thr.add_argument(
         "--recursive",
