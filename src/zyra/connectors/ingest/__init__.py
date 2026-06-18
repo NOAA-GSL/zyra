@@ -9,6 +9,7 @@ from zyra.cli_common import add_output_option
 from zyra.connectors.backends import ftp as ftp_backend
 from zyra.connectors.backends import http as http_backend
 from zyra.connectors.backends import s3 as s3_backend
+from zyra.connectors.backends import thredds as thredds_backend
 from zyra.connectors.credentials import (
     CredentialResolutionError,
     apply_auth_header,
@@ -307,6 +308,82 @@ def _cmd_ftp(ns: argparse.Namespace) -> int:
                 f.write(data)
         return 0
     data = ftp_backend.fetch_bytes(ns.path, username=username, password=password)
+    with open_output(ns.output) as f:
+        f.write(data)
+    return 0
+
+
+def _cmd_thredds(ns: argparse.Namespace) -> int:
+    """Acquire data from a THREDDS catalog (enumerate + fileServer fetch)."""
+    if getattr(ns, "verbose", False):
+        os.environ["ZYRA_VERBOSITY"] = "debug"
+    elif getattr(ns, "quiet", False):
+        os.environ["ZYRA_VERBOSITY"] = "quiet"
+    if getattr(ns, "trace", False):
+        os.environ["ZYRA_SHELL_TRACE"] = "1"
+    configure_logging_from_env()
+    headers = parse_header_strings(getattr(ns, "header", None))
+
+    def _since() -> str | None:
+        sp = getattr(ns, "since_period", None)
+        s = getattr(ns, "since", None)
+        if sp and not s:
+            return DateManager().get_date_range_iso(sp)[0].isoformat()
+        return s
+
+    common = dict(
+        recursive=getattr(ns, "recursive", False),
+        max_depth=int(getattr(ns, "max_depth", thredds_backend.DEFAULT_MAX_DEPTH)),
+        pattern=getattr(ns, "pattern", None),
+        since=_since(),
+        until=getattr(ns, "until", None),
+        date_format=getattr(ns, "date_format", None),
+        headers=headers or None,
+    )
+
+    # Listing mode
+    if getattr(ns, "list", False):
+        for url in thredds_backend.list_files(ns.catalog_url, **common):
+            print(url)
+        return 0
+
+    # Sync mode
+    if getattr(ns, "sync_dir", None):
+        sync_opts = thredds_backend.SyncOptions(
+            overwrite_existing=getattr(ns, "overwrite_existing", False),
+            recheck_existing=getattr(ns, "recheck_existing", False),
+            min_remote_size=getattr(ns, "min_remote_size", None),
+            prefer_remote=getattr(ns, "prefer_remote", False),
+            skip_if_local_done=getattr(ns, "skip_if_local_done", False),
+        )
+        thredds_backend.sync_directory(
+            ns.catalog_url, ns.sync_dir, sync_options=sync_opts, **common
+        )
+        return 0
+
+    # Fetch enumerated datasets.
+    from pathlib import Path
+
+    urls = thredds_backend.list_files(ns.catalog_url, **common)
+    # Multi-file fetch requires an explicit output directory.
+    if getattr(ns, "output_dir", None):
+        outdir = Path(ns.output_dir)
+        outdir.mkdir(parents=True, exist_ok=True)
+        for u in urls:
+            data = thredds_backend.fetch_bytes(u, headers=headers or None)
+            name = Path(u).name or "download.bin"
+            with (outdir / name).open("wb") as f:
+                f.write(data)
+        return 0
+    # Otherwise write a single match to --output (default stdout).
+    if not urls:
+        raise SystemExit("No datasets matched the THREDDS catalog query")
+    if len(urls) > 1:
+        raise SystemExit(
+            f"{len(urls)} datasets matched; use --output-dir to fetch multiple, "
+            "--list to enumerate, or narrow with --pattern/--since"
+        )
+    data = thredds_backend.fetch_bytes(urls[0], headers=headers or None)
     with open_output(ns.output) as f:
         f.write(data)
     return 0
@@ -1109,6 +1186,109 @@ def register_cli(acq_subparsers: Any) -> None:
         help="Path to frames-meta.json for metadata-aware sync operations",
     )
     p_ftp.set_defaults(func=_cmd_ftp)
+
+    # thredds (THREDDS Data Server catalogs)
+    p_thr = acq_subparsers.add_parser(
+        "thredds",
+        help="Enumerate and fetch from THREDDS catalogs",
+        description=(
+            "Read a THREDDS catalog.xml, map datasets to fileServer download URLs, "
+            "and list, sync, or fetch matching datasets. Optionally recurse into "
+            "nested catalogRef entries."
+        ),
+    )
+    p_thr.add_argument("catalog_url", help="URL to a THREDDS catalog.xml document")
+    add_output_option(p_thr)
+    p_thr.add_argument(
+        "--list",
+        action="store_true",
+        help="List fileServer download URLs for matching datasets",
+    )
+    p_thr.add_argument(
+        "--sync-dir",
+        dest="sync_dir",
+        help="Sync matching datasets to a local directory",
+    )
+    p_thr.add_argument(
+        "--output-dir",
+        dest="output_dir",
+        help="Directory to write outputs when fetching enumerated datasets",
+    )
+    p_thr.add_argument(
+        "--recursive",
+        action="store_true",
+        help="Follow nested catalogRef entries",
+    )
+    p_thr.add_argument(
+        "--max-depth",
+        dest="max_depth",
+        type=int,
+        default=thredds_backend.DEFAULT_MAX_DEPTH,
+        help="Maximum recursion depth for --recursive (default: 3)",
+    )
+    p_thr.add_argument("--pattern", help="Regex to filter dataset urlPath")
+    p_thr.add_argument("--since", help="ISO date filter (matched against dataset name)")
+    p_thr.add_argument(
+        "--since-period",
+        dest="since_period",
+        help="ISO-8601 duration for lookback (e.g., P1Y, P6M, P7D, PT24H)",
+    )
+    p_thr.add_argument("--until", help="ISO date filter (matched against dataset name)")
+    p_thr.add_argument(
+        "--date-format",
+        dest="date_format",
+        help=(
+            "strftime tokens for parsing dates in dataset names (e.g., %%Y%%m%%d). "
+            "Aliases like 'YYYYMMDD' are not supported."
+        ),
+    )
+    p_thr.add_argument(
+        "--header",
+        action="append",
+        help="Add custom HTTP header 'Name: Value' (repeatable)",
+    )
+    p_thr.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_thr.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
+    p_thr.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
+    # Sync mode replacement options (subset meaningful over HTTP)
+    p_thr.add_argument(
+        "--overwrite-existing",
+        dest="overwrite_existing",
+        action="store_true",
+        help="Replace local files unconditionally",
+    )
+    p_thr.add_argument(
+        "--recheck-existing",
+        dest="recheck_existing",
+        action="store_true",
+        help="Compare sizes via HTTP Content-Length when deciding to re-download",
+    )
+    p_thr.add_argument(
+        "--min-remote-size",
+        dest="min_remote_size",
+        help="Threshold for replacement (absolute bytes or relative percentage)",
+    )
+    p_thr.add_argument(
+        "--prefer-remote",
+        dest="prefer_remote",
+        action="store_true",
+        help="Always prioritize remote versions over local copies",
+    )
+    p_thr.add_argument(
+        "--skip-if-local-done",
+        dest="skip_if_local_done",
+        action="store_true",
+        help="Skip files that have a .done marker file",
+    )
+    p_thr.set_defaults(func=_cmd_thredds)
 
     # vimeo (placeholder)
     p_vimeo = acq_subparsers.add_parser(

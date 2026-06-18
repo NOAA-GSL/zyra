@@ -4,6 +4,7 @@ Commands
 - `zyra acquire http` — Download via HTTP(S), list/filter directory pages, batch with `--inputs/--manifest`.
 - `zyra acquire s3` — Download from S3 by URL (`s3://bucket/key`) or bucket/key.
 - `zyra acquire ftp` — Fetch from FTP (single path or list/sync directories).
+- `zyra acquire thredds` — Enumerate a THREDDS catalog and fetch datasets via the fileServer service.
 - `zyra acquire vimeo` — Placeholder for Vimeo fetch by id (not implemented).
 - `zyra acquire api` — Generic REST API fetch (headers/params/body, pagination, streaming).
 
@@ -22,6 +23,16 @@ FTP
 - Fetch: `zyra acquire ftp ftp://host/path/file.bin -o out.bin`
 - List/sync directory: `zyra acquire ftp ftp://host/path/ --list` or `--sync-dir local_dir`
 - Credentials: `--user demo --credential password=$FTP_PASS` (aliases for `--credential user=...` / `password=...`) apply to fetch, list, and sync operations without embedding secrets in the URL.
+
+THREDDS
+- Reads a THREDDS Data Server `catalog.xml`, maps each dataset's `urlPath` to its `HTTPServer` (fileServer) download URL, and lists, syncs, or batch-fetches matches.
+- List URLs: `zyra acquire thredds https://host/thredds/catalog/foo/catalog.xml --list --pattern '\\.grib2$'`
+- Sync to a frames dir (self-updating; skips existing non-empty files): `zyra acquire thredds https://host/thredds/catalog/foo/catalog.xml --sync-dir ./frames --pattern '\\.grib2$' --since-period P1D`
+- Batch fetch: add `--output-dir downloads/` (without `--list`/`--sync-dir`) to download all matching datasets.
+- Nested catalogs: `--recursive` follows `catalogRef` entries up to `--max-depth` (default 3).
+- Filtering mirrors the other connectors: `--pattern` (regex on `urlPath`), `--since/--until/--since-period`, and `--date-format` (strftime tokens, e.g. `%Y%m%d`) matched against the dataset filename.
+- Sync replacement options: `--overwrite-existing`, `--recheck-existing` (size compare via HTTP `Content-Length`), `--min-remote-size`, `--prefer-remote`, `--skip-if-local-done`.
+- Example (GSL FV3-Chem GRIB2): `zyra acquire thredds https://gsl.noaa.gov/thredds/catalog/fv3-chem-0p25deg-grib2/catalog.xml --sync-dir ./frames --pattern '\\.grib2$' --since-period P1D`
 
 Credential helper (all connectors opting in)
 - `--credential field=value` (repeatable) resolves secrets via literals, `$ENV`, or `@KEY` (using `CredentialManager` / dotenv). Common slots: `token`, `user`, `password`, and `header.<Name>`.
