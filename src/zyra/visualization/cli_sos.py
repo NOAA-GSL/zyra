@@ -91,16 +91,25 @@ def handle_sos(ns) -> int:
         outdir_p = Path(outdir)
         outdir_p.mkdir(parents=True, exist_ok=True)
         outputs: list[str] = []
+        failures: list[str] = []
         for src in ns.inputs:
             dest = outdir_p / f"{Path(str(src)).stem}.png"
             out = _render_one(ns, src, str(dest))
             if out:
                 logging.info(out)
                 outputs.append(out)
+            else:
+                failures.append(str(src))
         try:
             print(json.dumps({"outputs": outputs}))
         except Exception:
             pass
+        # Surface render failures as a non-zero exit so that `zyra run`
+        # pipelines do not treat a failed/empty render as success.
+        if failures:
+            raise SystemExit(
+                f"Failed to render {len(failures)} SOS frame(s): {', '.join(failures)}"
+            )
         return 0
 
     # Single input mode
@@ -109,8 +118,9 @@ def handle_sos(ns) -> int:
     if not getattr(ns, "output", None):
         raise SystemExit("--output is required when using --input")
     out = _render_one(ns, ns.input, ns.output)
-    if out:
-        logging.info(out)
+    if not out:
+        raise SystemExit(f"Failed to render SOS frame from {ns.input}")
+    logging.info(out)
     return 0
 
 

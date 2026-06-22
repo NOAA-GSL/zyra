@@ -59,6 +59,31 @@ def test_sos_requires_output_dir_for_batch():
         handle_sos(ns)
 
 
+def test_sos_single_render_failure_exits_nonzero(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from zyra.visualization import cli_sos
+
+    # Simulate a render failure (PlotManager returns None -> sos_plot_data None).
+    monkeypatch.setattr(cli_sos, "_render_one", lambda ns, src, dest: None)
+    ns = SimpleNamespace(inputs=None, input="a.npy", output=str(tmp_path / "o.png"))
+    with pytest.raises(SystemExit):
+        cli_sos.handle_sos(ns)
+
+
+def test_sos_batch_render_failure_exits_nonzero(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from zyra.visualization import cli_sos
+
+    monkeypatch.setattr(cli_sos, "_render_one", lambda ns, src, dest: None)
+    ns = SimpleNamespace(
+        inputs=["a.npy", "b.npy"], input=None, output_dir=str(tmp_path / "frames")
+    )
+    with pytest.raises(SystemExit):
+        cli_sos.handle_sos(ns)
+
+
 def test_load_data_array_npy_roundtrip():
     from zyra.visualization.cli_utils import load_data_array
 
@@ -169,31 +194,45 @@ def test_sos_fixed_color_scale_is_consistent_across_frames(tmp_path):
     Without fixed scaling, two arrays with different ranges self-scale and the
     same physical value renders with different colors (the flicker source).
     """
+    from PIL import Image
+
     from zyra.visualization.plot_manager import PlotManager
 
-    # Two frames whose ranges differ; both contain the constant value 25.
+    # Two frames that share a large constant mid-value (25) but have different
+    # overall ranges: A spans [0, 25] and B spans [25, 50]. A single corner cell
+    # (far from the image center) sets each frame's min/max so that per-frame
+    # self-scaling would map the shared value 25 to *different* colors.
     frame_a = np.full((32, 64), 25.0)
+    frame_a[0, 0] = 0.0  # range [0, 25] -> 25 is the max
     frame_b = np.full((32, 64), 25.0)
+    frame_b[0, 0] = 50.0  # range [25, 50] -> 25 is the min
 
-    out_a = tmp_path / "a.png"
-    out_b = tmp_path / "b.png"
-
-    for arr, out in ((frame_a, out_a), (frame_b, out_b)):
+    def _render(arr, name, **kw):
         pm = PlotManager(image_extent=[-180, 180, -90, 90])
         pm.sos_plot_data(
             arr,
             custom_cmap="YlOrBr",
-            output_path=str(out),
+            output_path=str(tmp_path / name),
             width=256,
             height=128,
-            vmin=0.0,
-            vmax=50.0,
+            **kw,
         )
+        return np.asarray(Image.open(tmp_path / name).convert("RGB"))
 
-    from PIL import Image
+    def _center(img):
+        # Sample the image center (lon=0, lat=0), far from the corner cell, so
+        # the region is uniformly the shared value 25 in both frames.
+        h, w = img.shape[:2]
+        return img[int(h * 0.4) : int(h * 0.6), int(w * 0.4) : int(w * 0.6)]
 
-    a = np.asarray(Image.open(out_a).convert("RGB"))
-    b = np.asarray(Image.open(out_b).convert("RGB"))
-    assert a.shape == b.shape
-    # Identical inputs + identical fixed scale -> pixel-identical output.
-    assert np.array_equal(a, b)
+    # Fixed scale: the shared value 25 maps to the same color in both frames.
+    a_fixed = _center(_render(frame_a, "a_fixed.png", vmin=0.0, vmax=50.0))
+    b_fixed = _center(_render(frame_b, "b_fixed.png", vmin=0.0, vmax=50.0))
+    assert np.array_equal(a_fixed, b_fixed)
+
+    # Teeth: without fixed scale, per-frame self-scaling maps 25 differently,
+    # so the same center region renders with different colors. This guards
+    # against the test passing if vmin/vmax were ignored.
+    a_self = _center(_render(frame_a, "a_self.png"))
+    b_self = _center(_render(frame_b, "b_self.png"))
+    assert not np.array_equal(a_self, b_self)
