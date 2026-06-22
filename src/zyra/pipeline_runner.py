@@ -269,6 +269,10 @@ def _build_argv_for_stage(stage: dict[str, Any]) -> list[str]:
             # Expand to a multi-valued flag (argparse nargs), e.g.
             # ``inputs: [a, b]`` -> ``--inputs a b`` and
             # ``extent: [-180, 180, -90, 90]`` -> ``--extent -180 180 -90 90``.
+            # Skip empty sequences: emitting a bare ``--inputs`` with no values
+            # is a hard parse error for ``nargs='+'`` options.
+            if not v:
+                continue
             argv.append(to_flag(k))
             argv.extend(str(item) for item in v)
         else:
