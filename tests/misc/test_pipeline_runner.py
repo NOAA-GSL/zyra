@@ -36,6 +36,20 @@ def test_build_argv_expands_list_values():
     assert "--output-dir" in argv and "/d/frames" in argv
 
 
+def test_build_argv_omits_empty_list_values():
+    from zyra.pipeline_runner import _build_argv_for_stage
+
+    stage = {
+        "stage": "visualize",
+        "command": "sos",
+        "args": {"inputs": [], "output_dir": "/d/frames"},
+    }
+    argv = _build_argv_for_stage(stage)
+    # An empty nargs sequence must not emit a bare ``--inputs`` flag.
+    assert "--inputs" not in argv
+    assert "--output-dir" in argv and "/d/frames" in argv
+
+
 @pytest.mark.pipeline
 def test_run_process_convert_format_passthrough(tmp_path: Path):
     # Pipeline: processing convert-format - netcdf --stdout; stdin is demo.nc
