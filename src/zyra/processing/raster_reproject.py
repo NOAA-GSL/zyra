@@ -156,19 +156,22 @@ def reproject_raster(
             )
 
         band_count = src.count
-        src_data = src.read()
-
-    dst_data = np.zeros((band_count, height, width), dtype=src_data.dtype)
-    for band in range(band_count):
-        rio_reproject(
-            source=src_data[band],
-            destination=dst_data[band],
-            src_transform=src_transform,
-            src_crs=src_crs,
-            dst_transform=dst_transform,
-            dst_crs=dst_crs,
-            resampling=resampling_enum,
-        )
+        # Read one band at a time instead of src.read() up front: the
+        # full-source array would double peak memory for large rasters.
+        # (Array sources rather than rasterio.band() so the explicit
+        # src_transform override works for plain images without a
+        # geotransform.)
+        dst_data = np.zeros((band_count, height, width), dtype=src.dtypes[0])
+        for band in range(band_count):
+            rio_reproject(
+                source=src.read(band + 1),
+                destination=dst_data[band],
+                src_transform=src_transform,
+                src_crs=src_crs,
+                dst_transform=dst_transform,
+                dst_crs=dst_crs,
+                resampling=resampling_enum,
+            )
 
     driver = _driver_for_path(output_path)
     profile = {
