@@ -63,12 +63,16 @@ def test_default_is_none_not_mutated(cmd):
     assert ns.extent is None
 
 
-def test_resolve_extent_defaults_and_validates():
+def test_resolve_extent_defaults_and_validates(caplog):
     assert resolve_extent(SimpleNamespace(extent=None)) == list(DEFAULT_EXTENT)
     assert resolve_extent(SimpleNamespace()) == list(DEFAULT_EXTENT)
     assert resolve_extent(SimpleNamespace(extent=[1, 2, 3, 4])) == [1.0, 2.0, 3.0, 4.0]
-    with pytest.raises(SystemExit, match="exactly 4 values"):
+    # The exit code must be numeric — the Domain API executor coerces
+    # SystemExit.code with int(), so a message string would crash it.
+    with caplog.at_level("ERROR"), pytest.raises(SystemExit) as excinfo:
         resolve_extent(SimpleNamespace(extent=[1.0, 2.0, 3.0]))
+    assert excinfo.value.code == 2
+    assert "exactly 4 values" in caplog.text
 
 
 def test_api_argv_round_trips_extent():

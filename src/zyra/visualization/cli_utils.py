@@ -9,7 +9,7 @@ try:  # Prefer standard library importlib.resources
 except Exception:  # pragma: no cover - fallback for very old Python
     import importlib_resources  # type: ignore
 
-from zyra.visualization.styles import MAP_STYLES
+from zyra.visualization.styles import DEFAULT_EXTENT, MAP_STYLES
 
 
 def load_data_array(
@@ -63,10 +63,6 @@ def load_data_array(
     raise ValueError("Unsupported input file; use .nc, .nc4, or .npy")
 
 
-#: Full-globe default for ``--extent`` (west, east, south, north).
-DEFAULT_EXTENT = (-180.0, 180.0, -90.0, 90.0)
-
-
 def resolve_extent(ns) -> list[float]:
     """Validate and default the ``--extent`` value on a parsed namespace.
 
@@ -74,13 +70,21 @@ def resolve_extent(ns) -> list[float]:
     so both the CLI spelling (``--extent w e s n``) and the Domain API's
     repeated-flag expansion (``--extent w --extent e ...``) accumulate
     into one list; the parser can no longer enforce the length, so it is
-    validated here. Returns the full-globe default when unset.
+    validated here. Returns the full-globe default
+    (``styles.DEFAULT_EXTENT``) when unset.
+
+    Exits with code 2 (message on stderr via logging) on a wrong-length
+    value: the Domain API executor coerces ``SystemExit.code`` with
+    ``int()``, so the code must be numeric, never a message string.
     """
     extent = getattr(ns, "extent", None)
     if extent is None:
         return list(DEFAULT_EXTENT)
     if len(extent) != 4:
-        raise SystemExit("--extent takes exactly 4 values: west east south north")
+        import logging
+
+        logging.error("--extent takes exactly 4 values: west east south north")
+        raise SystemExit(2)
     return [float(v) for v in extent]
 
 
