@@ -22,6 +22,7 @@ from zyra.api.models.domain_api import (
     ProcessConvertFormatRun,
     ProcessDecodeGrib2Run,
     ProcessExtractVariableRun,
+    ProcessReprojectRun,
 )
 from zyra.api.routers.cli import get_cli_matrix, run_cli_endpoint
 from zyra.api.schemas.domain_args import normalize_and_validate
@@ -41,6 +42,7 @@ ProcessRequest = Annotated[
         ProcessApiJsonRun,
         ProcessAudioTranscodeRun,
         ProcessAudioMetadataRun,
+        ProcessReprojectRun,
     ],
     Body(discriminator="tool"),
 ]

@@ -399,6 +399,69 @@ def register_cli(subparsers: Any) -> None:
     # Expose pad-missing handler at module scope for notebook/manifest imports
     globals()["cmd_pad_missing"] = cmd_pad_missing
 
+    def cmd_reproject(args: argparse.Namespace) -> int:
+        import logging
+        import os
+
+        from zyra.utils.cli_helpers import configure_logging_from_env
+
+        if getattr(args, "verbose", False):
+            os.environ["ZYRA_VERBOSITY"] = "debug"
+        elif getattr(args, "quiet", False):
+            os.environ["ZYRA_VERBOSITY"] = "quiet"
+        if getattr(args, "trace", False):
+            os.environ["ZYRA_SHELL_TRACE"] = "1"
+        configure_logging_from_env()
+        # Lazy import: the module defers rasterio until the warp runs.
+        from zyra.processing.raster_reproject import ReprojectError, reproject_raster
+
+        if os.environ.get("ZYRA_SHELL_TRACE"):
+            logging.info("+ input='%s'", args.input)
+            logging.info(
+                "+ s_srs=%s t_srs=%s", getattr(args, "s_srs", None), args.t_srs
+            )
+        raw_bounds = getattr(args, "bounds", None)
+        if raw_bounds and len(raw_bounds) != 4:
+            logging.error("--bounds takes exactly 4 values: WEST SOUTH EAST NORTH")
+            return 2
+        raw_dst = getattr(args, "dst_bounds", None)
+        dst_bounds: tuple[float, ...] | str | None = None
+        if raw_dst:
+            if len(raw_dst) == 1 and str(raw_dst[0]).lower() == "auto":
+                dst_bounds = "auto"
+            elif len(raw_dst) == 4:
+                try:
+                    dst_bounds = tuple(float(v) for v in raw_dst)
+                except ValueError:
+                    logging.error("--dst-bounds values must be numbers or 'auto'")
+                    return 2
+            else:
+                logging.error("--dst-bounds takes WEST SOUTH EAST NORTH or 'auto'")
+                return 2
+        try:
+            result = reproject_raster(
+                args.input,
+                args.output,
+                s_srs=getattr(args, "s_srs", None),
+                t_srs=args.t_srs,
+                bounds=tuple(raw_bounds) if raw_bounds else None,
+                dst_bounds=dst_bounds,
+                width=args.width,
+                height=args.height,
+                resampling=args.resampling,
+            )
+        except ReprojectError as exc:
+            logging.error(str(exc))
+            return 2
+        except Exception as exc:
+            logging.error("Reprojection failed: %s", exc)
+            return 2
+        logging.info(result.output)
+        return 0
+
+    # Expose reproject handler at module scope for notebook/manifest imports
+    globals()["cmd_reproject"] = cmd_reproject
+
     # ---- api-json processor helpers ----
     from zyra.utils.json_tools import get_by_path as _get_by_path
 
@@ -807,6 +870,89 @@ def register_cli(subparsers: Any) -> None:
         help="Shell-style trace of key steps and external commands",
     )
     p_pad.set_defaults(func=cmd_pad_missing)
+
+    p_rep = subparsers.add_parser(
+        "reproject",
+        help="Warp a pre-rendered raster to EPSG:4326 (or another CRS)",
+        description=(
+            "Warp an already-rendered raster (PNG/JPG/GeoTIFF) from its source projection "
+            "to a target CRS grid — by default full-globe equirectangular EPSG:4326 at "
+            "4096x2048. For native scientific data (GRIB2/NetCDF), use the existing "
+            "decode/extract/convert path instead; this command is for imagery that was "
+            "rendered in another projection. Requires the optional rasterio dependency "
+            "(zyra[processing])."
+        ),
+    )
+    p_rep.add_argument("-i", "--input", required=True, help="Source raster path")
+    p_rep.add_argument("-o", "--output", required=True, help="Output raster path")
+    p_rep.add_argument(
+        "--s-srs",
+        dest="s_srs",
+        help=(
+            "Source CRS (e.g., EPSG:3413). Overrides any embedded CRS; required for "
+            "plain images without georeferencing (with --bounds)"
+        ),
+    )
+    p_rep.add_argument(
+        "--t-srs",
+        dest="t_srs",
+        default="EPSG:4326",
+        help="Target CRS (default: EPSG:4326)",
+    )
+    # bounds flags use action="extend": the Domain API runner expands list
+    # args as repeated flags (--bounds v1 --bounds v2 ...), which nargs=4
+    # cannot parse; extend accumulates both spellings into one list and
+    # the handler validates the length.
+    p_rep.add_argument(
+        "--bounds",
+        nargs="+",
+        type=float,
+        action="extend",
+        metavar="WEST SOUTH EAST NORTH",
+        help="Source extent in source-CRS units, for rasters without a geotransform",
+    )
+    p_rep.add_argument(
+        "--dst-bounds",
+        dest="dst_bounds",
+        nargs="+",
+        action="extend",
+        metavar="WEST SOUTH EAST NORTH | auto",
+        help=(
+            "Target extent in target-CRS units, or 'auto' to derive it from the "
+            "source's own footprint so regional imagery crops itself "
+            "(default: full globe for EPSG:4326)"
+        ),
+    )
+    p_rep.add_argument(
+        "--width", type=int, default=4096, help="Output width in pixels (default: 4096)"
+    )
+    p_rep.add_argument(
+        "--height",
+        type=int,
+        default=None,
+        help=(
+            "Output height in pixels (default: derived from --width and the target "
+            "extent's aspect ratio; 2048 for the full globe)"
+        ),
+    )
+    p_rep.add_argument(
+        "--resampling",
+        default="bilinear",
+        choices=["bilinear", "nearest"],
+        help="Resampling kernel: bilinear for continuous imagery, nearest for categorical (default: bilinear)",
+    )
+    p_rep.add_argument(
+        "--verbose", action="store_true", help="Verbose logging for this command"
+    )
+    p_rep.add_argument(
+        "--quiet", action="store_true", help="Quiet logging for this command"
+    )
+    p_rep.add_argument(
+        "--trace",
+        action="store_true",
+        help="Shell-style trace of key steps and external commands",
+    )
+    p_rep.set_defaults(func=cmd_reproject)
 
     # api-json
     p_api_json = subparsers.add_parser(
