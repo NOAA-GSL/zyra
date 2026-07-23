@@ -601,6 +601,39 @@ class VerifyEvaluateArgs(BaseModel):
 
 
 # New: process tools
+class ProcessReprojectArgs(BaseModel):
+    input: str
+    output: str
+    s_srs: str | None = None
+    t_srs: str | None = None
+    bounds: list[float] | None = None
+    dst_bounds: list[float] | None = None
+    width: int | None = None
+    height: int | None = None
+    resampling: str | None = None
+
+    @field_validator("bounds", "dst_bounds")
+    @classmethod
+    def _check_bounds(cls, v: list[float] | None) -> list[float] | None:
+        if v is not None and len(v) != 4:
+            raise ValueError("bounds must be [west, south, east, north]")
+        return v
+
+    @field_validator("resampling")
+    @classmethod
+    def _check_resampling(cls, v: str | None) -> str | None:
+        if v is not None and v not in ("bilinear", "nearest"):
+            raise ValueError("resampling must be 'bilinear' or 'nearest'")
+        return v
+
+    @field_validator("width", "height")
+    @classmethod
+    def _check_dims(cls, v: int | None) -> int | None:
+        if v is not None and v <= 0:
+            raise ValueError("width/height must be positive")
+        return v
+
+
 class ProcessApiJsonArgs(BaseModel):
     file_or_url: str
     records_path: str | None = None
@@ -689,6 +722,8 @@ def resolve_model(stage: str, tool: str) -> type[BaseModel] | None:
         return ProcessDecodeGrib2Args
     if key == ("process", "extract-variable"):
         return ProcessExtractVariableArgs
+    if key == ("process", "reproject"):
+        return ProcessReprojectArgs
     if key == ("process", "api-json"):
         return ProcessApiJsonArgs
     if key == ("process", "audio-transcode"):

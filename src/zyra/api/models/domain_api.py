@@ -98,6 +98,11 @@ class ProcessConvertFormatRun(DomainRunRequest):
     args: da.ProcessConvertFormatArgs  # type: ignore[assignment]
 
 
+class ProcessReprojectRun(DomainRunRequest):
+    tool: Literal["reproject"]
+    args: da.ProcessReprojectArgs  # type: ignore[assignment]
+
+
 # New process tools
 class ProcessApiJsonRun(DomainRunRequest):
     tool: Literal["api-json"]

@@ -67,6 +67,25 @@ def test_visualize_compose_video_rejects_bad_preset_and_size(monkeypatch) -> Non
         assert js.get("error", {}).get("type") == "validation_error"
 
 
+def test_process_reproject_rejects_bad_args(monkeypatch) -> None:
+    client = _client(monkeypatch)
+    base = {"input": "disk.png", "output": "/tmp/out.tif"}
+    for bad_args in (
+        {"output": "/tmp/out.tif"},  # missing input
+        {**base, "resampling": "cubic"},
+        {**base, "bounds": [1.0, 2.0, 3.0]},  # not 4 values
+        {**base, "width": 0},
+    ):
+        r = client.post(
+            "/v1/process",
+            json={"tool": "reproject", "args": bad_args},
+            headers={"X-API-Key": "k"},
+        )
+        assert r.status_code == 400, bad_args
+        js = r.json()
+        assert js.get("error", {}).get("type") == "validation_error"
+
+
 def test_acquire_http_requires_source(monkeypatch) -> None:
     client = _client(monkeypatch)
     # No url/inputs/manifest/list should fail early via schema
