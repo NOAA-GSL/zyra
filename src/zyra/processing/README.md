@@ -22,6 +22,12 @@ reproject
   source-CRS units.
 - Defaults target full-globe equirectangular EPSG:4326 at 4096x2048 (the
   2:1 sphere spec); `--t-srs`/`--dst-bounds`/`--width`/`--height` override.
+- Regional sources (e.g. HRRR/RRFS model imagery) should pass
+  `--dst-bounds auto`: the target extent derives from the source's own
+  footprint, so the output crops to the region instead of padding onto a
+  mostly-empty globe. When `--height` is omitted it follows the extent's
+  aspect ratio (even-rounded for video encoders); publish the resulting
+  bbox as dataset metadata so globe consumers can place the texture.
 - `--resampling bilinear` (default) for continuous imagery, `nearest` for
   categorical/palette imagery.
 - Requires the optional rasterio dependency (`zyra[processing]`).

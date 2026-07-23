@@ -74,6 +74,7 @@ def test_process_reproject_rejects_bad_args(monkeypatch) -> None:
         {"output": "/tmp/out.tif"},  # missing input
         {**base, "resampling": "cubic"},
         {**base, "bounds": [1.0, 2.0, 3.0]},  # not 4 values
+        {**base, "dst_bounds": "everything"},  # only 'auto' is a valid string
         {**base, "width": 0},
     ):
         r = client.post(

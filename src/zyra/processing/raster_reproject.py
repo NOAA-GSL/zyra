@@ -72,9 +72,9 @@ def reproject_raster(
     s_srs: str | None = None,
     t_srs: str = DEFAULT_TARGET_CRS,
     bounds: tuple[float, float, float, float] | None = None,
-    dst_bounds: tuple[float, float, float, float] | None = None,
+    dst_bounds: tuple[float, float, float, float] | str | None = None,
     width: int = DEFAULT_WIDTH,
-    height: int = DEFAULT_HEIGHT,
+    height: int | None = None,
     resampling: str = "bilinear",
 ) -> ReprojectResult:
     """Warp a raster to a target CRS grid.
@@ -96,12 +96,17 @@ def reproject_raster(
     bounds : tuple of float, optional
         Source georeference as ``(west, south, east, north)`` in
         source-CRS units, for rasters without an embedded transform.
-    dst_bounds : tuple of float, optional
-        Target extent in target-CRS units. Defaults to the full globe
-        when the target is EPSG:4326, otherwise it is required.
+    dst_bounds : tuple of float or "auto", optional
+        Target extent in target-CRS units. The string ``"auto"`` derives
+        it from the source's own extent transformed into the target CRS
+        — regional models crop themselves instead of padding onto a
+        full-globe canvas. Defaults to the full globe when the target is
+        EPSG:4326, otherwise it is required.
     width, height : int
-        Output grid size; defaults to 4096x2048 (the 2:1 full-globe
-        sphere spec).
+        Output grid size. When ``height`` is omitted it is derived from
+        ``width`` to match the target extent's aspect ratio, rounded to
+        an even number for video-friendly dimensions — 4096x2048 (the
+        2:1 sphere spec) for the default full-globe extent.
     resampling : str
         ``bilinear`` (continuous imagery, default) or ``nearest``
         (categorical/palette imagery).
@@ -122,7 +127,11 @@ def reproject_raster(
         raise ReprojectError(
             f"resampling must be one of {', '.join(RESAMPLING_CHOICES)}; got: {resampling}"
         )
-    if width <= 0 or height <= 0:
+    if isinstance(dst_bounds, str) and dst_bounds != "auto":
+        raise ReprojectError(
+            f"dst_bounds must be 4 numbers or 'auto'; got: {dst_bounds}"
+        )
+    if width <= 0 or (height is not None and height <= 0):
         raise ReprojectError(f"width/height must be positive; got: {width}x{height}")
 
     resampling_enum = (
@@ -137,7 +146,6 @@ def reproject_raster(
             raise ReprojectError(
                 "--dst-bounds is required when the target CRS is not EPSG:4326"
             )
-    dst_transform = from_bounds(*dst_bounds, width, height)
 
     with rasterio.open(input_path) as src:
         src_crs = CRS.from_user_input(s_srs) if s_srs else src.crs
@@ -154,6 +162,32 @@ def reproject_raster(
             raise ReprojectError(
                 "--s-srs was given but the source has no geotransform; pass --bounds west south east north"
             )
+
+        if dst_bounds == "auto":
+            # Derive the target extent from the source's own footprint so
+            # regional models crop themselves instead of padding onto a
+            # full-globe canvas.
+            from rasterio.warp import transform_bounds
+
+            if bounds is not None:
+                src_extent = bounds
+            elif src_transform is not None and not src_transform.is_identity:
+                src_extent = tuple(src.bounds)
+            else:
+                raise ReprojectError(
+                    "--dst-bounds auto needs a georeferenced source (or --bounds)"
+                )
+            dst_bounds = transform_bounds(src_crs, dst_crs, *src_extent)
+        if height is None:
+            west, south, east, north = dst_bounds
+            lon_span = east - west
+            lat_span = north - south
+            if lon_span <= 0 or lat_span <= 0:
+                raise ReprojectError(f"target bounds have no area: {dst_bounds}")
+            # Match the extent's aspect ratio; keep dimensions even so
+            # downstream video encoders (yuv420p) accept them directly.
+            height = max(2, int(round(width * lat_span / lon_span / 2)) * 2)
+        dst_transform = from_bounds(*dst_bounds, width, height)
 
         band_count = src.count
         # Read one band at a time instead of src.read() up front: the

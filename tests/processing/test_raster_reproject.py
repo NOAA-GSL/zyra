@@ -159,6 +159,62 @@ def test_plain_png_with_srs_and_bounds_works(tmp_path):
     assert warped[:40, :].max() == 200
 
 
+def test_auto_dst_bounds_crops_to_source_footprint(tmp_path):
+    src = str(tmp_path / "polar.tif")
+    out = str(tmp_path / "cropped.tif")
+    _write_polar_stereo_marker(src)
+
+    result = reproject_raster(src, out, dst_bounds="auto", width=1024)
+    from rasterio.warp import transform_bounds
+
+    expected = transform_bounds(CRS.from_epsg(3413), CRS.from_epsg(4326), *PS_BOUNDS)
+    with rasterio.open(out) as ds:
+        got = ds.bounds
+        assert ds.width == 1024
+        # Height follows the extent's aspect ratio and is even.
+        lon_span = expected[2] - expected[0]
+        lat_span = expected[3] - expected[1]
+        assert ds.height == max(2, int(round(1024 * lat_span / lon_span / 2)) * 2)
+        assert ds.height == result.height
+    for got_v, exp_v in zip(got, expected):
+        assert got_v == pytest.approx(exp_v, abs=1e-6)
+
+
+def test_auto_dst_bounds_with_explicit_bounds(tmp_path):
+    # Plain image + --s-srs/--bounds + auto: the target extent derives
+    # from the supplied source bounds.
+    png = str(tmp_path / "disk.png")
+    from rasterio.io import MemoryFile
+
+    data = np.full((1, 32, 32), 128, dtype=np.uint8)
+    with MemoryFile() as mem:
+        with mem.open(
+            driver="GTiff", width=32, height=32, count=1, dtype="uint8"
+        ) as tmp:
+            tmp.write(data)
+        with mem.open() as tmp:
+            import rasterio.shutil as rio_shutil
+
+            rio_shutil.copy(tmp, png, driver="PNG")
+
+    out = str(tmp_path / "o.tif")
+    result = reproject_raster(
+        png, out, s_srs="EPSG:3413", bounds=PS_BOUNDS, dst_bounds="auto", width=512
+    )
+    from rasterio.warp import transform_bounds
+
+    expected = transform_bounds(CRS.from_epsg(3413), CRS.from_epsg(4326), *PS_BOUNDS)
+    with rasterio.open(out) as ds:
+        assert ds.bounds.left == pytest.approx(expected[0], abs=1e-6)
+        assert ds.bounds.top == pytest.approx(expected[3], abs=1e-6)
+    assert result.width == 512
+
+
+def test_bad_dst_bounds_string_rejected():
+    with pytest.raises(ReprojectError, match="'auto'"):
+        reproject_raster("x.tif", "y.tif", dst_bounds="everything")
+
+
 def test_invalid_args_rejected(tmp_path):
     with pytest.raises(ReprojectError, match="resampling"):
         reproject_raster("x.tif", "y.tif", resampling="cubic")

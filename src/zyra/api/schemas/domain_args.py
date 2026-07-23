@@ -607,16 +607,29 @@ class ProcessReprojectArgs(BaseModel):
     s_srs: str | None = None
     t_srs: str | None = None
     bounds: list[float] | None = None
-    dst_bounds: list[float] | None = None
+    dst_bounds: list[float] | str | None = None
     width: int | None = None
     height: int | None = None
     resampling: str | None = None
 
-    @field_validator("bounds", "dst_bounds")
+    @field_validator("bounds")
     @classmethod
     def _check_bounds(cls, v: list[float] | None) -> list[float] | None:
         if v is not None and len(v) != 4:
             raise ValueError("bounds must be [west, south, east, north]")
+        return v
+
+    @field_validator("dst_bounds")
+    @classmethod
+    def _check_dst_bounds(cls, v: list[float] | str | None) -> list[float] | str | None:
+        if isinstance(v, str):
+            if v != "auto":
+                raise ValueError(
+                    "dst_bounds must be [west, south, east, north] or 'auto'"
+                )
+            return v
+        if v is not None and len(v) != 4:
+            raise ValueError("dst_bounds must be [west, south, east, north] or 'auto'")
         return v
 
     @field_validator("resampling")

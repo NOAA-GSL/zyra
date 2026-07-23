@@ -420,6 +420,20 @@ def register_cli(subparsers: Any) -> None:
             logging.info(
                 "+ s_srs=%s t_srs=%s", getattr(args, "s_srs", None), args.t_srs
             )
+        raw_dst = getattr(args, "dst_bounds", None)
+        dst_bounds: tuple[float, ...] | str | None = None
+        if raw_dst:
+            if len(raw_dst) == 1 and str(raw_dst[0]).lower() == "auto":
+                dst_bounds = "auto"
+            elif len(raw_dst) == 4:
+                try:
+                    dst_bounds = tuple(float(v) for v in raw_dst)
+                except ValueError:
+                    logging.error("--dst-bounds values must be numbers or 'auto'")
+                    return 2
+            else:
+                logging.error("--dst-bounds takes WEST SOUTH EAST NORTH or 'auto'")
+                return 2
         try:
             result = reproject_raster(
                 args.input,
@@ -427,11 +441,7 @@ def register_cli(subparsers: Any) -> None:
                 s_srs=getattr(args, "s_srs", None),
                 t_srs=args.t_srs,
                 bounds=tuple(args.bounds) if getattr(args, "bounds", None) else None,
-                dst_bounds=(
-                    tuple(args.dst_bounds)
-                    if getattr(args, "dst_bounds", None)
-                    else None
-                ),
+                dst_bounds=dst_bounds,
                 width=args.width,
                 height=args.height,
                 resampling=args.resampling,
@@ -895,10 +905,13 @@ def register_cli(subparsers: Any) -> None:
     p_rep.add_argument(
         "--dst-bounds",
         dest="dst_bounds",
-        nargs=4,
-        type=float,
-        metavar=("WEST", "SOUTH", "EAST", "NORTH"),
-        help="Target extent in target-CRS units (default: full globe for EPSG:4326)",
+        nargs="+",
+        metavar="WEST SOUTH EAST NORTH | auto",
+        help=(
+            "Target extent in target-CRS units, or 'auto' to derive it from the "
+            "source's own footprint so regional imagery crops itself "
+            "(default: full globe for EPSG:4326)"
+        ),
     )
     p_rep.add_argument(
         "--width", type=int, default=4096, help="Output width in pixels (default: 4096)"
@@ -906,8 +919,11 @@ def register_cli(subparsers: Any) -> None:
     p_rep.add_argument(
         "--height",
         type=int,
-        default=2048,
-        help="Output height in pixels (default: 2048)",
+        default=None,
+        help=(
+            "Output height in pixels (default: derived from --width and the target "
+            "extent's aspect ratio; 2048 for the full globe)"
+        ),
     )
     p_rep.add_argument(
         "--resampling",

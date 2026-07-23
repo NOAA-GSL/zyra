@@ -1922,19 +1922,15 @@
         "help": "Source extent in source-CRS units, for rasters without a geotransform",
         "type": "float"
       },
-      "--dst-bounds": {
-        "help": "Target extent in target-CRS units (default: full globe for EPSG:4326)",
-        "type": "float"
-      },
+      "--dst-bounds": "Target extent in target-CRS units, or 'auto' to derive it from the source's own footprint so regional imagery crops itself (default: full globe for EPSG:4326)",
       "--width": {
         "help": "Output width in pixels (default: 4096)",
         "type": "int",
         "default": 4096
       },
       "--height": {
-        "help": "Output height in pixels (default: 2048)",
-        "type": "int",
-        "default": 2048
+        "help": "Output height in pixels (default: derived from --width and the target extent's aspect ratio; 2048 for the full globe)",
+        "type": "int"
       },
       "--resampling": {
         "help": "Resampling kernel: bilinear for continuous imagery, nearest for categorical (default: bilinear)",
