@@ -48,6 +48,19 @@ class TestBuildFfmpegCommand:
         assert "-framerate 12" in cmd
         assert "-r 12" in cmd
 
+    def test_paths_with_spaces_survive_shlex_split(self):
+        import shlex
+
+        vp = VideoProcessor(
+            "/in dir", "/out dir/video.mp4", basemap="/maps/base map.png"
+        )
+        cmd = vp.build_ffmpeg_command(
+            input_pattern="/in dir/*.png", basemap_path="/maps/base map.png"
+        )
+        args = shlex.split(cmd)
+        assert "/maps/base map.png" in args
+        assert "/out dir/video.mp4" in args
+
 
 @pytest.fixture()
 def video_processor_setup(monkeypatch):

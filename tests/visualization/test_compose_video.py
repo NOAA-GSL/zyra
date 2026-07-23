@@ -101,7 +101,10 @@ def test_bad_size_rejected():
                 handle_compose_video(ns)
 
 
-@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg not installed")
+@pytest.mark.skipif(
+    shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None,
+    reason="ffmpeg/ffprobe not installed",
+)
 def test_preset_sos_output_matches_spec():
     """End-to-end: compose tiny frames with --preset sos, ffprobe the result."""
     import subprocess
@@ -153,7 +156,10 @@ def test_preset_sos_output_matches_spec():
             capture_output=True,
             text=True,
         )
-        codec, width, height, pix_fmt, rate = probe.stdout.splitlines()
+        assert probe.returncode == 0, probe.stderr
+        lines = probe.stdout.splitlines()
+        assert len(lines) == 5, probe.stdout
+        codec, width, height, pix_fmt, rate = lines
         assert codec == "h264"
         assert (width, height) == ("4096", "2048")
         assert pix_fmt == "yuv420p"

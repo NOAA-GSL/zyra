@@ -91,17 +91,19 @@ def handle_compose_video(ns) -> int:
         # Defer to VideoProcessor/ffmpeg errors if directory cannot be created
         pass
 
+    # Resolve preset defaults before the basemap so a bad --size exits
+    # without leaking the basemap guard; explicit flags win over preset
+    # values.
+    preset = COMPOSE_VIDEO_PRESETS.get(getattr(ns, "preset", None) or "", {})
+    fps = ns.fps if getattr(ns, "fps", None) is not None else preset.get("fps", 30)
+    size_value = getattr(ns, "size", None) or preset.get("size")
+    size = _parse_size(size_value) if size_value else None
+
     # Resolve optional basemap reference. Accept the following forms:
     #   - Absolute/relative filesystem path (unchanged)
     #   - Bare filename present under zyra.assets/images (e.g., "earth_vegetation.jpg")
     #   - Packaged reference: "pkg:package/resource" (e.g., pkg:zyra.assets/images/earth_vegetation.jpg)
     basemap_path, basemap_guard = resolve_basemap_ref(getattr(ns, "basemap", None))
-
-    # Resolve preset defaults; explicit flags win over preset values.
-    preset = COMPOSE_VIDEO_PRESETS.get(getattr(ns, "preset", None) or "", {})
-    fps = ns.fps if getattr(ns, "fps", None) is not None else preset.get("fps", 30)
-    size_value = getattr(ns, "size", None) or preset.get("size")
-    size = _parse_size(size_value) if size_value else None
 
     vp = VideoProcessor(
         input_directory=ns.frames,

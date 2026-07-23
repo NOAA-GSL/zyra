@@ -154,10 +154,10 @@ class VideoProcessor(DataProcessor):
         str
             The full ffmpeg invocation (shell-style, split before exec).
         """
-        rate = fps or self.fps
+        rate = self.fps if fps is None else fps
         cmd = "ffmpeg"
         if basemap_path:
-            cmd += f" -framerate {rate} -loop 1 -i {basemap_path}"
+            cmd += f" -framerate {rate} -loop 1 -i {shlex.quote(str(basemap_path))}"
         cmd += f" -framerate {rate} -pattern_type glob -i '{input_pattern}'"
         scale_pad = self._scale_pad_filter()
         if basemap_path:
@@ -170,7 +170,7 @@ class VideoProcessor(DataProcessor):
         cmd += f" -r {rate} -vcodec libx264 -pix_fmt yuv420p"
         if self.faststart:
             cmd += " -movflags +faststart"
-        cmd += f" -y {self.output_file}"
+        cmd += f" -y {shlex.quote(str(self.output_file))}"
         return cmd
 
     def check_ffmpeg_installed(self) -> bool:
