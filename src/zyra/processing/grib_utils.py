@@ -82,10 +82,14 @@ def grib_decode(data: bytes, backend: str = "cfgrib") -> DecodedGRIB:
             try:
                 import xarray as xr  # type: ignore
 
+                # indexpath="" disables cfgrib's index sidecar: the input
+                # is a one-shot temp file, and the previous ":auto:" value
+                # was not cfgrib magic — it became a literal pickle file
+                # named ':auto:' in the caller's working directory.
                 ds = xr.open_dataset(
                     temp_path,
                     engine="cfgrib",
-                    backend_kwargs={"indexpath": ":auto:"},
+                    backend_kwargs={"indexpath": ""},
                 )
                 return DecodedGRIB(backend="cfgrib", dataset=ds, path=temp_path)
             except ModuleNotFoundError as exc:  # pragma: no cover - optional dep
