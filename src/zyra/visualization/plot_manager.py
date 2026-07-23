@@ -203,7 +203,13 @@ class PlotManager(Renderer):
         vmin=None,
         vmax=None,
     ):
-        """Compatibility wrapper that calls :meth:`render` then :meth:`save`."""
+        """Compatibility wrapper that calls :meth:`render` then :meth:`save`.
+
+        Returns
+        -------
+        str or None
+            The output path on success; ``None`` if rendering failed.
+        """
         fig = self.render(
             data,
             custom_cmap=custom_cmap,
@@ -218,7 +224,8 @@ class PlotManager(Renderer):
             vmax=vmax,
         )
         if fig is not None:
-            self.save(output_path)
+            return self.save(output_path)
+        return None
 
     @staticmethod
     def plot_data_array(

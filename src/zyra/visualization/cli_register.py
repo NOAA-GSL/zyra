@@ -10,6 +10,7 @@ from .cli_compose_video import handle_compose_video
 from .cli_contour import handle_contour
 from .cli_heatmap import handle_heatmap
 from .cli_interactive import handle_interactive
+from .cli_sos import register_sos_cli
 from .cli_timeseries import handle_timeseries
 from .cli_vector import handle_vector
 
@@ -52,6 +53,16 @@ def register_cli(subparsers: Any) -> None:
     p_hm.add_argument("--height", type=int, default=512)
     p_hm.add_argument("--dpi", type=int, default=96)
     p_hm.add_argument("--cmap", default="YlOrBr")
+    p_hm.add_argument(
+        "--vmin",
+        type=float,
+        help="Fixed minimum data value for color scaling (use across frame sequences to avoid flicker)",
+    )
+    p_hm.add_argument(
+        "--vmax",
+        type=float,
+        help="Fixed maximum data value for color scaling (use across frame sequences to avoid flicker)",
+    )
     p_hm.add_argument("--colorbar", action="store_true")
     p_hm.add_argument("--label")
     p_hm.add_argument("--units")
@@ -413,3 +424,6 @@ def register_cli(subparsers: Any) -> None:
         help="Shell-style trace of key steps and external commands",
     )
     p_int.set_defaults(func=handle_interactive)
+
+    # sos (Science On a Sphere)
+    register_sos_cli(subparsers)
