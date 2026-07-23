@@ -63,6 +63,27 @@ def load_data_array(
     raise ValueError("Unsupported input file; use .nc, .nc4, or .npy")
 
 
+#: Full-globe default for ``--extent`` (west, east, south, north).
+DEFAULT_EXTENT = (-180.0, 180.0, -90.0, 90.0)
+
+
+def resolve_extent(ns) -> list[float]:
+    """Validate and default the ``--extent`` value on a parsed namespace.
+
+    The extent flags are declared with ``action="extend"``/``nargs="+"``
+    so both the CLI spelling (``--extent w e s n``) and the Domain API's
+    repeated-flag expansion (``--extent w --extent e ...``) accumulate
+    into one list; the parser can no longer enforce the length, so it is
+    validated here. Returns the full-globe default when unset.
+    """
+    extent = getattr(ns, "extent", None)
+    if extent is None:
+        return list(DEFAULT_EXTENT)
+    if len(extent) != 4:
+        raise SystemExit("--extent takes exactly 4 values: west east south north")
+    return [float(v) for v in extent]
+
+
 def features_from_ns(ns) -> list[str] | None:
     """Build a features list from argparse namespace flags.
 

@@ -110,14 +110,8 @@
       },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--width": {
         "help": "",
@@ -417,14 +411,8 @@
       "--var": "Variable name for NetCDF inputs",
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--output": {
         "help": "Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
@@ -603,14 +591,8 @@
       "--var": "Variable name for NetCDF inputs",
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--output": {
         "help": "Output PNG path (required when using --input; for --inputs use --output-dir)",
@@ -839,14 +821,8 @@
         "default": 3
       },
       "--extent": {
-        "help": "",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--width": {
         "help": "",
@@ -1213,14 +1189,8 @@
       "--v": "",
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--width": {
         "help": "",
@@ -1434,14 +1404,8 @@
       },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--width": {
         "help": "",
@@ -1776,14 +1740,8 @@
       "--var": "Variable name for NetCDF inputs",
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--output": {
         "help": "Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
@@ -1973,14 +1931,8 @@
       "--var": "Variable name for NetCDF inputs",
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--output": {
         "help": "Output PNG path (required when using --input; for --inputs use --output-dir)",
@@ -2237,14 +2189,8 @@
         "default": 3
       },
       "--extent": {
-        "help": "",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--width": {
         "help": "",
@@ -2672,14 +2618,8 @@
       "--v": "",
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--width": {
         "help": "",
