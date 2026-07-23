@@ -30,6 +30,12 @@ class VideoProcessor(DataProcessor):
         Destination path for the rendered video file.
     basemap : str, optional
         Optional background image path to overlay beneath frames.
+    size : tuple of int, optional
+        Target ``(width, height)``; frames are scaled preserving aspect
+        ratio and padded (centered, black) to exactly this size.
+    faststart : bool, optional
+        When True, pass ``-movflags +faststart`` so the moov atom is
+        relocated for streaming playback.
 
     Examples
     --------
@@ -50,12 +56,16 @@ class VideoProcessor(DataProcessor):
         basemap: Optional[str] = None,
         fps: int = 30,
         input_glob: Optional[str] = None,
+        size: Optional[tuple[int, int]] = None,
+        faststart: bool = False,
     ):
         self.input_directory = input_directory
         self.output_file = output_file
         self.basemap = basemap
         self.fps = int(fps)
         self.input_glob = input_glob
+        self.size = size
+        self.faststart = bool(faststart)
 
     FEATURES = {"load", "process", "save", "validate"}
 
@@ -111,6 +121,58 @@ class VideoProcessor(DataProcessor):
         return self.check_ffmpeg_installed()
 
     # --- Original implementation --------------------------------------------------------
+    def _scale_pad_filter(self) -> Optional[str]:
+        """Return a scale+pad filter string for ``size``, or None."""
+        if not self.size:
+            return None
+        width, height = self.size
+        return (
+            f"scale={width}:{height}:force_original_aspect_ratio=decrease,"
+            f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2:color=black"
+        )
+
+    def build_ffmpeg_command(
+        self,
+        *,
+        fps: Optional[int] = None,
+        input_pattern: str,
+        basemap_path: Optional[str] = None,
+    ) -> str:
+        """Assemble the ffmpeg command line for the current configuration.
+
+        Parameters
+        ----------
+        fps : int, optional
+            Frame rate override; defaults to the configured ``fps``.
+        input_pattern : str
+            Glob pattern for the input frames.
+        basemap_path : str, optional
+            Resolved filesystem path of the basemap, if any.
+
+        Returns
+        -------
+        str
+            The full ffmpeg invocation (shell-style, split before exec).
+        """
+        rate = fps or self.fps
+        cmd = "ffmpeg"
+        if basemap_path:
+            cmd += f" -framerate {rate} -loop 1 -i {basemap_path}"
+        cmd += f" -framerate {rate} -pattern_type glob -i '{input_pattern}'"
+        scale_pad = self._scale_pad_filter()
+        if basemap_path:
+            chain = "[0:v][1:v]overlay=shortest=1"
+            if scale_pad:
+                chain += f",{scale_pad}"
+            cmd += f" -filter_complex '{chain}'"
+        elif scale_pad:
+            cmd += f" -vf '{scale_pad}'"
+        cmd += f" -r {rate} -vcodec libx264 -pix_fmt yuv420p"
+        if self.faststart:
+            cmd += " -movflags +faststart"
+        cmd += f" -y {self.output_file}"
+        return cmd
+
     def check_ffmpeg_installed(self) -> bool:
         """Check that FFmpeg and FFprobe are available on PATH.
 
@@ -178,8 +240,6 @@ class VideoProcessor(DataProcessor):
             if trace:
                 logging.info("+ frames=%s", str(len(files)))
                 logging.info("+ pattern='%s'", input_pattern)
-            output_path = self.output_file
-            ffmpeg_cmd = "ffmpeg"
             # Resolve optional basemap; support pkg:package/resource form in addition to plain paths.
             basemap_path: str | None = self.basemap
             basemap_guard: contextlib.ExitStack | None = None
@@ -205,47 +265,40 @@ class VideoProcessor(DataProcessor):
                 except Exception:
                     # Fall back to original value; ffmpeg will likely fail if protocol-like
                     pass
-            if basemap_path:
-                ffmpeg_cmd += f" -framerate {fps or self.fps} -loop 1 -i {basemap_path}"
-                if trace:
+            if basemap_path and trace:
+                try:
+                    # Allow override via env to avoid hangs in CI
                     try:
-                        # Allow override via env to avoid hangs in CI
-                        try:
-                            timeout_s = float(
-                                os.environ.get("ZYRA_FFPROBE_TIMEOUT", "3")
-                            )
-                        except (ValueError, TypeError):
-                            timeout_s = 3.0
-                        proc = subprocess.run(
-                            [
-                                "ffprobe",
-                                "-v",
-                                "error",
-                                "-select_streams",
-                                "v:0",
-                                "-show_entries",
-                                "stream=width,height",
-                                "-of",
-                                "csv=p=0:s=x",
-                                basemap_path,
-                            ],
-                            capture_output=True,
-                            text=True,
-                            timeout=timeout_s,
-                        )
-                        dims = (proc.stdout or "").strip()
-                        if dims:
-                            logging.info("+ basemap='%s' (%s)", basemap_path, dims)
-                        else:
-                            logging.info("+ basemap='%s'", basemap_path)
-                    except Exception:
+                        timeout_s = float(os.environ.get("ZYRA_FFPROBE_TIMEOUT", "3"))
+                    except (ValueError, TypeError):
+                        timeout_s = 3.0
+                    proc = subprocess.run(
+                        [
+                            "ffprobe",
+                            "-v",
+                            "error",
+                            "-select_streams",
+                            "v:0",
+                            "-show_entries",
+                            "stream=width,height",
+                            "-of",
+                            "csv=p=0:s=x",
+                            basemap_path,
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=timeout_s,
+                    )
+                    dims = (proc.stdout or "").strip()
+                    if dims:
+                        logging.info("+ basemap='%s' (%s)", basemap_path, dims)
+                    else:
                         logging.info("+ basemap='%s'", basemap_path)
-            ffmpeg_cmd += (
-                f" -framerate {fps or self.fps} -pattern_type glob -i '{input_pattern}'"
+                except Exception:
+                    logging.info("+ basemap='%s'", basemap_path)
+            ffmpeg_cmd = self.build_ffmpeg_command(
+                fps=fps, input_pattern=input_pattern, basemap_path=basemap_path
             )
-            if basemap_path:
-                ffmpeg_cmd += " -filter_complex '[0:v][1:v]overlay=shortest=1'"
-            ffmpeg_cmd += f" -r {fps or self.fps} -vcodec libx264 -pix_fmt yuv420p -y {output_path}"
             from zyra.utils.cli_helpers import sanitize_for_log
 
             if trace:

@@ -423,6 +423,8 @@ class VisualizeComposeVideoArgs(BaseModel):
     output: str
     basemap: str | None = None
     fps: int | None = None
+    preset: str | None = None
+    size: str | None = None
 
 
 class VisualizeInteractiveArgs(BaseModel):

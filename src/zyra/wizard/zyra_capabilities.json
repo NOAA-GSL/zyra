@@ -3743,6 +3743,8 @@
           "--glob",
           "--fps",
           "--basemap",
+          "--preset",
+          "--size",
           "--verbose",
           "--quiet",
           "--trace"
@@ -3765,11 +3767,18 @@
       },
       "--glob": "Filename glob within frames dir (e.g., '*.png'); defaults to first extension found",
       "--fps": {
-        "help": "",
-        "type": "int",
-        "default": 30
+        "help": "Frames per second (default: 30)",
+        "type": "int"
       },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
+      "--preset": {
+        "help": "Named output preset. 'sos' pins the Science On a Sphere spec: 4096x2048, 30 fps, H.264 yuv420p, faststart. Explicit flags override individual preset values.",
+        "choices": [
+          "sos"
+        ],
+        "type": "str"
+      },
+      "--size": "Output size as WIDTHxHEIGHT (e.g., 4096x2048); frames are scaled preserving aspect ratio and padded to fit",
       "--verbose": {
         "help": "Verbose logging for this command",
         "type": "bool",
@@ -3795,7 +3804,9 @@
       ],
       "optional": [
         "basemap",
-        "fps"
+        "fps",
+        "preset",
+        "size"
       ]
     },
     "example_args": null,
@@ -4977,6 +4988,8 @@
           "--glob",
           "--fps",
           "--basemap",
+          "--preset",
+          "--size",
           "--verbose",
           "--quiet",
           "--trace"
@@ -4999,11 +5012,18 @@
       },
       "--glob": "Filename glob within frames dir (e.g., '*.png'); defaults to first extension found",
       "--fps": {
-        "help": "",
-        "type": "int",
-        "default": 30
+        "help": "Frames per second (default: 30)",
+        "type": "int"
       },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
+      "--preset": {
+        "help": "Named output preset. 'sos' pins the Science On a Sphere spec: 4096x2048, 30 fps, H.264 yuv420p, faststart. Explicit flags override individual preset values.",
+        "choices": [
+          "sos"
+        ],
+        "type": "str"
+      },
+      "--size": "Output size as WIDTHxHEIGHT (e.g., 4096x2048); frames are scaled preserving aspect ratio and padded to fit",
       "--verbose": {
         "help": "Verbose logging for this command",
         "type": "bool",
