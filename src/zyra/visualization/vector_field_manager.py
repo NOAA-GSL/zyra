@@ -13,7 +13,13 @@ from zyra.utils.geo_utils import detect_crs_from_path, warn_if_mismatch
 
 from .base import Renderer
 from .basemap import add_basemap_cartopy, add_basemap_tile
-from .styles import DEFAULT_EXTENT, FIGURE_DPI, MAP_STYLES, apply_matplotlib_style
+from .styles import (
+    DEFAULT_EXTENT,
+    FIGURE_DPI,
+    MAP_STYLES,
+    apply_matplotlib_style,
+    apply_view_extent,
+)
 
 
 class VectorFieldManager(Renderer):
@@ -213,7 +219,7 @@ class VectorFieldManager(Renderer):
                 transform=(data_transform or ccrs.PlateCarree()),
                 linewidths=0.5,
             )
-        ax.set_global()
+        apply_view_extent(ax, self.extent)
         ax.axis("off")
         fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
         self._fig = fig

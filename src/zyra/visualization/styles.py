@@ -25,6 +25,22 @@ FONT_SIZES: dict[str, int] = {
 }
 
 
+def apply_view_extent(ax, extent) -> None:
+    """Crop a GeoAxes view to ``extent``; keep the global view for the default.
+
+    ``extent`` is ``[west, east, south, north]`` in PlateCarree degrees.
+    Regional extents previously rendered as a small stamp on a world map
+    because the managers hardcoded ``ax.set_global()`` — for regional
+    products (e.g. HRRR) that wastes almost the whole frame.
+    """
+    if list(extent) == list(DEFAULT_EXTENT):
+        ax.set_global()
+        return
+    import cartopy.crs as ccrs
+
+    ax.set_extent(list(extent), crs=ccrs.PlateCarree())
+
+
 def apply_matplotlib_style():
     """Apply minimal Matplotlib rcParams for consistent styling.
 
