@@ -337,8 +337,26 @@ def register_cli(subparsers: Any) -> None:
         "--glob",
         help="Filename glob within frames dir (e.g., '*.png'); defaults to first extension found",
     )
-    p_cv.add_argument("--fps", type=int, default=30)
+    p_cv.add_argument(
+        "--fps", type=int, default=None, help="Frames per second (default: 30)"
+    )
     p_cv.add_argument("--basemap", help="Basemap (path, bare image name, or pkg:ref)")
+    p_cv.add_argument(
+        "--preset",
+        choices=["sos"],
+        help=(
+            "Named output preset. 'sos' pins the Science On a Sphere spec: "
+            "4096x2048, 30 fps, H.264 yuv420p, faststart. Explicit flags "
+            "override individual preset values."
+        ),
+    )
+    p_cv.add_argument(
+        "--size",
+        help=(
+            "Output size as WIDTHxHEIGHT (e.g., 4096x2048); frames are scaled "
+            "preserving aspect ratio and padded to fit"
+        ),
+    )
     p_cv.add_argument(
         "--verbose", action="store_true", help="Verbose logging for this command"
     )
