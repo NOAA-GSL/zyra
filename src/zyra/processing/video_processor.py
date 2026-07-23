@@ -158,7 +158,7 @@ class VideoProcessor(DataProcessor):
         cmd = "ffmpeg"
         if basemap_path:
             cmd += f" -framerate {rate} -loop 1 -i {shlex.quote(str(basemap_path))}"
-        cmd += f" -framerate {rate} -pattern_type glob -i '{input_pattern}'"
+        cmd += f" -framerate {rate} -pattern_type glob -i {shlex.quote(input_pattern)}"
         scale_pad = self._scale_pad_filter()
         if basemap_path:
             chain = "[0:v][1:v]overlay=shortest=1"

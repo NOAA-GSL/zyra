@@ -426,6 +426,31 @@ class VisualizeComposeVideoArgs(BaseModel):
     preset: str | None = None
     size: str | None = None
 
+    @field_validator("preset")
+    @classmethod
+    def _check_preset(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        from zyra.visualization.cli_compose_video import COMPOSE_VIDEO_PRESETS
+
+        if v not in COMPOSE_VIDEO_PRESETS:
+            raise ValueError(
+                f"unknown preset '{v}'; expected one of: "
+                + ", ".join(sorted(COMPOSE_VIDEO_PRESETS))
+            )
+        return v
+
+    @field_validator("size")
+    @classmethod
+    def _check_size(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        import re
+
+        if not re.fullmatch(r"[1-9]\d*x[1-9]\d*", v.lower()):
+            raise ValueError(f"size must be WIDTHxHEIGHT (e.g., 4096x2048); got: {v}")
+        return v
+
 
 class VisualizeInteractiveArgs(BaseModel):
     input: str
