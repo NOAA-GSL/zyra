@@ -1892,6 +1892,7 @@
           "--width",
           "--height",
           "--resampling",
+          "--dst-nodata",
           "--verbose",
           "--quiet",
           "--trace"
@@ -1941,6 +1942,10 @@
         "type": "str",
         "default": "bilinear"
       },
+      "--dst-nodata": {
+        "help": "Value for pixels outside the source footprint (accepts 'nan' for float sources); default: the source's nodata when present, else 0. Tagged in GeoTIFF output",
+        "type": "float"
+      },
       "--verbose": {
         "help": "Verbose logging for this command",
         "type": "bool",
@@ -1967,6 +1972,7 @@
       "optional": [
         "bounds",
         "dst_bounds",
+        "dst_nodata",
         "height",
         "resampling",
         "s_srs",

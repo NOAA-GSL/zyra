@@ -210,6 +210,72 @@ def test_auto_dst_bounds_with_explicit_bounds(tmp_path):
     assert result.width == 512
 
 
+def _write_small_4326(path: str, *, value=9, dtype="uint8", nodata=None) -> None:
+    """A 10x10-degree source at (0..10E, 0..10N) for padded-warp tests."""
+    transform = from_bounds(0.0, 0.0, 10.0, 10.0, 64, 64)
+    data = np.full((1, 64, 64), value, dtype=dtype)
+    profile = dict(
+        driver="GTiff",
+        width=64,
+        height=64,
+        count=1,
+        dtype=dtype,
+        crs=CRS.from_epsg(4326),
+        transform=transform,
+    )
+    if nodata is not None:
+        profile["nodata"] = nodata
+    with rasterio.open(path, "w", **profile) as dst:
+        dst.write(data)
+
+
+PADDED = (-5.0, -5.0, 15.0, 15.0)  # source occupies the middle quarter
+
+
+def test_dst_nodata_fills_outside_footprint(tmp_path):
+    src = str(tmp_path / "small.tif")
+    out = str(tmp_path / "o.tif")
+    _write_small_4326(src)
+    reproject_raster(src, out, dst_bounds=PADDED, width=200, height=200, dst_nodata=255)
+    with rasterio.open(out) as ds:
+        assert ds.nodata == 255
+        warped = ds.read(1)
+    assert warped[0, 0] == 255  # padded corner: outside source footprint
+    assert warped[100, 100] != 255  # center: covered by source
+
+
+def test_dst_nodata_nan_for_float_source(tmp_path):
+    src = str(tmp_path / "small_f32.tif")
+    out = str(tmp_path / "o.tif")
+    _write_small_4326(src, value=7.5, dtype="float32")
+    reproject_raster(
+        src, out, dst_bounds=PADDED, width=200, height=200, dst_nodata=float("nan")
+    )
+    with rasterio.open(out) as ds:
+        warped = ds.read(1)
+    assert np.isnan(warped[0, 0])
+    assert np.nanmax(warped) == pytest.approx(7.5)
+
+
+def test_source_nodata_propagates_by_default(tmp_path):
+    src = str(tmp_path / "small_nd.tif")
+    out = str(tmp_path / "o.tif")
+    _write_small_4326(src, nodata=200)
+    reproject_raster(src, out, dst_bounds=PADDED, width=200, height=200)
+    with rasterio.open(out) as ds:
+        assert ds.nodata == 200
+        assert ds.read(1)[0, 0] == 200
+
+
+def test_dst_nodata_dtype_mismatch_rejected(tmp_path):
+    src = str(tmp_path / "polar.tif")
+    _write_polar_stereo_marker(src)
+    with pytest.raises(ReprojectError, match="does not fit"):
+        reproject_raster(
+            src, str(tmp_path / "o.tif"), dst_nodata=float("nan"), width=64
+        )
+
+
 def test_bad_dst_bounds_string_rejected():
     with pytest.raises(ReprojectError, match="'auto'"):
         reproject_raster("x.tif", "y.tif", dst_bounds="everything")

@@ -75,6 +75,7 @@ def reproject_raster(
     width: int = DEFAULT_WIDTH,
     height: int | None = None,
     resampling: str = "bilinear",
+    dst_nodata: float | None = None,
 ) -> ReprojectResult:
     """Warp a raster to a target CRS grid.
 
@@ -109,6 +110,13 @@ def reproject_raster(
     resampling : str
         ``bilinear`` (continuous imagery, default) or ``nearest``
         (categorical/palette imagery).
+    dst_nodata : float, optional
+        Value for destination pixels outside the source's footprint
+        (e.g. the curved corners of a warped regional model domain).
+        Defaults to the source's own nodata when present; otherwise
+        those pixels fill with 0. Tagged as ``nodata`` in GeoTIFF
+        output so consumers mask automatically; PNG/JPEG cannot carry
+        the tag.
 
     Returns
     -------
@@ -189,12 +197,26 @@ def reproject_raster(
         dst_transform = from_bounds(*dst_bounds, width, height)
 
         band_count = src.count
+        dtype = np.dtype(src.dtypes[0])
+        # Outside-footprint pixels take the explicit dst_nodata, else the
+        # source's own nodata, else 0 (legacy behavior, documented).
+        nodata = dst_nodata if dst_nodata is not None else src.nodata
+        if (
+            nodata is not None
+            and not np.issubdtype(dtype, np.floating)
+            and not float(nodata).is_integer()
+        ):
+            raise ReprojectError(
+                f"dst_nodata {nodata} does not fit the source dtype {dtype.name}; "
+                "use an integer value or a float-typed source"
+            )
+        fill = nodata if nodata is not None else 0
         # Read one band at a time instead of src.read() up front: the
         # full-source array would double peak memory for large rasters.
         # (Array sources rather than rasterio.band() so the explicit
         # src_transform override works for plain images without a
         # geotransform.)
-        dst_data = np.zeros((band_count, height, width), dtype=src.dtypes[0])
+        dst_data = np.full((band_count, height, width), fill, dtype=dtype)
         for band in range(band_count):
             rio_reproject(
                 source=src.read(band + 1),
@@ -204,6 +226,8 @@ def reproject_raster(
                 dst_transform=dst_transform,
                 dst_crs=dst_crs,
                 resampling=resampling_enum,
+                src_nodata=src.nodata,
+                dst_nodata=nodata,
             )
 
     driver = _driver_for_path(output_path)
@@ -216,6 +240,8 @@ def reproject_raster(
         "crs": dst_crs,
         "transform": dst_transform,
     }
+    if nodata is not None:
+        profile["nodata"] = nodata
     if driver == "GTiff":
         with rasterio.open(output_path, "w", **profile) as dst:
             dst.write(dst_data)
