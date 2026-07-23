@@ -75,6 +75,7 @@ def test_process_reproject_rejects_bad_args(monkeypatch) -> None:
         {**base, "resampling": "cubic"},
         {**base, "bounds": [1.0, 2.0, 3.0]},  # not 4 values
         {**base, "dst_bounds": "everything"},  # only 'auto' is a valid string
+        {**base, "t_srs": "EPSG:3857"},  # non-4326 target needs dst_bounds
         {**base, "width": 0},
     ):
         r = client.post(

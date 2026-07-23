@@ -646,6 +646,20 @@ class ProcessReprojectArgs(BaseModel):
             raise ValueError("width/height must be positive")
         return v
 
+    @model_validator(mode="after")
+    def _require_dst_bounds_for_other_crs(self):  # type: ignore[override]
+        # Mirror the CLI's fail-fast: a non-EPSG:4326 target has no
+        # implicit full-globe extent, so dst_bounds must be provided.
+        if (
+            self.t_srs is not None
+            and self.t_srs.strip().lower() != "epsg:4326"
+            and self.dst_bounds is None
+        ):
+            raise ValueError(
+                "dst_bounds is required (or 'auto') when t_srs is not EPSG:4326"
+            )
+        return self
+
 
 class ProcessApiJsonArgs(BaseModel):
     file_or_url: str

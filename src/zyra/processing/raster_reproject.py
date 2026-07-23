@@ -21,7 +21,6 @@ from typing import Any
 
 DEFAULT_TARGET_CRS = "EPSG:4326"
 DEFAULT_WIDTH = 4096
-DEFAULT_HEIGHT = 2048
 #: Full-globe extent (west, south, east, north) for the default target CRS.
 FULL_GLOBE_BOUNDS = (-180.0, -90.0, 180.0, 90.0)
 
