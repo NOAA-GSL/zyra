@@ -30,12 +30,18 @@ def register_cli(subparsers: Any) -> None:
         "--basemap",
         help="Basemap (path, bare image name, or pkg:ref)",
     )
+    # extent flags use action="extend" with default=None: the Domain API
+    # runner expands list args as repeated flags (--extent w --extent e ...)
+    # which nargs=4 cannot parse, and argparse's extend action appends to
+    # a list default. Handlers apply the full-globe default and validate
+    # length via cli_utils.resolve_extent.
     p_hm.add_argument(
         "--extent",
-        nargs=4,
+        nargs="+",
         type=float,
-        default=[-180, 180, -90, 90],
-        help="west east south north",
+        action="extend",
+        default=None,
+        help="west east south north (default: -180 180 -90 90)",
     )
     p_hm.add_argument(
         "--output",
@@ -137,10 +143,11 @@ def register_cli(subparsers: Any) -> None:
     p_ct.add_argument("--basemap", help="Basemap (path, bare image name, or pkg:ref)")
     p_ct.add_argument(
         "--extent",
-        nargs=4,
+        nargs="+",
         type=float,
-        default=[-180, 180, -90, 90],
-        help="west east south north",
+        action="extend",
+        default=None,
+        help="west east south north (default: -180 180 -90 90)",
     )
     p_ct.add_argument(
         "--output",
@@ -235,7 +242,14 @@ def register_cli(subparsers: Any) -> None:
     p_vec.add_argument("--u")
     p_vec.add_argument("--v")
     p_vec.add_argument("--basemap", help="Basemap (path, bare image name, or pkg:ref)")
-    p_vec.add_argument("--extent", nargs=4, type=float, default=[-180, 180, -90, 90])
+    p_vec.add_argument(
+        "--extent",
+        nargs="+",
+        type=float,
+        action="extend",
+        default=None,
+        help="west east south north (default: -180 180 -90 90)",
+    )
     p_vec.add_argument("--width", type=int, default=1024)
     p_vec.add_argument("--height", type=int, default=512)
     p_vec.add_argument("--dpi", type=int, default=96)
@@ -287,7 +301,14 @@ def register_cli(subparsers: Any) -> None:
     p_anim.add_argument("--scale")
     p_anim.add_argument("--color", default="#333333")
     p_anim.add_argument("--basemap", help="Basemap (path, bare image name, or pkg:ref)")
-    p_anim.add_argument("--extent", nargs=4, type=float, default=[-180, 180, -90, 90])
+    p_anim.add_argument(
+        "--extent",
+        nargs="+",
+        type=float,
+        action="extend",
+        default=None,
+        help="west east south north (default: -180 180 -90 90)",
+    )
     p_anim.add_argument("--width", type=int, default=1024)
     p_anim.add_argument("--height", type=int, default=512)
     p_anim.add_argument("--dpi", type=int, default=96)
@@ -399,7 +420,14 @@ def register_cli(subparsers: Any) -> None:
     p_int.add_argument("--timestamp-loc", default="lower_right")
     p_int.add_argument("--tiles", default="OpenStreetMap")
     p_int.add_argument("--zoom", type=int, default=3)
-    p_int.add_argument("--extent", nargs=4, type=float, default=[-180, 180, -90, 90])
+    p_int.add_argument(
+        "--extent",
+        nargs="+",
+        type=float,
+        action="extend",
+        default=None,
+        help="west east south north (default: -180 180 -90 90)",
+    )
     p_int.add_argument("--width", type=int, default=1024)
     p_int.add_argument("--height", type=int, default=512)
     p_int.add_argument("--output", required=True)
