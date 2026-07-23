@@ -7,6 +7,8 @@ the code with ``int()``, crashing the handler and losing the message.
 It now mirrors CPython: non-int codes print to stderr and exit 1.
 """
 
+from __future__ import annotations
+
 import os
 import tempfile
 
