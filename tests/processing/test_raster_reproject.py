@@ -224,6 +224,69 @@ def test_invalid_args_rejected(tmp_path):
         reproject_raster("x.tif", "y.tif", t_srs="EPSG:3857")
 
 
+def test_cli_bounds_wrong_length_is_clear_error(tmp_path):
+    import subprocess
+    import sys
+
+    src = str(tmp_path / "polar.tif")
+    _write_polar_stereo_marker(src)
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "zyra.cli",
+            "process",
+            "reproject",
+            "-i",
+            src,
+            "-o",
+            str(tmp_path / "o.tif"),
+            "--bounds",
+            "1",
+            "2",
+            "3",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 2
+    assert "exactly 4 values" in proc.stderr
+
+
+def test_cli_repeated_bounds_flags_accumulate(tmp_path):
+    # The Domain API runner expands list args as repeated flags
+    # (--bounds v1 --bounds v2 ...); action="extend" must accumulate
+    # them into one 4-value extent.
+    import subprocess
+    import sys
+
+    src = str(tmp_path / "polar.tif")
+    out = str(tmp_path / "o.tif")
+    _write_polar_stereo_marker(src)
+    argv = [
+        sys.executable,
+        "-m",
+        "zyra.cli",
+        "process",
+        "reproject",
+        "-i",
+        src,
+        "-o",
+        out,
+        "--width",
+        "128",
+        "--height",
+        "64",
+    ]
+    for v in PS_BOUNDS:
+        argv += ["--bounds", str(v)]
+    proc = subprocess.run(argv, capture_output=True, text=True, check=False)
+    assert proc.returncode == 0, proc.stderr
+    with rasterio.open(out) as ds:
+        assert (ds.width, ds.height) == (128, 64)
+
+
 def test_cli_reproject_end_to_end(tmp_path):
     import subprocess
     import sys

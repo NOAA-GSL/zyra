@@ -420,6 +420,10 @@ def register_cli(subparsers: Any) -> None:
             logging.info(
                 "+ s_srs=%s t_srs=%s", getattr(args, "s_srs", None), args.t_srs
             )
+        raw_bounds = getattr(args, "bounds", None)
+        if raw_bounds and len(raw_bounds) != 4:
+            logging.error("--bounds takes exactly 4 values: WEST SOUTH EAST NORTH")
+            return 2
         raw_dst = getattr(args, "dst_bounds", None)
         dst_bounds: tuple[float, ...] | str | None = None
         if raw_dst:
@@ -440,7 +444,7 @@ def register_cli(subparsers: Any) -> None:
                 args.output,
                 s_srs=getattr(args, "s_srs", None),
                 t_srs=args.t_srs,
-                bounds=tuple(args.bounds) if getattr(args, "bounds", None) else None,
+                bounds=tuple(raw_bounds) if raw_bounds else None,
                 dst_bounds=dst_bounds,
                 width=args.width,
                 height=args.height,
@@ -895,17 +899,23 @@ def register_cli(subparsers: Any) -> None:
         default="EPSG:4326",
         help="Target CRS (default: EPSG:4326)",
     )
+    # bounds flags use action="extend": the Domain API runner expands list
+    # args as repeated flags (--bounds v1 --bounds v2 ...), which nargs=4
+    # cannot parse; extend accumulates both spellings into one list and
+    # the handler validates the length.
     p_rep.add_argument(
         "--bounds",
-        nargs=4,
+        nargs="+",
         type=float,
-        metavar=("WEST", "SOUTH", "EAST", "NORTH"),
+        action="extend",
+        metavar="WEST SOUTH EAST NORTH",
         help="Source extent in source-CRS units, for rasters without a geotransform",
     )
     p_rep.add_argument(
         "--dst-bounds",
         dest="dst_bounds",
         nargs="+",
+        action="extend",
         metavar="WEST SOUTH EAST NORTH | auto",
         help=(
             "Target extent in target-CRS units, or 'auto' to derive it from the "

@@ -623,11 +623,11 @@ class ProcessReprojectArgs(BaseModel):
     @classmethod
     def _check_dst_bounds(cls, v: list[float] | str | None) -> list[float] | str | None:
         if isinstance(v, str):
-            if v != "auto":
+            if v.lower() != "auto":
                 raise ValueError(
                     "dst_bounds must be [west, south, east, north] or 'auto'"
                 )
-            return v
+            return "auto"
         if v is not None and len(v) != 4:
             raise ValueError("dst_bounds must be [west, south, east, north] or 'auto'")
         return v
