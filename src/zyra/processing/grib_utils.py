@@ -226,6 +226,79 @@ def extract_variable(decoded: DecodedGRIB, var_name: str) -> Any:
     raise RuntimeError("Unsupported decoded structure for variable extraction.")
 
 
+def _grib_georeference(da: Any) -> tuple[Any, Any, bool] | None:
+    """Derive ``(crs, transform, flip_rows)`` from cfgrib ``GRIB_*`` attrs.
+
+    Supports ``regular_ll`` and ``lambert`` grids (the NOAA projected
+    products — HRRR, NAM, RRFS — are Lambert). Returns ``None`` for
+    unrecognized grid types or incomplete metadata; callers keep their
+    previous (ungeoreferenced) behavior in that case.
+
+    ``flip_rows`` is True when the GRIB scans south-first
+    (``jScansPositively=1``) and rows must be flipped to GeoTIFF's
+    north-up convention.
+
+    Notes
+    -----
+    cfgrib does not expose the earth radius; the GRIB2 sphere default
+    of 6371229 m (shapeOfTheEarth=6) is assumed for projected grids,
+    which matches NOAA's operational products.
+    """
+    attrs = getattr(da, "attrs", {}) or {}
+    grid_type = attrs.get("GRIB_gridType")
+    try:
+        from rasterio.crs import CRS
+        from rasterio.transform import from_origin
+    except ImportError:
+        return None
+    try:
+        ny = int(attrs["GRIB_Ny"])
+        flip = bool(attrs.get("GRIB_jScansPositively", 0))
+        lat_first = float(attrs["GRIB_latitudeOfFirstGridPointInDegrees"])
+        lon_first = float(attrs["GRIB_longitudeOfFirstGridPointInDegrees"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    if lon_first > 180.0:
+        lon_first -= 360.0
+
+    if grid_type == "regular_ll":
+        try:
+            dlon = float(attrs["GRIB_iDirectionIncrementInDegrees"])
+            dlat = float(attrs["GRIB_jDirectionIncrementInDegrees"])
+        except (KeyError, TypeError, ValueError):
+            return None
+        north = (lat_first + (ny - 1) * dlat) if flip else lat_first
+        transform = from_origin(lon_first - dlon / 2, north + dlat / 2, dlon, dlat)
+        return CRS.from_epsg(4326), transform, flip
+
+    if grid_type == "lambert":
+        try:
+            import pyproj
+
+            dx = float(attrs["GRIB_DxInMetres"])
+            dy = float(attrs["GRIB_DyInMetres"])
+            crs = CRS.from_dict(
+                {
+                    "proj": "lcc",
+                    "lat_1": float(attrs["GRIB_Latin1InDegrees"]),
+                    "lat_2": float(attrs["GRIB_Latin2InDegrees"]),
+                    "lat_0": float(attrs["GRIB_LaDInDegrees"]),
+                    "lon_0": float(attrs["GRIB_LoVInDegrees"]),
+                    "R": 6371229.0,
+                }
+            )
+            tr = pyproj.Transformer.from_crs("EPSG:4326", crs, always_xy=True)
+            x_first, y_first = tr.transform(lon_first, lat_first)
+            # (x_first, y_first) is the center of the first grid point.
+            west = x_first - dx / 2
+            top_center = y_first + (ny - 1) * dy if flip else y_first
+            transform = from_origin(west, top_center + dy / 2, dx, dy)
+            return crs, transform, flip
+        except Exception:
+            return None
+    return None
+
+
 def convert_to_format(
     decoded: DecodedGRIB,
     format_type: str,
@@ -419,13 +492,46 @@ def convert_to_format(
                 raise ValueError(
                     "GeoTIFF conversion supports a single variable. Provide 'var' to select one."
                 )
-            # Use rioxarray if available; otherwise rasterio
-            data_array = obj if hasattr(obj, "rio") else None
+            data_array = obj
+            if hasattr(data_array, "data_vars"):
+                # A Dataset (single variable — enforced above): take the
+                # variable itself so the GRIB_* attrs are visible; cfgrib
+                # stores grid metadata on variables, not the dataset.
+                data_array = data_array[next(iter(data_array.data_vars))]
+            # Prefer explicit georeferencing derived from the GRIB grid
+            # metadata: rioxarray's to_raster writes no CRS/transform for
+            # cfgrib datasets (2D lat/lon coords), and GRIB scan order
+            # (south-first) must be normalized to GeoTIFF north-up.
+            georef = _grib_georeference(data_array)
+            if georef is not None:
+                import numpy as np  # type: ignore
+                from rasterio.io import MemoryFile
+
+                crs, transform, flip = georef
+                values = np.squeeze(np.asarray(data_array.values))
+                if values.ndim != 2:
+                    raise ValueError(
+                        "GeoTIFF conversion needs a single 2D field; select one "
+                        "level/time with 'var' or extract-variable first."
+                    )
+                if flip:
+                    values = values[::-1, :]
+                profile = {
+                    "driver": "GTiff",
+                    "width": values.shape[1],
+                    "height": values.shape[0],
+                    "count": 1,
+                    "dtype": values.dtype.name,
+                    "crs": crs,
+                    "transform": transform,
+                }
+                with MemoryFile() as mem:
+                    with mem.open(**profile) as dst:
+                        dst.write(values, 1)
+                    return mem.read()
             try:
-                if data_array is None and hasattr(ds, "to_array"):
-                    # If obj is a Dataset, pick the first variable
-                    data_array = ds.to_array().isel(variable=0)
-                # Ensure rioxarray is available
+                # Fallback: rioxarray for data that carries its own
+                # georeferencing via the rio accessor.
                 import rioxarray  # noqa: F401  # type: ignore
 
                 tmp = tempfile.NamedTemporaryFile(suffix=".tif", delete=False)
