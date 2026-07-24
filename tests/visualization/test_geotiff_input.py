@@ -179,3 +179,22 @@ def test_heatmap_renders_geotiff_with_transparent_nodata(tmp_path):
     ), f"nodata half was painted with data color: left={left}, right={right}"
     # Background is neutral (grayscale-ish), data color is not.
     assert max(left) - min(left) < 30, f"nodata pixel not background-like: {left}"
+
+
+@pytest.mark.skipif(
+    _skip_cartopy_heavy,
+    reason="Cartopy-heavy tests require cartopy and opt-in (DATAVIZHUB_RUN_CARTOPY_TESTS=1)",
+)
+def test_render_band_zero_surfaces_range_error(tmp_path):
+    # Regression: band=0 must reach the loader's range check, not be
+    # treated as falsy and silently replaced with band 1.
+    import matplotlib
+
+    matplotlib.use("Agg")
+
+    from zyra.visualization.heatmap_manager import HeatmapManager
+
+    tif = str(tmp_path / "z.tif")
+    _write_tif(tif, np.zeros((2, 2), dtype="float32"))
+    with pytest.raises(ValueError, match="out of range"):
+        HeatmapManager(extent=[-180, 180, -90, 90]).render(input_path=tif, band=0)

@@ -321,6 +321,9 @@ class VisualizeContourArgs(BaseModel):
     inputs: list[str] | None = None
     output: str
     output_dir: str | None = None
+    band: int | None = Field(
+        default=None, description="GeoTIFF band to read (1-based; default 1)"
+    )
     levels: int | str | None = None
     filled: bool | None = None
 

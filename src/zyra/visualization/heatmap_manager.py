@@ -89,7 +89,9 @@ class HeatmapManager(Renderer):
 
             return load_geotiff_array(input_path, band=band)
         else:
-            raise ValueError("Unsupported input file; use .nc, .npy, or .tif")
+            raise ValueError(
+                "Unsupported input file; use .nc, .nc4, .npy, .tif, or .tiff"
+            )
 
     def render(self, data: Any = None, **kwargs: Any):
         width = int(kwargs.get("width", 1024))
@@ -122,7 +124,7 @@ class HeatmapManager(Renderer):
             input_path=input_path,
             var=var,
             xarray_engine=kwargs.get("xarray_engine"),
-            band=int(kwargs.get("band") or 1),
+            band=1 if kwargs.get("band") is None else int(kwargs.get("band")),
         )
 
         # CRS detection (warn on mismatch)

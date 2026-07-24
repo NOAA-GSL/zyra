@@ -24,13 +24,15 @@ def register_cli(subparsers: Any) -> None:
 
     # heatmap
     p_hm = subparsers.add_parser("heatmap", help="Visualization: render 2D heatmap")
-    p_hm.add_argument("--input", required=True, help="Path to .nc, .npy, or .tif input")
+    p_hm.add_argument(
+        "--input", required=True, help="Path to .nc/.nc4, .npy, or .tif/.tiff input"
+    )
     p_hm.add_argument("--var", help="Variable name for NetCDF inputs")
     p_hm.add_argument(
         "--band",
         type=int,
         default=1,
-        help="Band to read for GeoTIFF inputs (1-based; nodata renders transparent)",
+        help="Band to read for GeoTIFF (.tif/.tiff) inputs (1-based; nodata renders transparent)",
     )
     p_hm.add_argument(
         "--basemap",
@@ -138,7 +140,7 @@ def register_cli(subparsers: Any) -> None:
     p_ct = subparsers.add_parser(
         "contour", help="Visualization: render contour/filled contours"
     )
-    p_ct.add_argument("--input", help="Path to .nc or .npy input")
+    p_ct.add_argument("--input", help="Path to .nc/.nc4, .npy, or .tif/.tiff input")
     p_ct.add_argument("--inputs", nargs="+", help="Multiple inputs for batch rendering")
     p_ct.add_argument(
         "--output-dir",
@@ -150,7 +152,7 @@ def register_cli(subparsers: Any) -> None:
         "--band",
         type=int,
         default=1,
-        help="Band to read for GeoTIFF inputs (1-based; nodata renders transparent)",
+        help="Band to read for GeoTIFF (.tif/.tiff) inputs (1-based; nodata renders transparent)",
     )
     p_ct.add_argument("--basemap", help="Basemap (path, bare image name, or pkg:ref)")
     p_ct.add_argument(

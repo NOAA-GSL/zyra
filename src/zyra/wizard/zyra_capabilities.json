@@ -2855,14 +2855,14 @@
     "options": {
       "--help": "show this help message and exit",
       "--input": {
-        "help": "Path to .nc, .npy, or .tif input",
+        "help": "Path to .nc/.nc4, .npy, or .tif/.tiff input",
         "path_arg": true,
         "type": "path",
         "required": true
       },
       "--var": "Variable name for NetCDF inputs",
       "--band": {
-        "help": "Band to read for GeoTIFF inputs (1-based; nodata renders transparent)",
+        "help": "Band to read for GeoTIFF (.tif/.tiff) inputs (1-based; nodata renders transparent)",
         "type": "int",
         "default": 1
       },
@@ -3077,7 +3077,7 @@
     "options": {
       "--help": "show this help message and exit",
       "--input": {
-        "help": "Path to .nc or .npy input",
+        "help": "Path to .nc/.nc4, .npy, or .tif/.tiff input",
         "path_arg": true,
         "type": "path"
       },
@@ -3093,7 +3093,7 @@
       },
       "--var": "Variable name for NetCDF inputs",
       "--band": {
-        "help": "Band to read for GeoTIFF inputs (1-based; nodata renders transparent)",
+        "help": "Band to read for GeoTIFF (.tif/.tiff) inputs (1-based; nodata renders transparent)",
         "type": "int",
         "default": 1
       },
@@ -3218,6 +3218,7 @@
         "output"
       ],
       "optional": [
+        "band",
         "filled",
         "input",
         "inputs",
@@ -4324,14 +4325,14 @@
     "options": {
       "--help": "show this help message and exit",
       "--input": {
-        "help": "Path to .nc, .npy, or .tif input",
+        "help": "Path to .nc/.nc4, .npy, or .tif/.tiff input",
         "path_arg": true,
         "type": "path",
         "required": true
       },
       "--var": "Variable name for NetCDF inputs",
       "--band": {
-        "help": "Band to read for GeoTIFF inputs (1-based; nodata renders transparent)",
+        "help": "Band to read for GeoTIFF (.tif/.tiff) inputs (1-based; nodata renders transparent)",
         "type": "int",
         "default": 1
       },
@@ -4517,7 +4518,7 @@
     "options": {
       "--help": "show this help message and exit",
       "--input": {
-        "help": "Path to .nc or .npy input",
+        "help": "Path to .nc/.nc4, .npy, or .tif/.tiff input",
         "path_arg": true,
         "type": "path"
       },
@@ -4533,7 +4534,7 @@
       },
       "--var": "Variable name for NetCDF inputs",
       "--band": {
-        "help": "Band to read for GeoTIFF inputs (1-based; nodata renders transparent)",
+        "help": "Band to read for GeoTIFF (.tif/.tiff) inputs (1-based; nodata renders transparent)",
         "type": "int",
         "default": 1
       },
