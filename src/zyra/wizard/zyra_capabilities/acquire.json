@@ -720,6 +720,9 @@
           "--until",
           "--date-format",
           "--header",
+          "--auth",
+          "--credential",
+          "--credential-file",
           "--verbose",
           "--quiet",
           "--trace",
@@ -766,6 +769,9 @@
       "--until": "ISO date filter (matched against dataset name)",
       "--date-format": "strftime tokens for parsing dates in dataset names (e.g., %%Y%%m%%d). Aliases like 'YYYYMMDD' are not supported.",
       "--header": "Add custom HTTP header 'Name: Value' (repeatable)",
+      "--auth": "Convenience auth helper: 'bearer:$TOKEN' -> Authorization: Bearer <value>, 'basic:user:pass' sets HTTP Basic auth",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'token=$API_TOKEN' or 'header.Authorization=@EUMETSAT_TOKEN'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials",
       "--verbose": {
         "help": "Verbose logging for this command",
         "type": "bool",
@@ -817,6 +823,9 @@
         "catalog_url"
       ],
       "optional": [
+        "auth",
+        "credential",
+        "credential_file",
         "date_format",
         "header",
         "list_mode",
@@ -1572,6 +1581,9 @@
           "--until",
           "--date-format",
           "--header",
+          "--auth",
+          "--credential",
+          "--credential-file",
           "--verbose",
           "--quiet",
           "--trace",
@@ -1618,6 +1630,9 @@
       "--until": "ISO date filter (matched against dataset name)",
       "--date-format": "strftime tokens for parsing dates in dataset names (e.g., %%Y%%m%%d). Aliases like 'YYYYMMDD' are not supported.",
       "--header": "Add custom HTTP header 'Name: Value' (repeatable)",
+      "--auth": "Convenience auth helper: 'bearer:$TOKEN' -> Authorization: Bearer <value>, 'basic:user:pass' sets HTTP Basic auth",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'token=$API_TOKEN' or 'header.Authorization=@EUMETSAT_TOKEN'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials",
       "--verbose": {
         "help": "Verbose logging for this command",
         "type": "bool",
@@ -1669,6 +1684,9 @@
         "catalog_url"
       ],
       "optional": [
+        "auth",
+        "credential",
+        "credential_file",
         "date_format",
         "header",
         "list_mode",

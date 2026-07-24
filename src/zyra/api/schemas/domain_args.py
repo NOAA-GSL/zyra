@@ -205,6 +205,9 @@ class AcquireThreddsArgs(BaseModel):
     until: str | None = None
     date_format: str | None = None
     header: list[str] | None = None
+    auth: str | None = None
+    credential: list[str] | None = None
+    credential_file: str | None = None
     # Sync mode options (subset meaningful over HTTP)
     overwrite_existing: bool | None = None
     recheck_existing: bool | None = None

@@ -327,6 +327,20 @@ def _cmd_thredds(ns: argparse.Namespace) -> int:
         os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
     headers = parse_header_strings(getattr(ns, "header", None))
+    # Same secret-resolution flow as acquire http: --credential slots
+    # (CredentialManager) and the --auth convenience helper, so protected
+    # catalogs don't require embedding tokens in raw --header values.
+    credential_entries = list(getattr(ns, "credential", []) or [])
+    if credential_entries:
+        try:
+            resolved = resolve_credentials(
+                credential_entries,
+                credential_file=getattr(ns, "credential_file", None),
+            )
+        except CredentialResolutionError as exc:
+            raise SystemExit(f"Credential error: {exc}") from exc
+        apply_http_credentials(headers, resolved.values)
+    apply_auth_header(headers, getattr(ns, "auth", None))
 
     def _since() -> str | None:
         sp = getattr(ns, "since_period", None)
@@ -1270,6 +1284,27 @@ def register_cli(acq_subparsers: Any) -> None:
         "--header",
         action="append",
         help="Add custom HTTP header 'Name: Value' (repeatable)",
+    )
+    p_thr.add_argument(
+        "--auth",
+        help=(
+            "Convenience auth helper: 'bearer:$TOKEN' -> Authorization: Bearer <value>, "
+            "'basic:user:pass' sets HTTP Basic auth"
+        ),
+    )
+    p_thr.add_argument(
+        "--credential",
+        action="append",
+        dest="credential",
+        help=(
+            "Credential slot resolution (repeatable), e.g., 'token=$API_TOKEN' or "
+            "'header.Authorization=@EUMETSAT_TOKEN'"
+        ),
+    )
+    p_thr.add_argument(
+        "--credential-file",
+        dest="credential_file",
+        help="Optional dotenv file for resolving @KEY credentials",
     )
     p_thr.add_argument(
         "--verbose", action="store_true", help="Verbose logging for this command"

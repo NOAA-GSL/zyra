@@ -267,5 +267,45 @@ def test_missing_http_server_defaults_base():
     assert datasets[0].download_url.endswith("/thredds/fileServer/a/x.grib2")
 
 
+def test_cli_thredds_auth_and_credential_flags(monkeypatch, tmp_path, capsysbinary):
+    # Parity with acquire http: --auth and --credential resolve into
+    # request headers instead of requiring secrets in raw --header.
+    import argparse
+
+    from zyra.connectors import ingest
+
+    seen = {}
+
+    def fake_list_files(url, **kw):
+        seen["headers"] = kw.get("headers")
+        return [f"{url.rsplit('/', 1)[0]}/fileServer/a/x.grib2"]
+
+    def fake_fetch(url, headers=None):
+        seen["fetch_headers"] = headers
+        return b"DATA"
+
+    monkeypatch.setattr(ingest.thredds_backend, "list_files", fake_list_files)
+    monkeypatch.setattr(ingest.thredds_backend, "fetch_bytes", fake_fetch)
+    monkeypatch.setenv("MY_TOKEN", "sekrit")
+
+    parser = argparse.ArgumentParser()
+    sub = parser.add_subparsers(dest="cmd")
+    ingest.register_cli(sub)
+    out_file = tmp_path / "out.bin"
+    ns = parser.parse_args(
+        [
+            "thredds",
+            CATALOG_URL,
+            "--auth",
+            "bearer:$MY_TOKEN",
+            "-o",
+            str(out_file),
+        ]
+    )
+    assert ns.func(ns) == 0
+    assert seen["fetch_headers"]["Authorization"] == "Bearer sekrit"
+    assert out_file.read_bytes() == b"DATA"
+
+
 if __name__ == "__main__":  # pragma: no cover
     pytest.main([__file__, "-v"])
