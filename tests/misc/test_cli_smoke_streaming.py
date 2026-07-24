@@ -151,8 +151,16 @@ def test_grib2_extract_variable_stdout_netcdf_header():
             "netcdf",
         ]
     )
-    assert res.returncode == 0, res.stderr.decode(errors="ignore")
-    assert res.stdout.startswith(b"CDF") or res.stdout.startswith(b"\x89HDF")
+    # Real conversion succeeds (valid NetCDF header) or fails honestly
+    # (previously a failed conversion emitted a fabricated dummy NetCDF
+    # with exit 0). demo.grib2 has no cfgrib-decodable message, so
+    # environments without wgrib2 exercise the failure branch.
+    if res.returncode == 0:
+        assert res.stdout.startswith(b"CDF") or res.stdout.startswith(b"\x89HDF")
+    else:
+        assert b"error" in res.stderr.lower() or b"unsupported" in res.stderr.lower()
+        # No partial/placeholder bytes may accompany a failure.
+        assert res.stdout == b""
 
 
 @pytest.mark.cli

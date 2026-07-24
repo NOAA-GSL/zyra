@@ -8,7 +8,6 @@ exit 0. Failures must raise so callers see the real error.
 
 from __future__ import annotations
 
-import io
 import re
 
 import pytest
@@ -42,12 +41,17 @@ def test_geotiff_without_xarray_backend_raises():
         convert_to_format(decoded, "geotiff")
 
 
-def test_netcdf_bytes_roundtrip_real_dataset():
+def test_netcdf_bytes_roundtrip_real_dataset(tmp_path):
     ds = xr.Dataset({"t": (("y", "x"), np.arange(6, dtype="float32").reshape(2, 3))})
     out = _netcdf_bytes(ds)
     assert out[:3] == b"CDF" or out[:4] == b"\x89HDF"
-    back = xr.open_dataset(io.BytesIO(out))
-    assert "t" in back and float(back["t"].values[1, 2]) == 5.0
+    # Re-open via a real file: file-like reads only work with some
+    # engines (e.g. scipy/h5netcdf), while a path works with any
+    # installed NetCDF engine — mirrors load_netcdf's approach.
+    p = tmp_path / "roundtrip.nc"
+    p.write_bytes(out)
+    with xr.open_dataset(p) as back:
+        assert "t" in back and float(back["t"].values[1, 2]) == 5.0
 
 
 def test_no_dummy_variable_can_escape():

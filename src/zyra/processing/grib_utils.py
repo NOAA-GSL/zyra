@@ -447,6 +447,7 @@ def convert_to_format(
                             return _netcdf_bytes(obj_raw)
                     except Exception:
                         pass
+                wgrib2_detail = ""
                 if _has_wgrib2() and decoded.path:
                     tmp = tempfile.NamedTemporaryFile(suffix=".nc", delete=False)
                     tmp_path = tmp.name
@@ -462,6 +463,13 @@ def convert_to_format(
                             from pathlib import Path as _P
 
                             return _P(tmp_path).read_bytes()
+                        # Surface the fallback's own failure detail; the
+                        # original exception alone hides what wgrib2 said.
+                        wgrib2_detail = (
+                            f"; wgrib2 fallback failed (exit {res.returncode})"
+                        )
+                        if (res.stderr or "").strip():
+                            wgrib2_detail += f": {res.stderr.strip()}"
                     finally:
                         import contextlib
                         from pathlib import Path as _P
@@ -472,7 +480,9 @@ def convert_to_format(
                 # a placeholder dataset returned as success poisons every
                 # downstream consumer (this previously emitted a Dataset
                 # with a single variable literally named 'dummy').
-                raise RuntimeError(f"NetCDF conversion failed: {exc}") from exc
+                raise RuntimeError(
+                    f"NetCDF conversion failed: {exc}{wgrib2_detail}"
+                ) from exc
 
         if ftype == "geotiff":
             # Enforce single-variable requirement up-front to avoid optional deps
