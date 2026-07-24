@@ -108,6 +108,174 @@ def load_data_array(
     raise ValueError("Unsupported input file; use .nc, .nc4, .npy, .tif, or .tiff")
 
 
+def load_palette_spec(path: str) -> dict:
+    """Load and validate a palette file (``--cmap-file``).
+
+    Two shapes are accepted (see ColormapManager, which consumes them):
+
+    - ``{"type": "classified", "entries": [{"Color": [R,G,B(,A)],
+      "Upper Bound": n}, ...]}`` — fixed color bands.
+    - ``{"type": "continuous", "base": "YlOrBr", "transparent_range": 2,
+      "blend_range": 8, "overall_alpha": 0.9}`` — a named base colormap
+      with an optional transparency ramp.
+
+    Raises
+    ------
+    ValueError
+        On unreadable files, invalid JSON, or a spec that fails
+        validation. Handlers surface these as exit code 2.
+    """
+    import json
+    from pathlib import Path
+
+    try:
+        raw = Path(path).read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ValueError(f"Cannot read palette file {path}: {exc}") from exc
+    try:
+        spec = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Palette file {path} is not valid JSON: {exc}") from exc
+    if not isinstance(spec, dict):
+        raise ValueError("Palette file must contain a JSON object")
+
+    ptype = spec.get("type")
+    if ptype == "classified":
+        entries = spec.get("entries")
+        if not isinstance(entries, list) or not entries:
+            raise ValueError("Classified palette requires a non-empty 'entries' list")
+        bounds: list[float] = []
+        for i, entry in enumerate(entries):
+            if not isinstance(entry, dict) or "Color" not in entry:
+                raise ValueError(f"Palette entry {i} must have a 'Color' key")
+            color = entry["Color"]
+            if (
+                not isinstance(color, list)
+                or len(color) not in (3, 4)
+                or not all(isinstance(c, (int, float)) and 0 <= c <= 255 for c in color)
+            ):
+                raise ValueError(
+                    f"Palette entry {i}: 'Color' must be [R,G,B] or [R,G,B,A] "
+                    "with values in 0-255"
+                )
+            if "Upper Bound" not in entry:
+                raise ValueError(f"Palette entry {i} must have an 'Upper Bound' key")
+            try:
+                bounds.append(float(entry["Upper Bound"]))
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"Palette entry {i}: 'Upper Bound' must be numeric"
+                ) from exc
+        if any(b2 <= b1 for b1, b2 in zip(bounds, bounds[1:])):
+            raise ValueError("Classified palette bounds must be strictly increasing")
+        return spec
+
+    if ptype == "continuous":
+        base = spec.get("base")
+        if not isinstance(base, str) or not base:
+            raise ValueError("Continuous palette requires a 'base' colormap name")
+        for key in ("transparent_range", "blend_range"):
+            v = spec.get(key)
+            if v is not None and (not isinstance(v, int) or v < 0):
+                raise ValueError(f"Palette '{key}' must be a non-negative integer")
+        alpha = spec.get("overall_alpha")
+        if alpha is not None and (
+            not isinstance(alpha, (int, float)) or not 0.0 <= float(alpha) <= 1.0
+        ):
+            raise ValueError("Palette 'overall_alpha' must be between 0 and 1")
+        return spec
+
+    raise ValueError("Palette 'type' must be 'classified' or 'continuous'")
+
+
+def cmap_norm_from_palette(spec: dict):
+    """Build ``(cmap, norm_or_None)`` from a validated palette spec.
+
+    Classified specs return a ``(ListedColormap, BoundaryNorm)`` pair;
+    continuous specs return ``(LinearSegmentedColormap, None)``.
+    """
+    from zyra.visualization.colormap_manager import ColormapManager
+
+    cm = ColormapManager()
+    if spec["type"] == "classified":
+        cmap, norm = cm.render(spec["entries"])
+        # Values below the first bound render transparent (radar-palette
+        # semantics: below-scale is "no signal", not the first band —
+        # otherwise no-echo floods the frame with the lowest band color).
+        cmap.set_under((0.0, 0.0, 0.0, 0.0))
+        return cmap, norm
+    return (
+        cm.render(
+            spec["base"],
+            transparent_range=spec.get("transparent_range", 1),
+            blend_range=spec.get("blend_range", 8),
+            overall_alpha=spec.get("overall_alpha", 1.0),
+        ),
+        None,
+    )
+
+
+def resolve_cmap_args(ns):
+    """Resolve ``(cmap, norm)`` from the ``--cmap``/``--cmap-file`` flags.
+
+    Returns the plain colormap name with no norm when no palette file is
+    given. Classified palettes reject ``--vmin``/``--vmax`` — the bounds
+    come from the palette table.
+    """
+    cmap_file = getattr(ns, "cmap_file", None)
+    if not cmap_file:
+        return getattr(ns, "cmap", None), None
+    spec = load_palette_spec(cmap_file)
+    if spec["type"] == "classified" and (
+        getattr(ns, "vmin", None) is not None or getattr(ns, "vmax", None) is not None
+    ):
+        raise ValueError(
+            "--vmin/--vmax are not valid with a classified palette; "
+            "bounds come from the palette table"
+        )
+    return cmap_norm_from_palette(spec)
+
+
+def write_legend(
+    output_path: str,
+    *,
+    cmap,
+    norm=None,
+    vmin=None,
+    vmax=None,
+    label: str | None = None,
+    orientation: str = "horizontal",
+) -> str:
+    """Write a standalone colorbar legend image (``--legend-file``).
+
+    Renders only the colorbar (transparent background) so globe/sphere
+    display targets can place it as screen-space UI instead of baking it
+    into the frame, where it would wrap onto the globe.
+    """
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib import cm as mpl_cm
+    from matplotlib import colors as mpl_colors
+
+    if norm is None:
+        norm = mpl_colors.Normalize(
+            vmin=0.0 if vmin is None else float(vmin),
+            vmax=1.0 if vmax is None else float(vmax),
+        )
+    figsize = (8, 1.1) if orientation == "horizontal" else (1.4, 8)
+    fig, ax = plt.subplots(figsize=figsize, dpi=128)
+    cbar = fig.colorbar(
+        mpl_cm.ScalarMappable(norm=norm, cmap=cmap), cax=ax, orientation=orientation
+    )
+    if label:
+        cbar.set_label(label)
+    fig.savefig(output_path, bbox_inches="tight", transparent=True)
+    plt.close(fig)
+    return output_path
+
+
 def resolve_extent(ns) -> list[float]:
     """Validate and default the ``--extent`` value on a parsed namespace.
 

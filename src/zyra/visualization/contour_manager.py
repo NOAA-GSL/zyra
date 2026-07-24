@@ -104,6 +104,7 @@ class ContourManager(Renderer):
         dpi = int(kwargs.get("dpi", FIGURE_DPI))
         levels = kwargs.get("levels", 10)
         cmap = kwargs.get("cmap", self.cmap)
+        norm = kwargs.get("norm")
         linewidths = kwargs.get("linewidths", 1.0)
         colors = kwargs.get("colors")
         alpha = kwargs.get("alpha", 1.0)
@@ -174,6 +175,14 @@ class ContourManager(Renderer):
         ys = np.linspace(self.extent[2], self.extent[3], ny)
         X, Y = np.meshgrid(xs, ys)
 
+        # A classified palette's BoundaryNorm carries its own bounds:
+        # contour at those bounds unless explicit levels were requested.
+        if (
+            norm is not None
+            and getattr(norm, "boundaries", None) is not None
+            and kwargs.get("levels") is None
+        ):
+            levels = list(norm.boundaries)
         if self.filled:
             cf = ax.contourf(
                 X,
@@ -181,6 +190,7 @@ class ContourManager(Renderer):
                 arr,
                 levels=levels,
                 cmap=cmap,
+                norm=norm,
                 alpha=alpha,
                 transform=(data_transform or ccrs.PlateCarree()),
             )

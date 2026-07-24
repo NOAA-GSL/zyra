@@ -66,7 +66,25 @@ def register_cli(subparsers: Any) -> None:
     p_hm.add_argument("--width", type=int, default=1024)
     p_hm.add_argument("--height", type=int, default=512)
     p_hm.add_argument("--dpi", type=int, default=96)
-    p_hm.add_argument("--cmap", default="YlOrBr")
+    hm_cmap = p_hm.add_mutually_exclusive_group()
+    hm_cmap.add_argument("--cmap", default="YlOrBr")
+    hm_cmap.add_argument(
+        "--cmap-file",
+        dest="cmap_file",
+        help="Palette JSON file (classified bands or continuous spec)",
+    )
+    p_hm.add_argument(
+        "--legend-file",
+        dest="legend_file",
+        help="Write a standalone colorbar legend image (transparent background)",
+    )
+    p_hm.add_argument(
+        "--legend-orientation",
+        dest="legend_orientation",
+        choices=["horizontal", "vertical"],
+        default="horizontal",
+        help="Orientation for --legend-file",
+    )
     p_hm.add_argument(
         "--vmin",
         type=float,
@@ -171,7 +189,25 @@ def register_cli(subparsers: Any) -> None:
     p_ct.add_argument("--width", type=int, default=1024)
     p_ct.add_argument("--height", type=int, default=512)
     p_ct.add_argument("--dpi", type=int, default=96)
-    p_ct.add_argument("--cmap", default="YlOrBr")
+    ct_cmap = p_ct.add_mutually_exclusive_group()
+    ct_cmap.add_argument("--cmap", default="YlOrBr")
+    ct_cmap.add_argument(
+        "--cmap-file",
+        dest="cmap_file",
+        help="Palette JSON file (classified bands or continuous spec)",
+    )
+    p_ct.add_argument(
+        "--legend-file",
+        dest="legend_file",
+        help="Write a standalone colorbar legend image (transparent background)",
+    )
+    p_ct.add_argument(
+        "--legend-orientation",
+        dest="legend_orientation",
+        choices=["horizontal", "vertical"],
+        default="horizontal",
+        help="Orientation for --legend-file",
+    )
     p_ct.add_argument("--filled", action="store_true", help="Use filled contours")
     p_ct.add_argument("--levels", default=10, help="Count or comma-separated levels")
     p_ct.add_argument("--colorbar", action="store_true")

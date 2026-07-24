@@ -35,9 +35,10 @@ def _handle_heatmap_impl(ns) -> int:
     if getattr(ns, "trace", False):
         os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
-    from zyra.visualization.cli_utils import resolve_extent
+    from zyra.visualization.cli_utils import resolve_cmap_args, resolve_extent
 
     ns.extent = resolve_extent(ns)
+    cmap, norm = resolve_cmap_args(ns)
     # Batch mode: --inputs with --output-dir
     if getattr(ns, "inputs", None):
         outdir = getattr(ns, "output_dir", None)
@@ -58,7 +59,8 @@ def _handle_heatmap_impl(ns) -> int:
                 width=ns.width,
                 height=ns.height,
                 dpi=ns.dpi,
-                cmap=ns.cmap,
+                cmap=cmap,
+                norm=norm,
                 vmin=getattr(ns, "vmin", None),
                 vmax=getattr(ns, "vmax", None),
                 colorbar=getattr(ns, "colorbar", False),
@@ -88,6 +90,7 @@ def _handle_heatmap_impl(ns) -> int:
             print(json.dumps({"outputs": outputs}))
         except Exception:
             pass
+        _maybe_write_legend(ns, cmap, norm)
         return 0
     bmap, guard = resolve_basemap_ref(getattr(ns, "basemap", None))
     if os.environ.get("ZYRA_SHELL_TRACE"):
@@ -108,7 +111,8 @@ def _handle_heatmap_impl(ns) -> int:
         width=ns.width,
         height=ns.height,
         dpi=ns.dpi,
-        cmap=ns.cmap,
+        cmap=cmap,
+        norm=norm,
         vmin=getattr(ns, "vmin", None),
         vmax=getattr(ns, "vmax", None),
         colorbar=getattr(ns, "colorbar", False),
@@ -131,4 +135,24 @@ def _handle_heatmap_impl(ns) -> int:
             guard.close()
         except Exception:
             pass
+    _maybe_write_legend(ns, cmap, norm)
     return 0
+
+
+def _maybe_write_legend(ns, cmap, norm) -> None:
+    """Write the standalone legend when --legend-file was requested."""
+    legend_file = getattr(ns, "legend_file", None)
+    if not legend_file:
+        return
+    from zyra.visualization.cli_utils import write_legend
+
+    out = write_legend(
+        legend_file,
+        cmap=cmap,
+        norm=norm,
+        vmin=getattr(ns, "vmin", None),
+        vmax=getattr(ns, "vmax", None),
+        label=getattr(ns, "label", None),
+        orientation=getattr(ns, "legend_orientation", "horizontal"),
+    )
+    logging.info(out)
