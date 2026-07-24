@@ -12,23 +12,66 @@ except Exception:  # pragma: no cover - fallback for very old Python
 from zyra.visualization.styles import DEFAULT_EXTENT, MAP_STYLES
 
 
+def load_geotiff_array(input_path: str, *, band: int = 1):
+    """Read one band of a GeoTIFF as float32 with nodata mapped to NaN.
+
+    NaN renders transparent in the raster visualizers, so warp fill and
+    masked regions disappear instead of plotting as a solid value.
+
+    Parameters
+    ----------
+    input_path : str
+        Path to a ``.tif``/``.tiff`` file.
+    band : int, default 1
+        1-based band index to read.
+
+    Raises
+    ------
+    ValueError
+        If rasterio is unavailable or ``band`` is out of range.
+    """
+    try:
+        import rasterio
+    except ImportError as exc:
+        raise ValueError(
+            "Reading GeoTIFF input requires rasterio; install it (e.g. "
+            "'pip install rasterio' or the zyra processing extras)"
+        ) from exc
+    import numpy as np
+
+    with rasterio.open(input_path) as ds:
+        if band < 1 or band > ds.count:
+            raise ValueError(
+                f"--band {band} is out of range: file has {ds.count} band(s)"
+            )
+        arr = ds.read(band).astype("float32")
+        nodata = ds.nodata
+    if nodata is not None and not np.isnan(nodata):
+        arr[arr == np.float32(nodata)] = np.nan
+    return arr
+
+
 def load_data_array(
     input_path: str,
     *,
     var: str | None = None,
     xarray_engine: str | None = None,
+    band: int = 1,
 ):
-    """Load a 2D array from a ``.nc``/``.nc4`` or ``.npy`` file.
+    """Load a 2D array from a ``.nc``/``.nc4``, ``.npy``, or GeoTIFF file.
 
     Parameters
     ----------
     input_path : str
-        Path to a NetCDF (``.nc``/``.nc4``) or NumPy (``.npy``) file.
+        Path to a NetCDF (``.nc``/``.nc4``), NumPy (``.npy``), or GeoTIFF
+        (``.tif``/``.tiff``) file.
     var : str, optional
         Variable name to extract; required for NetCDF inputs.
     xarray_engine : str, optional
         Engine passed to :func:`xarray.open_dataset` (e.g., ``netcdf4``,
         ``h5netcdf``, ``scipy``).
+    band : int, default 1
+        Band to read for GeoTIFF inputs (nodata is mapped to NaN).
 
     Returns
     -------
@@ -60,7 +103,9 @@ def load_data_array(
         import numpy as np
 
         return np.load(input_path)
-    raise ValueError("Unsupported input file; use .nc, .nc4, or .npy")
+    if lower.endswith((".tif", ".tiff")):
+        return load_geotiff_array(input_path, band=band)
+    raise ValueError("Unsupported input file; use .nc, .nc4, .npy, .tif, or .tiff")
 
 
 def resolve_extent(ns) -> list[float]:

@@ -59,6 +59,7 @@ class HeatmapManager(Renderer):
         input_path: Optional[str] = None,
         var: Optional[str] = None,
         xarray_engine: Optional[str] = None,
+        band: int = 1,
     ):
         if data is not None:
             return data
@@ -83,8 +84,12 @@ class HeatmapManager(Renderer):
             import numpy as np
 
             return np.load(input_path)
+        elif input_path.lower().endswith((".tif", ".tiff")):
+            from zyra.visualization.cli_utils import load_geotiff_array
+
+            return load_geotiff_array(input_path, band=band)
         else:
-            raise ValueError("Unsupported input file; use .nc or .npy")
+            raise ValueError("Unsupported input file; use .nc, .npy, or .tif")
 
     def render(self, data: Any = None, **kwargs: Any):
         width = int(kwargs.get("width", 1024))
@@ -117,6 +122,7 @@ class HeatmapManager(Renderer):
             input_path=input_path,
             var=var,
             xarray_engine=kwargs.get("xarray_engine"),
+            band=int(kwargs.get("band") or 1),
         )
 
         # CRS detection (warn on mismatch)

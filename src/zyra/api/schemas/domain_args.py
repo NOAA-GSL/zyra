@@ -70,6 +70,9 @@ class VisualizeHeatmapArgs(BaseModel):
     output: str | None = None
     output_dir: str | None = None
     var: str | None = None
+    band: int | None = Field(
+        default=None, description="GeoTIFF band to read (1-based; default 1)"
+    )
     basemap: str | None = None
     extent: list[float] | None = Field(
         default=None, description="[west,east,south,north]"

@@ -24,8 +24,14 @@ def register_cli(subparsers: Any) -> None:
 
     # heatmap
     p_hm = subparsers.add_parser("heatmap", help="Visualization: render 2D heatmap")
-    p_hm.add_argument("--input", required=True, help="Path to .nc or .npy input")
+    p_hm.add_argument("--input", required=True, help="Path to .nc, .npy, or .tif input")
     p_hm.add_argument("--var", help="Variable name for NetCDF inputs")
+    p_hm.add_argument(
+        "--band",
+        type=int,
+        default=1,
+        help="Band to read for GeoTIFF inputs (1-based; nodata renders transparent)",
+    )
     p_hm.add_argument(
         "--basemap",
         help="Basemap (path, bare image name, or pkg:ref)",
@@ -140,6 +146,12 @@ def register_cli(subparsers: Any) -> None:
         help="Directory to write outputs for --inputs",
     )
     p_ct.add_argument("--var", help="Variable name for NetCDF inputs")
+    p_ct.add_argument(
+        "--band",
+        type=int,
+        default=1,
+        help="Band to read for GeoTIFF inputs (1-based; nodata renders transparent)",
+    )
     p_ct.add_argument("--basemap", help="Basemap (path, bare image name, or pkg:ref)")
     p_ct.add_argument(
         "--extent",

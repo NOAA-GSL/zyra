@@ -661,6 +661,7 @@
         "options": [
           "--help",
           "--backend",
+          "--unsigned",
           "--stdout",
           "--format",
           "--verbose",
@@ -680,6 +681,11 @@
         ],
         "type": "str",
         "default": "cfgrib"
+      },
+      "--unsigned": {
+        "help": "Use unsigned S3 access for public buckets",
+        "type": "bool",
+        "default": false
       },
       "--stdout": {
         "help": "Write selected variable as bytes to stdout",

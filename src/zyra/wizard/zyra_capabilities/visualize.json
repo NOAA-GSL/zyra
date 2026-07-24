@@ -361,6 +361,7 @@
           "--inputs",
           "--output-dir",
           "--var",
+          "--band",
           "--basemap",
           "--extent",
           "--output",
@@ -409,6 +410,11 @@
         "type": "path"
       },
       "--var": "Variable name for NetCDF inputs",
+      "--band": {
+        "help": "Band to read for GeoTIFF inputs (1-based; nodata renders transparent)",
+        "type": "int",
+        "default": 1
+      },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
         "help": "west east south north (default: -180 180 -90 90)",
@@ -548,6 +554,7 @@
           "--help",
           "--input",
           "--var",
+          "--band",
           "--basemap",
           "--extent",
           "--output",
@@ -583,12 +590,17 @@
     "options": {
       "--help": "show this help message and exit",
       "--input": {
-        "help": "Path to .nc or .npy input",
+        "help": "Path to .nc, .npy, or .tif input",
         "path_arg": true,
         "type": "path",
         "required": true
       },
       "--var": "Variable name for NetCDF inputs",
+      "--band": {
+        "help": "Band to read for GeoTIFF inputs (1-based; nodata renders transparent)",
+        "type": "int",
+        "default": 1
+      },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
         "help": "west east south north (default: -180 180 -90 90)",
@@ -1690,6 +1702,7 @@
           "--inputs",
           "--output-dir",
           "--var",
+          "--band",
           "--basemap",
           "--extent",
           "--output",
@@ -1738,6 +1751,11 @@
         "type": "path"
       },
       "--var": "Variable name for NetCDF inputs",
+      "--band": {
+        "help": "Band to read for GeoTIFF inputs (1-based; nodata renders transparent)",
+        "type": "int",
+        "default": 1
+      },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
         "help": "west east south north (default: -180 180 -90 90)",
@@ -1888,6 +1906,7 @@
           "--help",
           "--input",
           "--var",
+          "--band",
           "--basemap",
           "--extent",
           "--output",
@@ -1923,12 +1942,17 @@
     "options": {
       "--help": "show this help message and exit",
       "--input": {
-        "help": "Path to .nc or .npy input",
+        "help": "Path to .nc, .npy, or .tif input",
         "path_arg": true,
         "type": "path",
         "required": true
       },
       "--var": "Variable name for NetCDF inputs",
+      "--band": {
+        "help": "Band to read for GeoTIFF inputs (1-based; nodata renders transparent)",
+        "type": "int",
+        "default": 1
+      },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
         "help": "west east south north (default: -180 180 -90 90)",
@@ -2055,6 +2079,7 @@
     "args_schema": {
       "required": [],
       "optional": [
+        "band",
         "basemap",
         "cmap",
         "colorbar",
