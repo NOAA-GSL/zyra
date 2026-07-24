@@ -461,11 +461,26 @@ def run_cli(stage: str, command: str, args: dict[str, Any]) -> RunResult:
         try:
             code = cli_main(argv)
             if not isinstance(code, int):
-                # Defensive: CLI returns int per contract; coerce otherwise
-                code = int(code) if code is not None else 0
+                # Defensive: CLI returns int per contract; mirror CPython's
+                # exit-status semantics otherwise (message -> stderr, exit 1).
+                if code is None:
+                    code = 0
+                else:
+                    print(str(code), file=sys.stderr)
+                    code = 1
         except SystemExit as exc:
-            # Many CLI funcs raise SystemExit; extract code
-            code = int(getattr(exc, "code", 1) or 0)
+            # Many CLI funcs raise SystemExit; extract code. A large share
+            # of raise sites use the `raise SystemExit("message")` idiom,
+            # where .code IS the message string — coercing that with int()
+            # crashed the handler and swallowed the message. CPython prints
+            # non-int codes to stderr and exits 1; do the same so the
+            # message surfaces in the captured stderr / API error payload.
+            code = getattr(exc, "code", 1)
+            if code is None:
+                code = 0
+            elif not isinstance(code, int):
+                print(str(code), file=sys.stderr)
+                code = 1
         except Exception as exc:  # pragma: no cover
             # Log full traceback for visibility; still capture stderr for response mapping
             import logging as _logging

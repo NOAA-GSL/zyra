@@ -422,6 +422,159 @@
       "--output-dir"
     ]
   },
+  "acquire thredds": {
+    "description": "Read a THREDDS catalog.xml, map datasets to fileServer download URLs, and list, sync, or fetch matching datasets. Optionally recurse into nested catalogRef entries.",
+    "doc": "Read a THREDDS catalog.xml, map datasets to fileServer download URLs, and list, sync, or fetch matching datasets. Optionally recurse into nested catalogRef entries.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--list",
+          "--sync-dir",
+          "--output-dir",
+          "--recursive",
+          "--max-depth",
+          "--pattern",
+          "--since",
+          "--since-period",
+          "--until",
+          "--date-format",
+          "--header",
+          "--auth",
+          "--credential",
+          "--credential-file",
+          "--verbose",
+          "--quiet",
+          "--trace",
+          "--overwrite-existing",
+          "--recheck-existing",
+          "--min-remote-size",
+          "--prefer-remote",
+          "--skip-if-local-done"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--list": {
+        "help": "List fileServer download URLs for matching datasets",
+        "type": "bool",
+        "default": false
+      },
+      "--sync-dir": "Sync matching datasets to a local directory",
+      "--output-dir": {
+        "help": "Directory to write outputs when fetching enumerated datasets. Files are named by dataset basename, so datasets sharing a basename across catalog folders/hosts overwrite each other (as with s3/ftp).",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--recursive": {
+        "help": "Follow nested catalogRef entries",
+        "type": "bool",
+        "default": false
+      },
+      "--max-depth": {
+        "help": "Maximum recursion depth for --recursive (default: 3)",
+        "type": "int",
+        "default": 3
+      },
+      "--pattern": "Regex to filter dataset urlPath",
+      "--since": "ISO date filter (matched against dataset name)",
+      "--since-period": "ISO-8601 duration for lookback (e.g., P1Y, P6M, P7D, PT24H)",
+      "--until": "ISO date filter (matched against dataset name)",
+      "--date-format": "strftime tokens for parsing dates in dataset names (e.g., %%Y%%m%%d). Aliases like 'YYYYMMDD' are not supported.",
+      "--header": "Add custom HTTP header 'Name: Value' (repeatable)",
+      "--auth": "Convenience auth helper: 'bearer:$TOKEN' -> Authorization: Bearer <value>, 'basic:user:pass' sets HTTP Basic auth",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'token=$API_TOKEN' or 'header.Authorization=@EUMETSAT_TOKEN'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      },
+      "--overwrite-existing": {
+        "help": "Replace local files unconditionally",
+        "type": "bool",
+        "default": false
+      },
+      "--recheck-existing": {
+        "help": "Compare sizes via HTTP Content-Length when deciding to re-download",
+        "type": "bool",
+        "default": false
+      },
+      "--min-remote-size": "Threshold for replacement (absolute bytes or relative percentage)",
+      "--prefer-remote": {
+        "help": "Always prioritize remote versions over local copies",
+        "type": "bool",
+        "default": false
+      },
+      "--skip-if-local-done": {
+        "help": "Skip files that have a .done marker file",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "catalog_url",
+        "help": "URL to a THREDDS catalog.xml document",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "acquire",
+    "args_schema": {
+      "required": [
+        "catalog_url"
+      ],
+      "optional": [
+        "auth",
+        "credential",
+        "credential_file",
+        "date_format",
+        "header",
+        "list_mode",
+        "max_depth",
+        "min_remote_size",
+        "output",
+        "output_dir",
+        "overwrite_existing",
+        "pattern",
+        "prefer_remote",
+        "recheck_existing",
+        "recursive",
+        "since",
+        "since_period",
+        "skip_if_local_done",
+        "sync_dir",
+        "until"
+      ]
+    },
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_thredds"
+    },
+    "returns": "bytes"
+  },
   "acquire vimeo": {
     "description": "Placeholder for fetching Vimeo videos by id. Not implemented yet.",
     "doc": "Placeholder for fetching Vimeo videos by id. Not implemented yet.",
@@ -1130,6 +1283,159 @@
       "--output-dir"
     ]
   },
+  "import thredds": {
+    "description": "Read a THREDDS catalog.xml, map datasets to fileServer download URLs, and list, sync, or fetch matching datasets. Optionally recurse into nested catalogRef entries.",
+    "doc": "Read a THREDDS catalog.xml, map datasets to fileServer download URLs, and list, sync, or fetch matching datasets. Optionally recurse into nested catalogRef entries.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--output",
+          "--list",
+          "--sync-dir",
+          "--output-dir",
+          "--recursive",
+          "--max-depth",
+          "--pattern",
+          "--since",
+          "--since-period",
+          "--until",
+          "--date-format",
+          "--header",
+          "--auth",
+          "--credential",
+          "--credential-file",
+          "--verbose",
+          "--quiet",
+          "--trace",
+          "--overwrite-existing",
+          "--recheck-existing",
+          "--min-remote-size",
+          "--prefer-remote",
+          "--skip-if-local-done"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--output": {
+        "help": "Output path or '-' for stdout",
+        "path_arg": true,
+        "type": "path",
+        "default": "-"
+      },
+      "--list": {
+        "help": "List fileServer download URLs for matching datasets",
+        "type": "bool",
+        "default": false
+      },
+      "--sync-dir": "Sync matching datasets to a local directory",
+      "--output-dir": {
+        "help": "Directory to write outputs when fetching enumerated datasets. Files are named by dataset basename, so datasets sharing a basename across catalog folders/hosts overwrite each other (as with s3/ftp).",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--recursive": {
+        "help": "Follow nested catalogRef entries",
+        "type": "bool",
+        "default": false
+      },
+      "--max-depth": {
+        "help": "Maximum recursion depth for --recursive (default: 3)",
+        "type": "int",
+        "default": 3
+      },
+      "--pattern": "Regex to filter dataset urlPath",
+      "--since": "ISO date filter (matched against dataset name)",
+      "--since-period": "ISO-8601 duration for lookback (e.g., P1Y, P6M, P7D, PT24H)",
+      "--until": "ISO date filter (matched against dataset name)",
+      "--date-format": "strftime tokens for parsing dates in dataset names (e.g., %%Y%%m%%d). Aliases like 'YYYYMMDD' are not supported.",
+      "--header": "Add custom HTTP header 'Name: Value' (repeatable)",
+      "--auth": "Convenience auth helper: 'bearer:$TOKEN' -> Authorization: Bearer <value>, 'basic:user:pass' sets HTTP Basic auth",
+      "--credential": "Credential slot resolution (repeatable), e.g., 'token=$API_TOKEN' or 'header.Authorization=@EUMETSAT_TOKEN'",
+      "--credential-file": "Optional dotenv file for resolving @KEY credentials",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      },
+      "--overwrite-existing": {
+        "help": "Replace local files unconditionally",
+        "type": "bool",
+        "default": false
+      },
+      "--recheck-existing": {
+        "help": "Compare sizes via HTTP Content-Length when deciding to re-download",
+        "type": "bool",
+        "default": false
+      },
+      "--min-remote-size": "Threshold for replacement (absolute bytes or relative percentage)",
+      "--prefer-remote": {
+        "help": "Always prioritize remote versions over local copies",
+        "type": "bool",
+        "default": false
+      },
+      "--skip-if-local-done": {
+        "help": "Skip files that have a .done marker file",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [
+      {
+        "name": "catalog_url",
+        "help": "URL to a THREDDS catalog.xml document",
+        "type": "str",
+        "required": true
+      }
+    ],
+    "domain": "import",
+    "args_schema": {
+      "required": [
+        "catalog_url"
+      ],
+      "optional": [
+        "auth",
+        "credential",
+        "credential_file",
+        "date_format",
+        "header",
+        "list_mode",
+        "max_depth",
+        "min_remote_size",
+        "output",
+        "output_dir",
+        "overwrite_existing",
+        "pattern",
+        "prefer_remote",
+        "recheck_existing",
+        "recursive",
+        "since",
+        "since_period",
+        "skip_if_local_done",
+        "sync_dir",
+        "until"
+      ]
+    },
+    "example_args": null,
+    "impl": {
+      "module": "zyra.connectors.ingest",
+      "callable": "_cmd_thredds"
+    },
+    "returns": "bytes"
+  },
   "import vimeo": {
     "description": "Placeholder for fetching Vimeo videos by id. Not implemented yet.",
     "doc": "Placeholder for fetching Vimeo videos by id. Not implemented yet.",
@@ -1564,6 +1870,7 @@
         "options": [
           "--help",
           "--backend",
+          "--unsigned",
           "--stdout",
           "--format",
           "--verbose",
@@ -1583,6 +1890,11 @@
         ],
         "type": "str",
         "default": "cfgrib"
+      },
+      "--unsigned": {
+        "help": "Use unsigned S3 access for public buckets",
+        "type": "bool",
+        "default": false
       },
       "--stdout": {
         "help": "Write selected variable as bytes to stdout",
@@ -1873,6 +2185,119 @@
       "--output-dir",
       "--json-report"
     ]
+  },
+  "process reproject": {
+    "description": "Warp an already-rendered raster (PNG/JPG/GeoTIFF) from its source projection to a target CRS grid — by default full-globe equirectangular EPSG:4326 at 4096x2048. For native scientific data (GRIB2/NetCDF), use the existing decode/extract/convert path instead; this command is for imagery that was rendered in another projection. Requires the optional rasterio dependency (zyra[processing]).",
+    "doc": "Warp an already-rendered raster (PNG/JPG/GeoTIFF) from its source projection to a target CRS grid — by default full-globe equirectangular EPSG:4326 at 4096x2048. For native scientific data (GRIB2/NetCDF), use the existing decode/extract/convert path instead; this command is for imagery that was rendered in another projection. Requires the optional rasterio dependency (zyra[processing]).",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--output",
+          "--s-srs",
+          "--t-srs",
+          "--bounds",
+          "--dst-bounds",
+          "--width",
+          "--height",
+          "--resampling",
+          "--dst-nodata",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Source raster path",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--output": {
+        "help": "Output raster path",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--s-srs": "Source CRS (e.g., EPSG:3413). Overrides any embedded CRS; required for plain images without georeferencing (with --bounds)",
+      "--t-srs": {
+        "help": "Target CRS (default: EPSG:4326)",
+        "type": "str",
+        "default": "EPSG:4326"
+      },
+      "--bounds": {
+        "help": "Source extent in source-CRS units, for rasters without a geotransform",
+        "type": "float"
+      },
+      "--dst-bounds": "Target extent in target-CRS units, or 'auto' to derive it from the source's own footprint so regional imagery crops itself (default: full globe for EPSG:4326)",
+      "--width": {
+        "help": "Output width in pixels (default: 4096)",
+        "type": "int",
+        "default": 4096
+      },
+      "--height": {
+        "help": "Output height in pixels (default: derived from --width and the target extent's aspect ratio; 2048 for the full globe)",
+        "type": "int"
+      },
+      "--resampling": {
+        "help": "Resampling kernel: bilinear for continuous imagery, nearest for categorical (default: bilinear)",
+        "choices": [
+          "bilinear",
+          "nearest"
+        ],
+        "type": "str",
+        "default": "bilinear"
+      },
+      "--dst-nodata": {
+        "help": "Value for pixels outside the source footprint (accepts 'nan' for float sources); default: the source's nodata when present, else 0. Tagged in GeoTIFF output",
+        "type": "float"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "process",
+    "args_schema": {
+      "required": [
+        "input",
+        "output"
+      ],
+      "optional": [
+        "bounds",
+        "dst_bounds",
+        "dst_nodata",
+        "height",
+        "resampling",
+        "s_srs",
+        "t_srs",
+        "width"
+      ]
+    },
+    "example_args": null,
+    "impl": {
+      "module": "zyra.processing",
+      "callable": "cmd_reproject"
+    },
+    "returns": "path"
   },
   "process api-json": {
     "description": "Read a JSON or NDJSON file/stream, select fields via dot paths, optionally flatten nested objects, explode arrays into multiple rows, and write CSV or JSONL.",
@@ -2700,6 +3125,7 @@
           "--help",
           "--input",
           "--var",
+          "--band",
           "--basemap",
           "--extent",
           "--output",
@@ -2709,6 +3135,11 @@
           "--height",
           "--dpi",
           "--cmap",
+          "--cmap-file",
+          "--legend-file",
+          "--legend-orientation",
+          "--vmin",
+          "--vmax",
           "--colorbar",
           "--label",
           "--units",
@@ -2733,22 +3164,21 @@
     "options": {
       "--help": "show this help message and exit",
       "--input": {
-        "help": "Path to .nc or .npy input",
+        "help": "Path to .nc/.nc4, .npy, or .tif/.tiff input",
         "path_arg": true,
         "type": "path",
         "required": true
       },
       "--var": "Variable name for NetCDF inputs",
+      "--band": {
+        "help": "Band to read for GeoTIFF (.tif/.tiff) inputs (1-based; nodata renders transparent)",
+        "type": "int",
+        "default": 1
+      },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--output": {
         "help": "Output PNG path (required when using --input; for --inputs use --output-dir)",
@@ -2784,6 +3214,25 @@
         "help": "",
         "type": "str",
         "default": "YlOrBr"
+      },
+      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--legend-file": "Write a standalone colorbar legend image (transparent background)",
+      "--legend-orientation": {
+        "help": "Orientation for --legend-file",
+        "choices": [
+          "horizontal",
+          "vertical"
+        ],
+        "type": "str",
+        "default": "horizontal"
+      },
+      "--vmin": {
+        "help": "Fixed minimum data value for color scaling (use across frame sequences to avoid flicker)",
+        "type": "float"
+      },
+      "--vmax": {
+        "help": "Fixed maximum data value for color scaling (use across frame sequences to avoid flicker)",
+        "type": "float"
       },
       "--colorbar": {
         "help": "",
@@ -2863,8 +3312,10 @@
     "args_schema": {
       "required": [],
       "optional": [
+        "band",
         "basemap",
         "cmap",
+        "cmap_file",
         "colorbar",
         "crs",
         "dpi",
@@ -2873,6 +3324,8 @@
         "input",
         "inputs",
         "label",
+        "legend_file",
+        "legend_orientation",
         "map_type",
         "output",
         "output_dir",
@@ -2913,6 +3366,7 @@
           "--inputs",
           "--output-dir",
           "--var",
+          "--band",
           "--basemap",
           "--extent",
           "--output",
@@ -2920,6 +3374,9 @@
           "--height",
           "--dpi",
           "--cmap",
+          "--cmap-file",
+          "--legend-file",
+          "--legend-orientation",
           "--filled",
           "--levels",
           "--colorbar",
@@ -2946,7 +3403,7 @@
     "options": {
       "--help": "show this help message and exit",
       "--input": {
-        "help": "Path to .nc or .npy input",
+        "help": "Path to .nc/.nc4, .npy, or .tif/.tiff input",
         "path_arg": true,
         "type": "path"
       },
@@ -2961,16 +3418,15 @@
         "type": "path"
       },
       "--var": "Variable name for NetCDF inputs",
+      "--band": {
+        "help": "Band to read for GeoTIFF (.tif/.tiff) inputs (1-based; nodata renders transparent)",
+        "type": "int",
+        "default": 1
+      },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--output": {
         "help": "Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
@@ -2998,16 +3454,23 @@
         "type": "str",
         "default": "YlOrBr"
       },
+      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--legend-file": "Write a standalone colorbar legend image (transparent background)",
+      "--legend-orientation": {
+        "help": "Orientation for --legend-file",
+        "choices": [
+          "horizontal",
+          "vertical"
+        ],
+        "type": "str",
+        "default": "horizontal"
+      },
       "--filled": {
         "help": "Use filled contours",
         "type": "bool",
         "default": false
       },
-      "--levels": {
-        "help": "Count or comma-separated levels",
-        "type": "str",
-        "default": 10
-      },
+      "--levels": "Count or comma-separated levels (default: 10; with a classified --cmap-file the palette bounds are used unless set)",
       "--colorbar": {
         "help": "",
         "type": "bool",
@@ -3088,9 +3551,14 @@
         "output"
       ],
       "optional": [
+        "band",
+        "cmap",
+        "cmap_file",
         "filled",
         "input",
         "inputs",
+        "legend_file",
+        "legend_orientation",
         "levels",
         "output_dir"
       ]
@@ -3293,14 +3761,8 @@
       "--v": "",
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--width": {
         "help": "",
@@ -3541,14 +4003,8 @@
       },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--width": {
         "help": "",
@@ -3743,6 +4199,8 @@
           "--glob",
           "--fps",
           "--basemap",
+          "--preset",
+          "--size",
           "--verbose",
           "--quiet",
           "--trace"
@@ -3765,11 +4223,18 @@
       },
       "--glob": "Filename glob within frames dir (e.g., '*.png'); defaults to first extension found",
       "--fps": {
-        "help": "",
-        "type": "int",
-        "default": 30
+        "help": "Frames per second (default: 30)",
+        "type": "int"
       },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
+      "--preset": {
+        "help": "Named output preset. 'sos' pins the Science On a Sphere spec: 4096x2048, 30 fps, H.264 yuv420p, faststart. Explicit flags override individual preset values.",
+        "choices": [
+          "sos"
+        ],
+        "type": "str"
+      },
+      "--size": "Output size as WIDTHxHEIGHT (e.g., 4096x2048); frames are scaled preserving aspect ratio and padded to fit",
       "--verbose": {
         "help": "Verbose logging for this command",
         "type": "bool",
@@ -3795,7 +4260,9 @@
       ],
       "optional": [
         "basemap",
-        "fps"
+        "fps",
+        "preset",
+        "size"
       ]
     },
     "example_args": null,
@@ -3906,14 +4373,8 @@
         "default": 3
       },
       "--extent": {
-        "help": "",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--width": {
         "help": "",
@@ -4030,6 +4491,130 @@
       "visualization"
     ]
   },
+  "visualize sos": {
+    "description": "Render gridded data as Science On a Sphere (SOS) frames: full-globe, PlateCarree, 2:1, edge-to-edge PNGs. Use a fixed --vmin/--vmax range to keep color scaling identical across a frame sequence (flicker-free). Supports single (--input/--output) and batch (--inputs/--output-dir) modes.",
+    "doc": "Render gridded data as Science On a Sphere (SOS) frames: full-globe, PlateCarree, 2:1, edge-to-edge PNGs. Use a fixed --vmin/--vmax range to keep color scaling identical across a frame sequence (flicker-free). Supports single (--input/--output) and batch (--inputs/--output-dir) modes.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--inputs",
+          "--var",
+          "--output",
+          "--output-dir",
+          "--basemap",
+          "--extent",
+          "--width",
+          "--height",
+          "--dpi",
+          "--cmap",
+          "--vmin",
+          "--vmax",
+          "--flip",
+          "--xarray-engine",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Path to .nc or .npy input",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "Multiple input paths for batch rendering",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--var": "Variable name for NetCDF inputs",
+      "--output": {
+        "help": "Output PNG path (required when using --input)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs (required when using --inputs)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--basemap": "Optional basemap (path, bare image name, or pkg:ref) drawn under the data",
+      "--extent": {
+        "help": "west east south north (default: global -180 180 -90 90)",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
+      },
+      "--width": {
+        "help": "Output width (px)",
+        "type": "int",
+        "default": 4096
+      },
+      "--height": {
+        "help": "Output height (px)",
+        "type": "int",
+        "default": 2048
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--cmap": {
+        "help": "Colormap name",
+        "type": "str",
+        "default": "YlOrBr"
+      },
+      "--vmin": {
+        "help": "Fixed minimum data value for color scaling (recommended for sequences)",
+        "type": "float"
+      },
+      "--vmax": {
+        "help": "Fixed maximum data value for color scaling (recommended for sequences)",
+        "type": "float"
+      },
+      "--flip": {
+        "help": "Flip data vertically before rendering (for north-up grids)",
+        "type": "bool",
+        "default": false
+      },
+      "--xarray-engine": "xarray engine for NetCDF inputs (e.g., netcdf4, h5netcdf, scipy)",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "visualize",
+    "args_schema": null,
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_sos",
+      "callable": "handle_sos"
+    },
+    "returns": "path"
+  },
   "render heatmap": {
     "description": "zyra render heatmap",
     "doc": "",
@@ -4041,6 +4626,7 @@
           "--help",
           "--input",
           "--var",
+          "--band",
           "--basemap",
           "--extent",
           "--output",
@@ -4050,6 +4636,11 @@
           "--height",
           "--dpi",
           "--cmap",
+          "--cmap-file",
+          "--legend-file",
+          "--legend-orientation",
+          "--vmin",
+          "--vmax",
           "--colorbar",
           "--label",
           "--units",
@@ -4074,22 +4665,21 @@
     "options": {
       "--help": "show this help message and exit",
       "--input": {
-        "help": "Path to .nc or .npy input",
+        "help": "Path to .nc/.nc4, .npy, or .tif/.tiff input",
         "path_arg": true,
         "type": "path",
         "required": true
       },
       "--var": "Variable name for NetCDF inputs",
+      "--band": {
+        "help": "Band to read for GeoTIFF (.tif/.tiff) inputs (1-based; nodata renders transparent)",
+        "type": "int",
+        "default": 1
+      },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--output": {
         "help": "Output PNG path (required when using --input; for --inputs use --output-dir)",
@@ -4125,6 +4715,25 @@
         "help": "",
         "type": "str",
         "default": "YlOrBr"
+      },
+      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--legend-file": "Write a standalone colorbar legend image (transparent background)",
+      "--legend-orientation": {
+        "help": "Orientation for --legend-file",
+        "choices": [
+          "horizontal",
+          "vertical"
+        ],
+        "type": "str",
+        "default": "horizontal"
+      },
+      "--vmin": {
+        "help": "Fixed minimum data value for color scaling (use across frame sequences to avoid flicker)",
+        "type": "float"
+      },
+      "--vmax": {
+        "help": "Fixed maximum data value for color scaling (use across frame sequences to avoid flicker)",
+        "type": "float"
       },
       "--colorbar": {
         "help": "",
@@ -4226,6 +4835,7 @@
           "--inputs",
           "--output-dir",
           "--var",
+          "--band",
           "--basemap",
           "--extent",
           "--output",
@@ -4233,6 +4843,9 @@
           "--height",
           "--dpi",
           "--cmap",
+          "--cmap-file",
+          "--legend-file",
+          "--legend-orientation",
           "--filled",
           "--levels",
           "--colorbar",
@@ -4259,7 +4872,7 @@
     "options": {
       "--help": "show this help message and exit",
       "--input": {
-        "help": "Path to .nc or .npy input",
+        "help": "Path to .nc/.nc4, .npy, or .tif/.tiff input",
         "path_arg": true,
         "type": "path"
       },
@@ -4274,16 +4887,15 @@
         "type": "path"
       },
       "--var": "Variable name for NetCDF inputs",
+      "--band": {
+        "help": "Band to read for GeoTIFF (.tif/.tiff) inputs (1-based; nodata renders transparent)",
+        "type": "int",
+        "default": 1
+      },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--output": {
         "help": "Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
@@ -4311,16 +4923,23 @@
         "type": "str",
         "default": "YlOrBr"
       },
+      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--legend-file": "Write a standalone colorbar legend image (transparent background)",
+      "--legend-orientation": {
+        "help": "Orientation for --legend-file",
+        "choices": [
+          "horizontal",
+          "vertical"
+        ],
+        "type": "str",
+        "default": "horizontal"
+      },
       "--filled": {
         "help": "Use filled contours",
         "type": "bool",
         "default": false
       },
-      "--levels": {
-        "help": "Count or comma-separated levels",
-        "type": "str",
-        "default": 10
-      },
+      "--levels": "Count or comma-separated levels (default: 10; with a classified --cmap-file the palette bounds are used unless set)",
       "--colorbar": {
         "help": "",
         "type": "bool",
@@ -4578,14 +5197,8 @@
       "--v": "",
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--width": {
         "help": "",
@@ -4799,14 +5412,8 @@
       },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--width": {
         "help": "",
@@ -4977,6 +5584,8 @@
           "--glob",
           "--fps",
           "--basemap",
+          "--preset",
+          "--size",
           "--verbose",
           "--quiet",
           "--trace"
@@ -4999,11 +5608,18 @@
       },
       "--glob": "Filename glob within frames dir (e.g., '*.png'); defaults to first extension found",
       "--fps": {
-        "help": "",
-        "type": "int",
-        "default": 30
+        "help": "Frames per second (default: 30)",
+        "type": "int"
       },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
+      "--preset": {
+        "help": "Named output preset. 'sos' pins the Science On a Sphere spec: 4096x2048, 30 fps, H.264 yuv420p, faststart. Explicit flags override individual preset values.",
+        "choices": [
+          "sos"
+        ],
+        "type": "str"
+      },
+      "--size": "Output size as WIDTHxHEIGHT (e.g., 4096x2048); frames are scaled preserving aspect ratio and padded to fit",
       "--verbose": {
         "help": "Verbose logging for this command",
         "type": "bool",
@@ -5131,14 +5747,8 @@
         "default": 3
       },
       "--extent": {
-        "help": "",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--width": {
         "help": "",
@@ -5210,6 +5820,130 @@
     "extras": [
       "visualization"
     ]
+  },
+  "render sos": {
+    "description": "Render gridded data as Science On a Sphere (SOS) frames: full-globe, PlateCarree, 2:1, edge-to-edge PNGs. Use a fixed --vmin/--vmax range to keep color scaling identical across a frame sequence (flicker-free). Supports single (--input/--output) and batch (--inputs/--output-dir) modes.",
+    "doc": "Render gridded data as Science On a Sphere (SOS) frames: full-globe, PlateCarree, 2:1, edge-to-edge PNGs. Use a fixed --vmin/--vmax range to keep color scaling identical across a frame sequence (flicker-free). Supports single (--input/--output) and batch (--inputs/--output-dir) modes.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--inputs",
+          "--var",
+          "--output",
+          "--output-dir",
+          "--basemap",
+          "--extent",
+          "--width",
+          "--height",
+          "--dpi",
+          "--cmap",
+          "--vmin",
+          "--vmax",
+          "--flip",
+          "--xarray-engine",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Path to .nc or .npy input",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "Multiple input paths for batch rendering",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--var": "Variable name for NetCDF inputs",
+      "--output": {
+        "help": "Output PNG path (required when using --input)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs (required when using --inputs)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--basemap": "Optional basemap (path, bare image name, or pkg:ref) drawn under the data",
+      "--extent": {
+        "help": "west east south north (default: global -180 180 -90 90)",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
+      },
+      "--width": {
+        "help": "Output width (px)",
+        "type": "int",
+        "default": 4096
+      },
+      "--height": {
+        "help": "Output height (px)",
+        "type": "int",
+        "default": 2048
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--cmap": {
+        "help": "Colormap name",
+        "type": "str",
+        "default": "YlOrBr"
+      },
+      "--vmin": {
+        "help": "Fixed minimum data value for color scaling (recommended for sequences)",
+        "type": "float"
+      },
+      "--vmax": {
+        "help": "Fixed maximum data value for color scaling (recommended for sequences)",
+        "type": "float"
+      },
+      "--flip": {
+        "help": "Flip data vertically before rendering (for north-up grids)",
+        "type": "bool",
+        "default": false
+      },
+      "--xarray-engine": "xarray engine for NetCDF inputs (e.g., netcdf4, h5netcdf, scipy)",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "render",
+    "args_schema": null,
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_sos",
+      "callable": "handle_sos"
+    },
+    "returns": "path"
   },
   "disseminate local": {
     "description": "Write stdin or an input file to a local destination path, creating parent directories as needed.",

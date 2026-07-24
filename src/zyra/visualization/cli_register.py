@@ -10,6 +10,7 @@ from .cli_compose_video import handle_compose_video
 from .cli_contour import handle_contour
 from .cli_heatmap import handle_heatmap
 from .cli_interactive import handle_interactive
+from .cli_sos import register_sos_cli
 from .cli_timeseries import handle_timeseries
 from .cli_vector import handle_vector
 
@@ -23,18 +24,32 @@ def register_cli(subparsers: Any) -> None:
 
     # heatmap
     p_hm = subparsers.add_parser("heatmap", help="Visualization: render 2D heatmap")
-    p_hm.add_argument("--input", required=True, help="Path to .nc or .npy input")
+    p_hm.add_argument(
+        "--input", required=True, help="Path to .nc/.nc4, .npy, or .tif/.tiff input"
+    )
     p_hm.add_argument("--var", help="Variable name for NetCDF inputs")
+    p_hm.add_argument(
+        "--band",
+        type=int,
+        default=1,
+        help="Band to read for GeoTIFF (.tif/.tiff) inputs (1-based; nodata renders transparent)",
+    )
     p_hm.add_argument(
         "--basemap",
         help="Basemap (path, bare image name, or pkg:ref)",
     )
+    # extent flags use action="extend" with default=None: the Domain API
+    # runner expands list args as repeated flags (--extent w --extent e ...)
+    # which nargs=4 cannot parse, and argparse's extend action appends to
+    # a list default. Handlers apply the full-globe default and validate
+    # length via cli_utils.resolve_extent.
     p_hm.add_argument(
         "--extent",
-        nargs=4,
+        nargs="+",
         type=float,
-        default=[-180, 180, -90, 90],
-        help="west east south north",
+        action="extend",
+        default=None,
+        help="west east south north (default: -180 180 -90 90)",
     )
     p_hm.add_argument(
         "--output",
@@ -51,7 +66,35 @@ def register_cli(subparsers: Any) -> None:
     p_hm.add_argument("--width", type=int, default=1024)
     p_hm.add_argument("--height", type=int, default=512)
     p_hm.add_argument("--dpi", type=int, default=96)
-    p_hm.add_argument("--cmap", default="YlOrBr")
+    hm_cmap = p_hm.add_mutually_exclusive_group()
+    hm_cmap.add_argument("--cmap", default="YlOrBr")
+    hm_cmap.add_argument(
+        "--cmap-file",
+        dest="cmap_file",
+        help="Palette JSON file (classified bands or continuous spec)",
+    )
+    p_hm.add_argument(
+        "--legend-file",
+        dest="legend_file",
+        help="Write a standalone colorbar legend image (transparent background)",
+    )
+    p_hm.add_argument(
+        "--legend-orientation",
+        dest="legend_orientation",
+        choices=["horizontal", "vertical"],
+        default="horizontal",
+        help="Orientation for --legend-file",
+    )
+    p_hm.add_argument(
+        "--vmin",
+        type=float,
+        help="Fixed minimum data value for color scaling (use across frame sequences to avoid flicker)",
+    )
+    p_hm.add_argument(
+        "--vmax",
+        type=float,
+        help="Fixed maximum data value for color scaling (use across frame sequences to avoid flicker)",
+    )
     p_hm.add_argument("--colorbar", action="store_true")
     p_hm.add_argument("--label")
     p_hm.add_argument("--units")
@@ -115,7 +158,7 @@ def register_cli(subparsers: Any) -> None:
     p_ct = subparsers.add_parser(
         "contour", help="Visualization: render contour/filled contours"
     )
-    p_ct.add_argument("--input", help="Path to .nc or .npy input")
+    p_ct.add_argument("--input", help="Path to .nc/.nc4, .npy, or .tif/.tiff input")
     p_ct.add_argument("--inputs", nargs="+", help="Multiple inputs for batch rendering")
     p_ct.add_argument(
         "--output-dir",
@@ -123,13 +166,20 @@ def register_cli(subparsers: Any) -> None:
         help="Directory to write outputs for --inputs",
     )
     p_ct.add_argument("--var", help="Variable name for NetCDF inputs")
+    p_ct.add_argument(
+        "--band",
+        type=int,
+        default=1,
+        help="Band to read for GeoTIFF (.tif/.tiff) inputs (1-based; nodata renders transparent)",
+    )
     p_ct.add_argument("--basemap", help="Basemap (path, bare image name, or pkg:ref)")
     p_ct.add_argument(
         "--extent",
-        nargs=4,
+        nargs="+",
         type=float,
-        default=[-180, 180, -90, 90],
-        help="west east south north",
+        action="extend",
+        default=None,
+        help="west east south north (default: -180 180 -90 90)",
     )
     p_ct.add_argument(
         "--output",
@@ -139,9 +189,34 @@ def register_cli(subparsers: Any) -> None:
     p_ct.add_argument("--width", type=int, default=1024)
     p_ct.add_argument("--height", type=int, default=512)
     p_ct.add_argument("--dpi", type=int, default=96)
-    p_ct.add_argument("--cmap", default="YlOrBr")
+    ct_cmap = p_ct.add_mutually_exclusive_group()
+    ct_cmap.add_argument("--cmap", default="YlOrBr")
+    ct_cmap.add_argument(
+        "--cmap-file",
+        dest="cmap_file",
+        help="Palette JSON file (classified bands or continuous spec)",
+    )
+    p_ct.add_argument(
+        "--legend-file",
+        dest="legend_file",
+        help="Write a standalone colorbar legend image (transparent background)",
+    )
+    p_ct.add_argument(
+        "--legend-orientation",
+        dest="legend_orientation",
+        choices=["horizontal", "vertical"],
+        default="horizontal",
+        help="Orientation for --legend-file",
+    )
     p_ct.add_argument("--filled", action="store_true", help="Use filled contours")
-    p_ct.add_argument("--levels", default=10, help="Count or comma-separated levels")
+    p_ct.add_argument(
+        "--levels",
+        default=None,
+        help=(
+            "Count or comma-separated levels (default: 10; with a classified "
+            "--cmap-file the palette bounds are used unless set)"
+        ),
+    )
     p_ct.add_argument("--colorbar", action="store_true")
     p_ct.add_argument("--label")
     p_ct.add_argument("--units")
@@ -224,7 +299,14 @@ def register_cli(subparsers: Any) -> None:
     p_vec.add_argument("--u")
     p_vec.add_argument("--v")
     p_vec.add_argument("--basemap", help="Basemap (path, bare image name, or pkg:ref)")
-    p_vec.add_argument("--extent", nargs=4, type=float, default=[-180, 180, -90, 90])
+    p_vec.add_argument(
+        "--extent",
+        nargs="+",
+        type=float,
+        action="extend",
+        default=None,
+        help="west east south north (default: -180 180 -90 90)",
+    )
     p_vec.add_argument("--width", type=int, default=1024)
     p_vec.add_argument("--height", type=int, default=512)
     p_vec.add_argument("--dpi", type=int, default=96)
@@ -276,7 +358,14 @@ def register_cli(subparsers: Any) -> None:
     p_anim.add_argument("--scale")
     p_anim.add_argument("--color", default="#333333")
     p_anim.add_argument("--basemap", help="Basemap (path, bare image name, or pkg:ref)")
-    p_anim.add_argument("--extent", nargs=4, type=float, default=[-180, 180, -90, 90])
+    p_anim.add_argument(
+        "--extent",
+        nargs="+",
+        type=float,
+        action="extend",
+        default=None,
+        help="west east south north (default: -180 180 -90 90)",
+    )
     p_anim.add_argument("--width", type=int, default=1024)
     p_anim.add_argument("--height", type=int, default=512)
     p_anim.add_argument("--dpi", type=int, default=96)
@@ -337,8 +426,26 @@ def register_cli(subparsers: Any) -> None:
         "--glob",
         help="Filename glob within frames dir (e.g., '*.png'); defaults to first extension found",
     )
-    p_cv.add_argument("--fps", type=int, default=30)
+    p_cv.add_argument(
+        "--fps", type=int, default=None, help="Frames per second (default: 30)"
+    )
     p_cv.add_argument("--basemap", help="Basemap (path, bare image name, or pkg:ref)")
+    p_cv.add_argument(
+        "--preset",
+        choices=["sos"],
+        help=(
+            "Named output preset. 'sos' pins the Science On a Sphere spec: "
+            "4096x2048, 30 fps, H.264 yuv420p, faststart. Explicit flags "
+            "override individual preset values."
+        ),
+    )
+    p_cv.add_argument(
+        "--size",
+        help=(
+            "Output size as WIDTHxHEIGHT (e.g., 4096x2048); frames are scaled "
+            "preserving aspect ratio and padded to fit"
+        ),
+    )
     p_cv.add_argument(
         "--verbose", action="store_true", help="Verbose logging for this command"
     )
@@ -370,7 +477,14 @@ def register_cli(subparsers: Any) -> None:
     p_int.add_argument("--timestamp-loc", default="lower_right")
     p_int.add_argument("--tiles", default="OpenStreetMap")
     p_int.add_argument("--zoom", type=int, default=3)
-    p_int.add_argument("--extent", nargs=4, type=float, default=[-180, 180, -90, 90])
+    p_int.add_argument(
+        "--extent",
+        nargs="+",
+        type=float,
+        action="extend",
+        default=None,
+        help="west east south north (default: -180 180 -90 90)",
+    )
     p_int.add_argument("--width", type=int, default=1024)
     p_int.add_argument("--height", type=int, default=512)
     p_int.add_argument("--output", required=True)
@@ -395,3 +509,6 @@ def register_cli(subparsers: Any) -> None:
         help="Shell-style trace of key steps and external commands",
     )
     p_int.set_defaults(func=handle_interactive)
+
+    # sos (Science On a Sphere)
+    register_sos_cli(subparsers)

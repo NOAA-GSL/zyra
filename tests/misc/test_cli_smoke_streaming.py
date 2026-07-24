@@ -119,9 +119,17 @@ def test_grib2_to_netcdf_pipeline_header_check():
     res = _run_cli(
         ["process", "convert-format", "-", "netcdf", "--stdout"], input_bytes=raw
     )
-    assert res.returncode == 0, res.stderr.decode(errors="ignore")
-    # Validate NetCDF magic numbers: classic CDF or HDF5-based NetCDF4
-    assert res.stdout.startswith(b"CDF") or res.stdout.startswith(b"\x89HDF")
+    # Conversion must either succeed with real NetCDF bytes or fail with
+    # a real error — never fabricate output. (The former dummy-dataset
+    # fallback made this test pass on inputs that never converted.)
+    if res.returncode == 0:
+        assert res.stdout.startswith(b"CDF") or res.stdout.startswith(b"\x89HDF")
+    else:
+        assert (
+            b"conversion failed" in res.stderr.lower() or b"error" in res.stderr.lower()
+        )
+        # No partial/placeholder bytes may accompany a failure.
+        assert res.stdout == b""
 
 
 @pytest.mark.cli
@@ -143,8 +151,16 @@ def test_grib2_extract_variable_stdout_netcdf_header():
             "netcdf",
         ]
     )
-    assert res.returncode == 0, res.stderr.decode(errors="ignore")
-    assert res.stdout.startswith(b"CDF") or res.stdout.startswith(b"\x89HDF")
+    # Real conversion succeeds (valid NetCDF header) or fails honestly
+    # (previously a failed conversion emitted a fabricated dummy NetCDF
+    # with exit 0). demo.grib2 has no cfgrib-decodable message, so
+    # environments without wgrib2 exercise the failure branch.
+    if res.returncode == 0:
+        assert res.stdout.startswith(b"CDF") or res.stdout.startswith(b"\x89HDF")
+    else:
+        assert b"error" in res.stderr.lower() or b"unsupported" in res.stderr.lower()
+        # No partial/placeholder bytes may accompany a failure.
+        assert res.stdout == b""
 
 
 @pytest.mark.cli
@@ -161,6 +177,13 @@ def test_grib2_to_geotiff_pipeline_header_check():
     res = _run_cli(
         ["process", "convert-format", "-", "geotiff", "--stdout"], input_bytes=raw
     )
-    assert res.returncode == 0, res.stderr.decode(errors="ignore")
+    # Real GeoTIFF or a real error — the former 1x1 zero-GeoTIFF
+    # fabrication made this test pass without any actual conversion.
+    if res.returncode != 0:
+        err = res.stderr.decode(errors="ignore").lower()
+        assert "geotiff" in err or "conversion" in err or "error" in err
+        # No partial/placeholder bytes may accompany a failure.
+        assert res.stdout == b""
+        return
     # GeoTIFF header is either little-endian "II" or big-endian "MM"
     assert res.stdout.startswith(b"II") or res.stdout.startswith(b"MM")

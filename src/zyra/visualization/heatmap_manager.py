@@ -16,6 +16,7 @@ from .styles import (
     FIGURE_DPI,
     MAP_STYLES,
     apply_matplotlib_style,
+    apply_view_extent,
     timestamp_anchor,
 )
 
@@ -58,6 +59,7 @@ class HeatmapManager(Renderer):
         input_path: Optional[str] = None,
         var: Optional[str] = None,
         xarray_engine: Optional[str] = None,
+        band: int = 1,
     ):
         if data is not None:
             return data
@@ -82,8 +84,14 @@ class HeatmapManager(Renderer):
             import numpy as np
 
             return np.load(input_path)
+        elif input_path.lower().endswith((".tif", ".tiff")):
+            from zyra.visualization.cli_utils import load_geotiff_array
+
+            return load_geotiff_array(input_path, band=band)
         else:
-            raise ValueError("Unsupported input file; use .nc or .npy")
+            raise ValueError(
+                "Unsupported input file; use .nc, .nc4, .npy, .tif, or .tiff"
+            )
 
     def render(self, data: Any = None, **kwargs: Any):
         width = int(kwargs.get("width", 1024))
@@ -92,6 +100,7 @@ class HeatmapManager(Renderer):
         vmin = kwargs.get("vmin")
         vmax = kwargs.get("vmax")
         cmap = kwargs.get("cmap", self.cmap)
+        norm = kwargs.get("norm")
         flipud = bool(kwargs.get("flipud", False))
         features = kwargs.get("features", MAP_STYLES.get("features"))
         # Basemap type and tiles
@@ -116,6 +125,7 @@ class HeatmapManager(Renderer):
             input_path=input_path,
             var=var,
             xarray_engine=kwargs.get("xarray_engine"),
+            band=1 if kwargs.get("band") is None else int(kwargs.get("band")),
         )
 
         # CRS detection (warn on mismatch)
@@ -162,15 +172,17 @@ class HeatmapManager(Renderer):
         if flipud:
             arr = np.flipud(arr)
 
+        # matplotlib rejects norm combined with vmin/vmax; a classified
+        # palette's BoundaryNorm carries the bounds itself.
+        scale_kw = {"norm": norm} if norm is not None else {"vmin": vmin, "vmax": vmax}
         im = ax.imshow(
             arr,
             transform=(data_transform or ccrs.PlateCarree()),
             extent=self.extent,
             cmap=cmap,
-            vmin=vmin,
-            vmax=vmax,
             origin="upper" if flipud else "lower",
             interpolation="nearest",
+            **scale_kw,
         )
         if add_colorbar:
             cbar = fig.colorbar(
@@ -197,7 +209,7 @@ class HeatmapManager(Renderer):
                     facecolor="#00000066", edgecolor="none", boxstyle="round,pad=0.2"
                 ),
             )
-        ax.set_global()
+        apply_view_extent(ax, self.extent)
         ax.axis("off")
         fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
         self._fig = fig

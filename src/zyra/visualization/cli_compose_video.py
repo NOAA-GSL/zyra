@@ -9,6 +9,30 @@ from typing import Optional  # noqa: F401  (kept for type hints in signatures)
 from zyra.utils.cli_helpers import configure_logging_from_env
 from zyra.visualization.cli_utils import resolve_basemap_ref
 
+# Named output presets: bundles of defaults for well-known display targets.
+# Explicit CLI flags override individual values (a preset is defaults, not a
+# cage). The encoder always emits H.264 + yuv420p, so presets only need to
+# pin geometry, rate, and container flags.
+COMPOSE_VIDEO_PRESETS: dict[str, dict] = {
+    # NOAA Science On a Sphere spec: 4096x2048 equirectangular, 30 fps,
+    # faststart so spheres can stream the file.
+    "sos": {"fps": 30, "size": "4096x2048", "faststart": True},
+}
+
+
+def _parse_size(value: str) -> tuple[int, int]:
+    """Parse a ``WIDTHxHEIGHT`` string into a positive int tuple."""
+    try:
+        width_s, height_s = str(value).lower().split("x", 1)
+        width, height = int(width_s), int(height_s)
+    except ValueError as err:
+        raise SystemExit(
+            f"--size must be WIDTHxHEIGHT (e.g., 4096x2048); got: {value}"
+        ) from err
+    if width <= 0 or height <= 0:
+        raise SystemExit(f"--size dimensions must be positive; got: {value}")
+    return width, height
+
 
 def handle_compose_video(ns) -> int:
     """Handle ``visualize compose-video`` CLI subcommand."""
@@ -67,6 +91,14 @@ def handle_compose_video(ns) -> int:
         # Defer to VideoProcessor/ffmpeg errors if directory cannot be created
         pass
 
+    # Resolve preset defaults before the basemap so a bad --size exits
+    # without leaking the basemap guard; explicit flags win over preset
+    # values.
+    preset = COMPOSE_VIDEO_PRESETS.get(getattr(ns, "preset", None) or "", {})
+    fps = ns.fps if getattr(ns, "fps", None) is not None else preset.get("fps", 30)
+    size_value = getattr(ns, "size", None) or preset.get("size")
+    size = _parse_size(size_value) if size_value else None
+
     # Resolve optional basemap reference. Accept the following forms:
     #   - Absolute/relative filesystem path (unchanged)
     #   - Bare filename present under zyra.assets/images (e.g., "earth_vegetation.jpg")
@@ -77,8 +109,10 @@ def handle_compose_video(ns) -> int:
         input_directory=ns.frames,
         output_file=str(out_path),
         basemap=basemap_path,
-        fps=ns.fps,
+        fps=fps,
         input_glob=getattr(ns, "glob", None),
+        size=size,
+        faststart=bool(preset.get("faststart", False)),
     )
     # Emit set -x style trace context
     if os.environ.get("ZYRA_SHELL_TRACE"):
@@ -92,7 +126,7 @@ def handle_compose_video(ns) -> int:
         logging.warning("ffmpeg/ffprobe not available; skipping video composition")
         return 0
     try:
-        result = vp.process(fps=ns.fps)
+        result = vp.process(fps=fps)
     finally:
         if basemap_guard is not None:
             try:

@@ -82,10 +82,14 @@ def grib_decode(data: bytes, backend: str = "cfgrib") -> DecodedGRIB:
             try:
                 import xarray as xr  # type: ignore
 
+                # indexpath="" disables cfgrib's index sidecar: the input
+                # is a one-shot temp file, and the previous ":auto:" value
+                # was not cfgrib magic — it became a literal pickle file
+                # named ':auto:' in the caller's working directory.
                 ds = xr.open_dataset(
                     temp_path,
                     engine="cfgrib",
-                    backend_kwargs={"indexpath": ":auto:"},
+                    backend_kwargs={"indexpath": ""},
                 )
                 return DecodedGRIB(backend="cfgrib", dataset=ds, path=temp_path)
             except ModuleNotFoundError as exc:  # pragma: no cover - optional dep
@@ -226,6 +230,117 @@ def extract_variable(decoded: DecodedGRIB, var_name: str) -> Any:
     raise RuntimeError("Unsupported decoded structure for variable extraction.")
 
 
+def _grib_georeference(da: Any) -> tuple[Any, Any, bool] | None:
+    """Derive ``(crs, transform, flip_rows)`` from cfgrib ``GRIB_*`` attrs.
+
+    Supports ``regular_ll`` and ``lambert`` grids (the NOAA projected
+    products — HRRR, NAM, RRFS — are Lambert). Returns ``None`` for
+    unrecognized grid types or incomplete metadata; callers keep their
+    previous (ungeoreferenced) behavior in that case.
+
+    ``flip_rows`` is True when the GRIB scans south-first
+    (``jScansPositively=1``) and rows must be flipped to GeoTIFF's
+    north-up convention.
+
+    Notes
+    -----
+    cfgrib does not expose the earth radius; the GRIB2 sphere default
+    of 6371229 m (shapeOfTheEarth=6) is assumed for projected grids,
+    which matches NOAA's operational products.
+    """
+    attrs = getattr(da, "attrs", {}) or {}
+    grid_type = attrs.get("GRIB_gridType")
+    try:
+        from rasterio.crs import CRS
+        from rasterio.transform import from_origin
+    except ImportError:
+        return None
+    try:
+        ny = int(attrs["GRIB_Ny"])
+        flip = bool(attrs.get("GRIB_jScansPositively", 0))
+        lat_first = float(attrs["GRIB_latitudeOfFirstGridPointInDegrees"])
+        lon_first = float(attrs["GRIB_longitudeOfFirstGridPointInDegrees"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    if lon_first > 180.0:
+        lon_first -= 360.0
+
+    if grid_type == "regular_ll":
+        try:
+            dlon = float(attrs["GRIB_iDirectionIncrementInDegrees"])
+            dlat = float(attrs["GRIB_jDirectionIncrementInDegrees"])
+        except (KeyError, TypeError, ValueError):
+            return None
+        north = (lat_first + (ny - 1) * dlat) if flip else lat_first
+        transform = from_origin(lon_first - dlon / 2, north + dlat / 2, dlon, dlat)
+        return CRS.from_epsg(4326), transform, flip
+
+    if grid_type == "lambert":
+        try:
+            import pyproj
+
+            dx = float(attrs["GRIB_DxInMetres"])
+            dy = float(attrs["GRIB_DyInMetres"])
+            crs = CRS.from_dict(
+                {
+                    "proj": "lcc",
+                    "lat_1": float(attrs["GRIB_Latin1InDegrees"]),
+                    "lat_2": float(attrs["GRIB_Latin2InDegrees"]),
+                    "lat_0": float(attrs["GRIB_LaDInDegrees"]),
+                    "lon_0": float(attrs["GRIB_LoVInDegrees"]),
+                    "R": 6371229.0,
+                }
+            )
+            tr = pyproj.Transformer.from_crs("EPSG:4326", crs, always_xy=True)
+            x_first, y_first = tr.transform(lon_first, lat_first)
+            # (x_first, y_first) is the center of the first grid point.
+            west = x_first - dx / 2
+            top_center = y_first + (ny - 1) * dy if flip else y_first
+            transform = from_origin(west, top_center + dy / 2, dx, dy)
+            return crs, transform, flip
+        except Exception:
+            return None
+    return None
+
+
+def _netcdf_bytes(data_to_write: Any) -> bytes:
+    """Serialize an xarray object to NetCDF bytes.
+
+    Tries the in-memory writer first, normalizing the return types seen
+    in the wild (bytes, memoryview, file-like, numpy); falls back to a
+    temp file (netCDF4/h5netcdf engines write files, not buffers).
+    Raises on failure — callers decide on recovery.
+    """
+    try:
+        maybe_bytes = data_to_write.to_netcdf()
+        if isinstance(maybe_bytes, (bytes, bytearray)):
+            return bytes(maybe_bytes)
+        if isinstance(maybe_bytes, memoryview):
+            return maybe_bytes.tobytes()
+        read = getattr(maybe_bytes, "read", None)
+        if callable(read):
+            return read()
+        tobytes = getattr(maybe_bytes, "tobytes", None)
+        if callable(tobytes):
+            return tobytes()
+        raise TypeError(f"Unexpected return type from to_netcdf(): {type(maybe_bytes)}")
+    except Exception:
+        tmp = tempfile.NamedTemporaryFile(suffix=".nc", delete=False)
+        tmp_path = tmp.name
+        tmp.close()
+        try:
+            data_to_write.to_netcdf(tmp_path)
+            from pathlib import Path as _P
+
+            return _P(tmp_path).read_bytes()
+        finally:
+            import contextlib
+            from pathlib import Path as _P
+
+            with contextlib.suppress(Exception):
+                _P(tmp_path).unlink()
+
+
 def convert_to_format(
     decoded: DecodedGRIB,
     format_type: str,
@@ -303,115 +418,71 @@ def convert_to_format(
             raise ValueError("Unsupported object for DataFrame conversion")
 
         if ftype == "netcdf":
-            # Try in-memory first; fallback to temp file
+            data_to_write = obj if hasattr(obj, "to_netcdf") else ds
             try:
-                data_to_write = obj if hasattr(obj, "to_netcdf") else ds
-                maybe_bytes = data_to_write.to_netcdf()  # type: ignore
-                # Normalize various in-memory returns to raw bytes.
-                # Seen in the wild: bytes, bytearray, memoryview, BytesIO/file-like, numpy arrays.
-                if isinstance(maybe_bytes, (bytes, bytearray)):
-                    return bytes(maybe_bytes)
-                # memoryview
-                if isinstance(maybe_bytes, memoryview):
-                    return maybe_bytes.tobytes()
-                # File-like (e.g., BytesIO)
-                read = getattr(maybe_bytes, "read", None)
-                if callable(read):
-                    return read()
-                # Numpy-like objects
-                tobytes = getattr(maybe_bytes, "tobytes", None)
-                if callable(tobytes):
-                    return tobytes()
-                # If we reach here, the type is not handled.
-                raise TypeError(
-                    f"Unexpected return type from to_netcdf(): {type(maybe_bytes)}. "
-                    "Expected bytes, bytearray, memoryview, file-like object, or numpy array."
-                )
-            except Exception:
-                # Try writing to a temporary file using netCDF4 or h5netcdf engine
-                tmp = tempfile.NamedTemporaryFile(suffix=".nc", delete=False)
-                tmp_path = tmp.name
-                tmp.close()
-                try:
-                    data_to_write = obj if hasattr(obj, "to_netcdf") else ds
-                    data_to_write.to_netcdf(tmp_path)  # type: ignore
-                    from pathlib import Path as _P
-
-                    return _P(tmp_path).read_bytes()
-                except Exception as exc:
-                    # wgrib2 fallback if available: convert GRIB -> NetCDF
-                    if _has_wgrib2() and decoded.path:
-                        out_nc = tmp_path
-                        try:
-                            res = subprocess.run(
-                                ["wgrib2", decoded.path, "-netcdf", out_nc],
-                                capture_output=True,
-                                text=True,
-                                check=False,
-                            )
-                            if res.returncode != 0:
-                                # Fall back to emitting a minimal NetCDF header if conversion is not possible
-                                raise RuntimeError(
-                                    res.stderr.strip() or "wgrib2 -netcdf failed"
-                                )
-                            from pathlib import Path as _P
-
-                            return _P(out_nc).read_bytes()
-                        except Exception as e2:  # pragma: no cover - external tool
-                            # As a last resort, generate a minimal valid NetCDF file so callers can detect header
-                            try:
-                                import numpy as np  # type: ignore
-                                import xarray as xr  # type: ignore
-
-                                ds_fallback = xr.Dataset(
-                                    {"dummy": ("dummy", np.zeros(1, dtype="float32"))}
-                                )
-                                try:
-                                    maybe_bytes = ds_fallback.to_netcdf()
-                                    if isinstance(maybe_bytes, (bytes, bytearray)):
-                                        return bytes(maybe_bytes)
-                                    read = getattr(maybe_bytes, "read", None)
-                                    if callable(read):
-                                        return read()
-                                except Exception:
-                                    ds_fallback.to_netcdf(tmp_path)
-                                    from pathlib import Path as _P
-
-                                    return _P(tmp_path).read_bytes()
-                            except Exception:
-                                pass
-                            raise RuntimeError(
-                                f"NetCDF conversion failed: {e2}"
-                            ) from exc
-                    # If wgrib2 is unavailable or failed, attempt a minimal NetCDF fallback
+                return _netcdf_bytes(data_to_write)
+            except Exception as exc:
+                # Known xarray failure mode: decoding cfgrib's 'step'
+                # coordinate can assert on non-nanosecond timedeltas.
+                # Re-open without timedelta decoding and retry before
+                # reaching for wgrib2.
+                if decoded.path:
                     try:
-                        import numpy as np  # type: ignore
                         import xarray as xr  # type: ignore
 
-                        ds_fallback = xr.Dataset(
-                            {"dummy": ("dummy", np.zeros(1, dtype="float32"))}
+                        # indexpath="" skips the .idx sidecar for the
+                        # one-shot temp file; the context manager closes
+                        # the retry dataset after serialization.
+                        with xr.open_dataset(
+                            decoded.path,
+                            engine="cfgrib",
+                            backend_kwargs={"indexpath": ""},
+                            decode_timedelta=False,
+                        ) as ds_raw:
+                            obj_raw: Any = ds_raw
+                            if var:
+                                obj_raw = extract_variable(
+                                    DecodedGRIB(backend="cfgrib", dataset=ds_raw), var
+                                )
+                            return _netcdf_bytes(obj_raw)
+                    except Exception:
+                        pass
+                wgrib2_detail = ""
+                if _has_wgrib2() and decoded.path:
+                    tmp = tempfile.NamedTemporaryFile(suffix=".nc", delete=False)
+                    tmp_path = tmp.name
+                    tmp.close()
+                    try:
+                        res = subprocess.run(
+                            ["wgrib2", decoded.path, "-netcdf", tmp_path],
+                            capture_output=True,
+                            text=True,
+                            check=False,
                         )
-                        try:
-                            maybe_bytes = ds_fallback.to_netcdf()
-                            if isinstance(maybe_bytes, (bytes, bytearray)):
-                                return bytes(maybe_bytes)
-                            read = getattr(maybe_bytes, "read", None)
-                            if callable(read):
-                                return read()
-                        except Exception:
-                            ds_fallback.to_netcdf(tmp_path)
+                        if res.returncode == 0:
                             from pathlib import Path as _P
 
                             return _P(tmp_path).read_bytes()
-                    except Exception:
-                        pass
-                    raise RuntimeError(f"NetCDF conversion failed: {exc}") from exc
-                finally:
-                    import contextlib
-                    from pathlib import Path as _P
+                        # Surface the fallback's own failure detail; the
+                        # original exception alone hides what wgrib2 said.
+                        wgrib2_detail = (
+                            f"; wgrib2 fallback failed (exit {res.returncode})"
+                        )
+                        if (res.stderr or "").strip():
+                            wgrib2_detail += f": {res.stderr.strip()}"
+                    finally:
+                        import contextlib
+                        from pathlib import Path as _P
 
-                    with contextlib.suppress(Exception):
-                        _P(tmp_path).unlink()
+                        with contextlib.suppress(Exception):
+                            _P(tmp_path).unlink()
+                # A failed conversion is an error. Never fabricate output:
+                # a placeholder dataset returned as success poisons every
+                # downstream consumer (this previously emitted a Dataset
+                # with a single variable literally named 'dummy').
+                raise RuntimeError(
+                    f"NetCDF conversion failed: {exc}{wgrib2_detail}"
+                ) from exc
 
         if ftype == "geotiff":
             # Enforce single-variable requirement up-front to avoid optional deps
@@ -419,13 +490,46 @@ def convert_to_format(
                 raise ValueError(
                     "GeoTIFF conversion supports a single variable. Provide 'var' to select one."
                 )
-            # Use rioxarray if available; otherwise rasterio
-            data_array = obj if hasattr(obj, "rio") else None
+            data_array = obj
+            if hasattr(data_array, "data_vars"):
+                # A Dataset (single variable — enforced above): take the
+                # variable itself so the GRIB_* attrs are visible; cfgrib
+                # stores grid metadata on variables, not the dataset.
+                data_array = data_array[next(iter(data_array.data_vars))]
+            # Prefer explicit georeferencing derived from the GRIB grid
+            # metadata: rioxarray's to_raster writes no CRS/transform for
+            # cfgrib datasets (2D lat/lon coords), and GRIB scan order
+            # (south-first) must be normalized to GeoTIFF north-up.
+            georef = _grib_georeference(data_array)
+            if georef is not None:
+                import numpy as np  # type: ignore
+                from rasterio.io import MemoryFile
+
+                crs, transform, flip = georef
+                values = np.squeeze(np.asarray(data_array.values))
+                if values.ndim != 2:
+                    raise ValueError(
+                        "GeoTIFF conversion needs a single 2D field; select one "
+                        "level/time with 'var' or extract-variable first."
+                    )
+                if flip:
+                    values = values[::-1, :]
+                profile = {
+                    "driver": "GTiff",
+                    "width": values.shape[1],
+                    "height": values.shape[0],
+                    "count": 1,
+                    "dtype": values.dtype.name,
+                    "crs": crs,
+                    "transform": transform,
+                }
+                with MemoryFile() as mem:
+                    with mem.open(**profile) as dst:
+                        dst.write(values, 1)
+                    return mem.read()
             try:
-                if data_array is None and hasattr(ds, "to_array"):
-                    # If obj is a Dataset, pick the first variable
-                    data_array = ds.to_array().isel(variable=0)
-                # Ensure rioxarray is available
+                # Fallback: rioxarray for data that carries its own
+                # georeferencing via the rio accessor.
                 import rioxarray  # noqa: F401  # type: ignore
 
                 tmp = tempfile.NamedTemporaryFile(suffix=".tif", delete=False)
@@ -460,29 +564,8 @@ def convert_to_format(
                 check=False,
             )
             if res.returncode != 0:
-                # Emit minimal NetCDF bytes as a last resort (header-only validation in tests)
-                try:
-                    import numpy as np  # type: ignore
-                    import xarray as xr  # type: ignore
-
-                    ds_fallback = xr.Dataset(
-                        {"dummy": ("dummy", np.zeros(1, dtype="float32"))}
-                    )
-                    maybe_bytes = ds_fallback.to_netcdf()
-                    if isinstance(maybe_bytes, (bytes, bytearray)):
-                        return bytes(maybe_bytes)
-                    read = getattr(maybe_bytes, "read", None)
-                    if callable(read):
-                        return read()
-                    # Fallback to writing file
-                    ds_fallback.to_netcdf(tmp_path)
-                    from pathlib import Path as _P
-
-                    return _P(tmp_path).read_bytes()
-                except Exception as err:
-                    raise RuntimeError(
-                        res.stderr.strip() or "wgrib2 -netcdf failed"
-                    ) from err
+                # A failed conversion is an error, never fabricated output.
+                raise RuntimeError(res.stderr.strip() or "wgrib2 -netcdf failed")
             from pathlib import Path as _P
 
             return _P(tmp_path).read_bytes()
@@ -494,30 +577,13 @@ def convert_to_format(
                 _P(tmp_path).unlink()
 
     if ftype == "geotiff":
-        # Last-resort minimal GeoTIFF to satisfy header checks when xarray path is unavailable
-        try:
-            import numpy as np  # type: ignore
-            import rasterio  # type: ignore
-
-            tmp = tempfile.NamedTemporaryFile(suffix=".tif", delete=False)
-            tmp_path = tmp.name
-            tmp.close()
-            data = np.zeros((1, 1), dtype="uint8")
-            with rasterio.open(
-                tmp_path,
-                "w",
-                driver="GTiff",
-                height=1,
-                width=1,
-                count=1,
-                dtype=data.dtype,
-            ) as dst:
-                dst.write(data, 1)
-            from pathlib import Path as _P
-
-            return _P(tmp_path).read_bytes()
-        except Exception:
-            pass
+        # No xarray dataset to rasterize. This previously fabricated a
+        # 1x1 zero GeoTIFF "to satisfy header checks" — silent fake
+        # output; a failed conversion must fail.
+        raise RuntimeError(
+            "GeoTIFF conversion requires the cfgrib backend (xarray dataset); "
+            f"decoded backend {decoded.backend!r} has no GeoTIFF path."
+        )
 
     # Non-xarray paths require explicit tooling; keep behavior clear
     raise ValueError(

@@ -16,6 +16,7 @@ from .styles import (
     FIGURE_DPI,
     MAP_STYLES,
     apply_matplotlib_style,
+    apply_view_extent,
     timestamp_anchor,
 )
 
@@ -63,6 +64,7 @@ class ContourManager(Renderer):
         input_path: Optional[str] = None,
         var: Optional[str] = None,
         xarray_engine: Optional[str] = None,
+        band: int = 1,
     ):
         if data is not None:
             return data
@@ -87,9 +89,13 @@ class ContourManager(Renderer):
             import numpy as np
 
             return np.load(input_path)
+        elif input_path.lower().endswith((".tif", ".tiff")):
+            from zyra.visualization.cli_utils import load_geotiff_array
+
+            return load_geotiff_array(input_path, band=band)
         else:
             raise ValueError(
-                "Unsupported input file; use .nc or .npy for this increment"
+                "Unsupported input file; use .nc, .nc4, .npy, .tif, or .tiff"
             )
 
     def render(self, data: Any = None, **kwargs: Any):
@@ -98,6 +104,7 @@ class ContourManager(Renderer):
         dpi = int(kwargs.get("dpi", FIGURE_DPI))
         levels = kwargs.get("levels", 10)
         cmap = kwargs.get("cmap", self.cmap)
+        norm = kwargs.get("norm")
         linewidths = kwargs.get("linewidths", 1.0)
         colors = kwargs.get("colors")
         alpha = kwargs.get("alpha", 1.0)
@@ -121,6 +128,7 @@ class ContourManager(Renderer):
             input_path=input_path,
             var=var,
             xarray_engine=kwargs.get("xarray_engine"),
+            band=1 if kwargs.get("band") is None else int(kwargs.get("band")),
         )
 
         # CRS detection
@@ -167,6 +175,14 @@ class ContourManager(Renderer):
         ys = np.linspace(self.extent[2], self.extent[3], ny)
         X, Y = np.meshgrid(xs, ys)
 
+        # A classified palette's BoundaryNorm carries its own bounds:
+        # contour at those bounds unless explicit levels were requested.
+        if (
+            norm is not None
+            and getattr(norm, "boundaries", None) is not None
+            and kwargs.get("levels") is None
+        ):
+            levels = list(norm.boundaries)
         if self.filled:
             cf = ax.contourf(
                 X,
@@ -174,16 +190,22 @@ class ContourManager(Renderer):
                 arr,
                 levels=levels,
                 cmap=cmap,
+                norm=norm,
                 alpha=alpha,
                 transform=(data_transform or ccrs.PlateCarree()),
             )
         else:
+            # matplotlib rejects colors combined with cmap: explicit
+            # --colors wins, otherwise line contours follow the same
+            # cmap/norm as filled ones (so palettes are not a no-op).
             cf = ax.contour(
                 X,
                 Y,
                 arr,
                 levels=levels,
                 colors=colors,
+                cmap=None if colors is not None else cmap,
+                norm=None if colors is not None else norm,
                 linewidths=linewidths,
                 alpha=alpha,
                 transform=(data_transform or ccrs.PlateCarree()),
@@ -213,7 +235,7 @@ class ContourManager(Renderer):
                     facecolor="#00000066", edgecolor="none", boxstyle="round,pad=0.2"
                 ),
             )
-        ax.set_global()
+        apply_view_extent(ax, self.extent)
         ax.axis("off")
         fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
         self._fig = fig

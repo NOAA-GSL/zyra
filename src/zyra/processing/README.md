@@ -9,6 +9,28 @@ Commands
 - `audio-transcode` — Transcode audio (wav/mp3/ogg) via ffmpeg.
 - `audio-metadata` — Print audio metadata via ffprobe.
 - `video-transcode` — Re-encode videos or JPG stacks via ffmpeg (modern + SOS presets).
+- `reproject` — Warp a pre-rendered raster (PNG/JPG/GeoTIFF) to EPSG:4326 or another CRS.
+
+reproject
+- CLI: `zyra process reproject -i disk.png --s-srs EPSG:3413 --bounds -4000000 -4000000 4000000 4000000 -o equirect.png`
+- Two-case split: for *native scientific data* (GRIB2/NetCDF), use the
+  decode/extract/convert path — it reprojects during rendering. `reproject`
+  is for *already-rendered imagery* produced in another projection (a
+  polar-stereographic sea-ice PNG, a geostationary full-disk JPG).
+- Georeferenced sources (GeoTIFF) carry their own CRS/transform; plain
+  images require `--s-srs` plus `--bounds WEST SOUTH EAST NORTH` in
+  source-CRS units.
+- Defaults target full-globe equirectangular EPSG:4326 at 4096x2048 (the
+  2:1 sphere spec); `--t-srs`/`--dst-bounds`/`--width`/`--height` override.
+- Regional sources (e.g. HRRR/RRFS model imagery) should pass
+  `--dst-bounds auto`: the target extent derives from the source's own
+  footprint, so the output crops to the region instead of padding onto a
+  mostly-empty globe. When `--height` is omitted it follows the extent's
+  aspect ratio (even-rounded for video encoders); publish the resulting
+  bbox as dataset metadata so globe consumers can place the texture.
+- `--resampling bilinear` (default) for continuous imagery, `nearest` for
+  categorical/palette imagery.
+- Requires the optional rasterio dependency (`zyra[processing]`).
 
 api-json
 - CLI: `zyra process api-json <file_or_url>`

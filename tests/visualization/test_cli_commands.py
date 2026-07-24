@@ -16,6 +16,7 @@ import pytest
         ["visualize", "animate", "--help"],
         ["visualize", "compose-video", "--help"],
         ["visualize", "interactive", "--help"],
+        ["visualize", "sos", "--help"],
     ],
 )
 def test_visualize_subcommand_help_exits_zero(cmd):

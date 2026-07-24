@@ -110,14 +110,8 @@
       },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--width": {
         "help": "",
@@ -288,6 +282,8 @@
           "--glob",
           "--fps",
           "--basemap",
+          "--preset",
+          "--size",
           "--verbose",
           "--quiet",
           "--trace"
@@ -310,11 +306,18 @@
       },
       "--glob": "Filename glob within frames dir (e.g., '*.png'); defaults to first extension found",
       "--fps": {
-        "help": "",
-        "type": "int",
-        "default": 30
+        "help": "Frames per second (default: 30)",
+        "type": "int"
       },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
+      "--preset": {
+        "help": "Named output preset. 'sos' pins the Science On a Sphere spec: 4096x2048, 30 fps, H.264 yuv420p, faststart. Explicit flags override individual preset values.",
+        "choices": [
+          "sos"
+        ],
+        "type": "str"
+      },
+      "--size": "Output size as WIDTHxHEIGHT (e.g., 4096x2048); frames are scaled preserving aspect ratio and padded to fit",
       "--verbose": {
         "help": "Verbose logging for this command",
         "type": "bool",
@@ -358,6 +361,7 @@
           "--inputs",
           "--output-dir",
           "--var",
+          "--band",
           "--basemap",
           "--extent",
           "--output",
@@ -365,6 +369,9 @@
           "--height",
           "--dpi",
           "--cmap",
+          "--cmap-file",
+          "--legend-file",
+          "--legend-orientation",
           "--filled",
           "--levels",
           "--colorbar",
@@ -391,7 +398,7 @@
     "options": {
       "--help": "show this help message and exit",
       "--input": {
-        "help": "Path to .nc or .npy input",
+        "help": "Path to .nc/.nc4, .npy, or .tif/.tiff input",
         "path_arg": true,
         "type": "path"
       },
@@ -406,16 +413,15 @@
         "type": "path"
       },
       "--var": "Variable name for NetCDF inputs",
+      "--band": {
+        "help": "Band to read for GeoTIFF (.tif/.tiff) inputs (1-based; nodata renders transparent)",
+        "type": "int",
+        "default": 1
+      },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--output": {
         "help": "Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
@@ -443,16 +449,23 @@
         "type": "str",
         "default": "YlOrBr"
       },
+      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--legend-file": "Write a standalone colorbar legend image (transparent background)",
+      "--legend-orientation": {
+        "help": "Orientation for --legend-file",
+        "choices": [
+          "horizontal",
+          "vertical"
+        ],
+        "type": "str",
+        "default": "horizontal"
+      },
       "--filled": {
         "help": "Use filled contours",
         "type": "bool",
         "default": false
       },
-      "--levels": {
-        "help": "Count or comma-separated levels",
-        "type": "str",
-        "default": 10
-      },
+      "--levels": "Count or comma-separated levels (default: 10; with a classified --cmap-file the palette bounds are used unless set)",
       "--colorbar": {
         "help": "",
         "type": "bool",
@@ -551,6 +564,7 @@
           "--help",
           "--input",
           "--var",
+          "--band",
           "--basemap",
           "--extent",
           "--output",
@@ -560,6 +574,11 @@
           "--height",
           "--dpi",
           "--cmap",
+          "--cmap-file",
+          "--legend-file",
+          "--legend-orientation",
+          "--vmin",
+          "--vmax",
           "--colorbar",
           "--label",
           "--units",
@@ -584,22 +603,21 @@
     "options": {
       "--help": "show this help message and exit",
       "--input": {
-        "help": "Path to .nc or .npy input",
+        "help": "Path to .nc/.nc4, .npy, or .tif/.tiff input",
         "path_arg": true,
         "type": "path",
         "required": true
       },
       "--var": "Variable name for NetCDF inputs",
+      "--band": {
+        "help": "Band to read for GeoTIFF (.tif/.tiff) inputs (1-based; nodata renders transparent)",
+        "type": "int",
+        "default": 1
+      },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--output": {
         "help": "Output PNG path (required when using --input; for --inputs use --output-dir)",
@@ -635,6 +653,25 @@
         "help": "",
         "type": "str",
         "default": "YlOrBr"
+      },
+      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--legend-file": "Write a standalone colorbar legend image (transparent background)",
+      "--legend-orientation": {
+        "help": "Orientation for --legend-file",
+        "choices": [
+          "horizontal",
+          "vertical"
+        ],
+        "type": "str",
+        "default": "horizontal"
+      },
+      "--vmin": {
+        "help": "Fixed minimum data value for color scaling (use across frame sequences to avoid flicker)",
+        "type": "float"
+      },
+      "--vmax": {
+        "help": "Fixed maximum data value for color scaling (use across frame sequences to avoid flicker)",
+        "type": "float"
       },
       "--colorbar": {
         "help": "",
@@ -820,14 +857,8 @@
         "default": 3
       },
       "--extent": {
-        "help": "",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--width": {
         "help": "",
@@ -899,6 +930,130 @@
     "extras": [
       "visualization"
     ]
+  },
+  "render sos": {
+    "description": "Render gridded data as Science On a Sphere (SOS) frames: full-globe, PlateCarree, 2:1, edge-to-edge PNGs. Use a fixed --vmin/--vmax range to keep color scaling identical across a frame sequence (flicker-free). Supports single (--input/--output) and batch (--inputs/--output-dir) modes.",
+    "doc": "Render gridded data as Science On a Sphere (SOS) frames: full-globe, PlateCarree, 2:1, edge-to-edge PNGs. Use a fixed --vmin/--vmax range to keep color scaling identical across a frame sequence (flicker-free). Supports single (--input/--output) and batch (--inputs/--output-dir) modes.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--inputs",
+          "--var",
+          "--output",
+          "--output-dir",
+          "--basemap",
+          "--extent",
+          "--width",
+          "--height",
+          "--dpi",
+          "--cmap",
+          "--vmin",
+          "--vmax",
+          "--flip",
+          "--xarray-engine",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Path to .nc or .npy input",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "Multiple input paths for batch rendering",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--var": "Variable name for NetCDF inputs",
+      "--output": {
+        "help": "Output PNG path (required when using --input)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs (required when using --inputs)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--basemap": "Optional basemap (path, bare image name, or pkg:ref) drawn under the data",
+      "--extent": {
+        "help": "west east south north (default: global -180 180 -90 90)",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
+      },
+      "--width": {
+        "help": "Output width (px)",
+        "type": "int",
+        "default": 4096
+      },
+      "--height": {
+        "help": "Output height (px)",
+        "type": "int",
+        "default": 2048
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--cmap": {
+        "help": "Colormap name",
+        "type": "str",
+        "default": "YlOrBr"
+      },
+      "--vmin": {
+        "help": "Fixed minimum data value for color scaling (recommended for sequences)",
+        "type": "float"
+      },
+      "--vmax": {
+        "help": "Fixed maximum data value for color scaling (recommended for sequences)",
+        "type": "float"
+      },
+      "--flip": {
+        "help": "Flip data vertically before rendering (for north-up grids)",
+        "type": "bool",
+        "default": false
+      },
+      "--xarray-engine": "xarray engine for NetCDF inputs (e.g., netcdf4, h5netcdf, scipy)",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "render",
+    "args_schema": null,
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_sos",
+      "callable": "handle_sos"
+    },
+    "returns": "path"
   },
   "render timeseries": {
     "description": "zyra render timeseries",
@@ -1070,14 +1225,8 @@
       "--v": "",
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--width": {
         "help": "",
@@ -1291,14 +1440,8 @@
       },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--width": {
         "help": "",
@@ -1493,6 +1636,8 @@
           "--glob",
           "--fps",
           "--basemap",
+          "--preset",
+          "--size",
           "--verbose",
           "--quiet",
           "--trace"
@@ -1515,11 +1660,18 @@
       },
       "--glob": "Filename glob within frames dir (e.g., '*.png'); defaults to first extension found",
       "--fps": {
-        "help": "",
-        "type": "int",
-        "default": 30
+        "help": "Frames per second (default: 30)",
+        "type": "int"
       },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
+      "--preset": {
+        "help": "Named output preset. 'sos' pins the Science On a Sphere spec: 4096x2048, 30 fps, H.264 yuv420p, faststart. Explicit flags override individual preset values.",
+        "choices": [
+          "sos"
+        ],
+        "type": "str"
+      },
+      "--size": "Output size as WIDTHxHEIGHT (e.g., 4096x2048); frames are scaled preserving aspect ratio and padded to fit",
       "--verbose": {
         "help": "Verbose logging for this command",
         "type": "bool",
@@ -1545,7 +1697,9 @@
       ],
       "optional": [
         "basemap",
-        "fps"
+        "fps",
+        "preset",
+        "size"
       ]
     },
     "example_args": null,
@@ -1572,6 +1726,7 @@
           "--inputs",
           "--output-dir",
           "--var",
+          "--band",
           "--basemap",
           "--extent",
           "--output",
@@ -1579,6 +1734,9 @@
           "--height",
           "--dpi",
           "--cmap",
+          "--cmap-file",
+          "--legend-file",
+          "--legend-orientation",
           "--filled",
           "--levels",
           "--colorbar",
@@ -1605,7 +1763,7 @@
     "options": {
       "--help": "show this help message and exit",
       "--input": {
-        "help": "Path to .nc or .npy input",
+        "help": "Path to .nc/.nc4, .npy, or .tif/.tiff input",
         "path_arg": true,
         "type": "path"
       },
@@ -1620,16 +1778,15 @@
         "type": "path"
       },
       "--var": "Variable name for NetCDF inputs",
+      "--band": {
+        "help": "Band to read for GeoTIFF (.tif/.tiff) inputs (1-based; nodata renders transparent)",
+        "type": "int",
+        "default": 1
+      },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--output": {
         "help": "Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
@@ -1657,16 +1814,23 @@
         "type": "str",
         "default": "YlOrBr"
       },
+      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--legend-file": "Write a standalone colorbar legend image (transparent background)",
+      "--legend-orientation": {
+        "help": "Orientation for --legend-file",
+        "choices": [
+          "horizontal",
+          "vertical"
+        ],
+        "type": "str",
+        "default": "horizontal"
+      },
       "--filled": {
         "help": "Use filled contours",
         "type": "bool",
         "default": false
       },
-      "--levels": {
-        "help": "Count or comma-separated levels",
-        "type": "str",
-        "default": 10
-      },
+      "--levels": "Count or comma-separated levels (default: 10; with a classified --cmap-file the palette bounds are used unless set)",
       "--colorbar": {
         "help": "",
         "type": "bool",
@@ -1747,9 +1911,14 @@
         "output"
       ],
       "optional": [
+        "band",
+        "cmap",
+        "cmap_file",
         "filled",
         "input",
         "inputs",
+        "legend_file",
+        "legend_orientation",
         "levels",
         "output_dir"
       ]
@@ -1776,6 +1945,7 @@
           "--help",
           "--input",
           "--var",
+          "--band",
           "--basemap",
           "--extent",
           "--output",
@@ -1785,6 +1955,11 @@
           "--height",
           "--dpi",
           "--cmap",
+          "--cmap-file",
+          "--legend-file",
+          "--legend-orientation",
+          "--vmin",
+          "--vmax",
           "--colorbar",
           "--label",
           "--units",
@@ -1809,22 +1984,21 @@
     "options": {
       "--help": "show this help message and exit",
       "--input": {
-        "help": "Path to .nc or .npy input",
+        "help": "Path to .nc/.nc4, .npy, or .tif/.tiff input",
         "path_arg": true,
         "type": "path",
         "required": true
       },
       "--var": "Variable name for NetCDF inputs",
+      "--band": {
+        "help": "Band to read for GeoTIFF (.tif/.tiff) inputs (1-based; nodata renders transparent)",
+        "type": "int",
+        "default": 1
+      },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--output": {
         "help": "Output PNG path (required when using --input; for --inputs use --output-dir)",
@@ -1860,6 +2034,25 @@
         "help": "",
         "type": "str",
         "default": "YlOrBr"
+      },
+      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--legend-file": "Write a standalone colorbar legend image (transparent background)",
+      "--legend-orientation": {
+        "help": "Orientation for --legend-file",
+        "choices": [
+          "horizontal",
+          "vertical"
+        ],
+        "type": "str",
+        "default": "horizontal"
+      },
+      "--vmin": {
+        "help": "Fixed minimum data value for color scaling (use across frame sequences to avoid flicker)",
+        "type": "float"
+      },
+      "--vmax": {
+        "help": "Fixed maximum data value for color scaling (use across frame sequences to avoid flicker)",
+        "type": "float"
       },
       "--colorbar": {
         "help": "",
@@ -1939,8 +2132,10 @@
     "args_schema": {
       "required": [],
       "optional": [
+        "band",
         "basemap",
         "cmap",
+        "cmap_file",
         "colorbar",
         "crs",
         "dpi",
@@ -1949,6 +2144,8 @@
         "input",
         "inputs",
         "label",
+        "legend_file",
+        "legend_orientation",
         "map_type",
         "output",
         "output_dir",
@@ -2073,14 +2270,8 @@
         "default": 3
       },
       "--extent": {
-        "help": "",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--width": {
         "help": "",
@@ -2196,6 +2387,130 @@
     "extras": [
       "visualization"
     ]
+  },
+  "visualize sos": {
+    "description": "Render gridded data as Science On a Sphere (SOS) frames: full-globe, PlateCarree, 2:1, edge-to-edge PNGs. Use a fixed --vmin/--vmax range to keep color scaling identical across a frame sequence (flicker-free). Supports single (--input/--output) and batch (--inputs/--output-dir) modes.",
+    "doc": "Render gridded data as Science On a Sphere (SOS) frames: full-globe, PlateCarree, 2:1, edge-to-edge PNGs. Use a fixed --vmin/--vmax range to keep color scaling identical across a frame sequence (flicker-free). Supports single (--input/--output) and batch (--inputs/--output-dir) modes.",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--inputs",
+          "--var",
+          "--output",
+          "--output-dir",
+          "--basemap",
+          "--extent",
+          "--width",
+          "--height",
+          "--dpi",
+          "--cmap",
+          "--vmin",
+          "--vmax",
+          "--flip",
+          "--xarray-engine",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Path to .nc or .npy input",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "Multiple input paths for batch rendering",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--var": "Variable name for NetCDF inputs",
+      "--output": {
+        "help": "Output PNG path (required when using --input)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs (required when using --inputs)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--basemap": "Optional basemap (path, bare image name, or pkg:ref) drawn under the data",
+      "--extent": {
+        "help": "west east south north (default: global -180 180 -90 90)",
+        "type": "float",
+        "default": [
+          -180,
+          180,
+          -90,
+          90
+        ]
+      },
+      "--width": {
+        "help": "Output width (px)",
+        "type": "int",
+        "default": 4096
+      },
+      "--height": {
+        "help": "Output height (px)",
+        "type": "int",
+        "default": 2048
+      },
+      "--dpi": {
+        "help": "",
+        "type": "int",
+        "default": 96
+      },
+      "--cmap": {
+        "help": "Colormap name",
+        "type": "str",
+        "default": "YlOrBr"
+      },
+      "--vmin": {
+        "help": "Fixed minimum data value for color scaling (recommended for sequences)",
+        "type": "float"
+      },
+      "--vmax": {
+        "help": "Fixed maximum data value for color scaling (recommended for sequences)",
+        "type": "float"
+      },
+      "--flip": {
+        "help": "Flip data vertically before rendering (for north-up grids)",
+        "type": "bool",
+        "default": false
+      },
+      "--xarray-engine": "xarray engine for NetCDF inputs (e.g., netcdf4, h5netcdf, scipy)",
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "visualize",
+    "args_schema": null,
+    "example_args": null,
+    "impl": {
+      "module": "zyra.visualization.cli_sos",
+      "callable": "handle_sos"
+    },
+    "returns": "path"
   },
   "visualize timeseries": {
     "description": "zyra visualize timeseries",
@@ -2384,14 +2699,8 @@
       "--v": "",
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "help": "west east south north (default: -180 180 -90 90)",
+        "type": "float"
       },
       "--width": {
         "help": "",

@@ -19,6 +19,9 @@ def handle_animate(ns) -> int:
     if getattr(ns, "trace", False):
         os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
+    from zyra.visualization.cli_utils import resolve_extent
+
+    ns.extent = resolve_extent(ns)
     # Batch mode for animate: --inputs with --output-dir
     if getattr(ns, "inputs", None):
         if not ns.output_dir:

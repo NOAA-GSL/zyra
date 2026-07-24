@@ -98,6 +98,11 @@ class ProcessConvertFormatRun(DomainRunRequest):
     args: da.ProcessConvertFormatArgs  # type: ignore[assignment]
 
 
+class ProcessReprojectRun(DomainRunRequest):
+    tool: Literal["reproject"]
+    args: da.ProcessReprojectArgs  # type: ignore[assignment]
+
+
 # New process tools
 class ProcessApiJsonRun(DomainRunRequest):
     tool: Literal["api-json"]
@@ -180,3 +185,8 @@ class AcquireFtpRun(DomainRunRequest):
 class AcquireApiRun(DomainRunRequest):
     tool: Literal["api"]
     args: da.AcquireApiArgs  # type: ignore[assignment]
+
+
+class AcquireThreddsRun(DomainRunRequest):
+    tool: Literal["thredds"]
+    args: da.AcquireThreddsArgs  # type: ignore[assignment]

@@ -661,6 +661,7 @@
         "options": [
           "--help",
           "--backend",
+          "--unsigned",
           "--stdout",
           "--format",
           "--verbose",
@@ -680,6 +681,11 @@
         ],
         "type": "str",
         "default": "cfgrib"
+      },
+      "--unsigned": {
+        "help": "Use unsigned S3 access for public buckets",
+        "type": "bool",
+        "default": false
       },
       "--stdout": {
         "help": "Write selected variable as bytes to stdout",
@@ -909,6 +915,119 @@
       "--output-dir",
       "--json-report"
     ]
+  },
+  "process reproject": {
+    "description": "Warp an already-rendered raster (PNG/JPG/GeoTIFF) from its source projection to a target CRS grid — by default full-globe equirectangular EPSG:4326 at 4096x2048. For native scientific data (GRIB2/NetCDF), use the existing decode/extract/convert path instead; this command is for imagery that was rendered in another projection. Requires the optional rasterio dependency (zyra[processing]).",
+    "doc": "Warp an already-rendered raster (PNG/JPG/GeoTIFF) from its source projection to a target CRS grid — by default full-globe equirectangular EPSG:4326 at 4096x2048. For native scientific data (GRIB2/NetCDF), use the existing decode/extract/convert path instead; this command is for imagery that was rendered in another projection. Requires the optional rasterio dependency (zyra[processing]).",
+    "epilog": "",
+    "groups": [
+      {
+        "title": "options",
+        "options": [
+          "--help",
+          "--input",
+          "--output",
+          "--s-srs",
+          "--t-srs",
+          "--bounds",
+          "--dst-bounds",
+          "--width",
+          "--height",
+          "--resampling",
+          "--dst-nodata",
+          "--verbose",
+          "--quiet",
+          "--trace"
+        ]
+      }
+    ],
+    "options": {
+      "--help": "show this help message and exit",
+      "--input": {
+        "help": "Source raster path",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--output": {
+        "help": "Output raster path",
+        "path_arg": true,
+        "type": "path",
+        "required": true
+      },
+      "--s-srs": "Source CRS (e.g., EPSG:3413). Overrides any embedded CRS; required for plain images without georeferencing (with --bounds)",
+      "--t-srs": {
+        "help": "Target CRS (default: EPSG:4326)",
+        "type": "str",
+        "default": "EPSG:4326"
+      },
+      "--bounds": {
+        "help": "Source extent in source-CRS units, for rasters without a geotransform",
+        "type": "float"
+      },
+      "--dst-bounds": "Target extent in target-CRS units, or 'auto' to derive it from the source's own footprint so regional imagery crops itself (default: full globe for EPSG:4326)",
+      "--width": {
+        "help": "Output width in pixels (default: 4096)",
+        "type": "int",
+        "default": 4096
+      },
+      "--height": {
+        "help": "Output height in pixels (default: derived from --width and the target extent's aspect ratio; 2048 for the full globe)",
+        "type": "int"
+      },
+      "--resampling": {
+        "help": "Resampling kernel: bilinear for continuous imagery, nearest for categorical (default: bilinear)",
+        "choices": [
+          "bilinear",
+          "nearest"
+        ],
+        "type": "str",
+        "default": "bilinear"
+      },
+      "--dst-nodata": {
+        "help": "Value for pixels outside the source footprint (accepts 'nan' for float sources); default: the source's nodata when present, else 0. Tagged in GeoTIFF output",
+        "type": "float"
+      },
+      "--verbose": {
+        "help": "Verbose logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--quiet": {
+        "help": "Quiet logging for this command",
+        "type": "bool",
+        "default": false
+      },
+      "--trace": {
+        "help": "Shell-style trace of key steps and external commands",
+        "type": "bool",
+        "default": false
+      }
+    },
+    "positionals": [],
+    "domain": "process",
+    "args_schema": {
+      "required": [
+        "input",
+        "output"
+      ],
+      "optional": [
+        "bounds",
+        "dst_bounds",
+        "dst_nodata",
+        "height",
+        "resampling",
+        "s_srs",
+        "t_srs",
+        "width"
+      ]
+    },
+    "example_args": null,
+    "impl": {
+      "module": "zyra.processing",
+      "callable": "cmd_reproject"
+    },
+    "returns": "path"
   },
   "process scan-frames": {
     "description": "Alias of 'metadata'. Scan a frames directory and report timestamps, counts, and missing frames.",

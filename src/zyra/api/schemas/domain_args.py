@@ -70,6 +70,9 @@ class VisualizeHeatmapArgs(BaseModel):
     output: str | None = None
     output_dir: str | None = None
     var: str | None = None
+    band: int | None = Field(
+        default=None, description="GeoTIFF band to read (1-based; default 1)"
+    )
     basemap: str | None = None
     extent: list[float] | None = Field(
         default=None, description="[west,east,south,north]"
@@ -78,6 +81,13 @@ class VisualizeHeatmapArgs(BaseModel):
     height: int | None = None
     dpi: int | None = None
     cmap: str | None = None
+    cmap_file: str | None = Field(
+        default=None, description="Palette JSON file (classified or continuous)"
+    )
+    legend_file: str | None = Field(
+        default=None, description="Write a standalone colorbar legend image"
+    )
+    legend_orientation: str | None = None
     colorbar: bool | None = None
     label: str | None = None
     units: str | None = None
@@ -95,6 +105,20 @@ class VisualizeHeatmapArgs(BaseModel):
         if v is not None and len(v) != 4:
             raise ValueError("extent must have 4 numbers: [west,east,south,north]")
         return v
+
+    @model_validator(mode="after")
+    def _cmap_exclusive(self):  # type: ignore[override]
+        return _validate_cmap_legend_fields(self)
+
+
+def _validate_cmap_legend_fields(model):
+    """Shared CLI-parity checks for cmap_file/legend fields."""
+    if getattr(model, "cmap", None) and getattr(model, "cmap_file", None):
+        raise ValueError("cmap and cmap_file are mutually exclusive")
+    orientation = getattr(model, "legend_orientation", None)
+    if orientation is not None and orientation not in ("horizontal", "vertical"):
+        raise ValueError("legend_orientation must be 'horizontal' or 'vertical'")
+    return model
 
 
 class DecimateLocalArgs(BaseModel):
@@ -184,6 +208,33 @@ class AcquireFtpArgs(BaseModel):
         if not (self.path or self.inputs or self.manifest or self.list_mode):
             raise ValueError("Provide path or inputs/manifest, or set list=true")
         return self
+
+
+class AcquireThreddsArgs(BaseModel):
+    catalog_url: str
+    output: str | None = None
+    # Listing/sync/batch
+    list_mode: bool | None = Field(default=None, alias="list")
+    sync_dir: str | None = None
+    output_dir: str | None = None
+    # Enumeration
+    recursive: bool | None = None
+    max_depth: int | None = None
+    pattern: str | None = None
+    since: str | None = None
+    since_period: str | None = None
+    until: str | None = None
+    date_format: str | None = None
+    header: list[str] | None = None
+    auth: str | None = None
+    credential: list[str] | None = None
+    credential_file: str | None = None
+    # Sync mode options (subset meaningful over HTTP)
+    overwrite_existing: bool | None = None
+    recheck_existing: bool | None = None
+    min_remote_size: str | int | None = None
+    prefer_remote: bool | None = None
+    skip_if_local_done: bool | None = None
 
 
 # New: acquire api (generic REST)
@@ -303,6 +354,8 @@ def normalize_and_validate(stage: str, tool: str, args: dict) -> dict:
         out = _normalize_credentials(out)
     elif stage == "acquire" and tool == "ftp":
         out = _normalize_credentials(out)
+    elif stage == "acquire" and tool == "thredds":
+        out = _normalize_headers(out)
     elif stage == "decimate" and tool == "post":
         out = _normalize_headers(out)
         out = _normalize_credentials(out)
@@ -318,8 +371,23 @@ class VisualizeContourArgs(BaseModel):
     inputs: list[str] | None = None
     output: str
     output_dir: str | None = None
+    band: int | None = Field(
+        default=None, description="GeoTIFF band to read (1-based; default 1)"
+    )
+    cmap_file: str | None = Field(
+        default=None, description="Palette JSON file (classified or continuous)"
+    )
+    legend_file: str | None = Field(
+        default=None, description="Write a standalone colorbar legend image"
+    )
+    legend_orientation: str | None = None
     levels: int | str | None = None
     filled: bool | None = None
+    cmap: str | None = None
+
+    @model_validator(mode="after")
+    def _cmap_exclusive(self):  # type: ignore[override]
+        return _validate_cmap_legend_fields(self)
 
 
 class DecimatePostArgs(BaseModel):
@@ -423,6 +491,33 @@ class VisualizeComposeVideoArgs(BaseModel):
     output: str
     basemap: str | None = None
     fps: int | None = None
+    preset: str | None = None
+    size: str | None = None
+
+    @field_validator("preset")
+    @classmethod
+    def _check_preset(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        from zyra.visualization.cli_compose_video import COMPOSE_VIDEO_PRESETS
+
+        if v not in COMPOSE_VIDEO_PRESETS:
+            raise ValueError(
+                f"unknown preset '{v}'; expected one of: "
+                + ", ".join(sorted(COMPOSE_VIDEO_PRESETS))
+            )
+        return v
+
+    @field_validator("size")
+    @classmethod
+    def _check_size(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        import re
+
+        if not re.fullmatch(r"[1-9]\d*x[1-9]\d*", v.lower()):
+            raise ValueError(f"size must be WIDTHxHEIGHT (e.g., 4096x2048); got: {v}")
+        return v
 
 
 class VisualizeInteractiveArgs(BaseModel):
@@ -574,6 +669,67 @@ class VerifyEvaluateArgs(BaseModel):
 
 
 # New: process tools
+class ProcessReprojectArgs(BaseModel):
+    input: str
+    output: str
+    s_srs: str | None = None
+    t_srs: str | None = None
+    bounds: list[float] | None = None
+    dst_bounds: list[float] | str | None = None
+    width: int | None = None
+    height: int | None = None
+    resampling: str | None = None
+    dst_nodata: float | None = None
+
+    @field_validator("bounds")
+    @classmethod
+    def _check_bounds(cls, v: list[float] | None) -> list[float] | None:
+        if v is not None and len(v) != 4:
+            raise ValueError("bounds must be [west, south, east, north]")
+        return v
+
+    @field_validator("dst_bounds")
+    @classmethod
+    def _check_dst_bounds(cls, v: list[float] | str | None) -> list[float] | str | None:
+        if isinstance(v, str):
+            if v.lower() != "auto":
+                raise ValueError(
+                    "dst_bounds must be [west, south, east, north] or 'auto'"
+                )
+            return "auto"
+        if v is not None and len(v) != 4:
+            raise ValueError("dst_bounds must be [west, south, east, north] or 'auto'")
+        return v
+
+    @field_validator("resampling")
+    @classmethod
+    def _check_resampling(cls, v: str | None) -> str | None:
+        if v is not None and v not in ("bilinear", "nearest"):
+            raise ValueError("resampling must be 'bilinear' or 'nearest'")
+        return v
+
+    @field_validator("width", "height")
+    @classmethod
+    def _check_dims(cls, v: int | None) -> int | None:
+        if v is not None and v <= 0:
+            raise ValueError("width/height must be positive")
+        return v
+
+    @model_validator(mode="after")
+    def _require_dst_bounds_for_other_crs(self):  # type: ignore[override]
+        # Mirror the CLI's fail-fast: a non-EPSG:4326 target has no
+        # implicit full-globe extent, so dst_bounds must be provided.
+        if (
+            self.t_srs is not None
+            and self.t_srs.strip().lower() != "epsg:4326"
+            and self.dst_bounds is None
+        ):
+            raise ValueError(
+                "dst_bounds is required (or 'auto') when t_srs is not EPSG:4326"
+            )
+        return self
+
+
 class ProcessApiJsonArgs(BaseModel):
     file_or_url: str
     records_path: str | None = None
@@ -651,17 +807,23 @@ def resolve_model(stage: str, tool: str) -> type[BaseModel] | None:
         return AcquireHttpArgs
     if key == ("acquire", "api"):
         return AcquireApiArgs
+    if key == ("acquire", "thredds"):
+        return AcquireThreddsArgs
     # Aliases for acquire
     if key == ("import", "http"):
         return AcquireHttpArgs
     if key == ("import", "api"):
         return AcquireApiArgs
+    if key == ("import", "thredds"):
+        return AcquireThreddsArgs
     if key == ("process", "convert-format"):
         return ProcessConvertFormatArgs
     if key == ("process", "decode-grib2"):
         return ProcessDecodeGrib2Args
     if key == ("process", "extract-variable"):
         return ProcessExtractVariableArgs
+    if key == ("process", "reproject"):
+        return ProcessReprojectArgs
     if key == ("process", "api-json"):
         return ProcessApiJsonArgs
     if key == ("process", "audio-transcode"):

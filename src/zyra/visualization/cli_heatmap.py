@@ -11,7 +11,20 @@ from zyra.visualization.cli_utils import features_from_ns, resolve_basemap_ref
 
 
 def handle_heatmap(ns) -> int:
-    """Handle ``visualize heatmap`` CLI subcommand."""
+    """Handle ``visualize heatmap`` CLI subcommand.
+
+    Input/validation errors (unsupported suffix, missing --var,
+    GeoTIFF band out of range, missing rasterio) surface as a clean
+    logged error with exit code 2 instead of a traceback.
+    """
+    try:
+        return _handle_heatmap_impl(ns)
+    except ValueError as exc:
+        logging.error(str(exc))
+        return 2
+
+
+def _handle_heatmap_impl(ns) -> int:
     # Lazy import to reduce startup cost when visualization isn't used
     from zyra.visualization.heatmap_manager import HeatmapManager
 
@@ -22,6 +35,10 @@ def handle_heatmap(ns) -> int:
     if getattr(ns, "trace", False):
         os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
+    from zyra.visualization.cli_utils import resolve_cmap_args, resolve_extent
+
+    ns.extent = resolve_extent(ns)
+    cmap, norm = resolve_cmap_args(ns)
     # Batch mode: --inputs with --output-dir
     if getattr(ns, "inputs", None):
         outdir = getattr(ns, "output_dir", None)
@@ -38,10 +55,14 @@ def handle_heatmap(ns) -> int:
                 input_path=src,
                 var=ns.var,
                 xarray_engine=getattr(ns, "xarray_engine", None),
+                band=getattr(ns, "band", 1),
                 width=ns.width,
                 height=ns.height,
                 dpi=ns.dpi,
-                cmap=ns.cmap,
+                cmap=cmap,
+                norm=norm,
+                vmin=getattr(ns, "vmin", None),
+                vmax=getattr(ns, "vmax", None),
                 colorbar=getattr(ns, "colorbar", False),
                 label=getattr(ns, "label", None),
                 units=getattr(ns, "units", None),
@@ -69,6 +90,7 @@ def handle_heatmap(ns) -> int:
             print(json.dumps({"outputs": outputs}))
         except Exception:
             pass
+        _maybe_write_legend(ns, cmap, norm)
         return 0
     bmap, guard = resolve_basemap_ref(getattr(ns, "basemap", None))
     if os.environ.get("ZYRA_SHELL_TRACE"):
@@ -85,10 +107,14 @@ def handle_heatmap(ns) -> int:
         input_path=ns.input,
         var=ns.var,
         xarray_engine=getattr(ns, "xarray_engine", None),
+        band=getattr(ns, "band", 1),
         width=ns.width,
         height=ns.height,
         dpi=ns.dpi,
-        cmap=ns.cmap,
+        cmap=cmap,
+        norm=norm,
+        vmin=getattr(ns, "vmin", None),
+        vmax=getattr(ns, "vmax", None),
         colorbar=getattr(ns, "colorbar", False),
         label=getattr(ns, "label", None),
         units=getattr(ns, "units", None),
@@ -109,4 +135,24 @@ def handle_heatmap(ns) -> int:
             guard.close()
         except Exception:
             pass
+    _maybe_write_legend(ns, cmap, norm)
     return 0
+
+
+def _maybe_write_legend(ns, cmap, norm) -> None:
+    """Write the standalone legend when --legend-file was requested."""
+    legend_file = getattr(ns, "legend_file", None)
+    if not legend_file:
+        return
+    from zyra.visualization.cli_utils import write_legend
+
+    out = write_legend(
+        legend_file,
+        cmap=cmap,
+        norm=norm,
+        vmin=getattr(ns, "vmin", None),
+        vmax=getattr(ns, "vmax", None),
+        label=getattr(ns, "label", None),
+        orientation=getattr(ns, "legend_orientation", "horizontal"),
+    )
+    logging.info(out)
