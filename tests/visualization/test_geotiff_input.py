@@ -111,18 +111,73 @@ def test_load_data_array_unsupported_suffix_message(tmp_path):
 
 
 def test_cli_parser_accepts_band():
+    # Assert against the PUBLIC registrar (package __init__), which the
+    # Domain API parser and manifest service consume. It delegates to
+    # cli_register — a duplicate definition previously lived here and
+    # drifted from the real CLI surface.
     import argparse
 
-    from zyra.visualization.cli_register import register_cli
+    import zyra.visualization as vpkg
 
     parser = argparse.ArgumentParser()
-    register_cli(parser.add_subparsers(dest="cmd"))
+    vpkg.register_cli(parser.add_subparsers(dest="cmd"))
     ns = parser.parse_args(
         ["heatmap", "--input", "x.tif", "--output", "o.png", "--band", "2"]
     )
     assert ns.band == 2
     ns = parser.parse_args(["contour", "--input", "x.tif", "--output", "o.png"])
     assert ns.band == 1
+
+
+def test_public_and_module_registrars_agree():
+    # Guard against the registrar split reappearing: both entry points
+    # must expose identical option sets for heatmap/contour.
+    import argparse
+
+    import zyra.visualization as vpkg
+    from zyra.visualization import cli_register
+
+    def options(fn, cmd):
+        parser = argparse.ArgumentParser()
+        sub = parser.add_subparsers(dest="cmd")
+        fn(sub)
+        return {a for act in sub.choices[cmd]._actions for a in act.option_strings}
+
+    for cmd in ("heatmap", "contour"):
+        assert options(vpkg.register_cli, cmd) == options(
+            cli_register.register_cli, cmd
+        )
+
+
+def test_cli_band_out_of_range_exits_2(tmp_path):
+    # Input/validation errors are a clean logged error with exit code 2,
+    # not a traceback with exit 1.
+    import subprocess
+    import sys
+
+    tif = str(tmp_path / "one.tif")
+    _write_tif(tif, np.zeros((2, 2), dtype="float32"))
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "zyra.cli",
+            "visualize",
+            "heatmap",
+            "--input",
+            tif,
+            "--output",
+            str(tmp_path / "o.png"),
+            "--band",
+            "99",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 2
+    assert "out of range" in proc.stderr
+    assert "Traceback" not in proc.stderr
 
 
 # Cartopy-heavy render test: opt-in via DATAVIZHUB_RUN_CARTOPY_TESTS=1
