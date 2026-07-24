@@ -161,11 +161,15 @@ def load_palette_spec(path: str) -> dict:
             if "Upper Bound" not in entry:
                 raise ValueError(f"Palette entry {i} must have an 'Upper Bound' key")
             try:
-                bounds.append(float(entry["Upper Bound"]))
+                bound = float(entry["Upper Bound"])
             except (TypeError, ValueError) as exc:
                 raise ValueError(
                     f"Palette entry {i}: 'Upper Bound' must be numeric"
                 ) from exc
+            # Store the coerced value so numeric strings ("10") reach
+            # BoundaryNorm as numbers, not strings.
+            entry["Upper Bound"] = bound
+            bounds.append(bound)
         if any(b2 <= b1 for b1, b2 in zip(bounds, bounds[1:])):
             raise ValueError("Classified palette bounds must be strictly increasing")
         return spec
@@ -251,7 +255,19 @@ def write_legend(
     Renders only the colorbar (transparent background) so globe/sphere
     display targets can place it as screen-space UI instead of baking it
     into the frame, where it would wrap onto the globe.
+
+    Raises
+    ------
+    ValueError
+        If neither a norm nor both ``vmin``/``vmax`` are given — the
+        legend must reflect the scale actually used for the render, and
+        a data-derived auto-scale is not visible here.
     """
+    if norm is None and (vmin is None or vmax is None):
+        raise ValueError(
+            "--legend-file requires --vmin and --vmax (or a classified "
+            "--cmap-file) so the legend matches the rendered scale"
+        )
     import matplotlib
 
     matplotlib.use("Agg")
@@ -260,10 +276,7 @@ def write_legend(
     from matplotlib import colors as mpl_colors
 
     if norm is None:
-        norm = mpl_colors.Normalize(
-            vmin=0.0 if vmin is None else float(vmin),
-            vmax=1.0 if vmax is None else float(vmax),
-        )
+        norm = mpl_colors.Normalize(vmin=float(vmin), vmax=float(vmax))
     figsize = (8, 1.1) if orientation == "horizontal" else (1.4, 8)
     fig, ax = plt.subplots(figsize=figsize, dpi=128)
     cbar = fig.colorbar(

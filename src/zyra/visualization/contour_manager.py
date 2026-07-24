@@ -195,12 +195,17 @@ class ContourManager(Renderer):
                 transform=(data_transform or ccrs.PlateCarree()),
             )
         else:
+            # matplotlib rejects colors combined with cmap: explicit
+            # --colors wins, otherwise line contours follow the same
+            # cmap/norm as filled ones (so palettes are not a no-op).
             cf = ax.contour(
                 X,
                 Y,
                 arr,
                 levels=levels,
                 colors=colors,
+                cmap=None if colors is not None else cmap,
+                norm=None if colors is not None else norm,
                 linewidths=linewidths,
                 alpha=alpha,
                 transform=(data_transform or ccrs.PlateCarree()),

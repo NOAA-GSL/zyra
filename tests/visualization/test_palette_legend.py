@@ -109,6 +109,33 @@ def test_load_palette_missing_file(tmp_path):
         load_palette_spec(str(tmp_path / "absent.json"))
 
 
+def test_load_palette_coerces_string_bounds(tmp_path):
+    spec = load_palette_spec(
+        _write(
+            tmp_path,
+            {
+                "type": "classified",
+                "entries": [
+                    {"Color": [1, 1, 1], "Upper Bound": "10"},
+                    {"Color": [2, 2, 2], "Upper Bound": "20.5"},
+                ],
+            },
+        )
+    )
+    # Numeric strings are stored back as floats so BoundaryNorm never
+    # sees strings.
+    assert [e["Upper Bound"] for e in spec["entries"]] == [10.0, 20.5]
+
+
+def test_write_legend_requires_scale(tmp_path):
+    from zyra.visualization.cli_utils import write_legend
+
+    with pytest.raises(ValueError, match="requires --vmin and --vmax"):
+        write_legend(str(tmp_path / "l.png"), cmap="turbo")
+    with pytest.raises(ValueError, match="requires --vmin and --vmax"):
+        write_legend(str(tmp_path / "l.png"), cmap="turbo", vmin=0)
+
+
 def test_cli_parser_accepts_palette_and_legend_flags():
     import argparse
 
@@ -379,3 +406,31 @@ def test_cli_legend_file_written_frame_unchanged(tmp_path):
     assert legend.exists() and legend.stat().st_size > 0
     # The legend flag must not change the frame bytes.
     assert frame_plain.read_bytes() == frame_legend.read_bytes()
+
+
+@pytest.mark.skipif(
+    _skip_cartopy_heavy,
+    reason="Cartopy-heavy tests require cartopy and opt-in (DATAVIZHUB_RUN_CARTOPY_TESTS=1)",
+)
+def test_unfilled_contour_honors_palette(tmp_path):
+    # Line contours must follow the palette cmap/norm (previously only
+    # --filled did; unfilled silently fell back to the default cmap).
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import numpy as np
+
+    from zyra.visualization.cli_utils import cmap_norm_from_palette
+    from zyra.visualization.contour_manager import ContourManager
+
+    spec = load_palette_spec(_write(tmp_path, CLASSIFIED))
+    cmap, norm = cmap_norm_from_palette(spec)
+    data = np.linspace(0, 45, 800, dtype="float32").reshape(20, 40)
+    mgr = ContourManager(extent=[-180, 180, -90, 90], filled=False)
+    fig = mgr.render(data, cmap=cmap, norm=norm, features=[])
+    contour_sets = [
+        c for ax in fig.axes for c in ax.collections if hasattr(c, "get_cmap")
+    ]
+    assert contour_sets, "no contour collections found"
+    assert contour_sets[0].get_cmap().name == "custom_colormap"
+    assert contour_sets[0].norm is norm
