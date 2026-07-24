@@ -61,3 +61,80 @@ def open_output_file(path_or_dash: str) -> BinaryIO:
     """
     # Returning an open file object is intentional for backwards compatibility.
     return sys.stdout.buffer if path_or_dash == "-" else Path(path_or_dash).open("wb")  # noqa: SIM115
+
+
+def read_bytes_any(
+    path_or_url: str,
+    *,
+    idx_pattern: str | None = None,
+    unsigned: bool = False,
+) -> bytes:
+    """Read bytes from a local path, ``-`` (stdin), or an HTTP(S)/S3 URL.
+
+    URLs support GRIB ``.idx`` sidecar subsetting: when ``idx_pattern``
+    is given, only the byte ranges whose index lines match the regex
+    are fetched (the NOAA GRIB2-on-S3 access pattern — HRRR/GFS style).
+    ``unsigned`` enables anonymous access for public S3 buckets.
+
+    Raises
+    ------
+    RuntimeError
+        On fetch failures, unsupported schemes, or missing local paths.
+        Callers map this to their own error convention (CLI handlers log
+        and return 2; ``zyra.cli`` converts to ``SystemExit``).
+    """
+    if path_or_url == "-":
+        return sys.stdin.buffer.read()
+
+    p = Path(path_or_url)
+    if p.exists():
+        try:
+            return p.read_bytes()
+        except OSError as exc:
+            # Keep the advertised RuntimeError contract for unreadable
+            # paths (permissions, directories) too.
+            raise RuntimeError(f"Failed to read {path_or_url}: {exc}") from exc
+
+    if path_or_url.startswith(("http://", "https://")):
+        try:
+            from zyra.connectors.backends import http as http_backend
+            from zyra.utils.grib import idx_to_byteranges
+
+            if idx_pattern:
+                lines = http_backend.get_idx_lines(path_or_url)
+                ranges = idx_to_byteranges(lines, idx_pattern)
+                if not ranges:
+                    # Zero matched ranges would download nothing and look
+                    # like a successful empty read.
+                    raise RuntimeError(
+                        f"No .idx lines matched pattern {idx_pattern!r} for {path_or_url}"
+                    )
+                return http_backend.download_byteranges(path_or_url, ranges.keys())
+            return http_backend.fetch_bytes(path_or_url)
+        except RuntimeError:
+            raise
+        except Exception as exc:
+            raise RuntimeError(f"Failed to fetch from URL: {exc}") from exc
+
+    if path_or_url.startswith("s3://"):
+        try:
+            from zyra.connectors.backends import s3 as s3_backend
+            from zyra.utils.grib import idx_to_byteranges
+
+            if idx_pattern:
+                lines = s3_backend.get_idx_lines(path_or_url, unsigned=unsigned)
+                ranges = idx_to_byteranges(lines, idx_pattern)
+                if not ranges:
+                    raise RuntimeError(
+                        f"No .idx lines matched pattern {idx_pattern!r} for {path_or_url}"
+                    )
+                return s3_backend.download_byteranges(
+                    path_or_url, None, ranges.keys(), unsigned=unsigned
+                )
+            return s3_backend.fetch_bytes(path_or_url, unsigned=unsigned)
+        except RuntimeError:
+            raise
+        except Exception as exc:
+            raise RuntimeError(f"Failed to fetch from S3: {exc}") from exc
+
+    raise RuntimeError(f"Input not found or unsupported scheme: {path_or_url}")

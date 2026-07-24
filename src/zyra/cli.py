@@ -302,45 +302,14 @@ def _normalize_group_name(name: str) -> str:
 def _read_bytes(
     path_or_url: str, *, idx_pattern: str | None = None, unsigned: bool = False
 ) -> bytes:
-    # stdin
-    if path_or_url == "-":
-        return sys.stdin.buffer.read()
+    # Shared implementation lives in io_utils (URL/S3 + .idx subsetting);
+    # this wrapper keeps the historical SystemExit convention of this module.
+    from zyra.utils.io_utils import read_bytes_any
 
-    p = Path(path_or_url)
-    if p.exists():
-        return p.read_bytes()
-
-    # HTTP(S)
-    if path_or_url.startswith("http://") or path_or_url.startswith("https://"):
-        try:
-            from zyra.connectors.backends import http as http_backend
-            from zyra.utils.grib import idx_to_byteranges
-
-            if idx_pattern:
-                lines = http_backend.get_idx_lines(path_or_url)
-                ranges = idx_to_byteranges(lines, idx_pattern)
-                return http_backend.download_byteranges(path_or_url, ranges.keys())
-            return http_backend.fetch_bytes(path_or_url)
-        except Exception as exc:  # pragma: no cover - optional dep
-            raise SystemExit(f"Failed to fetch from URL: {exc}") from exc
-
-    # S3
-    if path_or_url.startswith("s3://"):
-        try:
-            from zyra.connectors.backends import s3 as s3_backend
-            from zyra.utils.grib import idx_to_byteranges
-
-            if idx_pattern:
-                lines = s3_backend.get_idx_lines(path_or_url, unsigned=unsigned)
-                ranges = idx_to_byteranges(lines, idx_pattern)
-                return s3_backend.download_byteranges(
-                    path_or_url, None, ranges.keys(), unsigned=unsigned
-                )
-            return s3_backend.fetch_bytes(path_or_url, unsigned=unsigned)
-        except Exception as exc:  # pragma: no cover - optional dep
-            raise SystemExit(f"Failed to fetch from S3: {exc}") from exc
-
-    raise SystemExit(f"Input not found or unsupported scheme: {path_or_url}")
+    try:
+        return read_bytes_any(path_or_url, idx_pattern=idx_pattern, unsigned=unsigned)
+    except RuntimeError as exc:
+        raise SystemExit(str(exc)) from exc
 
 
 def cmd_decode_grib2(args: argparse.Namespace) -> int:

@@ -90,9 +90,6 @@ def register_cli(subparsers: Any) -> None:
     from zyra.utils.cli_helpers import (
         is_netcdf_bytes,
     )
-    from zyra.utils.cli_helpers import (
-        read_all_bytes as _read_bytes,
-    )
 
     def cmd_decode_grib2(args: argparse.Namespace) -> int:
         # Per-command verbosity/trace mapping
@@ -118,8 +115,19 @@ def register_cli(subparsers: Any) -> None:
         # fast and to avoid importing heavy modules unnecessarily, we load the
         # decoder utilities only after we've successfully read the input bytes
         # and determined that we actually need to decode.
-        data = _read_bytes(args.file_or_url)
         import logging
+
+        from zyra.utils.io_utils import read_bytes_any
+
+        try:
+            data = read_bytes_any(
+                args.file_or_url,
+                idx_pattern=getattr(args, "pattern", None),
+                unsigned=bool(getattr(args, "unsigned", False)),
+            )
+        except RuntimeError as exc:
+            logging.error(str(exc))
+            return 2
 
         if os.environ.get("ZYRA_SHELL_TRACE"):
             logging.info("+ input='%s'", args.file_or_url)
@@ -158,8 +166,22 @@ def register_cli(subparsers: Any) -> None:
             convert_to_format,
             extract_variable,
         )
+        from zyra.utils.io_utils import read_bytes_any
 
-        data = _read_bytes(args.file_or_url)
+        # The variable regex doubles as the .idx line filter for URL
+        # inputs (GRIB index lines carry the variable names), so remote
+        # sources fetch only the matching byte ranges.
+        try:
+            data = read_bytes_any(
+                args.file_or_url,
+                idx_pattern=getattr(args, "pattern", None),
+                unsigned=bool(getattr(args, "unsigned", False)),
+            )
+        except RuntimeError as exc:
+            import logging
+
+            logging.error(str(exc))
+            return 2
         if getattr(args, "stdout", False):
             out_fmt = (args.format or "netcdf").lower()
             if out_fmt not in ("netcdf", "grib2"):
@@ -263,6 +285,7 @@ def register_cli(subparsers: Any) -> None:
         return 0
 
     def cmd_convert_format(args: argparse.Namespace) -> int:
+        import logging
         import os
 
         from zyra.utils.cli_helpers import configure_logging_from_env
@@ -292,9 +315,19 @@ def register_cli(subparsers: Any) -> None:
 
             outdir_p = Path(outdir)
             outdir_p.mkdir(parents=True, exist_ok=True)
+            from zyra.utils.io_utils import read_bytes_any
+
             wrote = []
             for src in args.inputs:
-                data = _read_bytes(src)
+                try:
+                    data = read_bytes_any(
+                        src,
+                        idx_pattern=getattr(args, "pattern", None),
+                        unsigned=bool(getattr(args, "unsigned", False)),
+                    )
+                except RuntimeError as exc:
+                    logging.error(str(exc))
+                    return 2
                 # Fast-path: NetCDF passthrough when converting to NetCDF
                 if args.format == "netcdf" and is_netcdf_bytes(data):
                     # Write source name with .nc extension
@@ -327,7 +360,17 @@ def register_cli(subparsers: Any) -> None:
 
         # Single-input flow
         # Read input first so we can short-circuit pass-through without heavy imports
-        data = _read_bytes(args.file_or_url)
+        from zyra.utils.io_utils import read_bytes_any
+
+        try:
+            data = read_bytes_any(
+                args.file_or_url,
+                idx_pattern=getattr(args, "pattern", None),
+                unsigned=bool(getattr(args, "unsigned", False)),
+            )
+        except RuntimeError as exc:
+            logging.error(str(exc))
+            return 2
         # If reading NetCDF and writing NetCDF with --stdout, pass-through
         if (
             getattr(args, "stdout", False)
@@ -729,6 +772,11 @@ def register_cli(subparsers: Any) -> None:
     p_ext.add_argument("pattern")
     p_ext.add_argument(
         "--backend", default="cfgrib", choices=["cfgrib", "pygrib", "wgrib2"]
+    )
+    p_ext.add_argument(
+        "--unsigned",
+        action="store_true",
+        help="Use unsigned S3 access for public buckets",
     )
     p_ext.add_argument(
         "--stdout",
