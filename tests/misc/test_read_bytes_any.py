@@ -59,6 +59,26 @@ def test_http_url_idx_subset(monkeypatch):
     assert len(calls["ranges"]) == 1
 
 
+def test_http_idx_zero_matches_fails_loudly(monkeypatch):
+    from zyra.connectors.backends import http as http_backend
+
+    monkeypatch.setattr(http_backend, "get_idx_lines", lambda url, **kw: IDX_LINES)
+    monkeypatch.setattr(
+        http_backend,
+        "download_byteranges",
+        lambda *a, **kw: pytest.fail("should not download with zero ranges"),
+    )
+    with pytest.raises(RuntimeError, match="No .idx lines matched"):
+        read_bytes_any("https://example.org/f.grib2", idx_pattern="NOSUCHVAR")
+
+
+def test_unreadable_local_path_wrapped(tmp_path):
+    # A directory exists but cannot be read as bytes: the RuntimeError
+    # contract must hold rather than leaking OSError.
+    with pytest.raises(RuntimeError, match="Failed to read"):
+        read_bytes_any(str(tmp_path))
+
+
 def test_http_fetch_failure_wrapped(monkeypatch):
     from zyra.connectors.backends import http as http_backend
 

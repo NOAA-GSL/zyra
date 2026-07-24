@@ -285,6 +285,7 @@ def register_cli(subparsers: Any) -> None:
         return 0
 
     def cmd_convert_format(args: argparse.Namespace) -> int:
+        import logging
         import os
 
         from zyra.utils.cli_helpers import configure_logging_from_env

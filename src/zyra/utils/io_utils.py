@@ -88,7 +88,12 @@ def read_bytes_any(
 
     p = Path(path_or_url)
     if p.exists():
-        return p.read_bytes()
+        try:
+            return p.read_bytes()
+        except OSError as exc:
+            # Keep the advertised RuntimeError contract for unreadable
+            # paths (permissions, directories) too.
+            raise RuntimeError(f"Failed to read {path_or_url}: {exc}") from exc
 
     if path_or_url.startswith(("http://", "https://")):
         try:
@@ -98,8 +103,16 @@ def read_bytes_any(
             if idx_pattern:
                 lines = http_backend.get_idx_lines(path_or_url)
                 ranges = idx_to_byteranges(lines, idx_pattern)
+                if not ranges:
+                    # Zero matched ranges would download nothing and look
+                    # like a successful empty read.
+                    raise RuntimeError(
+                        f"No .idx lines matched pattern {idx_pattern!r} for {path_or_url}"
+                    )
                 return http_backend.download_byteranges(path_or_url, ranges.keys())
             return http_backend.fetch_bytes(path_or_url)
+        except RuntimeError:
+            raise
         except Exception as exc:
             raise RuntimeError(f"Failed to fetch from URL: {exc}") from exc
 
@@ -111,10 +124,16 @@ def read_bytes_any(
             if idx_pattern:
                 lines = s3_backend.get_idx_lines(path_or_url, unsigned=unsigned)
                 ranges = idx_to_byteranges(lines, idx_pattern)
+                if not ranges:
+                    raise RuntimeError(
+                        f"No .idx lines matched pattern {idx_pattern!r} for {path_or_url}"
+                    )
                 return s3_backend.download_byteranges(
                     path_or_url, None, ranges.keys(), unsigned=unsigned
                 )
             return s3_backend.fetch_bytes(path_or_url, unsigned=unsigned)
+        except RuntimeError:
+            raise
         except Exception as exc:
             raise RuntimeError(f"Failed to fetch from S3: {exc}") from exc
 
