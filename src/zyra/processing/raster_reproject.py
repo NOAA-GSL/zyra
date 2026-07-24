@@ -210,6 +210,14 @@ def reproject_raster(
                 f"dst_nodata {nodata} does not fit the source dtype {dtype.name}; "
                 "use an integer value or a float-typed source"
             )
+        if nodata is not None and np.issubdtype(dtype, np.integer):
+            info = np.iinfo(dtype)
+            if not (info.min <= float(nodata) <= info.max):
+                raise ReprojectError(
+                    f"dst_nodata {nodata} is out of range for dtype {dtype.name} "
+                    f"({info.min}..{info.max})"
+                )
+            nodata = int(nodata)
         fill = nodata if nodata is not None else 0
         # Read one band at a time instead of src.read() up front: the
         # full-source array would double peak memory for large rasters.

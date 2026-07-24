@@ -252,6 +252,8 @@ def test_dst_nodata_nan_for_float_source(tmp_path):
         src, out, dst_bounds=PADDED, width=200, height=200, dst_nodata=float("nan")
     )
     with rasterio.open(out) as ds:
+        # The nodata tag must be written, not just the fill applied.
+        assert ds.nodata is not None and np.isnan(ds.nodata)
         warped = ds.read(1)
     assert np.isnan(warped[0, 0])
     assert np.nanmax(warped) == pytest.approx(7.5)
@@ -274,6 +276,12 @@ def test_dst_nodata_dtype_mismatch_rejected(tmp_path):
         reproject_raster(
             src, str(tmp_path / "o.tif"), dst_nodata=float("nan"), width=64
         )
+    # Out-of-range integers must be rejected, not silently wrapped
+    # (np.full would turn -1 into 255 for uint8).
+    with pytest.raises(ReprojectError, match="out of range"):
+        reproject_raster(src, str(tmp_path / "o.tif"), dst_nodata=-1, width=64)
+    with pytest.raises(ReprojectError, match="out of range"):
+        reproject_raster(src, str(tmp_path / "o.tif"), dst_nodata=999, width=64)
 
 
 def test_bad_dst_bounds_string_rejected():
