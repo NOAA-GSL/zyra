@@ -32,17 +32,20 @@ pytestmark = pytest.mark.skipif(
     reason="Cartopy-heavy tests require cartopy and opt-in (DATAVIZHUB_RUN_CARTOPY_TESTS=1)",
 )
 
-import matplotlib  # noqa: E402
+# Heavy imports stay out of module scope so collection succeeds in
+# environments without matplotlib/cartopy (skipif gates the tests, but
+# module-level imports would still run at collection time).
+if not _skip_cartopy_heavy:  # pragma: no cover - environment-dependent
+    import matplotlib
 
-matplotlib.use("Agg")
-
-from zyra.visualization.heatmap_manager import HeatmapManager  # noqa: E402
-from zyra.visualization.styles import DEFAULT_EXTENT  # noqa: E402
+    matplotlib.use("Agg")
 
 CONUS = [-134.12, -60.89, 21.12, 52.63]
 
 
 def _render(extent):
+    from zyra.visualization.heatmap_manager import HeatmapManager
+
     mgr = HeatmapManager(extent=extent)
     data = np.random.rand(20, 40).astype("float32")
     fig = mgr.render(data)
@@ -61,6 +64,8 @@ def test_regional_extent_crops_viewport():
 
 
 def test_default_extent_stays_global():
+    from zyra.visualization.styles import DEFAULT_EXTENT
+
     west, east, south, north = _render(list(DEFAULT_EXTENT))
     assert east - west == pytest.approx(360.0, abs=1.0)
     assert north - south == pytest.approx(180.0, abs=1.0)
