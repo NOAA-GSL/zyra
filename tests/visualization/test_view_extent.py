@@ -9,10 +9,29 @@ global view for the full-globe default.
 
 from __future__ import annotations
 
+import os
+
 import numpy as np
 import pytest
 
-pytest.importorskip("cartopy")
+# Skip Cartopy-heavy tests unless explicitly enabled (repo convention,
+# matching tests/visualization/test_managers.py).
+_has_cartopy = False
+try:  # pragma: no cover - import guard
+    import cartopy  # noqa: F401
+
+    _has_cartopy = True
+except Exception:
+    pass
+
+_skip_cartopy_heavy = (not _has_cartopy) or os.environ.get(
+    "DATAVIZHUB_RUN_CARTOPY_TESTS"
+) != "1"
+pytestmark = pytest.mark.skipif(
+    _skip_cartopy_heavy,
+    reason="Cartopy-heavy tests require cartopy and opt-in (DATAVIZHUB_RUN_CARTOPY_TESTS=1)",
+)
+
 import matplotlib  # noqa: E402
 
 matplotlib.use("Agg")
