@@ -11,7 +11,20 @@ from zyra.visualization.cli_utils import features_from_ns, resolve_basemap_ref
 
 
 def handle_heatmap(ns) -> int:
-    """Handle ``visualize heatmap`` CLI subcommand."""
+    """Handle ``visualize heatmap`` CLI subcommand.
+
+    Input/validation errors (unsupported suffix, missing --var,
+    GeoTIFF band out of range, missing rasterio) surface as a clean
+    logged error with exit code 2 instead of a traceback.
+    """
+    try:
+        return _handle_heatmap_impl(ns)
+    except ValueError as exc:
+        logging.error(str(exc))
+        return 2
+
+
+def _handle_heatmap_impl(ns) -> int:
     # Lazy import to reduce startup cost when visualization isn't used
     from zyra.visualization.heatmap_manager import HeatmapManager
 
@@ -41,6 +54,7 @@ def handle_heatmap(ns) -> int:
                 input_path=src,
                 var=ns.var,
                 xarray_engine=getattr(ns, "xarray_engine", None),
+                band=getattr(ns, "band", 1),
                 width=ns.width,
                 height=ns.height,
                 dpi=ns.dpi,
@@ -90,6 +104,7 @@ def handle_heatmap(ns) -> int:
         input_path=ns.input,
         var=ns.var,
         xarray_engine=getattr(ns, "xarray_engine", None),
+        band=getattr(ns, "band", 1),
         width=ns.width,
         height=ns.height,
         dpi=ns.dpi,
