@@ -391,3 +391,234 @@ def test_cli_reproject_end_to_end(tmp_path):
     assert proc.returncode == 0, proc.stderr
     with rasterio.open(out) as ds:
         assert (ds.width, ds.height) == (512, 256)
+
+
+# ---- Batch mode (--inputs / --output-dir) ---------------------------------
+# reproject was the only stage in the raster pipeline without a batch
+# form, which made it the binding constraint on orchestrated runs that
+# warp one frame per forecast hour under a fixed stage budget.
+
+
+def _run_cli(argv):
+    import subprocess
+    import sys
+
+    return subprocess.run(
+        [sys.executable, "-m", "zyra.cli", "process", "reproject", *argv],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def test_cli_batch_writes_one_output_per_input(tmp_path):
+    a = tmp_path / "a.tif"
+    b = tmp_path / "b.tif"
+    outdir = tmp_path / "out"
+    _write_polar_stereo_marker(str(a))
+    _write_polar_stereo_marker(str(b))
+
+    proc = _run_cli(
+        [
+            "--inputs",
+            str(a),
+            str(b),
+            "--output-dir",
+            str(outdir),
+            "--width",
+            "128",
+            "--height",
+            "64",
+        ]
+    )
+    assert proc.returncode == 0, proc.stderr
+    for name in ("a.tif", "b.tif"):
+        with rasterio.open(str(outdir / name)) as ds:
+            assert (ds.width, ds.height) == (128, 64)
+            assert ds.crs.to_string() == "EPSG:4326"
+
+    # The same {"outputs": [...]} summary the other batch commands print,
+    # in input order so downstream frame globs stay ordered.
+    import json
+
+    summary = json.loads(proc.stdout.strip().splitlines()[-1])
+    assert [p.rsplit("/", 1)[-1] for p in summary["outputs"]] == ["a.tif", "b.tif"]
+
+
+def test_cli_batch_preserves_source_suffix(tmp_path):
+    # The driver comes from the output extension, so a .png input must
+    # not silently become a GeoTIFF (and vice versa).
+    src = tmp_path / "frame.png"
+    _write_polar_stereo_marker(str(tmp_path / "seed.tif"))
+    proc = _run_cli(
+        [
+            "-i",
+            str(tmp_path / "seed.tif"),
+            "-o",
+            str(src),
+            "--width",
+            "64",
+            "--height",
+            "32",
+        ]
+    )
+    assert proc.returncode == 0, proc.stderr
+
+    outdir = tmp_path / "out"
+    proc = _run_cli(
+        [
+            "--inputs",
+            str(src),
+            "--output-dir",
+            str(outdir),
+            "--s-srs",
+            "EPSG:4326",
+            "--bounds",
+            "-180",
+            "-90",
+            "180",
+            "90",
+            "--width",
+            "64",
+            "--height",
+            "32",
+        ]
+    )
+    assert proc.returncode == 0, proc.stderr
+    with rasterio.open(str(outdir / "frame.png")) as ds:
+        assert ds.driver == "PNG"
+
+
+def test_cli_batch_dst_bounds_auto_crops_each_input(tmp_path):
+    # 'auto' derives bounds per input, so a batch of differently-placed
+    # rasters each crops to its own footprint rather than sharing one.
+    from rasterio.transform import from_bounds as _fb
+
+    def _write(path, bounds):
+        with rasterio.open(
+            path,
+            "w",
+            driver="GTiff",
+            width=32,
+            height=32,
+            count=1,
+            dtype="uint8",
+            crs=CRS.from_epsg(4326),
+            transform=_fb(*bounds, 32, 32),
+        ) as dst:
+            dst.write(np.full((1, 32, 32), 7, dtype="uint8"))
+
+    west = tmp_path / "west.tif"
+    east = tmp_path / "east.tif"
+    _write(str(west), (-120.0, 10.0, -100.0, 30.0))
+    _write(str(east), (100.0, -30.0, 120.0, -10.0))
+
+    outdir = tmp_path / "out"
+    proc = _run_cli(
+        [
+            "--inputs",
+            str(west),
+            str(east),
+            "--output-dir",
+            str(outdir),
+            "--dst-bounds",
+            "auto",
+            "--width",
+            "64",
+        ]
+    )
+    assert proc.returncode == 0, proc.stderr
+    with rasterio.open(str(outdir / "west.tif")) as ds:
+        assert ds.bounds.left == pytest.approx(-120.0, abs=0.5)
+    with rasterio.open(str(outdir / "east.tif")) as ds:
+        assert ds.bounds.left == pytest.approx(100.0, abs=0.5)
+
+
+def test_cli_batch_repeated_inputs_flags_accumulate(tmp_path):
+    # The Domain API runner expands lists as repeated flags; plain
+    # nargs="+" would keep only the last one and silently drop frames.
+    a = tmp_path / "a.tif"
+    b = tmp_path / "b.tif"
+    outdir = tmp_path / "out"
+    _write_polar_stereo_marker(str(a))
+    _write_polar_stereo_marker(str(b))
+    proc = _run_cli(
+        [
+            "--inputs",
+            str(a),
+            "--inputs",
+            str(b),
+            "--output-dir",
+            str(outdir),
+            "--width",
+            "64",
+            "--height",
+            "32",
+        ]
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert (outdir / "a.tif").exists()
+    assert (outdir / "b.tif").exists()
+
+
+def test_cli_batch_argument_errors(tmp_path):
+    src = tmp_path / "a.tif"
+    _write_polar_stereo_marker(str(src))
+
+    proc = _run_cli(["--inputs", str(src)])
+    assert proc.returncode == 2
+    assert "--output-dir is required" in proc.stderr
+
+    proc = _run_cli(
+        ["--inputs", str(src), "-i", str(src), "--output-dir", str(tmp_path / "o")]
+    )
+    assert proc.returncode == 2
+    assert "cannot be combined" in proc.stderr
+
+    # Dropping required=True must still reject "neither form given".
+    proc = _run_cli(["-o", str(tmp_path / "o.tif")])
+    assert proc.returncode == 2
+    assert "--input is required" in proc.stderr
+    assert "Traceback" not in proc.stderr
+
+    proc = _run_cli(["-i", str(src)])
+    assert proc.returncode == 2
+    assert "--output is required" in proc.stderr
+
+
+def test_cli_batch_rejects_colliding_and_in_place_outputs(tmp_path):
+    # Two inputs with the same basename would silently overwrite each
+    # other — losing a frame without a word. So would an --output-dir
+    # that resolves to the inputs' own directory.
+    d1 = tmp_path / "d1"
+    d2 = tmp_path / "d2"
+    d1.mkdir()
+    d2.mkdir()
+    _write_polar_stereo_marker(str(d1 / "f.tif"))
+    _write_polar_stereo_marker(str(d2 / "f.tif"))
+    proc = _run_cli(
+        [
+            "--inputs",
+            str(d1 / "f.tif"),
+            str(d2 / "f.tif"),
+            "--output-dir",
+            str(tmp_path / "out"),
+        ]
+    )
+    assert proc.returncode == 2
+    assert "share a filename" in proc.stderr
+    assert not (tmp_path / "out").exists(), "collision must be caught before any warp"
+
+    proc = _run_cli(["--inputs", str(d1 / "f.tif"), "--output-dir", str(d1)])
+    assert proc.returncode == 2
+    assert "would overwrite input" in proc.stderr
+
+
+def test_api_schema_accepts_batch_args():
+    from zyra.api.schemas.domain_args import ProcessReprojectArgs
+
+    m = ProcessReprojectArgs(inputs=["a.tif", "b.tif"], output_dir="out")
+    assert m.inputs == ["a.tif", "b.tif"]
+    assert m.input is None and m.output is None
+    # Single form still validates.
+    assert ProcessReprojectArgs(input="a.tif", output="b.tif").output == "b.tif"

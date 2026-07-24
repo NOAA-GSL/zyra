@@ -927,6 +927,8 @@
           "--help",
           "--input",
           "--output",
+          "--inputs",
+          "--output-dir",
           "--s-srs",
           "--t-srs",
           "--bounds",
@@ -946,14 +948,22 @@
       "--input": {
         "help": "Source raster path",
         "path_arg": true,
-        "type": "path",
-        "required": true
+        "type": "path"
       },
       "--output": {
         "help": "Output raster path",
         "path_arg": true,
-        "type": "path",
-        "required": true
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "Multiple source rasters for batch reprojection (with --output-dir)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs (each keeps its source filename)",
+        "path_arg": true,
+        "type": "path"
       },
       "--s-srs": "Source CRS (e.g., EPSG:3413). Overrides any embedded CRS; required for plain images without georeferencing (with --bounds)",
       "--t-srs": {
@@ -1007,15 +1017,16 @@
     "positionals": [],
     "domain": "process",
     "args_schema": {
-      "required": [
-        "input",
-        "output"
-      ],
+      "required": [],
       "optional": [
         "bounds",
         "dst_bounds",
         "dst_nodata",
         "height",
+        "input",
+        "inputs",
+        "output",
+        "output_dir",
         "resampling",
         "s_srs",
         "t_srs",
