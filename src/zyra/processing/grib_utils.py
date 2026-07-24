@@ -505,7 +505,6 @@ def convert_to_format(
             georef = _grib_georeference(data_array)
             if georef is not None:
                 import numpy as np  # type: ignore
-                import rasterio  # type: ignore
                 from rasterio.io import MemoryFile
 
                 crs, transform, flip = georef

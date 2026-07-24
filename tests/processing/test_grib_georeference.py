@@ -13,7 +13,7 @@ import numpy as np
 import pytest
 
 xr = pytest.importorskip("xarray")
-rasterio = pytest.importorskip("rasterio")
+pytest.importorskip("rasterio")
 pytest.importorskip("pyproj")
 
 from zyra.processing.grib_utils import (  # noqa: E402
