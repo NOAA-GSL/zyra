@@ -449,6 +449,7 @@ def register_cli(subparsers: Any) -> None:
                 width=args.width,
                 height=args.height,
                 resampling=args.resampling,
+                dst_nodata=getattr(args, "dst_nodata", None),
             )
         except ReprojectError as exc:
             logging.error(str(exc))
@@ -940,6 +941,17 @@ def register_cli(subparsers: Any) -> None:
         default="bilinear",
         choices=["bilinear", "nearest"],
         help="Resampling kernel: bilinear for continuous imagery, nearest for categorical (default: bilinear)",
+    )
+    p_rep.add_argument(
+        "--dst-nodata",
+        dest="dst_nodata",
+        type=float,
+        default=None,
+        help=(
+            "Value for pixels outside the source footprint (accepts 'nan' for "
+            "float sources); default: the source's nodata when present, else 0. "
+            "Tagged in GeoTIFF output"
+        ),
     )
     p_rep.add_argument(
         "--verbose", action="store_true", help="Verbose logging for this command"

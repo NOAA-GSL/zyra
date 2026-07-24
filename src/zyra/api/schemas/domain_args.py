@@ -611,6 +611,7 @@ class ProcessReprojectArgs(BaseModel):
     width: int | None = None
     height: int | None = None
     resampling: str | None = None
+    dst_nodata: float | None = None
 
     @field_validator("bounds")
     @classmethod
