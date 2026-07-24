@@ -100,6 +100,7 @@ class HeatmapManager(Renderer):
         vmin = kwargs.get("vmin")
         vmax = kwargs.get("vmax")
         cmap = kwargs.get("cmap", self.cmap)
+        norm = kwargs.get("norm")
         flipud = bool(kwargs.get("flipud", False))
         features = kwargs.get("features", MAP_STYLES.get("features"))
         # Basemap type and tiles
@@ -171,15 +172,17 @@ class HeatmapManager(Renderer):
         if flipud:
             arr = np.flipud(arr)
 
+        # matplotlib rejects norm combined with vmin/vmax; a classified
+        # palette's BoundaryNorm carries the bounds itself.
+        scale_kw = {"norm": norm} if norm is not None else {"vmin": vmin, "vmax": vmax}
         im = ax.imshow(
             arr,
             transform=(data_transform or ccrs.PlateCarree()),
             extent=self.extent,
             cmap=cmap,
-            vmin=vmin,
-            vmax=vmax,
             origin="upper" if flipud else "lower",
             interpolation="nearest",
+            **scale_kw,
         )
         if add_colorbar:
             cbar = fig.colorbar(

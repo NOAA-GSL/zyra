@@ -81,6 +81,13 @@ class VisualizeHeatmapArgs(BaseModel):
     height: int | None = None
     dpi: int | None = None
     cmap: str | None = None
+    cmap_file: str | None = Field(
+        default=None, description="Palette JSON file (classified or continuous)"
+    )
+    legend_file: str | None = Field(
+        default=None, description="Write a standalone colorbar legend image"
+    )
+    legend_orientation: str | None = None
     colorbar: bool | None = None
     label: str | None = None
     units: str | None = None
@@ -98,6 +105,20 @@ class VisualizeHeatmapArgs(BaseModel):
         if v is not None and len(v) != 4:
             raise ValueError("extent must have 4 numbers: [west,east,south,north]")
         return v
+
+    @model_validator(mode="after")
+    def _cmap_exclusive(self):  # type: ignore[override]
+        return _validate_cmap_legend_fields(self)
+
+
+def _validate_cmap_legend_fields(model):
+    """Shared CLI-parity checks for cmap_file/legend fields."""
+    if getattr(model, "cmap", None) and getattr(model, "cmap_file", None):
+        raise ValueError("cmap and cmap_file are mutually exclusive")
+    orientation = getattr(model, "legend_orientation", None)
+    if orientation is not None and orientation not in ("horizontal", "vertical"):
+        raise ValueError("legend_orientation must be 'horizontal' or 'vertical'")
+    return model
 
 
 class DecimateLocalArgs(BaseModel):
@@ -353,8 +374,20 @@ class VisualizeContourArgs(BaseModel):
     band: int | None = Field(
         default=None, description="GeoTIFF band to read (1-based; default 1)"
     )
+    cmap_file: str | None = Field(
+        default=None, description="Palette JSON file (classified or continuous)"
+    )
+    legend_file: str | None = Field(
+        default=None, description="Write a standalone colorbar legend image"
+    )
+    legend_orientation: str | None = None
     levels: int | str | None = None
     filled: bool | None = None
+    cmap: str | None = None
+
+    @model_validator(mode="after")
+    def _cmap_exclusive(self):  # type: ignore[override]
+        return _validate_cmap_legend_fields(self)
 
 
 class DecimatePostArgs(BaseModel):

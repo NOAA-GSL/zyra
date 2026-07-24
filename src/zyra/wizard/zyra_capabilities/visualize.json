@@ -369,6 +369,9 @@
           "--height",
           "--dpi",
           "--cmap",
+          "--cmap-file",
+          "--legend-file",
+          "--legend-orientation",
           "--filled",
           "--levels",
           "--colorbar",
@@ -446,16 +449,23 @@
         "type": "str",
         "default": "YlOrBr"
       },
+      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--legend-file": "Write a standalone colorbar legend image (transparent background)",
+      "--legend-orientation": {
+        "help": "Orientation for --legend-file",
+        "choices": [
+          "horizontal",
+          "vertical"
+        ],
+        "type": "str",
+        "default": "horizontal"
+      },
       "--filled": {
         "help": "Use filled contours",
         "type": "bool",
         "default": false
       },
-      "--levels": {
-        "help": "Count or comma-separated levels",
-        "type": "str",
-        "default": 10
-      },
+      "--levels": "Count or comma-separated levels (default: 10; with a classified --cmap-file the palette bounds are used unless set)",
       "--colorbar": {
         "help": "",
         "type": "bool",
@@ -564,6 +574,9 @@
           "--height",
           "--dpi",
           "--cmap",
+          "--cmap-file",
+          "--legend-file",
+          "--legend-orientation",
           "--vmin",
           "--vmax",
           "--colorbar",
@@ -640,6 +653,17 @@
         "help": "",
         "type": "str",
         "default": "YlOrBr"
+      },
+      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--legend-file": "Write a standalone colorbar legend image (transparent background)",
+      "--legend-orientation": {
+        "help": "Orientation for --legend-file",
+        "choices": [
+          "horizontal",
+          "vertical"
+        ],
+        "type": "str",
+        "default": "horizontal"
       },
       "--vmin": {
         "help": "Fixed minimum data value for color scaling (use across frame sequences to avoid flicker)",
@@ -1710,6 +1734,9 @@
           "--height",
           "--dpi",
           "--cmap",
+          "--cmap-file",
+          "--legend-file",
+          "--legend-orientation",
           "--filled",
           "--levels",
           "--colorbar",
@@ -1787,16 +1814,23 @@
         "type": "str",
         "default": "YlOrBr"
       },
+      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--legend-file": "Write a standalone colorbar legend image (transparent background)",
+      "--legend-orientation": {
+        "help": "Orientation for --legend-file",
+        "choices": [
+          "horizontal",
+          "vertical"
+        ],
+        "type": "str",
+        "default": "horizontal"
+      },
       "--filled": {
         "help": "Use filled contours",
         "type": "bool",
         "default": false
       },
-      "--levels": {
-        "help": "Count or comma-separated levels",
-        "type": "str",
-        "default": 10
-      },
+      "--levels": "Count or comma-separated levels (default: 10; with a classified --cmap-file the palette bounds are used unless set)",
       "--colorbar": {
         "help": "",
         "type": "bool",
@@ -1878,9 +1912,13 @@
       ],
       "optional": [
         "band",
+        "cmap",
+        "cmap_file",
         "filled",
         "input",
         "inputs",
+        "legend_file",
+        "legend_orientation",
         "levels",
         "output_dir"
       ]
@@ -1917,6 +1955,9 @@
           "--height",
           "--dpi",
           "--cmap",
+          "--cmap-file",
+          "--legend-file",
+          "--legend-orientation",
           "--vmin",
           "--vmax",
           "--colorbar",
@@ -1993,6 +2034,17 @@
         "help": "",
         "type": "str",
         "default": "YlOrBr"
+      },
+      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--legend-file": "Write a standalone colorbar legend image (transparent background)",
+      "--legend-orientation": {
+        "help": "Orientation for --legend-file",
+        "choices": [
+          "horizontal",
+          "vertical"
+        ],
+        "type": "str",
+        "default": "horizontal"
       },
       "--vmin": {
         "help": "Fixed minimum data value for color scaling (use across frame sequences to avoid flicker)",
@@ -2083,6 +2135,7 @@
         "band",
         "basemap",
         "cmap",
+        "cmap_file",
         "colorbar",
         "crs",
         "dpi",
@@ -2091,6 +2144,8 @@
         "input",
         "inputs",
         "label",
+        "legend_file",
+        "legend_orientation",
         "map_type",
         "output",
         "output_dir",
