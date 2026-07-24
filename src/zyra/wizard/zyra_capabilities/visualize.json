@@ -465,11 +465,7 @@
         "type": "bool",
         "default": false
       },
-      "--levels": {
-        "help": "Count or comma-separated levels",
-        "type": "str",
-        "default": 10
-      },
+      "--levels": "Count or comma-separated levels (default: 10; with a classified --cmap-file the palette bounds are used unless set)",
       "--colorbar": {
         "help": "",
         "type": "bool",
@@ -1834,11 +1830,7 @@
         "type": "bool",
         "default": false
       },
-      "--levels": {
-        "help": "Count or comma-separated levels",
-        "type": "str",
-        "default": 10
-      },
+      "--levels": "Count or comma-separated levels (default: 10; with a classified --cmap-file the palette bounds are used unless set)",
       "--colorbar": {
         "help": "",
         "type": "bool",
@@ -1920,6 +1912,7 @@
       ],
       "optional": [
         "band",
+        "cmap",
         "cmap_file",
         "filled",
         "input",

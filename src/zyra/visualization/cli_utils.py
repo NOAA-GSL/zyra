@@ -142,8 +142,11 @@ def load_palette_spec(path: str) -> dict:
     ptype = spec.get("type")
     if ptype == "classified":
         entries = spec.get("entries")
-        if not isinstance(entries, list) or not entries:
-            raise ValueError("Classified palette requires a non-empty 'entries' list")
+        if not isinstance(entries, list) or len(entries) < 2:
+            raise ValueError(
+                "Classified palette requires at least 2 entries "
+                "(N entries define N-1 color bins)"
+            )
         bounds: list[float] = []
         for i, entry in enumerate(entries):
             if not isinstance(entry, dict) or "Color" not in entry:
@@ -187,6 +190,11 @@ def load_palette_spec(path: str) -> dict:
             not isinstance(alpha, (int, float)) or not 0.0 <= float(alpha) <= 1.0
         ):
             raise ValueError("Palette 'overall_alpha' must be between 0 and 1")
+        if spec.get("transparent_range", 1) + spec.get("blend_range", 8) > 256:
+            raise ValueError(
+                "Palette 'transparent_range' + 'blend_range' must not exceed "
+                "256 (the colormap lookup table size)"
+            )
         return spec
 
     raise ValueError("Palette 'type' must be 'classified' or 'continuous'")
@@ -268,9 +276,14 @@ def write_legend(
             "--legend-file requires --vmin and --vmax (or a classified "
             "--cmap-file) so the legend matches the rendered scale"
         )
-    import matplotlib
+    import sys
 
-    matplotlib.use("Agg")
+    if "matplotlib.pyplot" not in sys.modules:
+        # Backend selection must happen before pyplot is imported; when a
+        # render already imported it (CLI path), leave the backend alone.
+        import matplotlib
+
+        matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib import cm as mpl_cm
     from matplotlib import colors as mpl_colors

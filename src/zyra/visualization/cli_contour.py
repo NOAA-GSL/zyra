@@ -49,9 +49,7 @@ def _handle_contour_impl(ns) -> int:
         import json
 
         outputs = []
-        levels_val = parse_levels_arg(getattr(ns, "levels", 10))
-        if norm is not None and levels_val == 10:
-            levels_val = None
+        levels_val = _resolve_levels(ns, norm)
         for src in ns.inputs:
             bmap, guard = resolve_basemap_ref(getattr(ns, "basemap", None))
             mgr = ContourManager(
@@ -112,9 +110,7 @@ def _handle_contour_impl(ns) -> int:
         basemap=bmap, extent=ns.extent, filled=getattr(ns, "filled", False)
     )
     features = features_from_ns(ns)
-    levels_val = parse_levels_arg(getattr(ns, "levels", 10))
-    if norm is not None and levels_val == 10:
-        levels_val = None
+    levels_val = _resolve_levels(ns, norm)
     mgr.render(
         input_path=ns.input,
         var=ns.var,
@@ -167,3 +163,17 @@ def _maybe_write_legend(ns, cmap, norm) -> None:
         orientation=getattr(ns, "legend_orientation", "horizontal"),
     )
     logging.info(out)
+
+
+def _resolve_levels(ns, norm):
+    """Resolve the contour levels argument.
+
+    --levels defaults to None so "omitted" and "--levels 10" are
+    distinguishable: omitted + classified palette -> palette bounds
+    (manager behavior on None); omitted otherwise -> the historical
+    default of 10; explicit values always win.
+    """
+    raw = getattr(ns, "levels", None)
+    if raw is not None:
+        return parse_levels_arg(raw)
+    return None if norm is not None else 10

@@ -55,19 +55,47 @@ def test_load_continuous_ok(tmp_path):
     "mutation,match",
     [
         ({"type": "chromatic"}, "must be 'classified' or 'continuous'"),
-        ({"type": "classified", "entries": []}, "non-empty 'entries'"),
+        ({"type": "classified", "entries": []}, "at least 2 entries"),
         (
-            {"type": "classified", "entries": [{"Upper Bound": 5}]},
+            {"type": "classified", "entries": [{"Color": [1, 1, 1], "Upper Bound": 5}]},
+            "at least 2 entries",
+        ),
+        (
+            {
+                "type": "continuous",
+                "base": "viridis",
+                "transparent_range": 200,
+                "blend_range": 100,
+            },
+            "must not exceed",
+        ),
+        (
+            {
+                "type": "classified",
+                "entries": [
+                    {"Upper Bound": 5},
+                    {"Color": [1, 1, 1], "Upper Bound": 9},
+                ],
+            },
             "'Color' key",
         ),
         (
-            {"type": "classified", "entries": [{"Color": [1, 2], "Upper Bound": 5}]},
+            {
+                "type": "classified",
+                "entries": [
+                    {"Color": [1, 2], "Upper Bound": 5},
+                    {"Color": [1, 1, 1], "Upper Bound": 9},
+                ],
+            },
             r"\[R,G,B\]",
         ),
         (
             {
                 "type": "classified",
-                "entries": [{"Color": [0, 0, 300], "Upper Bound": 5}],
+                "entries": [
+                    {"Color": [0, 0, 300], "Upper Bound": 5},
+                    {"Color": [1, 1, 1], "Upper Bound": 9},
+                ],
             },
             "0-255",
         ),
@@ -134,6 +162,36 @@ def test_write_legend_requires_scale(tmp_path):
         write_legend(str(tmp_path / "l.png"), cmap="turbo")
     with pytest.raises(ValueError, match="requires --vmin and --vmax"):
         write_legend(str(tmp_path / "l.png"), cmap="turbo", vmin=0)
+
+
+def test_resolve_levels_distinguishes_default_from_explicit():
+    from types import SimpleNamespace
+
+    from zyra.visualization.cli_contour import _resolve_levels
+
+    sentinel_norm = object()
+    # Omitted: palette bounds when classified, historical default otherwise.
+    assert _resolve_levels(SimpleNamespace(levels=None), sentinel_norm) is None
+    assert _resolve_levels(SimpleNamespace(levels=None), None) == 10
+    # Explicit values always win, including an explicit 10.
+    assert _resolve_levels(SimpleNamespace(levels="10"), sentinel_norm) == 10
+    assert _resolve_levels(SimpleNamespace(levels="12"), None) == 12
+
+
+def test_api_schema_cmap_exclusive_and_orientation():
+    from zyra.api.schemas.domain_args import (
+        VisualizeContourArgs,
+        VisualizeHeatmapArgs,
+    )
+
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        VisualizeHeatmapArgs(cmap="turbo", cmap_file="p.json")
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        VisualizeContourArgs(output="o.png", cmap="turbo", cmap_file="p.json")
+    with pytest.raises(ValueError, match="horizontal.*vertical"):
+        VisualizeHeatmapArgs(legend_orientation="diagonal")
+    # Valid combinations survive.
+    VisualizeHeatmapArgs(cmap_file="p.json", legend_orientation="vertical")
 
 
 def test_cli_parser_accepts_palette_and_legend_flags():
@@ -296,7 +354,7 @@ def test_cli_malformed_palette_exits_2(tmp_path):
         check=False,
     )
     assert proc.returncode == 2
-    assert "non-empty 'entries'" in proc.stderr
+    assert "at least 2 entries" in proc.stderr
     assert "Traceback" not in proc.stderr
 
 

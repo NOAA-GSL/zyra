@@ -209,7 +209,14 @@ def register_cli(subparsers: Any) -> None:
         help="Orientation for --legend-file",
     )
     p_ct.add_argument("--filled", action="store_true", help="Use filled contours")
-    p_ct.add_argument("--levels", default=10, help="Count or comma-separated levels")
+    p_ct.add_argument(
+        "--levels",
+        default=None,
+        help=(
+            "Count or comma-separated levels (default: 10; with a classified "
+            "--cmap-file the palette bounds are used unless set)"
+        ),
+    )
     p_ct.add_argument("--colorbar", action="store_true")
     p_ct.add_argument("--label")
     p_ct.add_argument("--units")
