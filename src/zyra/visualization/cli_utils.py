@@ -313,8 +313,9 @@ def resolve_extent(ns) -> list[float]:
     (``styles.DEFAULT_EXTENT``) when unset.
 
     Exits with code 2 (message on stderr via logging) on a wrong-length
-    value: the Domain API executor coerces ``SystemExit.code`` with
-    ``int()``, so the code must be numeric, never a message string.
+    value. The numeric exit code keeps the failure a clean exit-status
+    signal rather than relying on the Domain API executor's message-string
+    handling.
     """
     extent = getattr(ns, "extent", None)
     if extent is None:

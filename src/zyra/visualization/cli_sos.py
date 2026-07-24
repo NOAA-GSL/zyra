@@ -22,7 +22,11 @@ from pathlib import Path
 from typing import Any
 
 from zyra.utils.cli_helpers import configure_logging_from_env
-from zyra.visualization.cli_utils import load_data_array, resolve_basemap_ref
+from zyra.visualization.cli_utils import (
+    load_data_array,
+    resolve_basemap_ref,
+    resolve_extent,
+)
 
 
 def _render_one(
@@ -82,6 +86,11 @@ def handle_sos(ns) -> int:
     if getattr(ns, "trace", False):
         os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
+
+    # Normalize/validate --extent so both the CLI spelling (--extent w e s n)
+    # and the Domain API's repeated-flag expansion resolve consistently, and
+    # the full-globe default is applied when unset.
+    ns.extent = resolve_extent(ns)
 
     # Batch mode: --inputs with --output-dir
     if getattr(ns, "inputs", None):
@@ -160,11 +169,17 @@ def register_sos_cli(subparsers: Any) -> None:
         "--basemap",
         help="Optional basemap (path, bare image name, or pkg:ref) drawn under the data",
     )
+    # extent flags use action="extend" with default=None: the Domain API
+    # runner expands list args as repeated flags (--extent w --extent e ...)
+    # which nargs=4 cannot parse, and argparse's extend action appends to
+    # a list default. handle_sos applies the full-globe default and
+    # validates length via cli_utils.resolve_extent.
     p_sos.add_argument(
         "--extent",
-        nargs=4,
+        nargs="+",
         type=float,
-        default=[-180, 180, -90, 90],
+        action="extend",
+        default=None,
         help="west east south north (default: global -180 180 -90 90)",
     )
     p_sos.add_argument("--width", type=int, default=4096, help="Output width (px)")

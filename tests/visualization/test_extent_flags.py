@@ -16,7 +16,7 @@ import pytest
 from zyra.visualization.cli_register import register_cli
 from zyra.visualization.cli_utils import DEFAULT_EXTENT, resolve_extent
 
-EXTENT_COMMANDS = ["heatmap", "contour", "vector", "animate", "interactive"]
+EXTENT_COMMANDS = ["heatmap", "contour", "vector", "animate", "interactive", "sos"]
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -33,6 +33,7 @@ def _required_stub(cmd: str) -> list[str]:
         "vector": ["--input", "x.nc"],
         "animate": [],
         "interactive": ["--input", "x.nc", "--output", "o.html"],
+        "sos": ["--input", "x.nc", "--output", "o.png"],
     }
     return stubs[cmd]
 
@@ -67,8 +68,8 @@ def test_resolve_extent_defaults_and_validates(caplog):
     assert resolve_extent(SimpleNamespace(extent=None)) == list(DEFAULT_EXTENT)
     assert resolve_extent(SimpleNamespace()) == list(DEFAULT_EXTENT)
     assert resolve_extent(SimpleNamespace(extent=[1, 2, 3, 4])) == [1.0, 2.0, 3.0, 4.0]
-    # The exit code must be numeric — the Domain API executor coerces
-    # SystemExit.code with int(), so a message string would crash it.
+    # The exit code must be numeric so the failure stays a clean exit-status
+    # signal rather than a message string routed through the executor.
     with caplog.at_level("ERROR"), pytest.raises(SystemExit) as excinfo:
         resolve_extent(SimpleNamespace(extent=[1.0, 2.0, 3.0]))
     assert excinfo.value.code == 2
