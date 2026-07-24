@@ -25,6 +25,7 @@ from zyra.api.models.domain_api import (
     AcquireFtpRun,
     AcquireHttpRun,
     AcquireS3Run,
+    AcquireThreddsRun,
     DomainRunResponse,
 )
 from zyra.api.routers.cli import get_cli_matrix, run_cli_endpoint
@@ -37,7 +38,13 @@ router = APIRouter(tags=["acquire"], prefix="")
 
 
 AcquireRequest = Annotated[
-    Union[AcquireHttpRun, AcquireS3Run, AcquireFtpRun, AcquireApiRun],
+    Union[
+        AcquireHttpRun,
+        AcquireS3Run,
+        AcquireFtpRun,
+        AcquireApiRun,
+        AcquireThreddsRun,
+    ],
     Body(discriminator="tool"),
 ]
 

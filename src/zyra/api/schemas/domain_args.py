@@ -189,6 +189,33 @@ class AcquireFtpArgs(BaseModel):
         return self
 
 
+class AcquireThreddsArgs(BaseModel):
+    catalog_url: str
+    output: str | None = None
+    # Listing/sync/batch
+    list_mode: bool | None = Field(default=None, alias="list")
+    sync_dir: str | None = None
+    output_dir: str | None = None
+    # Enumeration
+    recursive: bool | None = None
+    max_depth: int | None = None
+    pattern: str | None = None
+    since: str | None = None
+    since_period: str | None = None
+    until: str | None = None
+    date_format: str | None = None
+    header: list[str] | None = None
+    auth: str | None = None
+    credential: list[str] | None = None
+    credential_file: str | None = None
+    # Sync mode options (subset meaningful over HTTP)
+    overwrite_existing: bool | None = None
+    recheck_existing: bool | None = None
+    min_remote_size: str | int | None = None
+    prefer_remote: bool | None = None
+    skip_if_local_done: bool | None = None
+
+
 # New: acquire api (generic REST)
 class AcquireApiArgs(BaseModel):
     url: str | None = None
@@ -306,6 +333,8 @@ def normalize_and_validate(stage: str, tool: str, args: dict) -> dict:
         out = _normalize_credentials(out)
     elif stage == "acquire" and tool == "ftp":
         out = _normalize_credentials(out)
+    elif stage == "acquire" and tool == "thredds":
+        out = _normalize_headers(out)
     elif stage == "decimate" and tool == "post":
         out = _normalize_headers(out)
         out = _normalize_credentials(out)
@@ -745,11 +774,15 @@ def resolve_model(stage: str, tool: str) -> type[BaseModel] | None:
         return AcquireHttpArgs
     if key == ("acquire", "api"):
         return AcquireApiArgs
+    if key == ("acquire", "thredds"):
+        return AcquireThreddsArgs
     # Aliases for acquire
     if key == ("import", "http"):
         return AcquireHttpArgs
     if key == ("import", "api"):
         return AcquireApiArgs
+    if key == ("import", "thredds"):
+        return AcquireThreddsArgs
     if key == ("process", "convert-format"):
         return ProcessConvertFormatArgs
     if key == ("process", "decode-grib2"):

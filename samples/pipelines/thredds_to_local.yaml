@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: Apache-2.0
+name: THREDDS → Transform → Video → Local
+stages:
+  # 1) Acquire frames by syncing a THREDDS catalog to local.
+  #    Datasets are enumerated from catalog.xml and downloaded via the
+  #    HTTPServer (fileServer) service. Self-updating: existing non-empty
+  #    files are skipped on re-runs.
+  - stage: acquire
+    command: thredds
+    args:
+      catalog_url: https://gsl.noaa.gov/thredds/catalog/fv3-chem-0p25deg-grib2/catalog.xml
+      sync_dir: ./frames
+      pattern: "\\.grib2$"
+      since_period: "P1D"
+      # Follow nested catalogRef entries (optional)
+      recursive: false
+      max_depth: 3
+
+  # 2) Compute frames metadata (JSON)
+  - stage: transform
+    command: metadata
+    args:
+      frames_dir: ./frames
+      datetime_format: "%Y%m%d"
+      period_seconds: 3600
+      output: frames_meta.json
+
+  # 3) Compose frames into a video
+  - stage: visualize
+    command: compose-video
+    args:
+      frames: ./frames
+      output: video.mp4
+      fps: 24
+
+  # 4) Copy outputs to local filesystem (no network required)
+  - stage: export
+    command: local
+    args:
+      input: video.mp4
+      path: /tmp/video.mp4
