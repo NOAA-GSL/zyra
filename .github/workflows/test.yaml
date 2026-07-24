@@ -53,9 +53,9 @@ jobs:
         with:
           path: |
             ~/.cache/pypoetry
-          key: poetry-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          key: poetry-v2-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
           restore-keys: |
-            poetry-${{ runner.os }}-
+            poetry-v2-${{ runner.os }}-
 
       - name: Show workspace (pre-install debug)
         run: |
@@ -75,7 +75,7 @@ jobs:
             exit 1
           fi
           echo "Using project directory: $DIR"
-          poetry -C "$DIR" install --no-root --with dev -E guardrails
+          poetry -C "$DIR" install --no-root --with dev
 
       - name: Ruff format check
         run: poetry run ruff format --check .
@@ -119,9 +119,9 @@ jobs:
         with:
           path: |
             ~/.cache/pypoetry
-          key: poetry-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          key: poetry-v2-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
           restore-keys: |
-            poetry-${{ runner.os }}-
+            poetry-v2-${{ runner.os }}-
 
       - name: Show workspace (pre-install debug)
         run: |
@@ -141,7 +141,7 @@ jobs:
             exit 1
           fi
           echo "Using project directory: $DIR"
-          poetry -C "$DIR" install --no-root --with dev -E api -E guardrails
+          poetry -C "$DIR" install --no-root --with dev -E api
 
       - name: Show workspace root (post-install debug)
         run: |
@@ -157,7 +157,11 @@ jobs:
           # despite -s and verbose logging. The workflow's parallel executor
           # is covered by other tests. We'll re-enable once we've isolated the
           # environment-specific behavior in a dedicated CI job.
-          poetry run pytest --cov=src --cov-branch --cov-report=xml --cov-report=term-missing -s \
+          # Guardrails-marked tests run in the separate test-guardrails job so
+          # upstream churn in the optional guardrails-ai extra cannot red the
+          # blocking coverage gate.
+          poetry run pytest -m "not guardrails" \
+            --cov=src --cov-branch --cov-report=xml --cov-report=term-missing -s \
             --timeout=5 --timeout-method=thread --durations=25 \
             --ignore tests/workflow/test_parallel_dag.py
 
@@ -165,4 +169,74 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
+          path: coverage.xml
+
+  test-guardrails:
+    name: Test (guardrails extra, non-blocking)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
+    env:
+      PYTHONPATH: src
+      ZYRA_USE_REDIS: 0
+      AUTH_FAIL_DELAY_MS: 0
+      DATAVIZHUB_DEFAULT_STDIN: tests/testdata/demo.nc
+      ZYRA_VERBOSITY: debug
+      ZYRA_WORKFLOW_PARALLEL_MODE: thread
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Cache Poetry cache and virtualenv
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+          key: poetry-v2-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            poetry-v2-${{ runner.os }}-
+
+      - name: Install dependencies with Poetry (dev + API + guardrails extras)
+        # Step-level continue-on-error so an upstream PyPI outage (e.g. the
+        # current guardrails-ai quarantine) surfaces as a yellow warning and
+        # the job's overall conclusion stays green/non-blocking.
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if [ -f pyproject.toml ]; then
+            DIR="."
+          else
+            DIR=$(dirname "$(find "$GITHUB_WORKSPACE" -name pyproject.toml -print -quit || true)")
+          fi
+          if [ -z "$DIR" ] || [ ! -f "$DIR/pyproject.toml" ]; then
+            echo "No pyproject.toml found in repository" >&2
+            exit 1
+          fi
+          echo "Using project directory: $DIR"
+          poetry -C "$DIR" install --no-root --with dev -E api -E guardrails
+
+      - name: Run guardrails-marked tests with coverage
+        continue-on-error: true
+        run: |
+          poetry run coverage erase
+          poetry run pytest -m guardrails \
+            --cov=src --cov-branch --cov-report=xml --cov-report=term-missing -s \
+            --timeout=5 --timeout-method=thread --durations=25
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-guardrails
           path: coverage.xml

@@ -235,7 +235,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Trivy scan ${{ matrix.image }}
-        uses: aquasecurity/trivy-action@0.20.0
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
           image-ref: ghcr.io/${{ steps.owner.outputs.owner_lower }}/${{ matrix.image }}:${{ steps.vars.outputs.tag }}
           format: table
