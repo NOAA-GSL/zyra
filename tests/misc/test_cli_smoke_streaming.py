@@ -128,6 +128,8 @@ def test_grib2_to_netcdf_pipeline_header_check():
         assert (
             b"conversion failed" in res.stderr.lower() or b"error" in res.stderr.lower()
         )
+        # No partial/placeholder bytes may accompany a failure.
+        assert res.stdout == b""
 
 
 @pytest.mark.cli
@@ -172,6 +174,8 @@ def test_grib2_to_geotiff_pipeline_header_check():
     if res.returncode != 0:
         err = res.stderr.decode(errors="ignore").lower()
         assert "geotiff" in err or "conversion" in err or "error" in err
+        # No partial/placeholder bytes may accompany a failure.
+        assert res.stdout == b""
         return
     # GeoTIFF header is either little-endian "II" or big-endian "MM"
     assert res.stdout.startswith(b"II") or res.stdout.startswith(b"MM")

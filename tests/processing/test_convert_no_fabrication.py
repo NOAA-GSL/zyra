@@ -8,6 +8,9 @@ exit 0. Failures must raise so callers see the real error.
 
 from __future__ import annotations
 
+import io
+import re
+
 import pytest
 
 xr = pytest.importorskip("xarray")
@@ -43,17 +46,17 @@ def test_netcdf_bytes_roundtrip_real_dataset():
     ds = xr.Dataset({"t": (("y", "x"), np.arange(6, dtype="float32").reshape(2, 3))})
     out = _netcdf_bytes(ds)
     assert out[:3] == b"CDF" or out[:4] == b"\x89HDF"
-    back = xr.open_dataset(__import__("io").BytesIO(out))
+    back = xr.open_dataset(io.BytesIO(out))
     assert "t" in back and float(back["t"].values[1, 2]) == 5.0
 
 
 def test_no_dummy_variable_can_escape():
-    # Regression guard: the string 'dummy' appears nowhere as a dataset
-    # variable in any conversion output path (source-level assertion).
+    # Regression guard: no fabricated 'dummy' dataset construction may
+    # reappear in any conversion path. Regex-based so it survives
+    # formatting changes.
     import inspect
 
     import zyra.processing.grib_utils as gu
 
     src = inspect.getsource(gu)
-    assert 'xr.Dataset(\n            {"dummy"' not in src
-    assert '{"dummy": ("dummy"' not in src
+    assert not re.search(r"Dataset\(\s*\{\s*[\"']dummy[\"']", src)

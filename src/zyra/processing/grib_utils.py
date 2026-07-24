@@ -430,17 +430,21 @@ def convert_to_format(
                     try:
                         import xarray as xr  # type: ignore
 
-                        ds_raw = xr.open_dataset(
+                        # indexpath="" skips the .idx sidecar for the
+                        # one-shot temp file; the context manager closes
+                        # the retry dataset after serialization.
+                        with xr.open_dataset(
                             decoded.path,
                             engine="cfgrib",
+                            backend_kwargs={"indexpath": ""},
                             decode_timedelta=False,
-                        )
-                        obj_raw: Any = ds_raw
-                        if var:
-                            obj_raw = extract_variable(
-                                DecodedGRIB(backend="cfgrib", dataset=ds_raw), var
-                            )
-                        return _netcdf_bytes(obj_raw)
+                        ) as ds_raw:
+                            obj_raw: Any = ds_raw
+                            if var:
+                                obj_raw = extract_variable(
+                                    DecodedGRIB(backend="cfgrib", dataset=ds_raw), var
+                                )
+                            return _netcdf_bytes(obj_raw)
                     except Exception:
                         pass
                 if _has_wgrib2() and decoded.path:
