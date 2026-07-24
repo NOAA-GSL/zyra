@@ -773,6 +773,11 @@ def register_cli(subparsers: Any) -> None:
         "--backend", default="cfgrib", choices=["cfgrib", "pygrib", "wgrib2"]
     )
     p_ext.add_argument(
+        "--unsigned",
+        action="store_true",
+        help="Use unsigned S3 access for public buckets",
+    )
+    p_ext.add_argument(
         "--stdout",
         action="store_true",
         help="Write selected variable as bytes to stdout",

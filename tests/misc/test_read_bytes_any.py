@@ -124,3 +124,18 @@ def test_cli_decode_grib2_url_wiring(monkeypatch, capsysbinary):
         "pattern": "REFC",
         "unsigned": True,
     }
+
+
+def test_cli_extract_variable_accepts_unsigned():
+    # The handler threads --unsigned to read_bytes_any; the parser must
+    # actually accept the flag (parity with decode-grib2/convert-format).
+    import argparse
+
+    from zyra.processing import register_cli
+
+    parser = argparse.ArgumentParser()
+    register_cli(parser.add_subparsers(dest="cmd"))
+    ns = parser.parse_args(
+        ["extract-variable", "s3://noaa-hrrr-bdp-pds/f.grib2", "REFC", "--unsigned"]
+    )
+    assert ns.unsigned is True
