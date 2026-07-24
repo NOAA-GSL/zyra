@@ -16,6 +16,7 @@ from .styles import (
     FIGURE_DPI,
     MAP_STYLES,
     apply_matplotlib_style,
+    apply_view_extent,
     timestamp_anchor,
 )
 
@@ -197,7 +198,7 @@ class HeatmapManager(Renderer):
                     facecolor="#00000066", edgecolor="none", boxstyle="round,pad=0.2"
                 ),
             )
-        ax.set_global()
+        apply_view_extent(ax, self.extent)
         ax.axis("off")
         fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
         self._fig = fig
