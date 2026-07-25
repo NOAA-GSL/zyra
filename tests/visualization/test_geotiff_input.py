@@ -271,7 +271,7 @@ def test_heatmap_batch_does_not_require_single_input():
     assert ns.input is None
 
 
-def test_heatmap_without_any_input_exits_2(tmp_path):
+def test_heatmap_without_any_input_exits_2():
     # Dropping required=True must still reject "neither form given",
     # with a clear message rather than a traceback.
     import subprocess
