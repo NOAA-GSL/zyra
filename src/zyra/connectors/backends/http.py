@@ -24,11 +24,17 @@ from zyra.connectors.backends._retry import (
 
 
 def _retry_opts() -> dict[str, Any]:
-    """Retry knobs, overridable per deployment without a code change."""
+    """Retry knobs, overridable per deployment without a code change.
+
+    ``max_attempts`` is floored at 1, as ``default_max_workers`` floors
+    concurrency: ``ZYRA_HTTP_MAX_ATTEMPTS=0`` is a reasonable way to
+    write "do not retry", and it should mean one attempt rather than
+    raise out of the fetch path for every request.
+    """
     from zyra.utils.env import env_int
 
     return {
-        "max_attempts": env_int("HTTP_MAX_ATTEMPTS", DEFAULT_MAX_ATTEMPTS),
+        "max_attempts": max(1, env_int("HTTP_MAX_ATTEMPTS", DEFAULT_MAX_ATTEMPTS)),
         "base_delay": DEFAULT_BASE_DELAY,
         "max_delay": DEFAULT_MAX_DELAY,
     }

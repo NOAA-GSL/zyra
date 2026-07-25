@@ -364,3 +364,46 @@ def test_refused_survives_a_self_referential_cause_chain():
     a.__cause__ = b
     b.__cause__ = a
     assert is_retryable(a) is True
+
+
+@pytest.mark.parametrize(("env", "expected"), [("0", 1), ("-3", 1), ("", 5), ("2", 2)])
+def test_max_attempts_is_floored_at_one(monkeypatch, env, expected):
+    """`ZYRA_HTTP_MAX_ATTEMPTS=0` must mean one attempt, not a crash.
+
+    with_retries rejects max_attempts < 1, so an unfloored env value
+    turned "do not retry" — a reasonable reading of 0 — into a
+    ValueError raised out of every fetch, before any request was made.
+    default_max_workers already floors the same way.
+    """
+    from zyra.connectors.backends import http as http_backend
+
+    if env:
+        monkeypatch.setenv("ZYRA_HTTP_MAX_ATTEMPTS", env)
+    else:
+        monkeypatch.delenv("ZYRA_HTTP_MAX_ATTEMPTS", raising=False)
+    assert http_backend._retry_opts()["max_attempts"] == expected
+
+
+def test_zero_attempts_still_makes_exactly_one_request(monkeypatch):
+    """The floor has to hold at the fetch path, not just in the opts.
+
+    Patches only ``requests.get`` — deliberately not via
+    ``_patch_requests_get``, which substitutes its own ``_retry_opts``
+    and would hide the very thing under test.
+    """
+    requests = pytest.importorskip("requests")
+    from zyra.connectors.backends import http as http_backend
+
+    monkeypatch.setenv("ZYRA_HTTP_MAX_ATTEMPTS", "0")
+    calls = {"n": 0}
+
+    def _get(url, **kw):
+        calls["n"] += 1
+        raise _HTTPError(503)
+
+    monkeypatch.setattr(requests, "get", _get)
+    with pytest.raises(Exception) as excinfo:
+        http_backend.fetch_bytes("https://example.org/x")
+    # A 503 should surface, not "max_attempts must be >= 1".
+    assert "max_attempts" not in str(excinfo.value), "floor was not applied"
+    assert calls["n"] == 1, "0 must mean one attempt, not zero and not five"
