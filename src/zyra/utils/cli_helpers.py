@@ -143,8 +143,9 @@ def resolve_batch_output_names(
     Raises
     ------
     ValueError
-        If the two lists differ in length, or two entries would resolve
-        to the same destination. Handlers surface these as exit code 2.
+        If the two lists differ in length, if a name is not a bare
+        filename, or if two entries would resolve to the same
+        destination. Handlers surface these as exit code 2.
     """
     explicit = output_names is not None
     if not explicit:
@@ -155,6 +156,17 @@ def resolve_batch_output_names(
                 f"--output-names must have one entry per --inputs "
                 f"({len(output_names)} names for {len(inputs)} inputs)"
             )
+        for name in output_names:
+            # Filenames, not paths. A name carrying a separator either
+            # points at a directory that does not exist (a traceback
+            # rather than a clean error) or climbs out of --output-dir
+            # entirely — which matters more over the API, where the list
+            # arrives in a request body.
+            if not name or "/" in name or "\\" in name or name in (".", ".."):
+                raise ValueError(
+                    f"--output-names takes filenames, not paths: {name!r} "
+                    f"(destinations are placed in --output-dir)"
+                )
         names = list(output_names)
     seen: dict[str, str] = {}
     for name, src in zip(names, inputs):

@@ -43,6 +43,13 @@ def _handle_heatmap_impl(ns) -> int:
         raise ValueError(
             "--input is required (or use --inputs with --output-dir for batch rendering)"
         )
+    # --output-names is positional against --inputs, so in single-input
+    # mode there is nothing for it to line up with. Say so rather than
+    # accepting it and renaming nothing.
+    if getattr(ns, "output_names", None) and not getattr(ns, "inputs", None):
+        raise ValueError(
+            "--output-names applies to --inputs batch mode; use --output to name a single --input"
+        )
     # Batch mode: --inputs with --output-dir
     if getattr(ns, "inputs", None):
         outdir = getattr(ns, "output_dir", None)

@@ -51,6 +51,10 @@ class ProcessConvertFormatArgs(BaseModel):
     pattern: str | None = None
     unsigned: bool | None = None
 
+    @model_validator(mode="after")
+    def _check_output_names(self):  # type: ignore[override]
+        return _validate_batch_output_names(self)
+
 
 class ProcessDecodeGrib2Args(BaseModel):
     file_or_url: str
@@ -118,6 +122,35 @@ class VisualizeHeatmapArgs(BaseModel):
     @model_validator(mode="after")
     def _cmap_exclusive(self):  # type: ignore[override]
         return _validate_cmap_legend_fields(self)
+
+    @model_validator(mode="after")
+    def _check_output_names(self):  # type: ignore[override]
+        return _validate_batch_output_names(self)
+
+
+def _validate_batch_output_names(model):
+    """Shared CLI-parity checks for ``output_names``.
+
+    Delegates to the same helper the CLI handlers call, so the two
+    surfaces cannot drift: a request the API accepts is one the handler
+    will accept, with the same message if it does not.
+
+    Only the supplied case is checked here. When ``output_names`` is
+    absent the names are derived, and only the handler knows the output
+    extension to derive them with.
+    """
+    names = getattr(model, "output_names", None)
+    if names is None:
+        return model
+    inputs = getattr(model, "inputs", None)
+    if not inputs:
+        raise ValueError(
+            "output_names requires inputs; use output to name a single result"
+        )
+    from zyra.utils.cli_helpers import resolve_batch_output_names
+
+    resolve_batch_output_names(list(inputs), list(names), derive=str)
+    return model
 
 
 def _validate_cmap_legend_fields(model):
@@ -404,6 +437,10 @@ class VisualizeContourArgs(BaseModel):
     @model_validator(mode="after")
     def _cmap_exclusive(self):  # type: ignore[override]
         return _validate_cmap_legend_fields(self)
+
+    @model_validator(mode="after")
+    def _check_output_names(self):  # type: ignore[override]
+        return _validate_batch_output_names(self)
 
     @model_validator(mode="after")
     def _check_output_form(self):  # type: ignore[override]
@@ -769,6 +806,10 @@ class ProcessReprojectArgs(BaseModel):
                 "input and output are required (or use inputs with output_dir)"
             )
         return self
+
+    @model_validator(mode="after")
+    def _check_output_names(self):  # type: ignore[override]
+        return _validate_batch_output_names(self)
 
     @field_validator("width", "height")
     @classmethod

@@ -68,6 +68,22 @@ def test_colliding_derived_names_keep_their_own_wording():
         )
 
 
+@pytest.mark.parametrize("bad", ["sub/x.tif", "../x.tif", "a\\b.tif", "", ".", ".."])
+def test_names_must_be_filenames_not_paths(bad):
+    # A separator either points at a directory that does not exist —
+    # a traceback rather than a clean error — or climbs out of
+    # --output-dir, which matters most over the API where the list
+    # arrives in a request body.
+    with pytest.raises(ValueError, match="takes filenames, not paths"):
+        resolve_batch_output_names(["a.grib2"], [bad], derive=str)
+
+
+def test_derived_names_are_not_subject_to_the_filename_check():
+    # Only supplied names are checked; a derive that returns a path is
+    # the caller's own business and no user typed it.
+    assert resolve_batch_output_names(["a"], None, derive=lambda s: f"d/{s}") == ["d/a"]
+
+
 def test_empty_batch_is_not_an_error_here():
     # Emptiness is the caller's contract to enforce; the resolver just
     # agrees that zero names match zero inputs.
@@ -192,6 +208,115 @@ def test_valid_time_names_make_scan_frames_report_real_dates(tmp_path):
     assert meta["start_datetime"].startswith("2026-07-24T12:00:00")
     assert meta["end_datetime"].startswith("2026-07-24T18:00:00")
     assert meta["period_seconds"] == 21600
+
+
+# ---- mixed-mode and overwrite guards --------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("argv", "single"),
+    [
+        (["process", "convert-format"], ["a.grib2", "geotiff"]),
+        (["process", "reproject"], ["--input", "a.tif", "--output", "b.tif"]),
+        (["visualize", "heatmap"], ["--input", "a.tif", "--output", "b.png"]),
+        (["visualize", "contour"], ["--input", "a.tif", "--output", "b.png"]),
+    ],
+    ids=["convert-format", "reproject", "heatmap", "contour"],
+)
+def test_output_names_without_inputs_is_rejected(argv, single):
+    # The flag is positional against --inputs, so in single-input mode
+    # it would rename nothing. Accepting it silently is the failure
+    # this guards: the caller believes a rename happened.
+    proc = subprocess.run(
+        [sys.executable, "-m", "zyra.cli", *argv, *single, "--output-names", "x.png"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 2, proc.stdout + proc.stderr
+    assert "--output-names applies to --inputs" in proc.stderr
+    assert "Traceback" not in proc.stderr
+
+
+def test_convert_format_refuses_to_overwrite_an_input(tmp_path):
+    # NetCDF passthrough writes the bytes straight back out. Naming one
+    # input's output after a *different* input destroys that file
+    # before it is ever read.
+    a = tmp_path / "a.nc"
+    b = tmp_path / "b.nc"
+    a.write_bytes(b"CDF\x01" + b"\0" * 64)
+    b.write_bytes(b"CDF\x01" + b"\1" * 64)
+    before = b.read_bytes()
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "zyra.cli",
+            "process",
+            "convert-format",
+            "netcdf",
+            "--inputs",
+            str(a),
+            str(b),
+            "--output-dir",
+            str(tmp_path),
+            "--output-names",
+            "b.nc",
+            "c.nc",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 2, proc.stdout + proc.stderr
+    assert "would overwrite input" in proc.stderr
+    assert b.read_bytes() == before, "input was clobbered before the guard fired"
+
+
+# ---- API parity -----------------------------------------------------------
+
+
+def test_schemas_reject_what_the_cli_rejects():
+    import pytest as _pytest
+    from pydantic import ValidationError
+
+    from zyra.api.schemas.domain_args import (
+        ProcessConvertFormatArgs,
+        ProcessReprojectArgs,
+        VisualizeContourArgs,
+        VisualizeHeatmapArgs,
+    )
+
+    # `single` is a valid single-input form for each model, so the
+    # last case isolates output_names as the only thing wrong — some
+    # of these models also validate the input form, and that check
+    # runs first.
+    cases = [
+        (ProcessConvertFormatArgs, {"format": "geotiff"}, {"file_or_url": "a.grib2"}),
+        (ProcessReprojectArgs, {}, {"input": "a.tif", "output": "b.tif"}),
+        (VisualizeHeatmapArgs, {}, {"input": "a.tif", "output": "b.png"}),
+        (VisualizeContourArgs, {}, {"input": "a.tif", "output": "b.png"}),
+    ]
+    for model, extra, single in cases:
+        # Wrong count.
+        with _pytest.raises(ValidationError, match="one entry per --inputs"):
+            model(inputs=["a", "b"], output_dir="o", output_names=["only.tif"], **extra)
+        # Duplicate destination.
+        with _pytest.raises(ValidationError, match="repeats"):
+            model(
+                inputs=["a", "b"],
+                output_dir="o",
+                output_names=["s.tif", "s.tif"],
+                **extra,
+            )
+        # A path where a filename belongs.
+        with _pytest.raises(ValidationError, match="filenames, not paths"):
+            model(inputs=["a"], output_dir="o", output_names=["sub/x.tif"], **extra)
+        # Names with no batch to attach to, on an otherwise-valid
+        # single-input request.
+        with _pytest.raises(ValidationError, match="output_names requires inputs"):
+            model(output_names=["x.tif"], **single, **extra)
 
 
 def test_cli_length_mismatch_exits_2(tmp_path):
