@@ -11,7 +11,22 @@ from zyra.visualization.cli_utils import features_from_ns, resolve_basemap_ref
 
 
 def handle_animate(ns) -> int:
-    """Handle ``visualize animate`` CLI subcommand."""
+    """Handle ``visualize animate`` CLI subcommand.
+
+    Argument errors surface as a clean logged error with exit code 2
+    instead of a traceback or a bare exit 1 — the same contract
+    ``handle_heatmap``/``handle_contour`` use. Runtime failures
+    (render/ffmpeg errors) and the ``--to-video`` path guards keep
+    raising ``SystemExit`` deliberately.
+    """
+    try:
+        return _handle_animate_impl(ns)
+    except ValueError as exc:
+        logging.error(str(exc))
+        return 2
+
+
+def _handle_animate_impl(ns) -> int:
     if getattr(ns, "verbose", False):
         os.environ["ZYRA_VERBOSITY"] = "debug"
     elif getattr(ns, "quiet", False):
@@ -25,7 +40,7 @@ def handle_animate(ns) -> int:
     # Batch mode for animate: --inputs with --output-dir
     if getattr(ns, "inputs", None):
         if not ns.output_dir:
-            raise SystemExit("--output-dir is required when using --inputs")
+            raise ValueError("--output-dir is required when using --inputs")
         from zyra.processing.video_processor import VideoProcessor
         from zyra.visualization.animate_manager import AnimateManager
 
