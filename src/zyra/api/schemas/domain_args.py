@@ -131,9 +131,13 @@ class VisualizeHeatmapArgs(BaseModel):
 def _validate_batch_output_names(model):
     """Shared CLI-parity checks for ``output_names``.
 
-    Delegates to the same helper the CLI handlers call, so the two
-    surfaces cannot drift: a request the API accepts is one the handler
-    will accept, with the same message if it does not.
+    Count, uniqueness and the filename rule come from the same helper
+    the CLI handlers call, so the two surfaces cannot drift on what
+    they accept, and those three report identically.
+
+    The missing-``inputs`` case is checked here instead, and worded for
+    this surface: a JSON body has no ``--inputs`` flag to point at, so
+    the message names the fields. Same rule, different vocabulary.
 
     Only the supplied case is checked here. When ``output_names`` is
     absent the names are derived, and only the handler knows the output

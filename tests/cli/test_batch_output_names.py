@@ -342,3 +342,81 @@ def test_cli_length_mismatch_exits_2(tmp_path):
     assert proc.returncode == 2, proc.stderr
     assert "one entry per --inputs" in proc.stderr
     assert "Traceback" not in proc.stderr
+
+
+def test_shared_rules_report_identically_on_both_surfaces():
+    """The parity claim in `_validate_batch_output_names`, checked.
+
+    The three shared rules must produce the *same* message from the API
+    and the CLI — that is what "cannot drift" means. The missing-inputs
+    case deliberately differs, because a JSON body has no `--inputs`
+    flag to name; the docstring says so, and this pins both halves so
+    the claim stays true.
+    """
+    import re
+
+    from pydantic import ValidationError
+
+    from zyra.api.schemas.domain_args import VisualizeHeatmapArgs
+
+    def api_message(**kwargs) -> str:
+        try:
+            VisualizeHeatmapArgs(**kwargs)
+        except ValidationError as exc:
+            # Pydantic wraps it: a count line, then "Value error, <msg>
+            # [type=...]". DOTALL so the leading line is consumed too.
+            return re.sub(r".*Value error, ", "", str(exc), flags=re.DOTALL).split(
+                " [type"
+            )[0]
+        raise AssertionError("expected a validation error")
+
+    def cli_message(argv) -> str:
+        proc = subprocess.run(
+            [sys.executable, "-m", "zyra.cli", "visualize", "heatmap", *argv],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert proc.returncode == 2, proc.stderr
+        # The logger prefix varies with configuration ("ERROR: " here,
+        # "ERROR:root:" under the default root logger).
+        return re.sub(r"^ERROR(:root)?:\s*", "", proc.stderr.strip())
+
+    shared = [
+        (
+            {"inputs": ["a", "b"], "output_dir": "o", "output_names": ["one.png"]},
+            ["--inputs", "a", "b", "--output-dir", "o", "--output-names", "one.png"],
+        ),
+        (
+            {
+                "inputs": ["a", "b"],
+                "output_dir": "o",
+                "output_names": ["s.png", "s.png"],
+            },
+            [
+                "--inputs",
+                "a",
+                "b",
+                "--output-dir",
+                "o",
+                "--output-names",
+                "s.png",
+                "s.png",
+            ],
+        ),
+        (
+            {"inputs": ["a"], "output_dir": "o", "output_names": ["sub/x.png"]},
+            ["--inputs", "a", "--output-dir", "o", "--output-names", "sub/x.png"],
+        ),
+    ]
+    for kwargs, argv in shared:
+        assert api_message(**kwargs) == cli_message(argv)
+
+    # The documented exception: same rule, surface-appropriate wording.
+    api_only = api_message(input="a.tif", output="b.png", output_names=["x.png"])
+    cli_only = cli_message(
+        ["--input", "a.tif", "--output", "b.png", "--output-names", "x.png"]
+    )
+    assert api_only != cli_only
+    assert "inputs" in api_only and "--inputs" not in api_only
+    assert "--inputs" in cli_only
