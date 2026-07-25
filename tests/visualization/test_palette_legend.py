@@ -612,9 +612,20 @@ def test_cli_unreachable_palette_url_exits_2(tmp_path):
         capture_output=True,
         text=True,
         check=False,
-        # Never let an ambient proxy turn a refused connection into a
-        # slow upstream error.
-        env={**os.environ, "no_proxy": "*", "NO_PROXY": "*"},
+        env={
+            **os.environ,
+            # Never let an ambient proxy turn a refused connection into
+            # a slow upstream error.
+            "no_proxy": "*",
+            "NO_PROXY": "*",
+            # This test is about the exit code and the message, not
+            # about retry behavior. A refused connection is already
+            # non-retryable, but pinning attempts keeps the test fast
+            # and deterministic on a CI network that drops the packet
+            # instead of refusing it — where each attempt would
+            # otherwise wait out the full 60s request timeout.
+            "ZYRA_HTTP_MAX_ATTEMPTS": "1",
+        },
     )
     assert proc.returncode == 2
     assert url in proc.stderr

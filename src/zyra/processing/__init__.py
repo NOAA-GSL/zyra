@@ -298,6 +298,17 @@ def register_cli(subparsers: Any) -> None:
             os.environ["ZYRA_SHELL_TRACE"] = "1"
         configure_logging_from_env()
 
+        # --output-names is positional against --inputs; with a single
+        # file_or_url there is nothing for it to line up with, so accepting
+        # it would rename nothing and say nothing.
+        if getattr(args, "output_names", None) and not getattr(args, "inputs", None):
+            import logging
+
+            logging.error(
+                "--output-names applies to --inputs batch mode; "
+                "use --output to name a single conversion"
+            )
+            return 2
         # Multi-input support: --inputs with --output-dir required
         if getattr(args, "inputs", None):
             if getattr(args, "stdout", False):
@@ -314,11 +325,45 @@ def register_cli(subparsers: Any) -> None:
             from zyra.processing.grib_utils import convert_to_format
 
             outdir_p = Path(outdir)
+            from zyra.utils.cli_helpers import resolve_batch_output_names
+
+            ext = ".nc" if args.format == "netcdf" else ".tif"
+            try:
+                dest_names = resolve_batch_output_names(
+                    list(args.inputs),
+                    getattr(args, "output_names", None),
+                    derive=lambda src: f"{Path(str(src)).stem}{ext}",
+                )
+            except ValueError as exc:
+                logging.error(str(exc))
+                return 2
+            # A destination landing on any input overwrites it. Checked
+            # against every input rather than each name's own positional
+            # source, because the destructive case is the cross one:
+            # inputs are read one at a time inside the loop below, so a
+            # name pointing at a *later* input destroys it before it is
+            # ever read. Rejected before any write. URLs are skipped —
+            # they are never local destinations.
+            sources = {
+                Path(str(s)).resolve(): str(s)
+                for s in args.inputs
+                if "://" not in str(s)
+            }
+            for name in dest_names:
+                clash = sources.get((outdir_p / name).resolve())
+                if clash is not None:
+                    logging.error(
+                        "output %s would overwrite input %s; "
+                        "choose a different --output-dir or --output-names",
+                        name,
+                        clash,
+                    )
+                    return 2
             outdir_p.mkdir(parents=True, exist_ok=True)
             from zyra.utils.io_utils import read_bytes_any
 
             wrote = []
-            for src in args.inputs:
+            for idx, src in enumerate(args.inputs):
                 try:
                     data = read_bytes_any(
                         src,
@@ -331,8 +376,7 @@ def register_cli(subparsers: Any) -> None:
                 # Fast-path: NetCDF passthrough when converting to NetCDF
                 if args.format == "netcdf" and is_netcdf_bytes(data):
                     # Write source name with .nc extension
-                    base = Path(str(src)).stem
-                    dest = outdir_p / f"{base}.nc"
+                    dest = outdir_p / dest_names[idx]
                     dest.write_bytes(data)
                     logging.info(str(dest))
                     wrote.append(str(dest))
@@ -341,10 +385,7 @@ def register_cli(subparsers: Any) -> None:
                 out_bytes = convert_to_format(
                     decoded, args.format, var=getattr(args, "var", None)
                 )
-                # Choose extension by format
-                ext = ".nc" if args.format == "netcdf" else ".tif"
-                base = Path(str(src)).stem
-                dest = outdir_p / f"{base}{ext}"
+                dest = outdir_p / dest_names[idx]
                 with dest.open("wb") as f:
                     f.write(out_bytes)
                 logging.info(str(dest))
@@ -490,6 +531,12 @@ def register_cli(subparsers: Any) -> None:
         if single and not getattr(args, "output", None):
             logging.error("-o/--output is required with -i/--input")
             return 2
+        if getattr(args, "output_names", None) and not inputs:
+            logging.error(
+                "--output-names applies to --inputs batch mode; "
+                "use -o/--output to name a single raster"
+            )
+            return 2
 
         if os.environ.get("ZYRA_SHELL_TRACE"):
             logging.info("+ input='%s'", single if single else ",".join(inputs))
@@ -538,22 +585,33 @@ def register_cli(subparsers: Any) -> None:
             # reproject infers its driver from the output extension, so
             # preserving the suffix keeps a PNG a PNG and a GeoTIFF a
             # GeoTIFF instead of silently switching formats.
+            from zyra.utils.cli_helpers import resolve_batch_output_names
+
+            try:
+                names = resolve_batch_output_names(
+                    [str(x) for x in inputs],
+                    getattr(args, "output_names", None),
+                    derive=lambda src: Path(str(src)).name,
+                )
+            except ValueError as exc:
+                logging.error(str(exc))
+                return 2
+            # Checked against every input, not just each name's own
+            # positional source: rasters are warped one at a time below,
+            # so a name pointing at a *later* input destroys it before it
+            # is read. --output-names makes that reachable by hand; the
+            # same-directory case reaches it via derived names.
+            sources = {Path(str(s)).resolve(): str(s) for s in inputs}
             dests = {}
-            for src in inputs:
-                dest = outdir_p / Path(str(src)).name
-                prior = dests.get(dest)
-                if prior is not None:
+            for name, src in zip(names, inputs):
+                dest = outdir_p / name
+                clash = sources.get(dest.resolve())
+                if clash is not None:
                     logging.error(
-                        "--inputs collide on output %s: %s and %s share a filename",
-                        dest,
-                        prior,
-                        src,
-                    )
-                    return 2
-                if Path(str(src)).resolve() == dest.resolve():
-                    logging.error(
-                        "--output-dir would overwrite input %s; choose a different directory",
-                        src,
+                        "output %s would overwrite input %s; "
+                        "choose a different --output-dir or --output-names",
+                        name,
+                        clash,
                     )
                     return 2
                 dests[dest] = src
@@ -920,6 +978,17 @@ def register_cli(subparsers: Any) -> None:
         help="Directory to write outputs for --inputs",
     )
     p_conv.add_argument(
+        "--output-names",
+        dest="output_names",
+        nargs="+",
+        action="extend",
+        help=(
+            "Destination filenames for --inputs, one per input, in order "
+            "(default: the source stem). Use to name frames by valid time "
+            "instead of inheriting the source's cycle-relative name."
+        ),
+    )
+    p_conv.add_argument(
         "--backend", default="cfgrib", choices=["cfgrib", "pygrib", "wgrib2"]
     )
     p_conv.add_argument("--var", help="Variable name or regex for multi-var datasets")
@@ -1044,6 +1113,16 @@ def register_cli(subparsers: Any) -> None:
         "--output-dir",
         dest="output_dir",
         help="Directory to write outputs for --inputs (each keeps its source filename)",
+    )
+    p_rep.add_argument(
+        "--output-names",
+        dest="output_names",
+        nargs="+",
+        action="extend",
+        help=(
+            "Destination filenames for --inputs, one per input, in order "
+            "(default: the source filename)"
+        ),
     )
     p_rep.add_argument(
         "--s-srs",

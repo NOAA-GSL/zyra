@@ -43,16 +43,30 @@ def _handle_heatmap_impl(ns) -> int:
         raise ValueError(
             "--input is required (or use --inputs with --output-dir for batch rendering)"
         )
+    # --output-names is positional against --inputs, so in single-input
+    # mode there is nothing for it to line up with. Say so rather than
+    # accepting it and renaming nothing.
+    if getattr(ns, "output_names", None) and not getattr(ns, "inputs", None):
+        raise ValueError(
+            "--output-names applies to --inputs batch mode; use --output to name a single --input"
+        )
     # Batch mode: --inputs with --output-dir
     if getattr(ns, "inputs", None):
         outdir = getattr(ns, "output_dir", None)
         if not outdir:
             raise ValueError("--output-dir is required when using --inputs")
         features = features_from_ns(ns)
+        from zyra.utils.cli_helpers import resolve_batch_output_names
+
+        dest_names = resolve_batch_output_names(
+            [str(x) for x in ns.inputs],
+            getattr(ns, "output_names", None),
+            derive=lambda src: f"{Path(str(src)).stem}.png",
+        )
         outdir_p = Path(outdir)
         outdir_p.mkdir(parents=True, exist_ok=True)
         outputs = []
-        for src in ns.inputs:
+        for idx, src in enumerate(ns.inputs):
             bmap, guard = resolve_basemap_ref(getattr(ns, "basemap", None))
             mgr = HeatmapManager(basemap=bmap, extent=ns.extent)
             mgr.render(
@@ -79,8 +93,7 @@ def _handle_heatmap_impl(ns) -> int:
                 crs=getattr(ns, "crs", None),
                 reproject=getattr(ns, "reproject", False),
             )
-            base = Path(str(src)).stem
-            dest = outdir_p / f"{base}.png"
+            dest = outdir_p / dest_names[idx]
             out = mgr.save(str(dest))
             if out:
                 logging.info(out)
