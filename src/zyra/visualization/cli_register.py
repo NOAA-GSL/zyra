@@ -74,7 +74,10 @@ def register_cli(subparsers: Any) -> None:
     hm_cmap.add_argument(
         "--cmap-file",
         dest="cmap_file",
-        help="Palette JSON file (classified bands or continuous spec)",
+        help=(
+            "Palette JSON (classified bands or continuous spec); "
+            "path, '-', or an http(s)/s3 URL"
+        ),
     )
     p_hm.add_argument(
         "--legend-file",
@@ -197,7 +200,10 @@ def register_cli(subparsers: Any) -> None:
     ct_cmap.add_argument(
         "--cmap-file",
         dest="cmap_file",
-        help="Palette JSON file (classified bands or continuous spec)",
+        help=(
+            "Palette JSON (classified bands or continuous spec); "
+            "path, '-', or an http(s)/s3 URL"
+        ),
     )
     p_ct.add_argument(
         "--legend-file",
