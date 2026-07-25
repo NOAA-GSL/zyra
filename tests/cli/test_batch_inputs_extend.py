@@ -134,3 +134,53 @@ def test_contour_argument_errors_exit_2():
     assert proc.returncode == 2
     assert "--output is required" in proc.stderr
     assert "Traceback" not in proc.stderr
+
+
+def test_batch_missing_output_dir_exits_2_not_1():
+    # The "--output-dir is required" guard used to raise SystemExit with
+    # a string, which exits 1 and bypasses the ValueError -> exit-2
+    # mapping every other argument error goes through.
+    import subprocess
+    import sys
+
+    for cmd in ("heatmap", "contour"):
+        proc = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "zyra.cli",
+                "visualize",
+                cmd,
+                "--input",
+                "x.npy",
+                "--output",
+                "o.png",
+                "--inputs",
+                "a.tif",
+                "b.tif",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert proc.returncode == 2, f"{cmd}: {proc.returncode}\n{proc.stderr}"
+        assert "--output-dir is required" in proc.stderr
+        assert "Traceback" not in proc.stderr
+
+
+def test_contour_schema_rejects_empty_inputs():
+    import pytest as _pytest
+    from pydantic import ValidationError
+
+    from zyra.api.schemas.domain_args import VisualizeContourArgs
+
+    # An explicit empty batch is malformed, not "no batch requested" —
+    # otherwise it falls through to the single-output branch and a
+    # payload that asked for zero frames validates as a single render.
+    with _pytest.raises(ValidationError):
+        VisualizeContourArgs(inputs=[], output_dir="out")
+    with _pytest.raises(ValidationError):
+        VisualizeContourArgs(inputs=[], output="o.png")
+    # Both valid forms still validate.
+    assert VisualizeContourArgs(inputs=["a.tif"], output_dir="out").output is None
+    assert VisualizeContourArgs(output="o.png").output == "o.png"

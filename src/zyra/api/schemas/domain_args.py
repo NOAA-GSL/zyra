@@ -395,7 +395,12 @@ class VisualizeContourArgs(BaseModel):
 
     @model_validator(mode="after")
     def _check_output_form(self):  # type: ignore[override]
-        if self.inputs:
+        # Test `is not None`, not truthiness: an explicit `inputs: []` is
+        # a malformed batch request, not an absent one, and must not fall
+        # through to the single-output branch.
+        if self.inputs is not None:
+            if not self.inputs:
+                raise ValueError("inputs must not be empty")
             if not self.output_dir:
                 raise ValueError("output_dir is required with inputs")
         elif not self.output:

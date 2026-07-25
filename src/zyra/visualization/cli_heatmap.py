@@ -47,7 +47,7 @@ def _handle_heatmap_impl(ns) -> int:
     if getattr(ns, "inputs", None):
         outdir = getattr(ns, "output_dir", None)
         if not outdir:
-            raise SystemExit("--output-dir is required when using --inputs")
+            raise ValueError("--output-dir is required when using --inputs")
         features = features_from_ns(ns)
         outdir_p = Path(outdir)
         outdir_p.mkdir(parents=True, exist_ok=True)
