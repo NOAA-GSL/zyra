@@ -370,7 +370,9 @@ def normalize_and_validate(stage: str, tool: str, args: dict) -> dict:
 class VisualizeContourArgs(BaseModel):
     input: str | None = None
     inputs: list[str] | None = None
-    output: str
+    # output was required before the batch form was reachable; keep the
+    # 400 by enforcing the same either/or the CLI handler does.
+    output: str | None = None
     output_dir: str | None = None
     band: int | None = Field(
         default=None, description="GeoTIFF band to read (1-based; default 1)"
@@ -390,6 +392,20 @@ class VisualizeContourArgs(BaseModel):
     @model_validator(mode="after")
     def _cmap_exclusive(self):  # type: ignore[override]
         return _validate_cmap_legend_fields(self)
+
+    @model_validator(mode="after")
+    def _check_output_form(self):  # type: ignore[override]
+        # Test `is not None`, not truthiness: an explicit `inputs: []` is
+        # a malformed batch request, not an absent one, and must not fall
+        # through to the single-output branch.
+        if self.inputs is not None:
+            if not self.inputs:
+                raise ValueError("inputs must not be empty")
+            if not self.output_dir:
+                raise ValueError("output_dir is required with inputs")
+        elif not self.output:
+            raise ValueError("output is required (or use inputs with output_dir)")
+        return self
 
 
 class DecimatePostArgs(BaseModel):
