@@ -289,3 +289,10 @@ def test_guards_and_argument_errors_raise_the_right_types():
         }, mod.__name__
     assert sos["--input or --inputs is required"] == {"ValueError"}
     assert sos["--output is required when using --input"] == {"ValueError"}
+
+    # cli_vector's docstring states it raises no SystemExit of its own.
+    # Assert that rather than trusting the prose: adding one later would
+    # make the docstring wrong with nothing to catch it.
+    assert "SystemExit" not in set().union(
+        *_raise_kinds(cli_vector).values()
+    ), "cli_vector gained a SystemExit; its handler docstring now lies"

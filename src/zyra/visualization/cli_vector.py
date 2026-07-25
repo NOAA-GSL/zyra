@@ -14,10 +14,10 @@ def handle_vector(ns) -> int:
     """Handle ``visualize vector`` CLI subcommand.
 
     Argument errors surface as a clean logged error with exit code 2
-    instead of a traceback or a bare exit 1 — the same contract
-    ``handle_heatmap``/``handle_contour`` use. Runtime failures
-    (render/ffmpeg errors) and the ``--to-video`` path guards keep
-    raising ``SystemExit`` deliberately.
+    instead of a bare exit 1 — the same contract
+    ``handle_heatmap``/``handle_contour`` use. This handler raises no
+    ``SystemExit`` of its own; ``animate`` and ``sos`` do, for path
+    guards and render failures respectively.
     """
     try:
         return _handle_vector_impl(ns)
