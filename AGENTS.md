@@ -23,6 +23,13 @@ Pre-commit Hooks
 - Run hooks manually on all files: `poetry run pre-commit run -a`
 - Hooks enforce Ruff formatting/linting (authoritative list in the config above).
 - DCO: All commits must include a Signed-off-by line (see CONTRIBUTING). Add `-s` to `git commit` or enable global sign-off: `git config --global format.signoff true`.
+- Hosted/ephemeral sessions (Claude Code on the web and similar) clone the
+  repo fresh into a container where the one-time setup above has not run, so
+  `.git/hooks/` is empty and none of these hooks fire. `.claude/hooks/session-start.sh`
+  installs the DCO `commit-msg` hook on session start so unsigned commits fail
+  locally instead of at the PR. It installs only that hook — the rest shell out
+  to `poetry run`, which needs a provisioned Poetry environment the container
+  may not have.
 
 Agent Checklist (before returning code)
 
