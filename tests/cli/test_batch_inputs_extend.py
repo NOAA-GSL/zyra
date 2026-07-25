@@ -11,6 +11,10 @@ occurrence, so the API path silently kept only the LAST input — an API
 caller posting a frame sequence got a successful run that processed one
 file, with nothing in the response to say so. ``action="extend"``
 accepts both styles.
+
+The second half of this file pins the argument-error exit-code contract
+shared by the batch handlers: argument errors are a logged exit 2, while
+runtime failures and the ``--to-video`` path guards stay ``SystemExit``.
 """
 
 from __future__ import annotations
@@ -48,8 +52,8 @@ def _parse(domain, argv):
 
 # (domain, argv prefix before --inputs, argv suffix after the inputs)
 BATCH_COMMANDS = [
-    # heatmap still declares --input required=True on this branch; passing
-    # it keeps the case about --inputs expansion, not that requirement.
+    # heatmap accepts --input alongside --inputs (batch wins), so passing
+    # it keeps this case about --inputs expansion either way.
     ("visualize", ["heatmap", "--input", "x.tif"], ["--output-dir", "out"]),
     ("visualize", ["contour"], ["--output-dir", "out"]),
     ("visualize", ["vector"], []),
@@ -184,3 +188,111 @@ def test_contour_schema_rejects_empty_inputs():
     # Both valid forms still validate.
     assert VisualizeContourArgs(inputs=["a.tif"], output_dir="out").output is None
     assert VisualizeContourArgs(output="o.png").output == "o.png"
+
+
+# ---- Exit-code contract across the remaining batch handlers ---------------
+# heatmap and contour got the ValueError -> logged exit 2 wrapper first;
+# animate, vector, and sos still raised SystemExit with a string, which
+# exits 1 and skips the logged-error path. Only ARGUMENT errors move:
+# runtime failures and the --to-video path guards stay SystemExit.
+
+
+def _run_visualize(cmd, extra):
+    import subprocess
+    import sys
+
+    return subprocess.run(
+        [sys.executable, "-m", "zyra.cli", "visualize", cmd, *extra],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+@pytest.mark.parametrize("cmd", ["animate", "vector", "sos"])
+def test_batch_missing_output_dir_exits_2_for_remaining_handlers(cmd):
+    proc = _run_visualize(cmd, ["--inputs", "a.nc", "b.nc"])
+    assert proc.returncode == 2, f"{cmd}: rc={proc.returncode}\n{proc.stderr}"
+    assert "--output-dir is required" in proc.stderr
+    assert "Traceback" not in proc.stderr
+
+
+def test_sos_single_mode_argument_errors_exit_2():
+    proc = _run_visualize("sos", [])
+    assert proc.returncode == 2, proc.stderr
+    assert "--input or --inputs is required" in proc.stderr
+    assert "Traceback" not in proc.stderr
+
+    proc = _run_visualize("sos", ["--input", "x.nc"])
+    assert proc.returncode == 2, proc.stderr
+    assert "--output is required" in proc.stderr
+    assert "Traceback" not in proc.stderr
+
+
+def _raise_kinds(module):
+    """Map each raised message fragment to the SET of exception classes
+    raised with it.
+
+    Parsed from the AST rather than matched against source text: a
+    substring search picks up a neighbouring raise and passes even when
+    the statement it names has changed type. A set rather than a single
+    value because some messages are raised from more than one code path
+    (``--to-video`` is guarded in both the batch and single paths), and a
+    dict would let an unconverted duplicate mask a converted one.
+    """
+    import ast
+    import inspect
+
+    out = {}
+    for node in ast.walk(ast.parse(inspect.getsource(module))):
+        if not isinstance(node, ast.Raise) or not isinstance(node.exc, ast.Call):
+            continue
+        func = node.exc.func
+        name = getattr(func, "id", None) or getattr(func, "attr", None)
+        for arg in node.exc.args:
+            if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                out.setdefault(arg.value, set()).add(name)
+            elif isinstance(arg, ast.JoinedStr):
+                lead = "".join(
+                    v.value
+                    for v in arg.values
+                    if isinstance(v, ast.Constant) and isinstance(v.value, str)
+                )
+                if lead:
+                    out.setdefault(lead, set()).add(name)
+    return out
+
+
+def test_guards_and_argument_errors_raise_the_right_types():
+    # Regression guard for THIS change: the --to-video checks protect an
+    # output-root escape and the render checks stop a pipeline treating an
+    # empty render as success, so both must keep raising SystemExit rather
+    # than being swept up as ordinary argument errors by the new wrapper.
+    # The argument errors that DID move must be ValueError.
+    from zyra.visualization import cli_animate, cli_sos, cli_vector
+
+    animate = _raise_kinds(cli_animate)
+    assert animate[
+        "--to-video cannot start with '-' (may be interpreted as an option)"
+    ] == {"SystemExit"}
+    assert animate["--to-video is outside of allowed output root"] == {"SystemExit"}
+    assert animate["ffmpeg grid composition failed"] == {"SystemExit"}
+
+    sos = _raise_kinds(cli_sos)
+    assert sos["Failed to render SOS frame from "] == {"SystemExit"}
+    assert sos["Failed to render  SOS frame(s): "] == {"SystemExit"}
+
+    for mod in (cli_animate, cli_vector, cli_sos):
+        kinds = _raise_kinds(mod)
+        assert kinds["--output-dir is required when using --inputs"] == {
+            "ValueError"
+        }, mod.__name__
+    assert sos["--input or --inputs is required"] == {"ValueError"}
+    assert sos["--output is required when using --input"] == {"ValueError"}
+
+    # cli_vector's docstring states it raises no SystemExit of its own.
+    # Assert that rather than trusting the prose: adding one later would
+    # make the docstring wrong with nothing to catch it.
+    assert "SystemExit" not in set().union(
+        *_raise_kinds(cli_vector).values()
+    ), "cli_vector gained a SystemExit; its handler docstring now lies"

@@ -11,7 +11,22 @@ from zyra.visualization.cli_utils import features_from_ns, resolve_basemap_ref
 
 
 def handle_vector(ns) -> int:
-    """Handle ``visualize vector`` CLI subcommand."""
+    """Handle ``visualize vector`` CLI subcommand.
+
+    Argument errors surface as a clean logged error with exit code 2
+    instead of a bare exit 1 — the same contract
+    ``handle_heatmap``/``handle_contour`` use. This handler raises no
+    ``SystemExit`` of its own; ``animate`` and ``sos`` do, for path
+    guards and render failures respectively.
+    """
+    try:
+        return _handle_vector_impl(ns)
+    except ValueError as exc:
+        logging.error(str(exc))
+        return 2
+
+
+def _handle_vector_impl(ns) -> int:
     # Lazy import to reduce startup cost when visualization isn't used
     from zyra.visualization.vector_field_manager import VectorFieldManager
 
@@ -29,7 +44,7 @@ def handle_vector(ns) -> int:
     if getattr(ns, "inputs", None):
         outdir = getattr(ns, "output_dir", None)
         if not outdir:
-            raise SystemExit("--output-dir is required when using --inputs")
+            raise ValueError("--output-dir is required when using --inputs")
         outdir_p = Path(outdir)
         outdir_p.mkdir(parents=True, exist_ok=True)
         features = features_from_ns(ns)

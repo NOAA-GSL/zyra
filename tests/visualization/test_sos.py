@@ -45,8 +45,10 @@ def test_sos_requires_input_or_inputs():
     from zyra.visualization.cli_sos import handle_sos
 
     ns = SimpleNamespace(inputs=None, input=None, output=None)
-    with pytest.raises(SystemExit):
-        handle_sos(ns)
+    # Argument errors are a logged exit 2, not a raised SystemExit: the
+    # handler now uses the same ValueError contract as heatmap/contour.
+    # Render failures still raise (see the render-failure tests below).
+    assert handle_sos(ns) == 2
 
 
 def test_sos_requires_output_dir_for_batch():
@@ -55,8 +57,7 @@ def test_sos_requires_output_dir_for_batch():
     from zyra.visualization.cli_sos import handle_sos
 
     ns = SimpleNamespace(inputs=["a.npy"], output_dir=None)
-    with pytest.raises(SystemExit):
-        handle_sos(ns)
+    assert handle_sos(ns) == 2
 
 
 def test_sos_single_render_failure_exits_nonzero(tmp_path, monkeypatch):
