@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 from unittest.mock import Mock, patch
 
+import pytest
 from botocore.exceptions import ClientError
 
 from zyra.connectors.backends import ftp as ftp_backend
@@ -95,7 +96,13 @@ def test_http_get_idx_lines_retries_then_success():
     import types
 
     class _ReqExc(Exception):
-        pass
+        # Carries a retryable status: the retry policy now classifies
+        # failures instead of retrying every exception, so a transient
+        # failure has to look like one. A bare Exception is treated as a
+        # bug and propagates immediately (see the test below).
+        def __init__(self, msg):
+            super().__init__(msg)
+            self.response = types.SimpleNamespace(status_code=503, headers={})
 
     good = Mock()
     good.raise_for_status = lambda: None
@@ -103,8 +110,27 @@ def test_http_get_idx_lines_retries_then_success():
     fake_get = Mock(side_effect=[_ReqExc("boom"), good])
     fake_requests = types.SimpleNamespace(get=fake_get)
     with patch.dict(sys.modules, {"requests": fake_requests}):
-        lines = http_backend.get_idx_lines(url)
+        with patch("zyra.connectors.backends._retry.time.sleep", lambda _: None):
+            lines = http_backend.get_idx_lines(url)
         assert lines == ["1:0:a"]
+
+
+def test_http_get_idx_lines_does_not_retry_a_non_transient_error():
+    # Narrowing guard: the previous implementation retried ANY exception,
+    # so a 404 or a programming error cost three identical round trips.
+    url = "https://example.com/file.grib2"
+    import sys
+    import types
+
+    class _Boom(Exception):
+        pass
+
+    fake_get = Mock(side_effect=_Boom("not transient"))
+    fake_requests = types.SimpleNamespace(get=fake_get)
+    with patch.dict(sys.modules, {"requests": fake_requests}):
+        with pytest.raises(_Boom):
+            http_backend.get_idx_lines(url)
+    assert fake_get.call_count == 1
 
 
 def test_s3_get_idx_lines_retry_and_write_and_get_size_error(tmp_path):

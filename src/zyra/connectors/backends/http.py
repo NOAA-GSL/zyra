@@ -12,8 +12,39 @@ the CLI, pipelines, or higher-level wrappers without imposing heavy imports.
 from __future__ import annotations
 
 import re
-from typing import Iterable
+from typing import Any, Iterable
 from urllib.parse import urljoin
+
+from zyra.connectors.backends._retry import (
+    DEFAULT_BASE_DELAY,
+    DEFAULT_MAX_ATTEMPTS,
+    DEFAULT_MAX_DELAY,
+    with_retries,
+)
+
+
+def _retry_opts() -> dict[str, Any]:
+    """Retry knobs, overridable per deployment without a code change."""
+    from zyra.utils.env import env_int
+
+    return {
+        "max_attempts": env_int("HTTP_MAX_ATTEMPTS", DEFAULT_MAX_ATTEMPTS),
+        "base_delay": DEFAULT_BASE_DELAY,
+        "max_delay": DEFAULT_MAX_DELAY,
+    }
+
+
+def default_max_workers() -> int:
+    """Concurrent ranged GETs per file.
+
+    Ten per file is a lot of pressure on one prefix when a batch walks
+    many files; lower it via ``ZYRA_HTTP_MAX_WORKERS`` where a source
+    throttles aggressively.
+    """
+    from zyra.utils.env import env_int
+
+    return max(1, env_int("HTTP_MAX_WORKERS", 10))
+
 
 # Make a module-level "requests" attribute patchable in tests even when the
 # optional dependency is not installed in the environment.
@@ -41,9 +72,12 @@ def fetch_bytes(
     except Exception as exc:  # pragma: no cover - optional dep
         raise RuntimeError("HTTP backend requires the 'requests' extra") from exc
 
-    r = requests.get(url, timeout=timeout, headers=headers)
-    r.raise_for_status()
-    return r.content
+    def _get() -> bytes:
+        r = requests.get(url, timeout=timeout, headers=headers)
+        r.raise_for_status()
+        return r.content
+
+    return with_retries(_get, **_retry_opts())
 
 
 def fetch_text(
@@ -164,28 +198,24 @@ def get_idx_lines(
     from zyra.utils.grib import ensure_idx_path, parse_idx_lines
 
     idx_url = ensure_idx_path(url)
-    # Determine exception type from requests or fall back to Exception for tests
-    ReqExc = getattr(requests, "RequestException", Exception)
-    attempt = 0
-    last_exc = None
-    while attempt < max_retries:
-        try:
-            r = requests.get(idx_url, timeout=timeout, headers=headers)
-            r.raise_for_status()
-            return parse_idx_lines(r.content)
-        except ReqExc as e:  # pragma: no cover - simple retry wrapper
-            last_exc = e
-            attempt += 1
-    if last_exc:
-        raise last_exc
-    return []
+
+    def _get() -> list[str]:
+        r = requests.get(idx_url, timeout=timeout, headers=headers)
+        r.raise_for_status()
+        return parse_idx_lines(r.content)
+
+    # max_retries is retained as the public knob; it previously meant
+    # "attempts with no delay between them", which made throttling worse.
+    opts = _retry_opts()
+    opts["max_attempts"] = max(1, int(max_retries))
+    return with_retries(_get, **opts)
 
 
 def download_byteranges(
     url: str,
     byte_ranges: Iterable[str],
     *,
-    max_workers: int = 10,
+    max_workers: int | None = None,
     timeout: int = 60,
     headers: dict[str, str] | None = None,
 ) -> bytes:
@@ -200,14 +230,21 @@ def download_byteranges(
     def _ranged_get(u: str, range_header: str) -> bytes:
         request_headers = dict(base_headers)
         request_headers["Range"] = range_header
-        r = requests.get(u, headers=request_headers, timeout=timeout)
-        r.raise_for_status()
-        return r.content
+
+        def _get() -> bytes:
+            r = requests.get(u, headers=request_headers, timeout=timeout)
+            r.raise_for_status()
+            return r.content
+
+        return with_retries(_get, **_retry_opts())
 
     from zyra.utils.grib import parallel_download_byteranges
 
     return parallel_download_byteranges(
-        _ranged_get, url, byte_ranges, max_workers=max_workers
+        _ranged_get,
+        url,
+        byte_ranges,
+        max_workers=default_max_workers() if max_workers is None else max_workers,
     )
 
 
