@@ -153,7 +153,15 @@ def register_sos_cli(subparsers: Any) -> None:
     )
     p_sos.add_argument("--input", help="Path to .nc or .npy input")
     p_sos.add_argument(
-        "--inputs", nargs="+", help="Multiple input paths for batch rendering"
+        # action="extend" on --inputs so both arg-expansion styles work:
+        # the pipeline runner emits `--inputs a b c` while the Domain API
+        # executor emits repeated `--inputs a --inputs b`. Plain nargs="+"
+        # keeps only the last of those, silently dropping every earlier
+        # input. Same reason --bounds/--extent use it.
+        "--inputs",
+        nargs="+",
+        action="extend",
+        help="Multiple input paths for batch rendering",
     )
     p_sos.add_argument("--var", help="Variable name for NetCDF inputs")
     p_sos.add_argument(

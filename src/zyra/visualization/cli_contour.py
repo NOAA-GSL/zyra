@@ -38,6 +38,12 @@ def _handle_contour_impl(ns) -> int:
 
     ns.extent = resolve_extent(ns)
     cmap, norm = resolve_cmap_args(ns)
+    if not getattr(ns, "inputs", None) and not getattr(ns, "input", None):
+        raise ValueError(
+            "--input is required (or use --inputs with --output-dir for batch rendering)"
+        )
+    if getattr(ns, "input", None) and not getattr(ns, "output", None):
+        raise ValueError("--output is required when using --input")
     # Batch mode
     if getattr(ns, "inputs", None):
         outdir = getattr(ns, "output_dir", None)

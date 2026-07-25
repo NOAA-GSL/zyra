@@ -426,8 +426,7 @@
       "--output": {
         "help": "Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
         "path_arg": true,
-        "type": "path",
-        "required": true
+        "type": "path"
       },
       "--width": {
         "help": "",
@@ -1784,8 +1783,7 @@
       "--output": {
         "help": "Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
         "path_arg": true,
-        "type": "path",
-        "required": true
+        "type": "path"
       },
       "--width": {
         "help": "",
@@ -1900,9 +1898,7 @@
     "positionals": [],
     "domain": "visualize",
     "args_schema": {
-      "required": [
-        "output"
-      ],
+      "required": [],
       "optional": [
         "band",
         "cmap",
@@ -1913,6 +1909,7 @@
         "legend_file",
         "legend_orientation",
         "levels",
+        "output",
         "output_dir"
       ]
     },

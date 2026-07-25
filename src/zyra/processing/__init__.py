@@ -903,7 +903,17 @@ def register_cli(subparsers: Any) -> None:
         help="Write binary output to stdout instead of a file",
     )
     # Multi-input support
-    p_conv.add_argument("--inputs", nargs="+", help="Multiple input paths or URLs")
+    # action="extend" on --inputs so both arg-expansion styles work:
+    # the pipeline runner emits `--inputs a b c` while the Domain API
+    # executor emits repeated `--inputs a --inputs b`. Plain nargs="+"
+    # keeps only the last of those, silently dropping every earlier
+    # input. Same reason --bounds/--extent use it.
+    p_conv.add_argument(
+        "--inputs",
+        nargs="+",
+        action="extend",
+        help="Multiple input paths or URLs",
+    )
     p_conv.add_argument(
         "--output-dir",
         dest="output_dir",
