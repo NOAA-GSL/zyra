@@ -622,3 +622,59 @@ def test_api_schema_accepts_batch_args():
     assert m.input is None and m.output is None
     # Single form still validates.
     assert ProcessReprojectArgs(input="a.tif", output="b.tif").output == "b.tif"
+
+
+def test_cli_rejects_flags_from_the_other_mode(tmp_path):
+    # A flag that does not apply to the chosen mode is an error, not
+    # something to ignore silently — and the API schema validator
+    # rejects the same combinations, so the two surfaces agree.
+    src = tmp_path / "a.tif"
+    _write_polar_stereo_marker(str(src))
+
+    proc = _run_cli(
+        [
+            "--inputs",
+            str(src),
+            "--output-dir",
+            str(tmp_path / "o"),
+            "-o",
+            str(tmp_path / "single.tif"),
+        ]
+    )
+    assert proc.returncode == 2
+    assert "cannot be combined with -o/--output" in proc.stderr
+
+    proc = _run_cli(
+        [
+            "-i",
+            str(src),
+            "-o",
+            str(tmp_path / "single.tif"),
+            "--output-dir",
+            str(tmp_path / "o"),
+        ]
+    )
+    assert proc.returncode == 2
+    assert "--output-dir requires --inputs" in proc.stderr
+
+
+def test_api_schema_rejects_mixed_and_empty_forms():
+    import pytest as _pytest
+    from pydantic import ValidationError
+
+    from zyra.api.schemas.domain_args import ProcessReprojectArgs
+
+    bad = [
+        # Mixing the two forms.
+        {"inputs": ["a.tif"], "output_dir": "out", "output": "o.tif"},
+        {"inputs": ["a.tif"], "output_dir": "out", "input": "a.tif"},
+        {"input": "a.tif", "output": "o.tif", "output_dir": "out"},
+        # Incomplete forms.
+        {"inputs": ["a.tif"]},
+        {"input": "a.tif"},
+        # An explicit empty batch is malformed, not "no batch requested".
+        {"inputs": [], "output_dir": "out"},
+    ]
+    for args in bad:
+        with _pytest.raises(ValidationError):
+            ProcessReprojectArgs(**args)

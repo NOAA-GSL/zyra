@@ -463,8 +463,21 @@ def register_cli(subparsers: Any) -> None:
         inputs = getattr(args, "inputs", None)
         single = getattr(args, "input", None)
         outdir = getattr(args, "output_dir", None)
+        # Reject every mixed form rather than silently ignoring the flag
+        # that does not apply to the chosen mode; the API schema
+        # validator enforces the same set, so the two agree.
         if inputs and single:
             logging.error("--inputs cannot be combined with -i/--input")
+            return 2
+        if inputs and getattr(args, "output", None):
+            logging.error(
+                "--inputs cannot be combined with -o/--output; use --output-dir"
+            )
+            return 2
+        if outdir and not inputs:
+            logging.error(
+                "--output-dir requires --inputs; use -o/--output for a single raster"
+            )
             return 2
         if not inputs and not single:
             logging.error(

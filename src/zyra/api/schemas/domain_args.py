@@ -717,8 +717,12 @@ class ProcessReprojectArgs(BaseModel):
         # input/output were required before batch mode existed; keep the
         # 400 by enforcing the same either/or the CLI handler does,
         # rather than letting a missing input fall through to a runtime
-        # exit 2.
-        if self.inputs:
+        # exit 2. Test `is not None`, not truthiness: an explicit
+        # `inputs: []` is a malformed batch request, not an absent one,
+        # and must not fall through to the single-input branch.
+        if self.inputs is not None:
+            if not self.inputs:
+                raise ValueError("inputs must not be empty")
             if self.input or self.output:
                 raise ValueError("inputs cannot be combined with input/output")
             if not self.output_dir:
