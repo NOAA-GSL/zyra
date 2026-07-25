@@ -14,12 +14,20 @@
 # script, so wiring it needs neither pre-commit nor a working Poetry
 # environment. The other hooks in .pre-commit-config.yaml DO call
 # `poetry run`, which is why they are deliberately not installed here
-# (see docs note in CLAUDE.md).
+# (see the note in AGENTS.md).
 set -euo pipefail
 
 ROOT="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 CHECK="$ROOT/scripts/check_dco_signoff.sh"
-HOOK_DIR="$(git -C "$ROOT" rev-parse --git-path hooks 2>/dev/null || echo "$ROOT/.git/hooks")"
+HOOK_DIR="$(git -C "$ROOT" rev-parse --git-path hooks 2>/dev/null || echo ".git/hooks")"
+# `--git-path` reports relative to the repo root even under `-C`, so a
+# session started anywhere but the root would otherwise test and write
+# through a path resolved against the wrong directory. `--path-format`
+# would do this, but it needs git 2.31; this does not.
+case "$HOOK_DIR" in
+  /*) ;;
+  *) HOOK_DIR="$ROOT/$HOOK_DIR" ;;
+esac
 HOOK="$HOOK_DIR/commit-msg"
 MARKER="zyra-dco-signoff-hook"
 
