@@ -11,6 +11,10 @@ occurrence, so the API path silently kept only the LAST input — an API
 caller posting a frame sequence got a successful run that processed one
 file, with nothing in the response to say so. ``action="extend"``
 accepts both styles.
+
+The second half of this file pins the argument-error exit-code contract
+shared by the batch handlers: argument errors are a logged exit 2, while
+runtime failures and the ``--to-video`` path guards stay ``SystemExit``.
 """
 
 from __future__ import annotations
@@ -48,8 +52,8 @@ def _parse(domain, argv):
 
 # (domain, argv prefix before --inputs, argv suffix after the inputs)
 BATCH_COMMANDS = [
-    # heatmap still declares --input required=True on this branch; passing
-    # it keeps the case about --inputs expansion, not that requirement.
+    # heatmap accepts --input alongside --inputs (batch wins), so passing
+    # it keeps this case about --inputs expansion either way.
     ("visualize", ["heatmap", "--input", "x.tif"], ["--output-dir", "out"]),
     ("visualize", ["contour"], ["--output-dir", "out"]),
     ("visualize", ["vector"], []),
