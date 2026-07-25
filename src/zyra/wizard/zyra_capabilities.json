@@ -3225,7 +3225,7 @@
         "type": "str",
         "default": "YlOrBr"
       },
-      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--cmap-file": "Palette JSON (classified bands or continuous spec); path, '-', or an http(s)/s3 URL",
       "--legend-file": "Write a standalone colorbar legend image (transparent background)",
       "--legend-orientation": {
         "help": "Orientation for --legend-file",
@@ -3464,7 +3464,7 @@
         "type": "str",
         "default": "YlOrBr"
       },
-      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--cmap-file": "Palette JSON (classified bands or continuous spec); path, '-', or an http(s)/s3 URL",
       "--legend-file": "Write a standalone colorbar legend image (transparent background)",
       "--legend-orientation": {
         "help": "Orientation for --legend-file",
@@ -4719,7 +4719,7 @@
         "type": "str",
         "default": "YlOrBr"
       },
-      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--cmap-file": "Palette JSON (classified bands or continuous spec); path, '-', or an http(s)/s3 URL",
       "--legend-file": "Write a standalone colorbar legend image (transparent background)",
       "--legend-orientation": {
         "help": "Orientation for --legend-file",
@@ -4926,7 +4926,7 @@
         "type": "str",
         "default": "YlOrBr"
       },
-      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--cmap-file": "Palette JSON (classified bands or continuous spec); path, '-', or an http(s)/s3 URL",
       "--legend-file": "Write a standalone colorbar legend image (transparent background)",
       "--legend-orientation": {
         "help": "Orientation for --legend-file",

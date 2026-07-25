@@ -109,7 +109,12 @@ def load_data_array(
 
 
 def load_palette_spec(path: str) -> dict:
-    """Load and validate a palette file (``--cmap-file``).
+    """Load and validate a palette (``--cmap-file``).
+
+    Accepts a local path, ``-`` (stdin), or an ``http(s)://`` / ``s3://``
+    URL — the same forms every other zyra input takes, so a palette can
+    be referenced as a shared, versioned asset instead of a file the
+    caller has to stage locally first.
 
     Two shapes are accepted (see ColormapManager, which consumes them):
 
@@ -122,16 +127,22 @@ def load_palette_spec(path: str) -> dict:
     Raises
     ------
     ValueError
-        On unreadable files, invalid JSON, or a spec that fails
+        On unreadable files or URLs, invalid JSON, or a spec that fails
         validation. Handlers surface these as exit code 2.
     """
     import json
-    from pathlib import Path
+
+    from zyra.utils.io_utils import read_bytes_any
 
     try:
-        raw = Path(path).read_text(encoding="utf-8")
-    except OSError as exc:
+        # read_bytes_any raises RuntimeError for a missing path, an
+        # unsupported scheme, and any fetch failure; the palette
+        # contract is ValueError, which handlers map to exit 2.
+        raw = read_bytes_any(path).decode("utf-8")
+    except RuntimeError as exc:
         raise ValueError(f"Cannot read palette file {path}: {exc}") from exc
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"Palette file {path} is not UTF-8 text: {exc}") from exc
     try:
         spec = json.loads(raw)
     except json.JSONDecodeError as exc:

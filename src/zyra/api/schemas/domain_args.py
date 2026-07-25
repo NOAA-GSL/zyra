@@ -82,7 +82,8 @@ class VisualizeHeatmapArgs(BaseModel):
     dpi: int | None = None
     cmap: str | None = None
     cmap_file: str | None = Field(
-        default=None, description="Palette JSON file (classified or continuous)"
+        default=None,
+        description="Palette JSON (classified or continuous); path or http(s)/s3 URL",
     )
     legend_file: str | None = Field(
         default=None, description="Write a standalone colorbar legend image"
@@ -375,7 +376,8 @@ class VisualizeContourArgs(BaseModel):
         default=None, description="GeoTIFF band to read (1-based; default 1)"
     )
     cmap_file: str | None = Field(
-        default=None, description="Palette JSON file (classified or continuous)"
+        default=None,
+        description="Palette JSON (classified or continuous); path or http(s)/s3 URL",
     )
     legend_file: str | None = Field(
         default=None, description="Write a standalone colorbar legend image"
