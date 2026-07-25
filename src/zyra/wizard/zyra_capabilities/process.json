@@ -266,6 +266,7 @@
           "--stdout",
           "--inputs",
           "--output-dir",
+          "--output-names",
           "--backend",
           "--var",
           "--pattern",
@@ -295,6 +296,11 @@
       },
       "--output-dir": {
         "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-names": {
+        "help": "Destination filenames for --inputs, one per input, in order (default: the source stem). Use to name frames by valid time instead of inheriting the source's cycle-relative name.",
         "path_arg": true,
         "type": "path"
       },
@@ -361,6 +367,7 @@
         "inputs",
         "output",
         "output_dir",
+        "output_names",
         "pattern",
         "stdout",
         "unsigned",
@@ -929,6 +936,7 @@
           "--output",
           "--inputs",
           "--output-dir",
+          "--output-names",
           "--s-srs",
           "--t-srs",
           "--bounds",
@@ -962,6 +970,11 @@
       },
       "--output-dir": {
         "help": "Directory to write outputs for --inputs (each keeps its source filename)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-names": {
+        "help": "Destination filenames for --inputs, one per input, in order (default: the source filename)",
         "path_arg": true,
         "type": "path"
       },
@@ -1027,6 +1040,7 @@
         "inputs",
         "output",
         "output_dir",
+        "output_names",
         "resampling",
         "s_srs",
         "t_srs",

@@ -41,6 +41,10 @@ class ProcessConvertFormatArgs(BaseModel):
     # Batch
     inputs: list[str] | None = None
     output_dir: str | None = None
+    output_names: list[str] | None = Field(
+        default=None,
+        description="Destination filenames for inputs, one per input, in order",
+    )
     # Advanced
     backend: str | None = None
     var: str | None = None
@@ -69,6 +73,10 @@ class VisualizeHeatmapArgs(BaseModel):
     inputs: list[str] | None = None
     output: str | None = None
     output_dir: str | None = None
+    output_names: list[str] | None = Field(
+        default=None,
+        description="Destination filenames for inputs, one per input, in order",
+    )
     var: str | None = None
     band: int | None = Field(
         default=None, description="GeoTIFF band to read (1-based; default 1)"
@@ -374,6 +382,10 @@ class VisualizeContourArgs(BaseModel):
     # 400 by enforcing the same either/or the CLI handler does.
     output: str | None = None
     output_dir: str | None = None
+    output_names: list[str] | None = Field(
+        default=None,
+        description="Destination filenames for inputs, one per input, in order",
+    )
     band: int | None = Field(
         default=None, description="GeoTIFF band to read (1-based; default 1)"
     )
@@ -694,6 +706,10 @@ class ProcessReprojectArgs(BaseModel):
     # handler, as the other batch-capable commands do).
     inputs: list[str] | None = None
     output_dir: str | None = None
+    output_names: list[str] | None = Field(
+        default=None,
+        description="Destination filenames for inputs, one per input, in order",
+    )
     s_srs: str | None = None
     t_srs: str | None = None
     bounds: list[float] | None = None

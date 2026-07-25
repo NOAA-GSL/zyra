@@ -4,7 +4,7 @@ from __future__ import annotations
 import contextlib
 import re
 import tempfile
-from typing import Iterable, Iterator
+from typing import Callable, Iterable, Iterator
 
 from .io_utils import open_input  # re-export
 
@@ -122,3 +122,55 @@ def sanitize_for_log(text: str) -> str:
 def sanitize_args(args: Iterable[str]) -> list[str]:
     """Return a sanitized copy of a command arg vector for logging."""
     return [sanitize_for_log(a) for a in list(args)]
+
+
+def resolve_batch_output_names(
+    inputs: list[str],
+    output_names: list[str] | None,
+    *,
+    derive: Callable[[str], str],
+) -> list[str]:
+    """Resolve destination filenames for a batch stage.
+
+    Batch commands name outputs after their input by default, which keeps
+    a chain of batch stages aligned without the caller restating every
+    filename. That also means an output's identity is fixed by whatever
+    the source happened to be called — fine for a one-shot conversion,
+    wrong for frames whose name has to carry a valid time.
+
+    ``output_names`` overrides the derived names positionally.
+
+    Raises
+    ------
+    ValueError
+        If the two lists differ in length, or two entries would resolve
+        to the same destination. Handlers surface these as exit code 2.
+    """
+    explicit = output_names is not None
+    if not explicit:
+        names = [derive(src) for src in inputs]
+    else:
+        if len(output_names) != len(inputs):
+            raise ValueError(
+                f"--output-names must have one entry per --inputs "
+                f"({len(output_names)} names for {len(inputs)} inputs)"
+            )
+        names = list(output_names)
+    seen: dict[str, str] = {}
+    for name, src in zip(names, inputs):
+        prior = seen.get(name)
+        if prior is not None:
+            # Two different failures wearing the same shape: derived names
+            # collide because the sources happen to share a basename (the
+            # caller may not even realize it), while explicit names collide
+            # because the caller typed one twice. Say which.
+            if explicit:
+                raise ValueError(
+                    f"--output-names repeats {name!r} "
+                    f"(for inputs {prior} and {src})"
+                )
+            raise ValueError(
+                f"--inputs collide on output {name}: {prior} and {src} share a filename"
+            )
+        seen[name] = src
+    return names

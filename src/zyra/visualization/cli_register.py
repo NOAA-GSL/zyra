@@ -74,6 +74,16 @@ def register_cli(subparsers: Any) -> None:
         dest="output_dir",
         help="Directory to write outputs for --inputs",
     )
+    p_hm.add_argument(
+        "--output-names",
+        dest="output_names",
+        nargs="+",
+        action="extend",
+        help=(
+            "Destination filenames for --inputs, one per input, in order "
+            "(default: the source stem + .png)"
+        ),
+    )
     p_hm.add_argument("--width", type=int, default=1024)
     p_hm.add_argument("--height", type=int, default=512)
     p_hm.add_argument("--dpi", type=int, default=96)
@@ -183,6 +193,16 @@ def register_cli(subparsers: Any) -> None:
         "--output-dir",
         dest="output_dir",
         help="Directory to write outputs for --inputs",
+    )
+    p_ct.add_argument(
+        "--output-names",
+        dest="output_names",
+        nargs="+",
+        action="extend",
+        help=(
+            "Destination filenames for --inputs, one per input, in order "
+            "(default: the source stem + .png)"
+        ),
     )
     p_ct.add_argument("--var", help="Variable name for NetCDF inputs")
     p_ct.add_argument(
