@@ -313,3 +313,54 @@ def test_patching_time_sleep_actually_stops_the_sleeping():
     # base_delay=5s over two retries would be plainly visible if the
     # real time.sleep were still bound.
     assert elapsed < 1.0, f"slept for real: {elapsed:.2f}s"
+
+
+def test_connection_refused_is_not_retried():
+    """A refused connection is the transport twin of a 404.
+
+    The host answered and said nothing is listening. Repeating that
+    produces the identical failure, only slower — which is how a
+    mistyped URL turned into the full backoff ladder before reporting
+    the obvious, and how one CLI test went from 0.5s to 4.3s.
+
+    Built from a real refused socket rather than a hand-made exception
+    so the cause chain is the one `requests` actually raises.
+    """
+    import socket
+
+    from zyra.connectors.backends._retry import is_retryable
+
+    # Bind and close, so the port is definitely free and refusing.
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    port = s.getsockname()[1]
+    s.close()
+
+    requests = pytest.importorskip("requests")
+    try:
+        requests.get(f"http://127.0.0.1:{port}/x", timeout=5, proxies={"http": None})
+    except Exception as exc:
+        assert is_retryable(exc) is False
+        # And it really is the wrapped shape, not a bare OSError.
+        assert type(exc).__name__ == "ConnectionError"
+    else:  # pragma: no cover - would mean something is listening
+        pytest.fail("expected the connection to be refused")
+
+
+def test_other_connection_errors_are_still_retried():
+    # The narrowing must not swallow the transient cases: a reset
+    # mid-stream, or a one-off DNS failure in a container, are both
+    # worth another attempt.
+    reset = ConnectionError("reset")
+    reset.__cause__ = ConnectionResetError(104, "Connection reset by peer")
+    assert is_retryable(reset) is True
+    assert is_retryable(ConnectionError("dns hiccup")) is True
+
+
+def test_refused_survives_a_self_referential_cause_chain():
+    # Defensive: a cycle in __cause__/__context__ must not hang the walk.
+    a = ConnectionError("a")
+    b = ConnectionError("b")
+    a.__cause__ = b
+    b.__cause__ = a
+    assert is_retryable(a) is True

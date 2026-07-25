@@ -17,6 +17,7 @@ name instead.
 
 from __future__ import annotations
 
+import errno
 import random
 import time
 from typing import Callable, TypeVar
@@ -54,11 +55,42 @@ def _status_of(exc: BaseException) -> int | None:
     return status if isinstance(status, int) else None
 
 
+def _is_connection_refused(exc: BaseException) -> bool:
+    """True when the failure was a refused connection, at any depth.
+
+    ``requests`` wraps this several layers down — ConnectionError ->
+    MaxRetryError -> NewConnectionError -> ConnectionRefusedError — so
+    the cause chain has to be walked rather than the outermost type
+    inspected.
+    """
+    seen: set[int] = set()
+    cur: BaseException | None = exc
+    while cur is not None and id(cur) not in seen:
+        seen.add(id(cur))
+        if isinstance(cur, ConnectionRefusedError):
+            return True
+        if isinstance(cur, OSError) and cur.errno == errno.ECONNREFUSED:
+            return True
+        cur = cur.__cause__ or cur.__context__
+    return False
+
+
 def is_retryable(exc: BaseException) -> bool:
     """True when retrying ``exc`` could plausibly succeed."""
     status = _status_of(exc)
     if status is not None:
         return status in RETRYABLE_STATUS
+    # A refused connection is the transport-level twin of a 404: the
+    # host answered, and what it said is that nothing is listening
+    # there. Repeating it produces the identical failure, only slower —
+    # a mistyped URL would otherwise cost the whole backoff ladder
+    # before reporting the obvious.
+    #
+    # Deliberately narrower than "any ConnectionError": a reset
+    # mid-stream, or a DNS lookup that fails once in a container, are
+    # both genuinely worth another attempt.
+    if _is_connection_refused(exc):
+        return False
     # No response attached: a transport-level failure, retryable only for
     # the classes that represent a connection problem rather than a bug.
     return type(exc).__name__ in RETRYABLE_EXC_NAMES
