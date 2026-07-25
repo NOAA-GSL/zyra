@@ -426,8 +426,7 @@
       "--output": {
         "help": "Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
         "path_arg": true,
-        "type": "path",
-        "required": true
+        "type": "path"
       },
       "--width": {
         "help": "",
@@ -449,7 +448,7 @@
         "type": "str",
         "default": "YlOrBr"
       },
-      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--cmap-file": "Palette JSON (classified bands or continuous spec); path, '-', or an http(s)/s3 URL",
       "--legend-file": "Write a standalone colorbar legend image (transparent background)",
       "--legend-orientation": {
         "help": "Orientation for --legend-file",
@@ -605,8 +604,7 @@
       "--input": {
         "help": "Path to .nc/.nc4, .npy, or .tif/.tiff input",
         "path_arg": true,
-        "type": "path",
-        "required": true
+        "type": "path"
       },
       "--var": "Variable name for NetCDF inputs",
       "--band": {
@@ -654,7 +652,7 @@
         "type": "str",
         "default": "YlOrBr"
       },
-      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--cmap-file": "Palette JSON (classified bands or continuous spec); path, '-', or an http(s)/s3 URL",
       "--legend-file": "Write a standalone colorbar legend image (transparent background)",
       "--legend-orientation": {
         "help": "Orientation for --legend-file",
@@ -987,13 +985,7 @@
       "--basemap": "Optional basemap (path, bare image name, or pkg:ref) drawn under the data",
       "--extent": {
         "help": "west east south north (default: global -180 180 -90 90)",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "type": "float"
       },
       "--width": {
         "help": "Output width (px)",
@@ -1791,8 +1783,7 @@
       "--output": {
         "help": "Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
         "path_arg": true,
-        "type": "path",
-        "required": true
+        "type": "path"
       },
       "--width": {
         "help": "",
@@ -1814,7 +1805,7 @@
         "type": "str",
         "default": "YlOrBr"
       },
-      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--cmap-file": "Palette JSON (classified bands or continuous spec); path, '-', or an http(s)/s3 URL",
       "--legend-file": "Write a standalone colorbar legend image (transparent background)",
       "--legend-orientation": {
         "help": "Orientation for --legend-file",
@@ -1907,9 +1898,7 @@
     "positionals": [],
     "domain": "visualize",
     "args_schema": {
-      "required": [
-        "output"
-      ],
+      "required": [],
       "optional": [
         "band",
         "cmap",
@@ -1920,6 +1909,7 @@
         "legend_file",
         "legend_orientation",
         "levels",
+        "output",
         "output_dir"
       ]
     },
@@ -1986,8 +1976,7 @@
       "--input": {
         "help": "Path to .nc/.nc4, .npy, or .tif/.tiff input",
         "path_arg": true,
-        "type": "path",
-        "required": true
+        "type": "path"
       },
       "--var": "Variable name for NetCDF inputs",
       "--band": {
@@ -2035,7 +2024,7 @@
         "type": "str",
         "default": "YlOrBr"
       },
-      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--cmap-file": "Palette JSON (classified bands or continuous spec); path, '-', or an http(s)/s3 URL",
       "--legend-file": "Write a standalone colorbar legend image (transparent background)",
       "--legend-orientation": {
         "help": "Orientation for --legend-file",
@@ -2444,13 +2433,7 @@
       "--basemap": "Optional basemap (path, bare image name, or pkg:ref) drawn under the data",
       "--extent": {
         "help": "west east south north (default: global -180 180 -90 90)",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "type": "float"
       },
       "--width": {
         "help": "Output width (px)",

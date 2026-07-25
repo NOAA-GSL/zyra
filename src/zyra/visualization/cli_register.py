@@ -24,9 +24,12 @@ def register_cli(subparsers: Any) -> None:
 
     # heatmap
     p_hm = subparsers.add_parser("heatmap", help="Visualization: render 2D heatmap")
-    p_hm.add_argument(
-        "--input", required=True, help="Path to .nc/.nc4, .npy, or .tif/.tiff input"
-    )
+    # Not required=True: batch rendering supplies --inputs/--output-dir
+    # instead, and an argparse-level requirement made that documented
+    # mode unreachable. The handler requires at least one of the two
+    # forms; when both are given, --inputs wins and --input is ignored.
+    # (contour already declares --input the same way.)
+    p_hm.add_argument("--input", help="Path to .nc/.nc4, .npy, or .tif/.tiff input")
     p_hm.add_argument("--var", help="Variable name for NetCDF inputs")
     p_hm.add_argument(
         "--band",
@@ -55,8 +58,16 @@ def register_cli(subparsers: Any) -> None:
         "--output",
         help="Output PNG path (required when using --input; for --inputs use --output-dir)",
     )
+    # action="extend" on --inputs so both arg-expansion styles work:
+    # the pipeline runner emits `--inputs a b c` while the Domain API
+    # executor emits repeated `--inputs a --inputs b`. Plain nargs="+"
+    # keeps only the last of those, silently dropping every earlier
+    # input. Same reason --bounds/--extent use it.
     p_hm.add_argument(
-        "--inputs", nargs="+", help="Multiple input paths for batch rendering"
+        "--inputs",
+        nargs="+",
+        action="extend",
+        help="Multiple input paths for batch rendering",
     )
     p_hm.add_argument(
         "--output-dir",
@@ -71,7 +82,10 @@ def register_cli(subparsers: Any) -> None:
     hm_cmap.add_argument(
         "--cmap-file",
         dest="cmap_file",
-        help="Palette JSON file (classified bands or continuous spec)",
+        help=(
+            "Palette JSON (classified bands or continuous spec); "
+            "path, '-', or an http(s)/s3 URL"
+        ),
     )
     p_hm.add_argument(
         "--legend-file",
@@ -159,7 +173,12 @@ def register_cli(subparsers: Any) -> None:
         "contour", help="Visualization: render contour/filled contours"
     )
     p_ct.add_argument("--input", help="Path to .nc/.nc4, .npy, or .tif/.tiff input")
-    p_ct.add_argument("--inputs", nargs="+", help="Multiple inputs for batch rendering")
+    p_ct.add_argument(
+        "--inputs",
+        nargs="+",
+        action="extend",
+        help="Multiple inputs for batch rendering",
+    )
     p_ct.add_argument(
         "--output-dir",
         dest="output_dir",
@@ -181,9 +200,12 @@ def register_cli(subparsers: Any) -> None:
         default=None,
         help="west east south north (default: -180 180 -90 90)",
     )
+    # Not required=True: --inputs/--output-dir is the documented batch
+    # mode (see this flag's own help), and an argparse-level requirement
+    # made it unreachable without passing a dummy --output. The handler
+    # validates that exactly one form is present.
     p_ct.add_argument(
         "--output",
-        required=True,
         help="Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
     )
     p_ct.add_argument("--width", type=int, default=1024)
@@ -194,7 +216,10 @@ def register_cli(subparsers: Any) -> None:
     ct_cmap.add_argument(
         "--cmap-file",
         dest="cmap_file",
-        help="Palette JSON file (classified bands or continuous spec)",
+        help=(
+            "Palette JSON (classified bands or continuous spec); "
+            "path, '-', or an http(s)/s3 URL"
+        ),
     )
     p_ct.add_argument(
         "--legend-file",
@@ -291,7 +316,7 @@ def register_cli(subparsers: Any) -> None:
         "vector", help="Visualization: vector/quiver/streamlines"
     )
     p_vec.add_argument("--input")
-    p_vec.add_argument("--inputs", nargs="+")
+    p_vec.add_argument("--inputs", nargs="+", action="extend")
     p_vec.add_argument("--output")
     p_vec.add_argument("--output-dir")
     p_vec.add_argument("--uvar")
@@ -341,7 +366,7 @@ def register_cli(subparsers: Any) -> None:
         "animate", help="Visualization: frame generation + videos"
     )
     p_anim.add_argument("--input")
-    p_anim.add_argument("--inputs", nargs="+")
+    p_anim.add_argument("--inputs", nargs="+", action="extend")
     p_anim.add_argument("--output")
     p_anim.add_argument("--output-dir")
     p_anim.add_argument(

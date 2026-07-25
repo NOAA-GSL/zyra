@@ -82,7 +82,8 @@ class VisualizeHeatmapArgs(BaseModel):
     dpi: int | None = None
     cmap: str | None = None
     cmap_file: str | None = Field(
-        default=None, description="Palette JSON file (classified or continuous)"
+        default=None,
+        description="Palette JSON (classified or continuous); path or http(s)/s3 URL",
     )
     legend_file: str | None = Field(
         default=None, description="Write a standalone colorbar legend image"
@@ -369,13 +370,16 @@ def normalize_and_validate(stage: str, tool: str, args: dict) -> dict:
 class VisualizeContourArgs(BaseModel):
     input: str | None = None
     inputs: list[str] | None = None
-    output: str
+    # output was required before the batch form was reachable; keep the
+    # 400 by enforcing the same either/or the CLI handler does.
+    output: str | None = None
     output_dir: str | None = None
     band: int | None = Field(
         default=None, description="GeoTIFF band to read (1-based; default 1)"
     )
     cmap_file: str | None = Field(
-        default=None, description="Palette JSON file (classified or continuous)"
+        default=None,
+        description="Palette JSON (classified or continuous); path or http(s)/s3 URL",
     )
     legend_file: str | None = Field(
         default=None, description="Write a standalone colorbar legend image"
@@ -388,6 +392,20 @@ class VisualizeContourArgs(BaseModel):
     @model_validator(mode="after")
     def _cmap_exclusive(self):  # type: ignore[override]
         return _validate_cmap_legend_fields(self)
+
+    @model_validator(mode="after")
+    def _check_output_form(self):  # type: ignore[override]
+        # Test `is not None`, not truthiness: an explicit `inputs: []` is
+        # a malformed batch request, not an absent one, and must not fall
+        # through to the single-output branch.
+        if self.inputs is not None:
+            if not self.inputs:
+                raise ValueError("inputs must not be empty")
+            if not self.output_dir:
+                raise ValueError("output_dir is required with inputs")
+        elif not self.output:
+            raise ValueError("output is required (or use inputs with output_dir)")
+        return self
 
 
 class DecimatePostArgs(BaseModel):
@@ -670,8 +688,12 @@ class VerifyEvaluateArgs(BaseModel):
 
 # New: process tools
 class ProcessReprojectArgs(BaseModel):
-    input: str
-    output: str
+    input: str | None = None
+    output: str | None = None
+    # Batch: mutually exclusive with input/output (validated by the CLI
+    # handler, as the other batch-capable commands do).
+    inputs: list[str] | None = None
+    output_dir: str | None = None
     s_srs: str | None = None
     t_srs: str | None = None
     bounds: list[float] | None = None
@@ -707,6 +729,30 @@ class ProcessReprojectArgs(BaseModel):
         if v is not None and v not in ("bilinear", "nearest"):
             raise ValueError("resampling must be 'bilinear' or 'nearest'")
         return v
+
+    @model_validator(mode="after")
+    def _check_input_form(self):  # type: ignore[override]
+        # input/output were required before batch mode existed; keep the
+        # 400 by enforcing the same either/or the CLI handler does,
+        # rather than letting a missing input fall through to a runtime
+        # exit 2. Test `is not None`, not truthiness: an explicit
+        # `inputs: []` is a malformed batch request, not an absent one,
+        # and must not fall through to the single-input branch.
+        if self.inputs is not None:
+            if not self.inputs:
+                raise ValueError("inputs must not be empty")
+            if self.input or self.output:
+                raise ValueError("inputs cannot be combined with input/output")
+            if not self.output_dir:
+                raise ValueError("output_dir is required with inputs")
+            return self
+        if self.output_dir:
+            raise ValueError("output_dir requires inputs")
+        if not self.input or not self.output:
+            raise ValueError(
+                "input and output are required (or use inputs with output_dir)"
+            )
+        return self
 
     @field_validator("width", "height")
     @classmethod

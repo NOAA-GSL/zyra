@@ -1001,7 +1001,14 @@ def register_cli(acq_subparsers: Any) -> None:
         dest="date_format",
         help="Filename date format for list filtering (e.g., YYYYMMDD)",
     )
-    p_http.add_argument("--inputs", nargs="+", help="Multiple HTTP URLs to fetch")
+    # action="extend" on --inputs so both arg-expansion styles work:
+    # the pipeline runner emits `--inputs a b c` while the Domain API
+    # executor emits repeated `--inputs a --inputs b`. Plain nargs="+"
+    # keeps only the last of those, silently dropping every earlier
+    # input. Same reason --bounds/--extent use it.
+    p_http.add_argument(
+        "--inputs", nargs="+", action="extend", help="Multiple HTTP URLs to fetch"
+    )
     p_http.add_argument("--manifest", help="Path to a file listing URLs (one per line)")
     p_http.add_argument(
         "--output-dir",
@@ -1078,7 +1085,9 @@ def register_cli(acq_subparsers: Any) -> None:
         dest="date_format",
         help="Filename date format for list filtering (e.g., YYYYMMDD)",
     )
-    p_s3.add_argument("--inputs", nargs="+", help="Multiple s3:// URLs to fetch")
+    p_s3.add_argument(
+        "--inputs", nargs="+", action="extend", help="Multiple s3:// URLs to fetch"
+    )
     p_s3.add_argument(
         "--manifest", help="Path to a file listing s3:// URLs (one per line)"
     )
@@ -1130,7 +1139,9 @@ def register_cli(acq_subparsers: Any) -> None:
         dest="date_format",
         help="Filename date format for filtering (e.g., YYYYMMDD)",
     )
-    p_ftp.add_argument("--inputs", nargs="+", help="Multiple FTP paths to fetch")
+    p_ftp.add_argument(
+        "--inputs", nargs="+", action="extend", help="Multiple FTP paths to fetch"
+    )
     p_ftp.add_argument(
         "--manifest", help="Path to a file listing FTP paths (one per line)"
     )

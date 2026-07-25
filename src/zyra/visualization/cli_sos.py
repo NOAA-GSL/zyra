@@ -78,7 +78,21 @@ def handle_sos(ns) -> int:
     Renders one or more gridded inputs as Science On a Sphere frames using
     :class:`PlotManager`, with a fixed ``--vmin``/``--vmax`` color range for
     flicker-free frame sequences.
+
+    Argument errors surface as a clean logged error with exit code 2
+    instead of a bare exit 1 — the same contract
+    ``handle_heatmap``/``handle_contour`` use. Render failures keep
+    raising ``SystemExit`` deliberately, so a pipeline never treats an
+    empty or failed render as success.
     """
+    try:
+        return _handle_sos_impl(ns)
+    except ValueError as exc:
+        logging.error(str(exc))
+        return 2
+
+
+def _handle_sos_impl(ns) -> int:
     if getattr(ns, "verbose", False):
         os.environ["ZYRA_VERBOSITY"] = "debug"
     elif getattr(ns, "quiet", False):
@@ -96,7 +110,7 @@ def handle_sos(ns) -> int:
     if getattr(ns, "inputs", None):
         outdir = getattr(ns, "output_dir", None)
         if not outdir:
-            raise SystemExit("--output-dir is required when using --inputs")
+            raise ValueError("--output-dir is required when using --inputs")
         outdir_p = Path(outdir)
         outdir_p.mkdir(parents=True, exist_ok=True)
         outputs: list[str] = []
@@ -123,9 +137,9 @@ def handle_sos(ns) -> int:
 
     # Single input mode
     if not getattr(ns, "input", None):
-        raise SystemExit("--input or --inputs is required")
+        raise ValueError("--input or --inputs is required")
     if not getattr(ns, "output", None):
-        raise SystemExit("--output is required when using --input")
+        raise ValueError("--output is required when using --input")
     out = _render_one(ns, ns.input, ns.output)
     if not out:
         raise SystemExit(f"Failed to render SOS frame from {ns.input}")
@@ -153,7 +167,15 @@ def register_sos_cli(subparsers: Any) -> None:
     )
     p_sos.add_argument("--input", help="Path to .nc or .npy input")
     p_sos.add_argument(
-        "--inputs", nargs="+", help="Multiple input paths for batch rendering"
+        # action="extend" on --inputs so both arg-expansion styles work:
+        # the pipeline runner emits `--inputs a b c` while the Domain API
+        # executor emits repeated `--inputs a --inputs b`. Plain nargs="+"
+        # keeps only the last of those, silently dropping every earlier
+        # input. Same reason --bounds/--extent use it.
+        "--inputs",
+        nargs="+",
+        action="extend",
+        help="Multiple input paths for batch rendering",
     )
     p_sos.add_argument("--var", help="Variable name for NetCDF inputs")
     p_sos.add_argument(

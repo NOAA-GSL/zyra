@@ -253,3 +253,36 @@ def test_render_band_zero_surfaces_range_error(tmp_path):
     _write_tif(tif, np.zeros((2, 2), dtype="float32"))
     with pytest.raises(ValueError, match="out of range"):
         HeatmapManager(extent=[-180, 180, -90, 90]).render(input_path=tif, band=0)
+
+
+def test_heatmap_batch_does_not_require_single_input():
+    # --inputs/--output-dir is a documented batch mode; an argparse-level
+    # required=True on --input made it unreachable (contour never had it).
+    import argparse
+
+    import zyra.visualization as vpkg
+
+    parser = argparse.ArgumentParser()
+    vpkg.register_cli(parser.add_subparsers(dest="cmd"))
+    ns = parser.parse_args(
+        ["heatmap", "--inputs", "a.tif", "b.tif", "--output-dir", "out"]
+    )
+    assert ns.inputs == ["a.tif", "b.tif"]
+    assert ns.input is None
+
+
+def test_heatmap_without_any_input_exits_2():
+    # Dropping required=True must still reject "neither form given",
+    # with a clear message rather than a traceback.
+    import subprocess
+    import sys
+
+    proc = subprocess.run(
+        [sys.executable, "-m", "zyra.cli", "visualize", "heatmap", "--output", "o.png"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 2
+    assert "--input is required" in proc.stderr
+    assert "Traceback" not in proc.stderr

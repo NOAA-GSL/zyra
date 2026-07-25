@@ -443,8 +443,10 @@ def register_cli(subparsers: Any) -> None:
     globals()["cmd_pad_missing"] = cmd_pad_missing
 
     def cmd_reproject(args: argparse.Namespace) -> int:
+        import contextlib
         import logging
         import os
+        from pathlib import Path
 
         from zyra.utils.cli_helpers import configure_logging_from_env
 
@@ -458,8 +460,39 @@ def register_cli(subparsers: Any) -> None:
         # Lazy import: the module defers rasterio until the warp runs.
         from zyra.processing.raster_reproject import ReprojectError, reproject_raster
 
+        inputs = getattr(args, "inputs", None)
+        single = getattr(args, "input", None)
+        outdir = getattr(args, "output_dir", None)
+        # Reject every mixed form rather than silently ignoring the flag
+        # that does not apply to the chosen mode; the API schema
+        # validator enforces the same set, so the two agree.
+        if inputs and single:
+            logging.error("--inputs cannot be combined with -i/--input")
+            return 2
+        if inputs and getattr(args, "output", None):
+            logging.error(
+                "--inputs cannot be combined with -o/--output; use --output-dir"
+            )
+            return 2
+        if outdir and not inputs:
+            logging.error(
+                "--output-dir requires --inputs; use -o/--output for a single raster"
+            )
+            return 2
+        if not inputs and not single:
+            logging.error(
+                "-i/--input is required (or use --inputs with --output-dir for batch reprojection)"
+            )
+            return 2
+        if inputs and not outdir:
+            logging.error("--output-dir is required when using --inputs")
+            return 2
+        if single and not getattr(args, "output", None):
+            logging.error("-o/--output is required with -i/--input")
+            return 2
+
         if os.environ.get("ZYRA_SHELL_TRACE"):
-            logging.info("+ input='%s'", args.input)
+            logging.info("+ input='%s'", single if single else ",".join(inputs))
             logging.info(
                 "+ s_srs=%s t_srs=%s", getattr(args, "s_srs", None), args.t_srs
             )
@@ -481,10 +514,11 @@ def register_cli(subparsers: Any) -> None:
             else:
                 logging.error("--dst-bounds takes WEST SOUTH EAST NORTH or 'auto'")
                 return 2
-        try:
-            result = reproject_raster(
-                args.input,
-                args.output,
+
+        def _warp(src: str, dest: str) -> str:
+            return reproject_raster(
+                src,
+                dest,
                 s_srs=getattr(args, "s_srs", None),
                 t_srs=args.t_srs,
                 bounds=tuple(raw_bounds) if raw_bounds else None,
@@ -493,14 +527,63 @@ def register_cli(subparsers: Any) -> None:
                 height=args.height,
                 resampling=args.resampling,
                 dst_nodata=getattr(args, "dst_nodata", None),
-            )
+            ).output
+
+        # Batch mode: --inputs with --output-dir. Every other flag applies
+        # uniformly; 'auto' dst_bounds still derives per input, so a batch
+        # of regional rasters each crops to its own footprint.
+        if inputs:
+            outdir_p = Path(outdir)
+            # Destination keeps the source filename (not just the stem):
+            # reproject infers its driver from the output extension, so
+            # preserving the suffix keeps a PNG a PNG and a GeoTIFF a
+            # GeoTIFF instead of silently switching formats.
+            dests = {}
+            for src in inputs:
+                dest = outdir_p / Path(str(src)).name
+                prior = dests.get(dest)
+                if prior is not None:
+                    logging.error(
+                        "--inputs collide on output %s: %s and %s share a filename",
+                        dest,
+                        prior,
+                        src,
+                    )
+                    return 2
+                if Path(str(src)).resolve() == dest.resolve():
+                    logging.error(
+                        "--output-dir would overwrite input %s; choose a different directory",
+                        src,
+                    )
+                    return 2
+                dests[dest] = src
+            outdir_p.mkdir(parents=True, exist_ok=True)
+            outputs: list[str] = []
+            for dest, src in dests.items():
+                try:
+                    out = _warp(str(src), str(dest))
+                except ReprojectError as exc:
+                    logging.error("%s: %s", src, exc)
+                    return 2
+                except Exception as exc:
+                    logging.error("Reprojection failed for %s: %s", src, exc)
+                    return 2
+                logging.info(out)
+                outputs.append(out)
+            # Same convenience summary the other batch commands print.
+            with contextlib.suppress(Exception):
+                print(json.dumps({"outputs": outputs}))
+            return 0
+
+        try:
+            out = _warp(single, args.output)
         except ReprojectError as exc:
             logging.error(str(exc))
             return 2
         except Exception as exc:
             logging.error("Reprojection failed: %s", exc)
             return 2
-        logging.info(result.output)
+        logging.info(out)
         return 0
 
     # Expose reproject handler at module scope for notebook/manifest imports
@@ -820,7 +903,17 @@ def register_cli(subparsers: Any) -> None:
         help="Write binary output to stdout instead of a file",
     )
     # Multi-input support
-    p_conv.add_argument("--inputs", nargs="+", help="Multiple input paths or URLs")
+    # action="extend" on --inputs so both arg-expansion styles work:
+    # the pipeline runner emits `--inputs a b c` while the Domain API
+    # executor emits repeated `--inputs a --inputs b`. Plain nargs="+"
+    # keeps only the last of those, silently dropping every earlier
+    # input. Same reason --bounds/--extent use it.
+    p_conv.add_argument(
+        "--inputs",
+        nargs="+",
+        action="extend",
+        help="Multiple input paths or URLs",
+    )
     p_conv.add_argument(
         "--output-dir",
         dest="output_dir",
@@ -932,8 +1025,26 @@ def register_cli(subparsers: Any) -> None:
             "(zyra[processing])."
         ),
     )
-    p_rep.add_argument("-i", "--input", required=True, help="Source raster path")
-    p_rep.add_argument("-o", "--output", required=True, help="Output raster path")
+    # Not required=True: --inputs/--output-dir is the batch form, and an
+    # argparse-level requirement would make it unreachable. The handler
+    # validates that exactly one form is present.
+    p_rep.add_argument("-i", "--input", help="Source raster path")
+    p_rep.add_argument("-o", "--output", help="Output raster path")
+    # action="extend" so both arg-expansion styles work: the pipeline
+    # runner emits `--inputs a b c` while the Domain API executor emits
+    # repeated `--inputs a --inputs b` (plain nargs="+" keeps only the
+    # last of those). Matches --bounds/--dst-bounds below.
+    p_rep.add_argument(
+        "--inputs",
+        nargs="+",
+        action="extend",
+        help="Multiple source rasters for batch reprojection (with --output-dir)",
+    )
+    p_rep.add_argument(
+        "--output-dir",
+        dest="output_dir",
+        help="Directory to write outputs for --inputs (each keeps its source filename)",
+    )
     p_rep.add_argument(
         "--s-srs",
         dest="s_srs",

@@ -62,9 +62,18 @@ RUN apt-get update \
        fi \
     && rm -rf /var/lib/apt/lists/*
 
-# Help Python GDAL find the system gdal-config when building wheels if needed
+# Help Python GDAL find the system gdal-config when building wheels if needed.
+#
+# PROJ_LIB is deliberately NOT set here. /usr/share/proj only exists on
+# arm64, where the block above apt-installs proj-data; on amd64 the
+# geospatial stack comes from manylinux wheels that bundle their own
+# PROJ data, and an explicit PROJ_LIB pointing at a missing directory
+# overrides rasterio's in-wheel lookup, breaking every CRS operation
+# with "Cannot find proj.db". Leaving it unset lets rasterio/pyproj
+# resolve their bundled data on amd64 and lets the system libproj use
+# its compiled-in default path on arm64 -- the same reason GDAL_DATA is
+# not set here either.
 ENV GDAL_CONFIG=/usr/bin/gdal-config \
-    PROJ_LIB=/usr/share/proj \
     ECCODES_DIR=/usr
 
 # Optionally install source-built wgrib2 without copying when not needed

@@ -492,3 +492,130 @@ def test_unfilled_contour_honors_palette(tmp_path):
     assert contour_sets, "no contour collections found"
     assert contour_sets[0].get_cmap().name == "custom_colormap"
     assert contour_sets[0].norm is norm
+
+
+# ---- URL palettes (--cmap-file) ------------------------------------------
+# A palette hosted next to the portal that renders the visualization had
+# to be staged locally first, which costs a whole pipeline stage under a
+# fixed stage budget. Every other zyra input is already URL-aware.
+
+
+def test_load_palette_from_http_url(monkeypatch):
+    from zyra.connectors.backends import http as http_backend
+
+    monkeypatch.setattr(
+        http_backend, "fetch_bytes", lambda url, **kw: json.dumps(CONTINUOUS).encode()
+    )
+    spec = load_palette_spec("https://example.org/palettes/smoke.json")
+    assert spec["type"] == "continuous"
+    assert spec["base"] == "YlOrBr"
+
+
+def test_load_palette_from_s3_url(monkeypatch):
+    from zyra.connectors.backends import s3 as s3_backend
+
+    monkeypatch.setattr(
+        s3_backend, "fetch_bytes", lambda url, **kw: json.dumps(CLASSIFIED).encode()
+    )
+    spec = load_palette_spec("s3://bucket/palettes/refl.json")
+    assert len(spec["entries"]) == 4
+
+
+def test_url_palette_renders_identically_to_local_file(tmp_path):
+    # End-to-end over real HTTP (loopback), not a monkeypatched backend:
+    # the colormap built from a URL palette must match the one built from
+    # the same bytes on disk.
+    pytest.importorskip("matplotlib")
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    from zyra.visualization.cli_utils import cmap_norm_from_palette
+
+    body = json.dumps(CLASSIFIED).encode()
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802 - BaseHTTPRequestHandler API
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):  # keep pytest output clean
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        url = f"http://127.0.0.1:{server.server_address[1]}/palette.json"
+        from_url = load_palette_spec(url)
+    finally:
+        server.shutdown()
+        server.server_close()
+
+    from_file = load_palette_spec(_write(tmp_path, CLASSIFIED))
+    assert from_url == from_file
+
+    import numpy as np
+
+    cmap_u, norm_u = cmap_norm_from_palette(from_url)
+    cmap_f, norm_f = cmap_norm_from_palette(from_file)
+    assert np.array_equal(cmap_u(range(cmap_u.N)), cmap_f(range(cmap_f.N)))
+    assert list(norm_u.boundaries) == list(norm_f.boundaries)
+
+
+def test_load_palette_url_fetch_failure_names_the_url():
+    # Port 1 refuses immediately — no DNS, no network dependency.
+    url = "http://127.0.0.1:1/palette.json"
+    with pytest.raises(ValueError, match="Cannot read palette file") as excinfo:
+        load_palette_spec(url)
+    assert url in str(excinfo.value)
+
+
+def test_load_palette_url_bad_json_matches_local_message(monkeypatch):
+    from zyra.connectors.backends import http as http_backend
+
+    monkeypatch.setattr(http_backend, "fetch_bytes", lambda url, **kw: b"{not json")
+    with pytest.raises(ValueError, match="not valid JSON"):
+        load_palette_spec("https://example.org/p.json")
+
+
+def test_load_palette_url_non_utf8(monkeypatch):
+    # A URL that serves an image (or any binary) must not surface as a
+    # UnicodeDecodeError traceback.
+    from zyra.connectors.backends import http as http_backend
+
+    monkeypatch.setattr(http_backend, "fetch_bytes", lambda url, **kw: b"\xff\xfe\x00")
+    with pytest.raises(ValueError, match="not UTF-8"):
+        load_palette_spec("https://example.org/p.png")
+
+
+def test_cli_unreachable_palette_url_exits_2(tmp_path):
+    import subprocess
+    import sys
+
+    url = "http://127.0.0.1:1/palette.json"
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "zyra.cli",
+            "visualize",
+            "heatmap",
+            "--input",
+            str(tmp_path / "any.npy"),
+            "--output",
+            str(tmp_path / "o.png"),
+            "--cmap-file",
+            url,
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        # Never let an ambient proxy turn a refused connection into a
+        # slow upstream error.
+        env={**os.environ, "no_proxy": "*", "NO_PROXY": "*"},
+    )
+    assert proc.returncode == 2
+    assert url in proc.stderr
+    assert "Traceback" not in proc.stderr

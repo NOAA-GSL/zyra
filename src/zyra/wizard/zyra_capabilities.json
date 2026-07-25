@@ -2197,6 +2197,8 @@
           "--help",
           "--input",
           "--output",
+          "--inputs",
+          "--output-dir",
           "--s-srs",
           "--t-srs",
           "--bounds",
@@ -2216,14 +2218,22 @@
       "--input": {
         "help": "Source raster path",
         "path_arg": true,
-        "type": "path",
-        "required": true
+        "type": "path"
       },
       "--output": {
         "help": "Output raster path",
         "path_arg": true,
-        "type": "path",
-        "required": true
+        "type": "path"
+      },
+      "--inputs": {
+        "help": "Multiple source rasters for batch reprojection (with --output-dir)",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-dir": {
+        "help": "Directory to write outputs for --inputs (each keeps its source filename)",
+        "path_arg": true,
+        "type": "path"
       },
       "--s-srs": "Source CRS (e.g., EPSG:3413). Overrides any embedded CRS; required for plain images without georeferencing (with --bounds)",
       "--t-srs": {
@@ -2277,15 +2287,16 @@
     "positionals": [],
     "domain": "process",
     "args_schema": {
-      "required": [
-        "input",
-        "output"
-      ],
+      "required": [],
       "optional": [
         "bounds",
         "dst_bounds",
         "dst_nodata",
         "height",
+        "input",
+        "inputs",
+        "output",
+        "output_dir",
         "resampling",
         "s_srs",
         "t_srs",
@@ -3166,8 +3177,7 @@
       "--input": {
         "help": "Path to .nc/.nc4, .npy, or .tif/.tiff input",
         "path_arg": true,
-        "type": "path",
-        "required": true
+        "type": "path"
       },
       "--var": "Variable name for NetCDF inputs",
       "--band": {
@@ -3215,7 +3225,7 @@
         "type": "str",
         "default": "YlOrBr"
       },
-      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--cmap-file": "Palette JSON (classified bands or continuous spec); path, '-', or an http(s)/s3 URL",
       "--legend-file": "Write a standalone colorbar legend image (transparent background)",
       "--legend-orientation": {
         "help": "Orientation for --legend-file",
@@ -3431,8 +3441,7 @@
       "--output": {
         "help": "Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
         "path_arg": true,
-        "type": "path",
-        "required": true
+        "type": "path"
       },
       "--width": {
         "help": "",
@@ -3454,7 +3463,7 @@
         "type": "str",
         "default": "YlOrBr"
       },
-      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--cmap-file": "Palette JSON (classified bands or continuous spec); path, '-', or an http(s)/s3 URL",
       "--legend-file": "Write a standalone colorbar legend image (transparent background)",
       "--legend-orientation": {
         "help": "Orientation for --legend-file",
@@ -3547,9 +3556,7 @@
     "positionals": [],
     "domain": "visualize",
     "args_schema": {
-      "required": [
-        "output"
-      ],
+      "required": [],
       "optional": [
         "band",
         "cmap",
@@ -3560,6 +3567,7 @@
         "legend_file",
         "legend_orientation",
         "levels",
+        "output",
         "output_dir"
       ]
     },
@@ -4547,13 +4555,7 @@
       "--basemap": "Optional basemap (path, bare image name, or pkg:ref) drawn under the data",
       "--extent": {
         "help": "west east south north (default: global -180 180 -90 90)",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "type": "float"
       },
       "--width": {
         "help": "Output width (px)",
@@ -4667,8 +4669,7 @@
       "--input": {
         "help": "Path to .nc/.nc4, .npy, or .tif/.tiff input",
         "path_arg": true,
-        "type": "path",
-        "required": true
+        "type": "path"
       },
       "--var": "Variable name for NetCDF inputs",
       "--band": {
@@ -4716,7 +4717,7 @@
         "type": "str",
         "default": "YlOrBr"
       },
-      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--cmap-file": "Palette JSON (classified bands or continuous spec); path, '-', or an http(s)/s3 URL",
       "--legend-file": "Write a standalone colorbar legend image (transparent background)",
       "--legend-orientation": {
         "help": "Orientation for --legend-file",
@@ -4900,8 +4901,7 @@
       "--output": {
         "help": "Output PNG path (required for single --input; when using --inputs, prefer --output-dir)",
         "path_arg": true,
-        "type": "path",
-        "required": true
+        "type": "path"
       },
       "--width": {
         "help": "",
@@ -4923,7 +4923,7 @@
         "type": "str",
         "default": "YlOrBr"
       },
-      "--cmap-file": "Palette JSON file (classified bands or continuous spec)",
+      "--cmap-file": "Palette JSON (classified bands or continuous spec); path, '-', or an http(s)/s3 URL",
       "--legend-file": "Write a standalone colorbar legend image (transparent background)",
       "--legend-orientation": {
         "help": "Orientation for --legend-file",
@@ -5877,13 +5877,7 @@
       "--basemap": "Optional basemap (path, bare image name, or pkg:ref) drawn under the data",
       "--extent": {
         "help": "west east south north (default: global -180 180 -90 90)",
-        "type": "float",
-        "default": [
-          -180,
-          180,
-          -90,
-          90
-        ]
+        "type": "float"
       },
       "--width": {
         "help": "Output width (px)",
