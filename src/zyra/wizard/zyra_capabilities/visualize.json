@@ -360,6 +360,7 @@
           "--input",
           "--inputs",
           "--output-dir",
+          "--output-names",
           "--var",
           "--band",
           "--basemap",
@@ -409,6 +410,11 @@
       },
       "--output-dir": {
         "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-names": {
+        "help": "Destination filenames for --inputs, one per input, in order (default: the source stem + .png)",
         "path_arg": true,
         "type": "path"
       },
@@ -569,6 +575,7 @@
           "--output",
           "--inputs",
           "--output-dir",
+          "--output-names",
           "--width",
           "--height",
           "--dpi",
@@ -629,6 +636,11 @@
       },
       "--output-dir": {
         "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-names": {
+        "help": "Destination filenames for --inputs, one per input, in order (default: the source stem + .png)",
         "path_arg": true,
         "type": "path"
       },
@@ -1717,6 +1729,7 @@
           "--input",
           "--inputs",
           "--output-dir",
+          "--output-names",
           "--var",
           "--band",
           "--basemap",
@@ -1766,6 +1779,11 @@
       },
       "--output-dir": {
         "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-names": {
+        "help": "Destination filenames for --inputs, one per input, in order (default: the source stem + .png)",
         "path_arg": true,
         "type": "path"
       },
@@ -1910,7 +1928,8 @@
         "legend_orientation",
         "levels",
         "output",
-        "output_dir"
+        "output_dir",
+        "output_names"
       ]
     },
     "example_args": null,
@@ -1941,6 +1960,7 @@
           "--output",
           "--inputs",
           "--output-dir",
+          "--output-names",
           "--width",
           "--height",
           "--dpi",
@@ -2001,6 +2021,11 @@
       },
       "--output-dir": {
         "help": "Directory to write outputs for --inputs",
+        "path_arg": true,
+        "type": "path"
+      },
+      "--output-names": {
+        "help": "Destination filenames for --inputs, one per input, in order (default: the source stem + .png)",
         "path_arg": true,
         "type": "path"
       },
@@ -2138,6 +2163,7 @@
         "map_type",
         "output",
         "output_dir",
+        "output_names",
         "reproject",
         "tile_source",
         "tile_zoom",
