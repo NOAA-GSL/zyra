@@ -278,3 +278,38 @@ def test_max_workers_is_env_configurable(monkeypatch):
     # A nonsense value must not collapse concurrency to zero.
     monkeypatch.setenv("ZYRA_HTTP_MAX_WORKERS", "0")
     assert http_backend.default_max_workers() == 1
+
+
+def test_patching_time_sleep_actually_stops_the_sleeping():
+    """The obvious way to keep a retry test fast has to work.
+
+    ``sleep`` used to default to ``time.sleep`` in the signature, which
+    binds the original function once at definition time — so patching
+    ``_retry.time.sleep`` left the default untouched and the test spent
+    the delay for real. Resolving the default inside the body fixes it;
+    this pins that, because the failure mode is invisible (a passing
+    test that is merely slower and nondeterministic).
+    """
+    import time as _time
+    from unittest.mock import patch
+
+    from zyra.connectors.backends import _retry
+
+    seen: list[float] = []
+    calls = {"n": 0}
+
+    def flaky():
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise _HTTPError(503)
+        return "ok"
+
+    started = _time.monotonic()
+    with patch("zyra.connectors.backends._retry.time.sleep", seen.append):
+        assert _retry.with_retries(flaky, base_delay=5.0) == "ok"
+    elapsed = _time.monotonic() - started
+
+    assert len(seen) == 2, "the patched sleep must be the one that runs"
+    # base_delay=5s over two retries would be plainly visible if the
+    # real time.sleep were still bound.
+    assert elapsed < 1.0, f"slept for real: {elapsed:.2f}s"

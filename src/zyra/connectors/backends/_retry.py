@@ -92,7 +92,7 @@ def backoff_delay(
     *,
     base_delay: float = DEFAULT_BASE_DELAY,
     max_delay: float = DEFAULT_MAX_DELAY,
-    rand: Callable[[], float] = random.random,
+    rand: Callable[[], float] | None = None,
 ) -> float:
     """Exponential delay with full jitter for a zero-based attempt index.
 
@@ -100,7 +100,12 @@ def backoff_delay(
     concurrent ranged GETs that are throttled together would all sleep
     the same interval and retry in lockstep, reproducing the burst that
     caused the throttle.
+
+    ``rand`` resolves at call time for the same reason as
+    ``with_retries``' — see the note there.
     """
+    if rand is None:
+        rand = random.random
     ceiling = min(max_delay, base_delay * (2**attempt))
     return rand() * ceiling
 
@@ -111,8 +116,8 @@ def with_retries(
     max_attempts: int = DEFAULT_MAX_ATTEMPTS,
     base_delay: float = DEFAULT_BASE_DELAY,
     max_delay: float = DEFAULT_MAX_DELAY,
-    sleep: Callable[[float], None] = time.sleep,
-    rand: Callable[[], float] = random.random,
+    sleep: Callable[[float], None] | None = None,
+    rand: Callable[[], float] | None = None,
 ) -> T:
     """Call ``call``, retrying retryable failures with backoff.
 
@@ -120,9 +125,20 @@ def with_retries(
     attempt rather than being repeated identically. ``sleep`` and
     ``rand`` are injectable so tests can assert the delay sequence
     without spending it.
+
+    They default to ``None`` and resolve to ``time.sleep`` /
+    ``random.random`` here rather than in the signature, because a
+    default argument binds its value once at definition time: writing
+    ``sleep=time.sleep`` would capture the original function, and
+    ``patch("..._retry.time.sleep")`` — the obvious way to keep a test
+    from actually sleeping — would silently have no effect on it.
     """
     if max_attempts < 1:
         raise ValueError("max_attempts must be >= 1")
+    if sleep is None:
+        sleep = time.sleep
+    if rand is None:
+        rand = random.random
     attempt = 0
     while True:
         try:
