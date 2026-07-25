@@ -39,6 +39,10 @@ def _handle_heatmap_impl(ns) -> int:
 
     ns.extent = resolve_extent(ns)
     cmap, norm = resolve_cmap_args(ns)
+    if not getattr(ns, "inputs", None) and not getattr(ns, "input", None):
+        raise ValueError(
+            "--input is required (or use --inputs with --output-dir for batch rendering)"
+        )
     # Batch mode: --inputs with --output-dir
     if getattr(ns, "inputs", None):
         outdir = getattr(ns, "output_dir", None)

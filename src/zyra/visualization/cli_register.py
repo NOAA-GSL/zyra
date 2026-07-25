@@ -24,9 +24,12 @@ def register_cli(subparsers: Any) -> None:
 
     # heatmap
     p_hm = subparsers.add_parser("heatmap", help="Visualization: render 2D heatmap")
-    p_hm.add_argument(
-        "--input", required=True, help="Path to .nc/.nc4, .npy, or .tif/.tiff input"
-    )
+    # Not required=True: batch rendering supplies --inputs/--output-dir
+    # instead, and an argparse-level requirement made that documented
+    # mode unreachable. The handler requires at least one of the two
+    # forms; when both are given, --inputs wins and --input is ignored.
+    # (contour already declares --input the same way.)
+    p_hm.add_argument("--input", help="Path to .nc/.nc4, .npy, or .tif/.tiff input")
     p_hm.add_argument("--var", help="Variable name for NetCDF inputs")
     p_hm.add_argument(
         "--band",
