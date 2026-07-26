@@ -51,7 +51,11 @@ def test_load_geotiff_band1_default(tmp_path):
     _write_tif(tif, data)
     out = load_geotiff_array(tif)
     assert out.shape == (3, 4)
-    assert float(out[2, 3]) == 11.0
+    # `_write_tif` writes north-up (row 0 north), and the loader returns
+    # south-up, so the source's last row comes back first. Indexing the
+    # raw read order here is what let #281 hide: it agrees with a
+    # mirrored array.
+    assert float(out[0, 3]) == 11.0
 
 
 def test_load_geotiff_nodata_maps_to_nan(tmp_path):
@@ -60,7 +64,8 @@ def test_load_geotiff_nodata_maps_to_nan(tmp_path):
     data[0, 0] = -999.0
     _write_tif(tif, data, nodata=-999.0)
     out = load_geotiff_array(tif)
-    assert np.isnan(out[0, 0])
+    # Source row 0 is northernmost; it comes back last (see #281).
+    assert np.isnan(out[-1, 0])
     assert float(out[1, 1]) == 7.0
     # Only the nodata cell is masked.
     assert int(np.isnan(out).sum()) == 1
@@ -286,3 +291,56 @@ def test_heatmap_without_any_input_exits_2():
     assert proc.returncode == 2
     assert "--input is required" in proc.stderr
     assert "Traceback" not in proc.stderr
+
+
+def test_north_up_geotiff_loads_south_up(tmp_path):
+    """A north-up GeoTIFF comes back row-0-southernmost (#281).
+
+    `heatmap` draws with ``origin="lower"`` and `contour` builds its y
+    coordinates as ``linspace(south, north)``, so both read row 0 as the
+    southernmost. Returning a north-up raster as read mirrors the data
+    about the equator — which is what put northern-hemisphere smoke
+    plumes over the Southern Ocean in the published global frames.
+    """
+    tif = str(tmp_path / "north_up.tif")
+    data = np.zeros((8, 4), dtype="float32")
+    data[:4, :] = 1.0  # north half hot, in north-up row order
+    _write_tif(tif, data)
+
+    out = load_geotiff_array(tif)
+
+    assert out[:4].max() == 0.0, "southern half should be cold"
+    assert out[4:].min() == 1.0, "northern half should be hot"
+
+
+def test_south_up_geotiff_is_left_alone(tmp_path):
+    """A genuinely south-up GeoTIFF must not be flipped.
+
+    The fix keys off the transform's y step rather than assuming every
+    GeoTIFF is north-up, so this is the case a blanket ``[::-1]`` would
+    silently break.
+    """
+    from rasterio.transform import Affine
+
+    tif = str(tmp_path / "south_up.tif")
+    data = np.zeros((8, 4), dtype="float32")
+    data[4:, :] = 1.0  # north half hot, already in south-up row order
+    # Positive y step: row 0 is the southernmost row.
+    with rasterio.open(
+        tif,
+        "w",
+        driver="GTiff",
+        width=4,
+        height=8,
+        count=1,
+        dtype="float32",
+        crs=CRS.from_epsg(4326),
+        transform=Affine(90.0, 0.0, -180.0, 0.0, 22.5, -90.0),
+    ) as dst:
+        dst.write(data, 1)
+
+    out = load_geotiff_array(tif)
+
+    assert out[:4].max() == 0.0
+    assert out[4:].min() == 1.0
+    np.testing.assert_array_equal(out, data)
