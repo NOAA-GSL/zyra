@@ -56,15 +56,17 @@ def load_geotiff_array(input_path: str, *, band: int = 1):
             )
         arr = ds.read(band).astype("float32")
         nodata = ds.nodata
-        # A negative y step means row 0 is the northernmost row; the
-        # visualizers want row 0 southernmost. `.copy()` because the
-        # reversed view is not contiguous and the nodata pass below
-        # writes in place.
+        # A negative y step means row 0 is the northernmost row.
         north_up = ds.transform.e < 0
-    if north_up:
-        arr = arr[::-1, :].copy()
+    # Map nodata first, while `arr` is still the contiguous buffer this
+    # function owns, so the in-place write stays cheap.
     if nodata is not None and not np.isnan(nodata):
         arr[arr == np.float32(nodata)] = np.nan
+    # Then reverse to south-up. A reversed slice is a view, so this
+    # costs no second allocation; doing it before the write above would
+    # have forced a copy of the whole raster.
+    if north_up:
+        arr = arr[::-1, :]
     return arr
 
 
