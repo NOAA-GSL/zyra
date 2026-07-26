@@ -52,7 +52,7 @@ def register_cli(subparsers: Any) -> None:
         type=float,
         action="extend",
         default=None,
-        help="west east south north (default: -180 180 -90 90)",
+        help="west east south north (default: -180 180 -90 90) (note: `process reproject --dst-bounds` uses west south east north)",
     )
     p_hm.add_argument(
         "--output",
@@ -218,7 +218,7 @@ def register_cli(subparsers: Any) -> None:
         type=float,
         action="extend",
         default=None,
-        help="west east south north (default: -180 180 -90 90)",
+        help="west east south north (default: -180 180 -90 90) (note: `process reproject --dst-bounds` uses west south east north)",
     )
     # Not required=True: --inputs/--output-dir is the documented batch
     # mode (see this flag's own help), and an argparse-level requirement
@@ -350,7 +350,7 @@ def register_cli(subparsers: Any) -> None:
         type=float,
         action="extend",
         default=None,
-        help="west east south north (default: -180 180 -90 90)",
+        help="west east south north (default: -180 180 -90 90) (note: `process reproject --dst-bounds` uses west south east north)",
     )
     p_vec.add_argument("--width", type=int, default=1024)
     p_vec.add_argument("--height", type=int, default=512)
@@ -409,7 +409,7 @@ def register_cli(subparsers: Any) -> None:
         type=float,
         action="extend",
         default=None,
-        help="west east south north (default: -180 180 -90 90)",
+        help="west east south north (default: -180 180 -90 90) (note: `process reproject --dst-bounds` uses west south east north)",
     )
     p_anim.add_argument("--width", type=int, default=1024)
     p_anim.add_argument("--height", type=int, default=512)
@@ -528,7 +528,7 @@ def register_cli(subparsers: Any) -> None:
         type=float,
         action="extend",
         default=None,
-        help="west east south north (default: -180 180 -90 90)",
+        help="west east south north (default: -180 180 -90 90) (note: `process reproject --dst-bounds` uses west south east north)",
     )
     p_int.add_argument("--width", type=int, default=1024)
     p_int.add_argument("--height", type=int, default=512)

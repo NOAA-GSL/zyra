@@ -343,9 +343,9 @@ def resolve_extent(ns) -> list[float]:
     (``styles.DEFAULT_EXTENT``) when unset.
 
     Exits with code 2 (message on stderr via logging) on a wrong-length
-    value. The numeric exit code keeps the failure a clean exit-status
-    signal rather than relying on the Domain API executor's message-string
-    handling.
+    value, or on one whose bounds are inverted — see below. The numeric
+    exit code keeps the failure a clean exit-status signal rather than
+    relying on the Domain API executor's message-string handling.
     """
     extent = getattr(ns, "extent", None)
     if extent is None:
@@ -355,7 +355,51 @@ def resolve_extent(ns) -> list[float]:
 
         logging.error("--extent takes exactly 4 values: west east south north")
         raise SystemExit(2)
-    return [float(v) for v in extent]
+    west, east, south, north = (float(v) for v in extent)
+    # `--extent` is [west, east, south, north] (matplotlib's `imshow`
+    # order) while `process reproject --dst-bounds` is [west, south,
+    # east, north] (the GDAL/rasterio bbox order). A regional pipeline
+    # writes both, adjacent, so passing one in the other's order is easy
+    # and silent — four plausible numbers rendering a valid picture of
+    # the wrong part of the world (#287).
+    #
+    # It cannot be detected in general: both orderings can describe a
+    # perfectly well-formed box, and `-135 21 -60 53` is exactly that
+    # either way round. What *is* checkable is that the two values in
+    # the latitude slots really are latitudes — a longitude landing
+    # there is the common tell, since longitudes routinely exceed ±90
+    # while latitudes never do.
+    for name, value in (("south", south), ("north", north)):
+        if not -90.0 <= value <= 90.0:
+            import logging
+
+            logging.error(
+                "--extent takes west east south north; %s=%g is not a valid "
+                "latitude. Note that `process reproject --dst-bounds` uses a "
+                "different order (west south east north) — did you mean "
+                "--extent %g %g %g %g?",
+                name,
+                value,
+                west,
+                south,
+                east,
+                north,
+            )
+            raise SystemExit(2)
+    # Latitudes do not wrap, so an inverted pair is always an error.
+    # Longitudes deliberately are not checked: west > east is how a
+    # dateline-crossing extent is written.
+    if north <= south:
+        import logging
+
+        logging.error(
+            "--extent takes west east south north; south=%g is not below "
+            "north=%g, so the extent is empty",
+            south,
+            north,
+        )
+        raise SystemExit(2)
+    return [west, east, south, north]
 
 
 def features_from_ns(ns) -> list[str] | None:
