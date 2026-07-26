@@ -18,6 +18,16 @@ def load_geotiff_array(input_path: str, *, band: int = 1):
     NaN renders transparent in the raster visualizers, so warp fill and
     masked regions disappear instead of plotting as a solid value.
 
+    The returned array is **south-up** — row 0 is the southernmost row.
+    That is the convention every raster visualizer here already assumes:
+    ``heatmap`` draws with ``origin="lower"`` and ``contour`` builds its
+    y coordinates as ``linspace(south, north)``. GeoTIFFs are
+    conventionally north-up instead, so returning one as read renders it
+    mirrored about the equator (see #281 — the global smoke frames put
+    northern-hemisphere plumes over the Southern Ocean). The flip is
+    keyed off the transform rather than assumed, so a genuinely south-up
+    GeoTIFF is left alone.
+
     Parameters
     ----------
     input_path : str
@@ -46,6 +56,13 @@ def load_geotiff_array(input_path: str, *, band: int = 1):
             )
         arr = ds.read(band).astype("float32")
         nodata = ds.nodata
+        # A negative y step means row 0 is the northernmost row; the
+        # visualizers want row 0 southernmost. `.copy()` because the
+        # reversed view is not contiguous and the nodata pass below
+        # writes in place.
+        north_up = ds.transform.e < 0
+    if north_up:
+        arr = arr[::-1, :].copy()
     if nodata is not None and not np.isnan(nodata):
         arr[arr == np.float32(nodata)] = np.nan
     return arr
