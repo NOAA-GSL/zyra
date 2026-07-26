@@ -202,7 +202,7 @@ def register_sos_cli(subparsers: Any) -> None:
         type=float,
         action="extend",
         default=None,
-        help="west east south north (default: global -180 180 -90 90)",
+        help="west east south north (default: global -180 180 -90 90) (note: `process reproject --dst-bounds` uses west south east north)",
     )
     p_sos.add_argument("--width", type=int, default=4096, help="Output width (px)")
     p_sos.add_argument("--height", type=int, default=2048, help="Output height (px)")
