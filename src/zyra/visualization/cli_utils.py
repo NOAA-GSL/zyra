@@ -18,6 +18,16 @@ def load_geotiff_array(input_path: str, *, band: int = 1):
     NaN renders transparent in the raster visualizers, so warp fill and
     masked regions disappear instead of plotting as a solid value.
 
+    The returned array is **south-up** — row 0 is the southernmost row.
+    That is the convention every raster visualizer here already assumes:
+    ``heatmap`` draws with ``origin="lower"`` and ``contour`` builds its
+    y coordinates as ``linspace(south, north)``. GeoTIFFs are
+    conventionally north-up instead, so returning one as read renders it
+    mirrored about the equator (see #281 — the global smoke frames put
+    northern-hemisphere plumes over the Southern Ocean). The flip is
+    keyed off the transform rather than assumed, so a genuinely south-up
+    GeoTIFF is left alone.
+
     Parameters
     ----------
     input_path : str
@@ -46,8 +56,17 @@ def load_geotiff_array(input_path: str, *, band: int = 1):
             )
         arr = ds.read(band).astype("float32")
         nodata = ds.nodata
+        # A negative y step means row 0 is the northernmost row.
+        north_up = ds.transform.e < 0
+    # Map nodata first, while `arr` is still the contiguous buffer this
+    # function owns, so the in-place write stays cheap.
     if nodata is not None and not np.isnan(nodata):
         arr[arr == np.float32(nodata)] = np.nan
+    # Then reverse to south-up. A reversed slice is a view, so this
+    # costs no second allocation; doing it before the write above would
+    # have forced a copy of the whole raster.
+    if north_up:
+        arr = arr[::-1, :]
     return arr
 
 
@@ -324,9 +343,9 @@ def resolve_extent(ns) -> list[float]:
     (``styles.DEFAULT_EXTENT``) when unset.
 
     Exits with code 2 (message on stderr via logging) on a wrong-length
-    value. The numeric exit code keeps the failure a clean exit-status
-    signal rather than relying on the Domain API executor's message-string
-    handling.
+    value, or on one whose bounds are inverted — see below. The numeric
+    exit code keeps the failure a clean exit-status signal rather than
+    relying on the Domain API executor's message-string handling.
     """
     extent = getattr(ns, "extent", None)
     if extent is None:
@@ -336,7 +355,51 @@ def resolve_extent(ns) -> list[float]:
 
         logging.error("--extent takes exactly 4 values: west east south north")
         raise SystemExit(2)
-    return [float(v) for v in extent]
+    west, east, south, north = (float(v) for v in extent)
+    # `--extent` is [west, east, south, north] (matplotlib's `imshow`
+    # order) while `process reproject --dst-bounds` is [west, south,
+    # east, north] (the GDAL/rasterio bbox order). A regional pipeline
+    # writes both, adjacent, so passing one in the other's order is easy
+    # and silent — four plausible numbers rendering a valid picture of
+    # the wrong part of the world (#287).
+    #
+    # It cannot be detected in general: both orderings can describe a
+    # perfectly well-formed box, and `-135 21 -60 53` is exactly that
+    # either way round. What *is* checkable is that the two values in
+    # the latitude slots really are latitudes — a longitude landing
+    # there is the common tell, since longitudes routinely exceed ±90
+    # while latitudes never do.
+    for name, value in (("south", south), ("north", north)):
+        if not -90.0 <= value <= 90.0:
+            import logging
+
+            logging.error(
+                "--extent takes west east south north; %s=%g is not a valid "
+                "latitude. Note that `process reproject --dst-bounds` uses a "
+                "different order (west south east north) — did you mean "
+                "--extent %g %g %g %g?",
+                name,
+                value,
+                west,
+                south,
+                east,
+                north,
+            )
+            raise SystemExit(2)
+    # Latitudes do not wrap, so an inverted pair is always an error.
+    # Longitudes deliberately are not checked: west > east is how a
+    # dateline-crossing extent is written.
+    if north <= south:
+        import logging
+
+        logging.error(
+            "--extent takes west east south north; south=%g is not below "
+            "north=%g, so the extent is empty",
+            south,
+            north,
+        )
+        raise SystemExit(2)
+    return [west, east, south, north]
 
 
 def features_from_ns(ns) -> list[str] | None:

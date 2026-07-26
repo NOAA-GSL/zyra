@@ -110,7 +110,7 @@
       },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north (default: -180 180 -90 90)",
+        "help": "west east south north (default: -180 180 -90 90) (note: `process reproject --dst-bounds` uses west south east north)",
         "type": "float"
       },
       "--width": {
@@ -426,7 +426,7 @@
       },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north (default: -180 180 -90 90)",
+        "help": "west east south north (default: -180 180 -90 90) (note: `process reproject --dst-bounds` uses west south east north)",
         "type": "float"
       },
       "--output": {
@@ -621,7 +621,7 @@
       },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north (default: -180 180 -90 90)",
+        "help": "west east south north (default: -180 180 -90 90) (note: `process reproject --dst-bounds` uses west south east north)",
         "type": "float"
       },
       "--output": {
@@ -867,7 +867,7 @@
         "default": 3
       },
       "--extent": {
-        "help": "west east south north (default: -180 180 -90 90)",
+        "help": "west east south north (default: -180 180 -90 90) (note: `process reproject --dst-bounds` uses west south east north)",
         "type": "float"
       },
       "--width": {
@@ -996,7 +996,7 @@
       },
       "--basemap": "Optional basemap (path, bare image name, or pkg:ref) drawn under the data",
       "--extent": {
-        "help": "west east south north (default: global -180 180 -90 90)",
+        "help": "west east south north (default: global -180 180 -90 90) (note: `process reproject --dst-bounds` uses west south east north)",
         "type": "float"
       },
       "--width": {
@@ -1229,7 +1229,7 @@
       "--v": "",
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north (default: -180 180 -90 90)",
+        "help": "west east south north (default: -180 180 -90 90) (note: `process reproject --dst-bounds` uses west south east north)",
         "type": "float"
       },
       "--width": {
@@ -1444,7 +1444,7 @@
       },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north (default: -180 180 -90 90)",
+        "help": "west east south north (default: -180 180 -90 90) (note: `process reproject --dst-bounds` uses west south east north)",
         "type": "float"
       },
       "--width": {
@@ -1795,7 +1795,7 @@
       },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north (default: -180 180 -90 90)",
+        "help": "west east south north (default: -180 180 -90 90) (note: `process reproject --dst-bounds` uses west south east north)",
         "type": "float"
       },
       "--output": {
@@ -2006,7 +2006,7 @@
       },
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north (default: -180 180 -90 90)",
+        "help": "west east south north (default: -180 180 -90 90) (note: `process reproject --dst-bounds` uses west south east north)",
         "type": "float"
       },
       "--output": {
@@ -2285,7 +2285,7 @@
         "default": 3
       },
       "--extent": {
-        "help": "west east south north (default: -180 180 -90 90)",
+        "help": "west east south north (default: -180 180 -90 90) (note: `process reproject --dst-bounds` uses west south east north)",
         "type": "float"
       },
       "--width": {
@@ -2458,7 +2458,7 @@
       },
       "--basemap": "Optional basemap (path, bare image name, or pkg:ref) drawn under the data",
       "--extent": {
-        "help": "west east south north (default: global -180 180 -90 90)",
+        "help": "west east south north (default: global -180 180 -90 90) (note: `process reproject --dst-bounds` uses west south east north)",
         "type": "float"
       },
       "--width": {
@@ -2708,7 +2708,7 @@
       "--v": "",
       "--basemap": "Basemap (path, bare image name, or pkg:ref)",
       "--extent": {
-        "help": "west east south north (default: -180 180 -90 90)",
+        "help": "west east south north (default: -180 180 -90 90) (note: `process reproject --dst-bounds` uses west south east north)",
         "type": "float"
       },
       "--width": {
