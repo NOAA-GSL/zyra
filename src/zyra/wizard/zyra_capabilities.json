@@ -3166,6 +3166,8 @@
           "--legend-orientation",
           "--vmin",
           "--vmax",
+          "--data-encoded",
+          "--color-scale-file",
           "--colorbar",
           "--label",
           "--units",
@@ -3264,6 +3266,12 @@
         "help": "Fixed maximum data value for color scaling (use across frame sequences to avoid flicker)",
         "type": "float"
       },
+      "--data-encoded": {
+        "help": "Write value-exact 8-bit grayscale instead of a picture: luma is the value normalised against --vmin/--vmax, and a palette sidecar colours it at display time. Requires --vmin/--vmax; never autoscales per frame. Bypasses the basemap and the figure pipeline entirely",
+        "type": "bool",
+        "default": false
+      },
+      "--color-scale-file": "Write the palette + scale sidecar JSON for --data-encoded (stops, vmin, vmax, units, transparentRange)",
       "--colorbar": {
         "help": "",
         "type": "bool",
@@ -3346,8 +3354,10 @@
         "basemap",
         "cmap",
         "cmap_file",
+        "color_scale_file",
         "colorbar",
         "crs",
+        "data_encoded",
         "dpi",
         "extent",
         "height",
@@ -3366,6 +3376,8 @@
         "timestamp",
         "units",
         "var",
+        "vmax",
+        "vmin",
         "width",
         "xarray_engine"
       ]
@@ -4672,6 +4684,8 @@
           "--legend-orientation",
           "--vmin",
           "--vmax",
+          "--data-encoded",
+          "--color-scale-file",
           "--colorbar",
           "--label",
           "--units",
@@ -4770,6 +4784,12 @@
         "help": "Fixed maximum data value for color scaling (use across frame sequences to avoid flicker)",
         "type": "float"
       },
+      "--data-encoded": {
+        "help": "Write value-exact 8-bit grayscale instead of a picture: luma is the value normalised against --vmin/--vmax, and a palette sidecar colours it at display time. Requires --vmin/--vmax; never autoscales per frame. Bypasses the basemap and the figure pipeline entirely",
+        "type": "bool",
+        "default": false
+      },
+      "--color-scale-file": "Write the palette + scale sidecar JSON for --data-encoded (stops, vmin, vmax, units, transparentRange)",
       "--colorbar": {
         "help": "",
         "type": "bool",

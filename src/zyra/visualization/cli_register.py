@@ -119,6 +119,26 @@ def register_cli(subparsers: Any) -> None:
         type=float,
         help="Fixed maximum data value for color scaling (use across frame sequences to avoid flicker)",
     )
+    p_hm.add_argument(
+        "--data-encoded",
+        dest="data_encoded",
+        action="store_true",
+        help=(
+            "Write value-exact 8-bit grayscale instead of a picture: luma "
+            "is the value normalised against --vmin/--vmax, and a palette "
+            "sidecar colours it at display time. Requires --vmin/--vmax; "
+            "never autoscales per frame. Bypasses the basemap and the "
+            "figure pipeline entirely"
+        ),
+    )
+    p_hm.add_argument(
+        "--color-scale-file",
+        dest="color_scale_file",
+        help=(
+            "Write the palette + scale sidecar JSON for --data-encoded "
+            "(stops, vmin, vmax, units, transparentRange)"
+        ),
+    )
     p_hm.add_argument("--colorbar", action="store_true")
     p_hm.add_argument("--label")
     p_hm.add_argument("--units")
