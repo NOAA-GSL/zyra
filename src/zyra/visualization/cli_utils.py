@@ -12,21 +12,31 @@ except Exception:  # pragma: no cover - fallback for very old Python
 from zyra.visualization.styles import DEFAULT_EXTENT, MAP_STYLES
 
 
-def load_geotiff_array(input_path: str, *, band: int = 1):
+def load_geotiff_array(input_path: str, *, band: int = 1, south_up: bool = True):
     """Read one band of a GeoTIFF as float32 with nodata mapped to NaN.
 
     NaN renders transparent in the raster visualizers, so warp fill and
     masked regions disappear instead of plotting as a solid value.
 
-    The returned array is **south-up** — row 0 is the southernmost row.
-    That is the convention every raster visualizer here already assumes:
-    ``heatmap`` draws with ``origin="lower"`` and ``contour`` builds its
-    y coordinates as ``linspace(south, north)``. GeoTIFFs are
+    Orientation of the returned array depends on ``south_up``, and the
+    two consumers want opposite things.
+
+    By default it is **south-up** — row 0 is the southernmost row. That
+    is the convention every *figure* visualizer here assumes: ``heatmap``
+    draws with ``origin="lower"`` and ``contour`` builds its y
+    coordinates as ``linspace(south, north)``. GeoTIFFs are
     conventionally north-up instead, so returning one as read renders it
     mirrored about the equator (see #281 — the global smoke frames put
     northern-hemisphere plumes over the Southern Ocean). The flip is
     keyed off the transform rather than assumed, so a genuinely south-up
-    GeoTIFF is left alone.
+    GeoTIFF is left alone either way.
+
+    With ``south_up=False`` the file's own row order is preserved, so a
+    conventional north-up GeoTIFF comes back north-up. That is what the
+    data-encoded writer needs: ``write_luma_png`` hands the array
+    straight to PIL and a PNG's first row is its **top**, with no
+    ``origin="lower"`` anywhere to undo a flip. Taking the default there
+    reproduced #281 on the one path it could not have covered.
 
     Parameters
     ----------
@@ -34,6 +44,12 @@ def load_geotiff_array(input_path: str, *, band: int = 1):
         Path to a ``.tif``/``.tiff`` file.
     band : int, default 1
         1-based band index to read.
+    south_up : bool, default True
+        Whether to return the array south-up (row 0 southernmost),
+        flipping a north-up GeoTIFF to match. Pass ``False`` to keep the
+        file's own row order — needed when the array is written straight
+        to an image rather than drawn with ``origin="lower"``. The
+        default preserves the figure path's behaviour exactly.
 
     Raises
     ------
@@ -65,7 +81,12 @@ def load_geotiff_array(input_path: str, *, band: int = 1):
     # Then reverse to south-up. A reversed slice is a view, so this
     # costs no second allocation; doing it before the write above would
     # have forced a copy of the whole raster.
-    if north_up:
+    # `south_up=False` returns the file's own orientation. The data-
+    # encoded writer needs that: a PNG's first row is its TOP, and the
+    # client maps v == 0 to the northernmost row, so flipping here would
+    # write the frame upside down. The figure path keeps the default,
+    # since it draws with origin="lower".
+    if north_up and south_up:
         arr = arr[::-1, :]
     return arr
 
@@ -76,6 +97,7 @@ def load_data_array(
     var: str | None = None,
     xarray_engine: str | None = None,
     band: int = 1,
+    geotiff_south_up: bool = True,
 ):
     """Load a 2D array from a ``.nc``/``.nc4``, ``.npy``, or GeoTIFF file.
 
@@ -91,6 +113,12 @@ def load_data_array(
         ``h5netcdf``, ``scipy``).
     band : int, default 1
         Band to read for GeoTIFF inputs (nodata is mapped to NaN).
+    geotiff_south_up : bool, default True
+        Whether GeoTIFF input is returned south-up (row 0 southernmost),
+        which is what the figure path needs because it draws with
+        ``origin="lower"``. Pass ``False`` to get the file's own
+        orientation, which is what anything writing a raster straight to
+        an image file needs.
 
     Returns
     -------
@@ -123,7 +151,7 @@ def load_data_array(
 
         return np.load(input_path)
     if lower.endswith((".tif", ".tiff")):
-        return load_geotiff_array(input_path, band=band)
+        return load_geotiff_array(input_path, band=band, south_up=geotiff_south_up)
     raise ValueError("Unsupported input file; use .nc, .nc4, .npy, .tif, or .tiff")
 
 

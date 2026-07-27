@@ -15,6 +15,7 @@ Exits with code 0 when the version is available, 1 on timeout or error.
 from __future__ import annotations
 
 import json
+import re
 import socket
 import sys
 import time
@@ -22,7 +23,7 @@ import urllib.request
 from json import JSONDecodeError
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlparse
+from urllib.parse import unquote, urljoin, urlparse
 
 
 def fetch_json(url: str, timeout: float = 10.0) -> dict[str, Any]:
@@ -31,10 +32,7 @@ def fetch_json(url: str, timeout: float = 10.0) -> dict[str, Any]:
     This validation mitigates SSRF risks when the URL is constructed from
     untrusted input in future refactors.
     """
-    parsed = urlparse(url)
-    if parsed.scheme != "https" or parsed.netloc.lower() != "pypi.org":
-        raise ValueError(f"Refusing to fetch non-PyPI URL: {url}")
-    with urllib.request.urlopen(url, timeout=timeout) as r:
+    with _urlopen(url, "pypi.org", timeout=timeout) as r:
         return json.load(r)
 
 
@@ -45,22 +43,137 @@ def pep503_normalize(name: str) -> str:
     return re.sub(r"[-_.]+", "-", name).lower()
 
 
-def is_version_available(package: str, version: str, timeout: float = 10.0) -> bool:
-    """Check PyPI Simple API for availability of a specific version.
+#: Host serving the actual distribution files. The simple index lives on
+#: pypi.org and links out to here, and the two propagate independently.
+FILES_HOST = "files.pythonhosted.org"
 
-    Uses the PEP 503 simple index HTML, which pip consults when installing.
-    Returns True if any file link appears to contain the version string.
+
+def _require_allowed_url(url: str, *hosts: str) -> None:
+    """Reject anything not HTTPS on one of ``hosts``.
+
+    Guards against SSRF if a URL ever reaches here from untrusted input.
+    ``files.pythonhosted.org`` is allowed alongside ``pypi.org`` because
+    the file check below has to follow the index's own links.
+
+    Compares ``hostname`` rather than ``netloc``: netloc carries the port
+    and any userinfo, so an explicit ``https://pypi.org:443/...`` — same
+    host, same default port — would be refused as a stranger. ``hostname``
+    normalises the port away, strips userinfo, and lowercases.
+    """
+    allowed = tuple(h.lower() for h in hosts)
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or (parsed.hostname or "") not in allowed:
+        raise ValueError(
+            f"Refusing to fetch {url}: not HTTPS on {' or '.join(allowed)}"
+        )
+
+
+class _AllowlistRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Re-check the allowlist on each redirect hop.
+
+    urllib follows redirects by itself, so validating only the URL we ask
+    for checks the one hop that was never in doubt: a 302 pointing off the
+    allowlist would be followed, and the request issued, before anything
+    looked at it. Checking ``geturl()`` after ``urlopen`` returns is too
+    late for the same reason — by then it has been fetched. Refusing here
+    stops the hop before it goes out.
+    """
+
+    def __init__(self, hosts: tuple[str, ...]) -> None:
+        super().__init__()
+        self._hosts = hosts
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[no-untyped-def]
+        _require_allowed_url(newurl, *self._hosts)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _urlopen(url_or_req, *hosts: str, timeout: float = 10.0):  # type: ignore[no-untyped-def]
+    """``urlopen`` with the allowlist enforced on the request *and* redirects.
+
+    The single seam every fetch in this module goes through, so the guard
+    cannot be bypassed by adding a call site that forgets it.
+    """
+    target = url_or_req if isinstance(url_or_req, str) else url_or_req.full_url
+    _require_allowed_url(target, *hosts)
+    opener = urllib.request.build_opener(
+        _AllowlistRedirectHandler(tuple(h.lower() for h in hosts))
+    )
+    return opener.open(url_or_req, timeout=timeout)
+
+
+def file_urls_for_version(
+    package: str, version: str, timeout: float = 10.0
+) -> list[str]:
+    """Return the simple index's file links for exactly ``version``.
+
+    The match is anchored on the full filename rather than a substring:
+    a bare ``<pkg>-<version>`` needle also matches ``0.1.53.1``, which
+    would let a *different* release satisfy the wait.
     """
     normalized = pep503_normalize(package)
     simple_url = f"https://pypi.org/simple/{normalized}/"
-    parsed = urlparse(simple_url)
-    if parsed.scheme != "https" or parsed.netloc.lower() != "pypi.org":
-        raise ValueError(f"Refusing to fetch non-PyPI URL: {simple_url}")
-    with urllib.request.urlopen(simple_url, timeout=timeout) as r:
+    with _urlopen(simple_url, "pypi.org", timeout=timeout) as r:
         html = r.read().decode("utf-8", errors="replace")
-    # Look for filename prefix like '<pkg>-<version>'
-    needle = f"{normalized}-{version}"
-    return needle in html
+
+    # Wheels escape the name with underscores (PEP 427); sdists use the
+    # raw project name. Accept either, then require the version to be
+    # followed by a wheel's '-' or an sdist's extension.
+    stem = re.escape(normalized).replace(r"\-", "[-_]")
+    pattern = re.compile(
+        rf"^{stem}-{re.escape(version)}(?:-[^/]*\.whl|\.tar\.gz|\.zip)$",
+        re.IGNORECASE,
+    )
+    urls: list[str] = []
+    for href in re.findall(r'href=[\'"]([^\'"]+)[\'"]', html):
+        # PEP 503 permits relative links; PyPI serves absolute ones to
+        # files.pythonhosted.org. Resolve against the index either way.
+        clean = urljoin(simple_url, href.split("#", 1)[0])
+        filename = unquote(clean.rsplit("/", 1)[-1])
+        if pattern.match(filename):
+            urls.append(clean)
+    return urls
+
+
+def is_fetchable(url: str, timeout: float = 10.0) -> bool:
+    """Whether ``url`` actually serves bytes right now.
+
+    Asks for a single byte. The simple index can list a release before
+    every CDN edge is serving the file, and pip downloads from a
+    different host than the index it resolved against — so "listed" and
+    "downloadable" are separate facts, and only the second one is the
+    condition a build actually needs.
+    """
+    req = urllib.request.Request(url, headers={"Range": "bytes=0-0"})
+    with _urlopen(req, FILES_HOST, "pypi.org", timeout=timeout) as r:
+        return r.status in (200, 206)
+
+
+def is_version_available(package: str, version: str, timeout: float = 10.0) -> bool:
+    """Whether ``version`` is listed *and* every listed file is downloadable.
+
+    Listing alone is what this used to check, and it is not enough: a
+    green check followed immediately by a 404 inside a Docker build is
+    exactly the failure this guard exists to prevent.
+
+    **Every** file, not the first one that answers. Requiring only one
+    would pick the wrong file as often as not: pip installs the wheel
+    normally, but a source build — a ``--no-binary`` install, or a
+    platform with no matching wheel — reaches for the sdist, so a green
+    check on whichever happened to respond first says nothing about the
+    file pip will actually download. All of them serving is also better
+    evidence of the thing actually being waited on, which is that the
+    release has propagated to the edge serving this build.
+
+    The two ways of being wrong are not symmetric. Waiting too long is
+    bounded by ``retries × delay`` and merely delays a release; going
+    green too early fails the image build, which is the bug this exists
+    to fix.
+    """
+    urls = file_urls_for_version(package, version, timeout=timeout)
+    if not urls:
+        return False
+    return all(is_fetchable(u, timeout=timeout) for u in urls)
 
 
 def main(argv: list[str]) -> int:
@@ -95,7 +208,7 @@ def main(argv: list[str]) -> int:
         try:
             # Check the Simple API used by pip to avoid JSON/simple propagation skew
             if is_version_available(package, version):
-                print(f"Found {package} {version} on PyPI (simple index).")
+                print(f"Found {package} {version} on PyPI (listed and downloadable).")
                 return 0
         except (URLError, HTTPError, JSONDecodeError, socket.timeout) as exc:
             # Expected transient issues; log for CI visibility and retry.

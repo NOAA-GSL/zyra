@@ -245,11 +245,19 @@ def _handle_data_encoded(ns) -> int:
     def _load(src: str):
         from zyra.visualization.cli_utils import load_data_array
 
+        # north-up, unlike the figure path. load_geotiff_array flips a
+        # conventional GeoTIFF to south-up because heatmap and contour
+        # draw with origin="lower", which puts it back. Nothing puts it
+        # back here: write_luma_png hands the array straight to PIL, and
+        # a PNG's first row is its TOP. Taking the default wrote every
+        # frame mirrored about the equator — the same failure as #281,
+        # on the one path with no origin="lower" to save it.
         return load_data_array(
             src,
             var=getattr(ns, "var", None),
             xarray_engine=getattr(ns, "xarray_engine", None),
             band=getattr(ns, "band", 1),
+            geotiff_south_up=False,
         )
 
     def _write(src: str, dest: str) -> str:
