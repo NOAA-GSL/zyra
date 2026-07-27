@@ -234,9 +234,9 @@ def test_heatmap_renders_geotiff_with_transparent_nodata(tmp_path):
     h, w = img.shape[:2]
     left = img[h // 2, w // 4]
     right = img[h // 2, (3 * w) // 4]
-    assert (
-        abs(int(left.sum()) - int(right.sum())) > 60
-    ), f"nodata half was painted with data color: left={left}, right={right}"
+    assert abs(int(left.sum()) - int(right.sum())) > 60, (
+        f"nodata half was painted with data color: left={left}, right={right}"
+    )
     # Background is neutral (grayscale-ish), data color is not.
     assert max(left) - min(left) < 30, f"nodata pixel not background-like: {left}"
 
@@ -344,3 +344,45 @@ def test_south_up_geotiff_is_left_alone(tmp_path):
     assert out[:4].max() == 0.0
     assert out[4:].min() == 1.0
     np.testing.assert_array_equal(out, data)
+
+
+def test_south_up_false_returns_the_files_own_orientation(tmp_path):
+    """`south_up=False` keeps a north-up GeoTIFF north-up.
+
+    The data-encoded writer needs this. `write_luma_png` hands the array
+    straight to PIL and a PNG's first row is its TOP, with the client
+    mapping v == 0 to the northernmost row — so the flip that makes the
+    figure path correct writes a data frame mirrored about the equator.
+    Same failure as #281, on the one path with no ``origin="lower"`` to
+    put it back.
+    """
+    tif = str(tmp_path / "north_up_keep.tif")
+    data = np.zeros((8, 4), dtype="float32")
+    data[:4, :] = 1.0  # north half hot, in north-up row order
+    _write_tif(tif, data)
+
+    out = load_geotiff_array(tif, south_up=False)
+
+    assert out[:4].min() == 1.0, "row 0 should still be the northernmost"
+    assert out[4:].max() == 0.0
+
+    # …and the default is unchanged, so the figure path is untouched.
+    assert load_geotiff_array(tif)[:4].max() == 0.0
+
+
+def test_load_data_array_threads_the_orientation_flag(tmp_path):
+    """The flag has to survive the load_data_array wrapper.
+
+    That wrapper is what the data-encoded handler actually calls, so a
+    parameter that stops at the GeoTIFF helper would look correct in
+    isolation and do nothing in production.
+    """
+    from zyra.visualization.cli_utils import load_data_array
+
+    tif = str(tmp_path / "threaded.tif")
+    data = np.zeros((8, 4), dtype="float32")
+    data[:4, :] = 1.0
+    _write_tif(tif, data)
+
+    assert load_data_array(tif, geotiff_south_up=False)[:4].min() == 1.0
+    assert load_data_array(tif)[:4].max() == 0.0
