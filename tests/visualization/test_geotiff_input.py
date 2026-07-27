@@ -234,9 +234,9 @@ def test_heatmap_renders_geotiff_with_transparent_nodata(tmp_path):
     h, w = img.shape[:2]
     left = img[h // 2, w // 4]
     right = img[h // 2, (3 * w) // 4]
-    assert abs(int(left.sum()) - int(right.sum())) > 60, (
-        f"nodata half was painted with data color: left={left}, right={right}"
-    )
+    assert (
+        abs(int(left.sum()) - int(right.sum())) > 60
+    ), f"nodata half was painted with data color: left={left}, right={right}"
     # Background is neutral (grayscale-ish), data color is not.
     assert max(left) - min(left) < 30, f"nodata pixel not background-like: {left}"
 
