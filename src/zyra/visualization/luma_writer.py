@@ -85,16 +85,21 @@ def resize_nearest(codes, width: int | None, height: int | None):
     were never measured; the same reason the downstream encoder scales
     with ``flags=neighbor``. Passing no size writes the source grid
     unchanged, which is the recommended path.
+
+    ``None`` means "not given"; 0 is a size, and an invalid one. The
+    distinction has to be ``is None`` rather than truthiness, or an
+    explicit 0 quietly resolves to the source dimension and the caller
+    is told nothing.
     """
     import numpy as np
 
     src_h, src_w = codes.shape
-    out_w = int(width) if width else src_w
-    out_h = int(height) if height else src_h
-    if out_w == src_w and out_h == src_h:
-        return codes
+    out_w = src_w if width is None else int(width)
+    out_h = src_h if height is None else int(height)
     if out_w <= 0 or out_h <= 0:
         raise ValueError("--width and --height must be positive")
+    if out_w == src_w and out_h == src_h:
+        return codes
     rows = np.minimum((np.arange(out_h) * src_h) // out_h, src_h - 1)
     cols = np.minimum((np.arange(out_w) * src_w) // out_w, src_w - 1)
     return codes[rows[:, None], cols[None, :]]

@@ -130,6 +130,19 @@ def test_resize_is_a_no_op_at_the_source_size():
     assert resize_nearest(codes, None, None) is codes
 
 
+@pytest.mark.parametrize(
+    ("width", "height"),
+    [(0, 0), (0, 3), (5, 0), (-4, 3), (5, -4)],
+)
+def test_resize_rejects_a_non_positive_size(width, height):
+    # 0 is a size, not an absent one. Resolving it to the source
+    # dimension would accept an invalid request and silently do
+    # something other than what was asked.
+    codes = np.zeros((3, 5), dtype=np.uint8)
+    with pytest.raises(ValueError, match="must be positive"):
+        resize_nearest(codes, width, height)
+
+
 def test_written_pixels_are_the_codes(tmp_path):
     data = np.array([[0.0, 100.0], [50.0, 25.0]])
     out = write_luma_png(data, str(tmp_path / "f.png"), vmin=0, vmax=100)
@@ -281,6 +294,48 @@ class TestDataEncodedCli:
         assert scale["vmin"] == 0 and scale["vmax"] == 100
         assert scale["units"] == "K"
         assert len(scale["stops"]) == SIDECAR_STOPS
+
+    def test_handler_accepts_a_classified_palette_with_a_range(self, tmp_path):
+        # resolve_cmap_args rejects --vmin/--vmax alongside a classified
+        # palette, which is right for a picture and wrong here: a
+        # data-encoded frame requires them. When that ran ahead of the
+        # data-encoded branch, classified + --data-encoded exited 2 and
+        # the classified arm of _sample_palette was unreachable.
+        pytest.importorskip("matplotlib")
+        from zyra.visualization.cli_heatmap import handle_heatmap
+
+        src = tmp_path / "in.npy"
+        np.save(src, np.array([[0.0, 100.0], [50.0, 25.0]]))
+        palette = tmp_path / "p.json"
+        palette.write_text(
+            json.dumps(
+                {
+                    "type": "classified",
+                    "entries": [
+                        {"Color": [0, 0, 255, 255], "Upper Bound": 0.0},
+                        {"Color": [255, 0, 0, 255], "Upper Bound": 50.0},
+                        {"Color": [0, 255, 0, 255], "Upper Bound": 100.0},
+                    ],
+                }
+            )
+        )
+        sidecar = tmp_path / "scale.json"
+        ns = self._ns(
+            input=str(src),
+            output=str(tmp_path / "out.png"),
+            data_encoded=True,
+            vmin=0,
+            vmax=100,
+            cmap_file=str(palette),
+            color_scale_file=str(sidecar),
+        )
+
+        assert handle_heatmap(ns) == 0
+        scale = json.loads(sidecar.read_text())
+        # The bands came from the palette, not the greyscale fallback
+        # (which would put equal values on all three channels).
+        assert scale["stops"][SIDECAR_STOPS // 4]["rgba"][:3] == [0, 0, 255]
+        assert scale["stops"][3 * SIDECAR_STOPS // 4]["rgba"][:3] == [255, 0, 0]
 
     def test_handler_exits_2_without_a_range(self, tmp_path):
         from zyra.visualization.cli_heatmap import handle_heatmap

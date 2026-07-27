@@ -35,10 +35,6 @@ def _handle_heatmap_impl(ns) -> int:
     if getattr(ns, "trace", False):
         os.environ["ZYRA_SHELL_TRACE"] = "1"
     configure_logging_from_env()
-    from zyra.visualization.cli_utils import resolve_cmap_args, resolve_extent
-
-    ns.extent = resolve_extent(ns)
-    cmap, norm = resolve_cmap_args(ns)
     if not getattr(ns, "inputs", None) and not getattr(ns, "input", None):
         raise ValueError(
             "--input is required (or use --inputs with --output-dir for batch rendering)"
@@ -52,9 +48,20 @@ def _handle_heatmap_impl(ns) -> int:
         )
     # Data-encoded output is a different artifact, not a different
     # style of the same one: it never builds a figure, never composites
-    # a basemap, and must not resample. Branch before any of that.
+    # a basemap, and must not resample. Branch before any of that —
+    # including before resolve_cmap_args, whose rules are about the
+    # figure. It rejects --vmin/--vmax alongside a classified palette
+    # because a picture takes its bounds from the palette table; a
+    # data-encoded frame *requires* them, since they define what luma
+    # means. Running it first made classified + --data-encoded
+    # impossible to invoke even though _sample_palette handles it.
     if getattr(ns, "data_encoded", False):
         return _handle_data_encoded(ns)
+
+    from zyra.visualization.cli_utils import resolve_cmap_args, resolve_extent
+
+    ns.extent = resolve_extent(ns)
+    cmap, norm = resolve_cmap_args(ns)
 
     # Batch mode: --inputs with --output-dir
     if getattr(ns, "inputs", None):
