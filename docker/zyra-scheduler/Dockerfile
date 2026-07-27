@@ -80,17 +80,38 @@ RUN --mount=type=bind,from=wgrib2-builder,source=/out,target=/tmp/wgrib2,ro \
 # Install Zyra from PyPI, pin to release if provided
 ARG ZYRA_VERSION
 ARG ZYRA_EXTRAS
-RUN if [ -z "$ZYRA_VERSION" ] || [ "$ZYRA_VERSION" = "latest" ]; then \
+RUN set -e; \
+    # Retry just the zyra install while a fresh release propagates.
+    # See docker/zyra/Dockerfile for the full reasoning: the release
+    # job's wait_for_pypi.py check runs on the GitHub runner, this
+    # install runs inside BuildKit, and the two do not share a PyPI CDN
+    # edge — so a build can 404 on a version the guard just confirmed.
+    # pip's --retries does not cover it ("no matching distribution" is a
+    # successful fetch of an index missing the version, not a transport
+    # error), and the retry has to happen where the install happens.
+    zyra_pip() { \
+      local attempt=1; \
+      until pip install --no-cache-dir --no-compile "$@"; do \
+        if [ "$attempt" -ge 10 ]; then \
+          echo "zyra install still failing after $attempt attempts; giving up" >&2; \
+          return 1; \
+        fi; \
+        echo "zyra install failed (attempt $attempt/10) - index may not have reached this edge yet; retrying in 30s" >&2; \
+        sleep 30; \
+        attempt=$((attempt + 1)); \
+      done; \
+    }; \
+    if [ -z "$ZYRA_VERSION" ] || [ "$ZYRA_VERSION" = "latest" ]; then \
       if [ -n "$ZYRA_EXTRAS" ]; then \
-        pip install --no-cache-dir --no-compile "zyra[${ZYRA_EXTRAS}]"; \
+        zyra_pip "zyra[${ZYRA_EXTRAS}]"; \
       else \
-        pip install --no-cache-dir --no-compile zyra; \
+        zyra_pip zyra; \
       fi; \
     else \
       if [ -n "$ZYRA_EXTRAS" ]; then \
-        pip install --no-cache-dir --no-compile "zyra[${ZYRA_EXTRAS}]==${ZYRA_VERSION}"; \
+        zyra_pip "zyra[${ZYRA_EXTRAS}]==${ZYRA_VERSION}"; \
       else \
-        pip install --no-cache-dir --no-compile "zyra==${ZYRA_VERSION}"; \
+        zyra_pip "zyra==${ZYRA_VERSION}"; \
       fi; \
     fi \
     && pip install --no-cache-dir --upgrade 'setuptools>=78.1.1' 'wheel>=0.46.2'
