@@ -101,6 +101,29 @@ class VisualizeHeatmapArgs(BaseModel):
         default=None, description="Write a standalone colorbar legend image"
     )
     legend_orientation: str | None = None
+    # vmin/vmax were missing here while the CLI has always accepted
+    # them, and `extra="ignore"` dropped them silently — so an API
+    # caller asking for a fixed colour scale got a per-frame autoscale
+    # and no error. Data-encoded output cannot tolerate that (luma
+    # would mean something different in every frame), which is what
+    # surfaced the gap.
+    vmin: float | None = Field(
+        default=None, description="Fixed minimum data value for colour scaling"
+    )
+    vmax: float | None = Field(
+        default=None, description="Fixed maximum data value for colour scaling"
+    )
+    data_encoded: bool | None = Field(
+        default=None,
+        description=(
+            "Write value-exact grayscale (luma is the normalised value) "
+            "instead of a picture; requires vmin and vmax"
+        ),
+    )
+    color_scale_file: str | None = Field(
+        default=None,
+        description="Write the palette + scale sidecar JSON for data_encoded",
+    )
     colorbar: bool | None = None
     label: str | None = None
     units: str | None = None
@@ -111,6 +134,12 @@ class VisualizeHeatmapArgs(BaseModel):
     timestamp: str | None = None
     crs: str | None = None
     reproject: bool | None = None
+
+    @model_validator(mode="after")
+    def _data_encoded_needs_range(self):  # type: ignore[override]
+        if self.data_encoded and (self.vmin is None or self.vmax is None):
+            raise ValueError("data_encoded requires both vmin and vmax")
+        return self
 
     @field_validator("extent")
     @classmethod
