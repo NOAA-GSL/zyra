@@ -169,6 +169,11 @@ class TestColorScaleSidecar:
         assert ts == sorted(ts)
 
     def test_continuous_palette_carries_its_transparency_ramp(self):
+        # Sampling a palette goes through ColormapManager, so this arm
+        # needs matplotlib. The no-palette arm above deliberately does
+        # not — a data-encoded frame without --cmap-file still gets a
+        # greyscale sidecar with only the `visualization` extra absent.
+        pytest.importorskip("matplotlib")
         spec = {
             "type": "continuous",
             "base": "YlOrBr",
@@ -182,6 +187,7 @@ class TestColorScaleSidecar:
         assert scale["stops"][0]["rgba"][3] == 0
 
     def test_classified_palette_bands_land_on_their_bounds(self):
+        pytest.importorskip("matplotlib")
         spec = {
             "type": "classified",
             "entries": [
@@ -208,6 +214,7 @@ class TestColorScaleSidecar:
             build_color_scale(None, vmin=3, vmax=3)
 
     def test_sidecar_is_json_serialisable(self):
+        pytest.importorskip("matplotlib")
         # It is written to a file and later stored in a D1 TEXT column.
         scale = build_color_scale(
             {"type": "continuous", "base": "viridis", "transparent_range": 2},
