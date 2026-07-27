@@ -26,7 +26,7 @@ from zyra.visualization.luma_writer import (
     write_luma_png,
 )
 
-PIL = pytest.importorskip("PIL")
+pytest.importorskip("PIL")
 from PIL import Image  # noqa: E402
 
 
