@@ -150,11 +150,25 @@ def is_fetchable(url: str, timeout: float = 10.0) -> bool:
 
 
 def is_version_available(package: str, version: str, timeout: float = 10.0) -> bool:
-    """Whether ``version`` is both listed *and* downloadable.
+    """Whether ``version`` is listed *and* every listed file is downloadable.
 
     Listing alone is what this used to check, and it is not enough: a
     green check followed immediately by a 404 inside a Docker build is
     exactly the failure this guard exists to prevent.
+
+    **Every** file, not the first one that answers. Requiring only one
+    would pick the wrong file as often as not: pip installs the wheel
+    normally, but a source build — a ``--no-binary`` install, or a
+    platform with no matching wheel — reaches for the sdist, so a green
+    check on whichever happened to respond first says nothing about the
+    file pip will actually download. All of them serving is also better
+    evidence of the thing actually being waited on, which is that the
+    release has propagated to the edge serving this build.
+
+    The two ways of being wrong are not symmetric. Waiting too long is
+    bounded by ``retries × delay`` and merely delays a release; going
+    green too early fails the image build, which is the bug this exists
+    to fix.
     """
     urls = file_urls_for_version(package, version, timeout=timeout)
     if not urls:
