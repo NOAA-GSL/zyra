@@ -172,8 +172,20 @@ def test_file_urls_find_wheel_and_sdist(monkeypatch):
     assert all("#" not in u for u in urls)
 
 
-def test_listed_but_unfetchable_is_not_available(monkeypatch):
-    """The exact race: the index lists it, the CDN does not serve it yet."""
+def test_listed_but_unfetchable_never_ends_the_wait(monkeypatch):
+    """The exact race: the index lists it, the CDN does not serve it yet.
+
+    Driven through ``is_version_available`` and ``main``, not
+    ``is_fetchable``. An earlier version of this test called the leaf
+    directly while patching ``file_urls_for_version`` — setup for a call
+    it never made — so it asserted nothing about the aggregate that the
+    release job actually invokes, which is the only thing that decides
+    whether a build starts.
+
+    A 404 propagates rather than resolving to False: ``main`` classes it
+    as transient and retries, which is what should happen while a CDN
+    catches up. What must never happen is the wait ending green.
+    """
     mod = _load_wait_module()
     monkeypatch.setattr(
         mod,
@@ -188,9 +200,32 @@ def test_listed_but_unfetchable_is_not_available(monkeypatch):
 
     monkeypatch.setattr(mod, "_urlopen", _404)
     with pytest.raises(urllib.error.HTTPError):
-        mod.is_fetchable(
-            "https://files.pythonhosted.org/packages/ab/cd/zyra-0.1.53.tar.gz"
-        )
+        mod.is_version_available("zyra", "0.1.53")
+
+    # End to end: retried, then gave up. Never exit 0.
+    assert mod.main(["wait_for_pypi.py", "zyra", "0.1.53", "2", "0"]) == 1
+
+
+def test_every_listed_file_must_be_fetchable(monkeypatch):
+    """One file answering is not enough to end the wait.
+
+    pip installs the wheel normally, but a source build reaches for the
+    sdist, so going green on whichever responded first says nothing
+    about the file pip will actually download. This pins the `all`, not
+    `any`, that `is_version_available` is built on.
+    """
+    mod = _load_wait_module()
+    wheel = "https://files.pythonhosted.org/packages/ab/cd/zyra-0.1.53-py3-none-any.whl"
+    sdist = "https://files.pythonhosted.org/packages/ab/cd/zyra-0.1.53.tar.gz"
+    monkeypatch.setattr(mod, "file_urls_for_version", lambda *a, **k: [wheel, sdist])
+
+    # Wheel up, sdist still propagating — not available.
+    monkeypatch.setattr(mod, "is_fetchable", lambda u, **k: u == wheel)
+    assert mod.is_version_available("zyra", "0.1.53") is False
+
+    # Only both serving is green.
+    monkeypatch.setattr(mod, "is_fetchable", lambda u, **k: True)
+    assert mod.is_version_available("zyra", "0.1.53") is True
 
 
 def test_is_fetchable_allows_the_files_host_but_not_others():

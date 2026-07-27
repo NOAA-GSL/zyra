@@ -18,15 +18,25 @@ def load_geotiff_array(input_path: str, *, band: int = 1, south_up: bool = True)
     NaN renders transparent in the raster visualizers, so warp fill and
     masked regions disappear instead of plotting as a solid value.
 
-    The returned array is **south-up** — row 0 is the southernmost row.
-    That is the convention every raster visualizer here already assumes:
-    ``heatmap`` draws with ``origin="lower"`` and ``contour`` builds its
-    y coordinates as ``linspace(south, north)``. GeoTIFFs are
+    Orientation of the returned array depends on ``south_up``, and the
+    two consumers want opposite things.
+
+    By default it is **south-up** — row 0 is the southernmost row. That
+    is the convention every *figure* visualizer here assumes: ``heatmap``
+    draws with ``origin="lower"`` and ``contour`` builds its y
+    coordinates as ``linspace(south, north)``. GeoTIFFs are
     conventionally north-up instead, so returning one as read renders it
     mirrored about the equator (see #281 — the global smoke frames put
     northern-hemisphere plumes over the Southern Ocean). The flip is
     keyed off the transform rather than assumed, so a genuinely south-up
-    GeoTIFF is left alone.
+    GeoTIFF is left alone either way.
+
+    With ``south_up=False`` the file's own row order is preserved, so a
+    conventional north-up GeoTIFF comes back north-up. That is what the
+    data-encoded writer needs: ``write_luma_png`` hands the array
+    straight to PIL and a PNG's first row is its **top**, with no
+    ``origin="lower"`` anywhere to undo a flip. Taking the default there
+    reproduced #281 on the one path it could not have covered.
 
     Parameters
     ----------
@@ -34,6 +44,12 @@ def load_geotiff_array(input_path: str, *, band: int = 1, south_up: bool = True)
         Path to a ``.tif``/``.tiff`` file.
     band : int, default 1
         1-based band index to read.
+    south_up : bool, default True
+        Whether to return the array south-up (row 0 southernmost),
+        flipping a north-up GeoTIFF to match. Pass ``False`` to keep the
+        file's own row order — needed when the array is written straight
+        to an image rather than drawn with ``origin="lower"``. The
+        default preserves the figure path's behaviour exactly.
 
     Raises
     ------
