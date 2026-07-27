@@ -153,7 +153,11 @@ def build_color_scale(
         )
 
     ts = np.linspace(0.0, 1.0, SIDECAR_STOPS)
-    rgba = _sample_palette(palette_spec, ts, vmin=float(vmin), vmax=span + float(vmin))
+    # `span` is only the finite/distinct guard above; pass the caller's
+    # own bounds through. Reconstructing vmax as `span + vmin` is equal
+    # for every physically plausible range, but it says "some derived
+    # quantity" where the argument is simply vmax.
+    rgba = _sample_palette(palette_spec, ts, vmin=float(vmin), vmax=float(vmax))
 
     scale: dict[str, Any] = {
         "stops": [
