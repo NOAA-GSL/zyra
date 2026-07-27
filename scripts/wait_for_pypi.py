@@ -32,10 +32,7 @@ def fetch_json(url: str, timeout: float = 10.0) -> dict[str, Any]:
     This validation mitigates SSRF risks when the URL is constructed from
     untrusted input in future refactors.
     """
-    parsed = urlparse(url)
-    if parsed.scheme != "https" or parsed.netloc.lower() != "pypi.org":
-        raise ValueError(f"Refusing to fetch non-PyPI URL: {url}")
-    with urllib.request.urlopen(url, timeout=timeout) as r:
+    with _urlopen(url, "pypi.org", timeout=timeout) as r:
         return json.load(r)
 
 
@@ -57,10 +54,52 @@ def _require_allowed_url(url: str, *hosts: str) -> None:
     Guards against SSRF if a URL ever reaches here from untrusted input.
     ``files.pythonhosted.org`` is allowed alongside ``pypi.org`` because
     the file check below has to follow the index's own links.
+
+    Compares ``hostname`` rather than ``netloc``: netloc carries the port
+    and any userinfo, so an explicit ``https://pypi.org:443/...`` — same
+    host, same default port — would be refused as a stranger. ``hostname``
+    normalises the port away, strips userinfo, and lowercases.
     """
+    allowed = tuple(h.lower() for h in hosts)
     parsed = urlparse(url)
-    if parsed.scheme != "https" or parsed.netloc.lower() not in hosts:
-        raise ValueError(f"Refusing to fetch non-PyPI URL: {url}")
+    if parsed.scheme != "https" or (parsed.hostname or "") not in allowed:
+        raise ValueError(
+            f"Refusing to fetch {url}: not HTTPS on {' or '.join(allowed)}"
+        )
+
+
+class _AllowlistRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Re-check the allowlist on each redirect hop.
+
+    urllib follows redirects by itself, so validating only the URL we ask
+    for checks the one hop that was never in doubt: a 302 pointing off the
+    allowlist would be followed, and the request issued, before anything
+    looked at it. Checking ``geturl()`` after ``urlopen`` returns is too
+    late for the same reason — by then it has been fetched. Refusing here
+    stops the hop before it goes out.
+    """
+
+    def __init__(self, hosts: tuple[str, ...]) -> None:
+        super().__init__()
+        self._hosts = hosts
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[no-untyped-def]
+        _require_allowed_url(newurl, *self._hosts)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _urlopen(url_or_req, *hosts: str, timeout: float = 10.0):  # type: ignore[no-untyped-def]
+    """``urlopen`` with the allowlist enforced on the request *and* redirects.
+
+    The single seam every fetch in this module goes through, so the guard
+    cannot be bypassed by adding a call site that forgets it.
+    """
+    target = url_or_req if isinstance(url_or_req, str) else url_or_req.full_url
+    _require_allowed_url(target, *hosts)
+    opener = urllib.request.build_opener(
+        _AllowlistRedirectHandler(tuple(h.lower() for h in hosts))
+    )
+    return opener.open(url_or_req, timeout=timeout)
 
 
 def file_urls_for_version(
@@ -74,8 +113,7 @@ def file_urls_for_version(
     """
     normalized = pep503_normalize(package)
     simple_url = f"https://pypi.org/simple/{normalized}/"
-    _require_allowed_url(simple_url, "pypi.org")
-    with urllib.request.urlopen(simple_url, timeout=timeout) as r:
+    with _urlopen(simple_url, "pypi.org", timeout=timeout) as r:
         html = r.read().decode("utf-8", errors="replace")
 
     # Wheels escape the name with underscores (PEP 427); sdists use the
@@ -106,9 +144,8 @@ def is_fetchable(url: str, timeout: float = 10.0) -> bool:
     "downloadable" are separate facts, and only the second one is the
     condition a build actually needs.
     """
-    _require_allowed_url(url, FILES_HOST, "pypi.org")
     req = urllib.request.Request(url, headers={"Range": "bytes=0-0"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
+    with _urlopen(req, FILES_HOST, "pypi.org", timeout=timeout) as r:
         return r.status in (200, 206)
 
 

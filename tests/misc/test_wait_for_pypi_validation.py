@@ -45,10 +45,10 @@ def test_fetch_json_allows_pypi_https_and_reads(monkeypatch):
         def __exit__(self, exc_type, exc, tb):
             return False
 
-    def fake_urlopen(url, timeout=10.0):  # noqa: ARG001 - match signature
+    def fake_urlopen(url, *hosts, timeout=10.0):  # noqa: ARG001 - match signature
         return FakeResponse()
 
-    monkeypatch.setattr(mod.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(mod, "_urlopen", fake_urlopen)
     data = mod.fetch_json("https://pypi.org/pypi/pkg/json")
     assert isinstance(data, dict)
     assert "releases" in data
@@ -104,14 +104,14 @@ def test_is_version_available_checks_simple_and_then_the_file(monkeypatch):
 
     seen: list[str] = []
 
-    def fake_urlopen(url, timeout=10.0):  # noqa: ARG001
+    def fake_urlopen(url, *hosts, timeout=10.0):  # noqa: ARG001
         target = url if isinstance(url, str) else url.full_url
         seen.append(target)
         if target.endswith("/simple/zyra/"):
             return Resp('<a href="/packages/x/zyra-1.2.3.tar.gz">zyra-1.2.3.tar.gz</a>')
         return Resp(status=206)
 
-    monkeypatch.setattr(mod.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(mod, "_urlopen", fake_urlopen)
     assert mod.is_version_available("Zyra", "1.2.3") is True
     # Both hops, not just the index.
     assert any(u.endswith("/simple/zyra/") for u in seen)
@@ -145,7 +145,7 @@ def _patch_index(mod, monkeypatch, html: str):
         def __exit__(self, *a):
             return False
 
-    monkeypatch.setattr(mod.urllib.request, "urlopen", lambda *a, **k: FakeResponse())
+    monkeypatch.setattr(mod, "_urlopen", lambda *a, **k: FakeResponse())
 
 
 def test_file_urls_match_the_exact_version_not_a_prefix(monkeypatch):
@@ -186,7 +186,7 @@ def test_listed_but_unfetchable_is_not_available(monkeypatch):
     def _404(*a, **k):
         raise urllib.error.HTTPError("u", 404, "Not Found", None, None)
 
-    monkeypatch.setattr(mod.urllib.request, "urlopen", _404)
+    monkeypatch.setattr(mod, "_urlopen", _404)
     with pytest.raises(urllib.error.HTTPError):
         mod.is_fetchable(
             "https://files.pythonhosted.org/packages/ab/cd/zyra-0.1.53.tar.gz"
@@ -212,3 +212,76 @@ def test_no_files_means_not_available(monkeypatch):
     mod = _load_wait_module()
     monkeypatch.setattr(mod, "file_urls_for_version", lambda *a, **k: [])
     assert mod.is_version_available("zyra", "0.1.53") is False
+
+
+# --- what counts as "the same host" ------------------------------------
+#
+# The guard compared `netloc`, which carries the port and any userinfo.
+# That is over-strict in one direction (a default port spelled out loud
+# is the same host) without being any safer in the other.
+
+
+def test_allowlist_accepts_an_explicit_default_port():
+    """`https://pypi.org:443/...` is pypi.org, not a stranger."""
+    mod = _load_wait_module()
+    mod._require_allowed_url("https://pypi.org:443/simple/zyra/", "pypi.org")
+
+
+def test_allowlist_is_case_insensitive_on_the_host():
+    """Hostnames are case-insensitive; the guard should be too."""
+    mod = _load_wait_module()
+    mod._require_allowed_url("https://PyPI.ORG/simple/zyra/", "pypi.org")
+    # ...including when the allowlist itself is the odd one out.
+    mod._require_allowed_url("https://pypi.org/simple/zyra/", "PyPI.org")
+
+
+def test_allowlist_is_not_fooled_by_userinfo():
+    """`https://pypi.org@evil.example/` is a request to evil.example."""
+    mod = _load_wait_module()
+    with pytest.raises(ValueError):
+        mod._require_allowed_url("https://pypi.org@evil.example/x.whl", "pypi.org")
+    with pytest.raises(ValueError):
+        mod._require_allowed_url("https://pypi.org:443@evil.example/x.whl", "pypi.org")
+
+
+# --- redirects ---------------------------------------------------------
+#
+# urllib follows redirects on its own. Validating only the URL we ask for
+# checks the one hop that was never in doubt, and checking geturl() after
+# the fact is too late: the request has already been issued. These pin
+# the check at the point where it can still refuse.
+
+
+def _redirect(mod, hosts, newurl):
+    import urllib.request
+
+    handler = mod._AllowlistRedirectHandler(hosts)
+    req = urllib.request.Request("https://pypi.org/simple/zyra/")
+    return handler.redirect_request(req, None, 302, "Found", {}, newurl)
+
+
+def test_redirect_off_the_allowlist_is_refused_before_it_is_followed():
+    mod = _load_wait_module()
+    with pytest.raises(ValueError):
+        _redirect(mod, ("pypi.org", mod.FILES_HOST), "https://evil.example/x.whl")
+
+
+def test_redirect_within_the_allowlist_is_followed():
+    """The index legitimately redirects to the files host — don't break that."""
+    mod = _load_wait_module()
+    out = _redirect(
+        mod,
+        ("pypi.org", mod.FILES_HOST),
+        f"https://{mod.FILES_HOST}/packages/ab/cd/zyra-0.1.53.tar.gz",
+    )
+    assert out is not None
+    assert out.full_url.startswith(f"https://{mod.FILES_HOST}/")
+
+
+def test_downgrade_to_http_on_redirect_is_refused():
+    """A redirect is also a way to drop out of TLS."""
+    mod = _load_wait_module()
+    with pytest.raises(ValueError):
+        _redirect(
+            mod, ("pypi.org", mod.FILES_HOST), f"http://{mod.FILES_HOST}/x.tar.gz"
+        )
