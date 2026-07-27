@@ -101,6 +101,29 @@ class VisualizeHeatmapArgs(BaseModel):
         default=None, description="Write a standalone colorbar legend image"
     )
     legend_orientation: str | None = None
+    # vmin/vmax were missing here while the CLI has always accepted
+    # them, and `extra="ignore"` dropped them silently — so an API
+    # caller asking for a fixed colour scale got a per-frame autoscale
+    # and no error. Data-encoded output cannot tolerate that (luma
+    # would mean something different in every frame), which is what
+    # surfaced the gap.
+    vmin: float | None = Field(
+        default=None, description="Fixed minimum data value for colour scaling"
+    )
+    vmax: float | None = Field(
+        default=None, description="Fixed maximum data value for colour scaling"
+    )
+    data_encoded: bool | None = Field(
+        default=None,
+        description=(
+            "Write value-exact grayscale (luma is the normalised value) "
+            "instead of a picture; requires vmin and vmax"
+        ),
+    )
+    color_scale_file: str | None = Field(
+        default=None,
+        description="Write the palette + scale sidecar JSON for data_encoded",
+    )
     colorbar: bool | None = None
     label: str | None = None
     units: str | None = None
@@ -111,6 +134,31 @@ class VisualizeHeatmapArgs(BaseModel):
     timestamp: str | None = None
     crs: str | None = None
     reproject: bool | None = None
+
+    @model_validator(mode="after")
+    def _data_encoded_needs_range(self):  # type: ignore[override]
+        if self.data_encoded and (self.vmin is None or self.vmax is None):
+            raise ValueError("data_encoded requires both vmin and vmax")
+        # width/height/dpi size a matplotlib figure. A data-encoded
+        # frame is written at the source grid and never builds one, so
+        # accepting them would promise a size that is never applied.
+        # These fields default to None, so unlike the CLI this can tell
+        # an omitted value from one supplied at the parser default, and
+        # so rejects any value at all — the two surfaces differ only in
+        # that this one is the stricter.
+        if self.data_encoded:
+            supplied = [
+                name
+                for name in ("width", "height", "dpi")
+                if getattr(self, name, None) is not None
+            ]
+            if supplied:
+                raise ValueError(
+                    f"data_encoded does not support {'/'.join(supplied)}: the frame is "
+                    "written at the source grid, and resizing it would average values "
+                    "that were never measured. Regrid upstream instead."
+                )
+        return self
 
     @field_validator("extent")
     @classmethod
