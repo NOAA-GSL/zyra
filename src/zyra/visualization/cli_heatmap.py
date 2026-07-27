@@ -169,6 +169,51 @@ def _handle_heatmap_impl(ns) -> int:
     return 0
 
 
+def _reject_figure_canvas_args(ns) -> None:
+    """Refuse --width/--height/--dpi in data-encoded mode.
+
+    These size a matplotlib figure. A data-encoded frame is written at
+    the source grid and never builds one, so honouring them would mean
+    resampling values nobody measured — which is the failure this whole
+    output exists to avoid. Accepting them and quietly doing something
+    else is worse than refusing: the caller reads the flag they passed,
+    sees a file, and has no way to learn the size never applied.
+
+    Refusing rather than warning matches how this module already treats
+    a meaningless combination — --output-names without --inputs, and
+    --vmin/--vmax against a classified palette both exit 2. Regridding
+    belongs upstream, where it is a deliberate and inspectable step.
+
+    Only non-default values are refused. argparse cannot distinguish an
+    omitted flag from one passed at its default, so `--width 1024` is
+    indistinguishable from silence here and slips through. The API
+    model has no such blind spot — its fields default to None — and
+    rejects any value at all, so the two surfaces differ only in that
+    the API is the stricter one.
+    """
+    from zyra.visualization.cli_register import (
+        HEATMAP_DEFAULT_DPI,
+        HEATMAP_DEFAULT_HEIGHT,
+        HEATMAP_DEFAULT_WIDTH,
+    )
+
+    supplied = [
+        name
+        for name, default in (
+            ("--width", HEATMAP_DEFAULT_WIDTH),
+            ("--height", HEATMAP_DEFAULT_HEIGHT),
+            ("--dpi", HEATMAP_DEFAULT_DPI),
+        )
+        if getattr(ns, name.lstrip("-"), default) not in (None, default)
+    ]
+    if supplied:
+        raise ValueError(
+            f"{'/'.join(supplied)} cannot be used with --data-encoded: the frame is "
+            "written at the source grid, and resizing it would average values that "
+            "were never measured. Regrid upstream instead."
+        )
+
+
 def _handle_data_encoded(ns) -> int:
     """Write value-exact grayscale frames plus the palette sidecar.
 
@@ -188,6 +233,7 @@ def _handle_data_encoded(ns) -> int:
     vmax = getattr(ns, "vmax", None)
     if vmin is None or vmax is None:
         raise ValueError("--vmin and --vmax are required with --data-encoded")
+    _reject_figure_canvas_args(ns)
 
     palette = None
     cmap_file = getattr(ns, "cmap_file", None)

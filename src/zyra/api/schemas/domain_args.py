@@ -139,6 +139,25 @@ class VisualizeHeatmapArgs(BaseModel):
     def _data_encoded_needs_range(self):  # type: ignore[override]
         if self.data_encoded and (self.vmin is None or self.vmax is None):
             raise ValueError("data_encoded requires both vmin and vmax")
+        # width/height/dpi size a matplotlib figure. A data-encoded
+        # frame is written at the source grid and never builds one, so
+        # accepting them would promise a size that is never applied.
+        # These fields default to None, so unlike the CLI this can tell
+        # an omitted value from one supplied at the parser default, and
+        # so rejects any value at all — the two surfaces differ only in
+        # that this one is the stricter.
+        if self.data_encoded:
+            supplied = [
+                name
+                for name in ("width", "height", "dpi")
+                if getattr(self, name, None) is not None
+            ]
+            if supplied:
+                raise ValueError(
+                    f"data_encoded does not support {'/'.join(supplied)}: the frame is "
+                    "written at the source grid, and resizing it would average values "
+                    "that were never measured. Regrid upstream instead."
+                )
         return self
 
     @field_validator("extent")

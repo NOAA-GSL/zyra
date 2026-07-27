@@ -17,6 +17,7 @@ import json
 
 import numpy as np
 import pytest
+from pydantic import ValidationError
 
 from zyra.visualization.luma_writer import (
     SIDECAR_STOPS,
@@ -343,6 +344,90 @@ class TestDataEncodedCli:
         # (which would put equal values on all three channels).
         assert scale["stops"][SIDECAR_STOPS // 4]["rgba"][:3] == [0, 0, 255]
         assert scale["stops"][3 * SIDECAR_STOPS // 4]["rgba"][:3] == [255, 0, 0]
+
+    @pytest.mark.parametrize(
+        ("flag", "value"), [("width", 2048), ("height", 1024), ("dpi", 300)]
+    )
+    def test_handler_exits_2_on_a_figure_canvas_flag(self, tmp_path, flag, value):
+        # These size a matplotlib figure. Honouring them here would
+        # resample the grid; accepting and ignoring them would promise a
+        # size that never applied. Refuse, matching how --output-names
+        # and a classified palette + --vmin/--vmax are already treated.
+        from zyra.visualization.cli_heatmap import handle_heatmap
+
+        src = tmp_path / "in.npy"
+        np.save(src, np.zeros((2, 2)))
+        ns = self._ns(
+            input=str(src),
+            output=str(tmp_path / "o.png"),
+            data_encoded=True,
+            vmin=0,
+            vmax=100,
+            **{flag: value},
+        )
+        assert handle_heatmap(ns) == 2
+
+    def test_handler_tolerates_a_figure_canvas_flag_at_its_default(self, tmp_path):
+        # argparse cannot tell an omitted flag from one passed at its
+        # own default, so this slips through. Pinned so the limitation
+        # is a known one rather than a surprise; the API model has no
+        # such blind spot.
+        from zyra.visualization.cli_heatmap import handle_heatmap
+        from zyra.visualization.cli_register import HEATMAP_DEFAULT_WIDTH
+
+        src = tmp_path / "in.npy"
+        np.save(src, np.zeros((2, 2)))
+        ns = self._ns(
+            input=str(src),
+            output=str(tmp_path / "o.png"),
+            data_encoded=True,
+            vmin=0,
+            vmax=100,
+            width=HEATMAP_DEFAULT_WIDTH,
+        )
+        assert handle_heatmap(ns) == 0
+
+    def test_picture_path_still_accepts_the_canvas_flags(self, tmp_path):
+        # The refusal must be scoped to --data-encoded. A plain heatmap
+        # invocation carrying --width is the common case and unaffected.
+        ns = self._ns(input="a.tif", output="o.png", width=2048)
+        assert ns.width == 2048
+        assert getattr(ns, "data_encoded", False) is False
+
+    @pytest.mark.parametrize("field", ["width", "height", "dpi"])
+    def test_api_model_rejects_a_canvas_field_with_data_encoded(self, field):
+        from zyra.api.schemas.domain_args import VisualizeHeatmapArgs
+
+        with pytest.raises(ValidationError):
+            VisualizeHeatmapArgs(
+                input="a.tif",
+                output="o.png",
+                data_encoded=True,
+                vmin=0,
+                vmax=10,
+                **{field: 2048},
+            )
+
+    def test_api_model_rejects_even_the_cli_default_size(self):
+        # The model's fields default to None, so unlike the CLI it can
+        # tell "supplied 1024" from "not supplied" — and does.
+        from zyra.api.schemas.domain_args import VisualizeHeatmapArgs
+
+        with pytest.raises(ValidationError):
+            VisualizeHeatmapArgs(
+                input="a.tif",
+                output="o.png",
+                data_encoded=True,
+                vmin=0,
+                vmax=10,
+                width=1024,
+            )
+
+    def test_api_model_still_allows_a_size_without_data_encoded(self):
+        from zyra.api.schemas.domain_args import VisualizeHeatmapArgs
+
+        m = VisualizeHeatmapArgs(input="a.tif", output="o.png", width=2048, dpi=300)
+        assert m.width == 2048 and m.dpi == 300
 
     def test_handler_exits_2_without_a_range(self, tmp_path):
         from zyra.visualization.cli_heatmap import handle_heatmap

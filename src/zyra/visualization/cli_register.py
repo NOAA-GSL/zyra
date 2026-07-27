@@ -14,6 +14,14 @@ from .cli_sos import register_sos_cli
 from .cli_timeseries import handle_timeseries
 from .cli_vector import handle_vector
 
+# Figure-canvas defaults for `visualize heatmap`. Named because the
+# data-encoded path has to tell "the caller asked for this size" from
+# "argparse supplied it", and comparing against a literal here and a
+# literal there is how those two drift apart.
+HEATMAP_DEFAULT_WIDTH = 1024
+HEATMAP_DEFAULT_HEIGHT = 512
+HEATMAP_DEFAULT_DPI = 96
+
 
 def register_cli(subparsers: Any) -> None:
     """Register visualization subcommands using lightweight CLI modules.
@@ -84,9 +92,9 @@ def register_cli(subparsers: Any) -> None:
             "(default: the source stem + .png)"
         ),
     )
-    p_hm.add_argument("--width", type=int, default=1024)
-    p_hm.add_argument("--height", type=int, default=512)
-    p_hm.add_argument("--dpi", type=int, default=96)
+    p_hm.add_argument("--width", type=int, default=HEATMAP_DEFAULT_WIDTH)
+    p_hm.add_argument("--height", type=int, default=HEATMAP_DEFAULT_HEIGHT)
+    p_hm.add_argument("--dpi", type=int, default=HEATMAP_DEFAULT_DPI)
     hm_cmap = p_hm.add_mutually_exclusive_group()
     hm_cmap.add_argument("--cmap", default="YlOrBr")
     hm_cmap.add_argument(
