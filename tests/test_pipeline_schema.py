@@ -89,9 +89,9 @@ def test_every_manifest_stage_is_covered() -> None:
     groups = {k.split(" ", 1)[0] for k in caps if isinstance(k, str) and " " in k}
     # `search` and `run` are top-level commands, not pipeline stages.
     stages = {_stage_group_alias(g) for g in groups} - {"search", "run"}
-    assert stages <= set(STAGE_ALIASES), (
-        f"Stages missing from STAGE_ALIASES: {sorted(stages - set(STAGE_ALIASES))}"
-    )
+    assert stages <= set(
+        STAGE_ALIASES
+    ), f"Stages missing from STAGE_ALIASES: {sorted(stages - set(STAGE_ALIASES))}"
 
 
 def _consumes_positionally(stage: str, command: str, arg: str) -> bool:
@@ -147,13 +147,11 @@ def test_positional_order_is_preserved() -> None:
         if len(names) < 2:
             continue
         args = {name: f"P{i}" for i, name in enumerate(names)}
-        argv = _build_argv_for_stage(
-            {"stage": stage, "command": command, "args": args}
-        )
+        argv = _build_argv_for_stage({"stage": stage, "command": command, "args": args})
         expected = [f"P{i}" for i in range(len(names))]
-        assert argv[2 : 2 + len(names)] == expected, (
-            f"{stage} {command}: positional order {argv[2:]} != {expected}"
-        )
+        assert (
+            argv[2 : 2 + len(names)] == expected
+        ), f"{stage} {command}: positional order {argv[2:]} != {expected}"
 
 
 # --------------------------------------------------------------------------
