@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -17,6 +18,22 @@ try:  # pragma: no cover - guardrails is optional
     import guardrails as _guardrails  # type: ignore
 except Exception:  # pragma: no cover - guardrails missing
     _guardrails = None  # noqa: N816
+
+
+def guardrails_install_hint() -> str:
+    """Return an install hint for guardrails that fits the running Python.
+
+    The ``zyra[guardrails]`` extra is limited to Python <3.15 because its
+    litellm dependency has no patched release for newer interpreters.
+    """
+    if sys.version_info >= (3, 15):
+        return (
+            "guardrails is not supported on Python 3.15+ yet: the zyra[guardrails] "
+            "extra is limited to Python <3.15 because its litellm dependency has "
+            "no patched release for newer Pythons. Do not install guardrails-ai "
+            "directly; use Python 3.10-3.14 to enable guardrails."
+        )
+    return 'guardrails library is not installed; pip install "zyra[guardrails]"'
 
 
 class BaseGuardrailsAdapter:
@@ -39,9 +56,7 @@ class GuardrailsAdapter(BaseGuardrailsAdapter):
 
     def __init__(self, schema_path: str, *, strict: bool = False) -> None:
         if not _guardrails:
-            raise RuntimeError(
-                "guardrails library is not installed (pip install guardrails-ai)"
-            )
+            raise RuntimeError(guardrails_install_hint())
         self.schema_path = schema_path
         self.strict = strict
         self._guard = None
