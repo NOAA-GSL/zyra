@@ -58,7 +58,7 @@ See module-level READMEs under `src/zyra/` for focused examples and options:
 ### Swarm Orchestration
 - `zyra swarm --plan samples/swarm/mock_basic.yaml --dry-run` prints the instantiated agents.
 - Remove `--dry-run` to execute mock simulate→narrate agents; use `--memory provenance.db` to persist provenance and `--guardrails schema.rail` to enforce structured outputs.
-- Guardrail validation requires the optional extra: `pip install "zyra[guardrails]"` (or `poetry install --with guardrails`) before using `--guardrails schema.rail`.
+- Guardrail validation requires the optional extra: `pip install "zyra[guardrails]"` (or `poetry install -E guardrails`) before using `--guardrails schema.rail`. The extra supports Python 3.10–3.14 only; its litellm dependency has no patched release for Python 3.15+, so don't install `guardrails-ai` directly there.
 - To exercise the skeleton simulate/decide flow end-to-end, try `zyra swarm --plan samples/swarm/simulate_decide.yaml --dry-run` (or drop `--dry-run` to run the mock pipeline).
 - Add `--log-events` to echo provenance events live, and `--dump-memory provenance.db` to inspect existing runs without executing new stages.
 - Target specific stages or experiment with partial DAGs using `--agents acquire,visualize,narrate`; unknown stage names are rejected early so typos do not silently skip work.

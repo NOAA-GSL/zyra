@@ -1955,9 +1955,9 @@ def _run_guardrails(schema_path: str, manifest: dict[str, Any]) -> None:
     try:
         from guardrails import Guard  # type: ignore
     except Exception as exc:  # pragma: no cover - guardrails optional
-        raise RuntimeError(
-            "guardrails library not installed; pip install guardrails-ai"
-        ) from exc
+        from zyra.swarm.guardrails import guardrails_install_hint
+
+        raise RuntimeError(guardrails_install_hint()) from exc
     text = Path(schema_path).read_text(encoding="utf-8")
     guard = Guard.for_rail_string(text)  # type: ignore
     result = guard.validate(json.dumps(manifest, sort_keys=True))
