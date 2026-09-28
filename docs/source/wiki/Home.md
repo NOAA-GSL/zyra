@@ -42,7 +42,7 @@ Zyra evokes growth and flow — small seeds of data can flourish into full workf
 - Patterns: [Pipeline Patterns](Pipeline-Patterns)
 - Stage Examples: [Stage Examples](Stage-Examples)
 - Stage Agents: [Zyra Swarm](Stage-Agents-and-Planner-Overview)
-- CLI Reference: https://noaa-gsl.github.io/zyra/api/zyra.cli.html
+- CLI Reference: [CLI Reference](CLI-Args-Reference)
 
 ---
 
