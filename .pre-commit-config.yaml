@@ -34,6 +34,15 @@ repos:
         files: ^src/zyra/(cli\.py|wizard/manifest\.py|api/services/manifest\.py|visualization/cli_register\.py|processing/__init__\.py|transform/__init__\.py|connectors/(ingest|egress|discovery)/__init__\.py)$
   - repo: local
     hooks:
+      - id: zyra-generate-pipeline-schema
+        name: Regenerate zyra run JSON Schema
+        entry: poetry run python scripts/generate_pipeline_schema.py
+        language: system
+        pass_filenames: false
+        stages: [commit]
+        files: ^(src/zyra/(pipeline_schema\.py|pipeline_runner\.py|wizard/zyra_capabilities/.+\.json)|scripts/generate_pipeline_schema\.py)$
+  - repo: local
+    hooks:
       - id: zyra-update-openapi-snapshots
         name: Update OpenAPI snapshot (paths + SHA256)
         entry: bash scripts/update_openapi_snapshot.sh
