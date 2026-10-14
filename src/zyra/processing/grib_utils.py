@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
+import contextlib
 import json
 import os
 import re
@@ -11,6 +12,46 @@ from typing import Any
 
 class VariableNotFoundError(KeyError):
     """Raised when a requested GRIB variable cannot be found."""
+
+
+#: Grid-definition keys requested from cfgrib on open.
+#:
+#: cfgrib copies ``GRIB_*`` attributes only for the grid types in its own
+#: ``GRID_TYPE_MAP``, which has no entry for ``mercator`` or
+#: ``polar_stereographic`` — those messages otherwise arrive carrying no
+#: grid metadata at all, leaving ``_grib_georeference`` nothing to work
+#: with. ``read_keys`` fills the gap; cfgrib silently skips any key a
+#: message does not define, so one list serves every grid type.
+_GRID_READ_KEYS = [
+    "Ni",
+    "Nj",
+    "Nx",
+    "Ny",
+    "DiInMetres",
+    "DjInMetres",
+    "DxInMetres",
+    "DyInMetres",
+    "LaDInDegrees",
+    "LoVInDegrees",
+    "Latin1InDegrees",
+    "Latin2InDegrees",
+    "orientationOfTheGridInDegrees",
+    "projectionCentreFlag",
+    "iScansNegatively",
+    "jScansPositively",
+    "latitudeOfFirstGridPointInDegrees",
+    "latitudeOfLastGridPointInDegrees",
+    "longitudeOfFirstGridPointInDegrees",
+    "longitudeOfLastGridPointInDegrees",
+    "latitudeOfSouthernPoleInDegrees",
+    "longitudeOfSouthernPoleInDegrees",
+    "angleOfRotationInDegrees",
+    "radius",
+]
+
+#: GRIB2 sphere default (shapeOfTheEarth=6), used when a message does not
+#: report ``radius``. Matches NOAA's operational products.
+_DEFAULT_EARTH_RADIUS_M = 6371229.0
 
 
 @dataclass
@@ -89,7 +130,10 @@ def grib_decode(data: bytes, backend: str = "cfgrib") -> DecodedGRIB:
                 ds = xr.open_dataset(
                     temp_path,
                     engine="cfgrib",
-                    backend_kwargs={"indexpath": ""},
+                    backend_kwargs={
+                        "indexpath": "",
+                        "read_keys": _GRID_READ_KEYS,
+                    },
                 )
                 return DecodedGRIB(backend="cfgrib", dataset=ds, path=temp_path)
             except ModuleNotFoundError as exc:  # pragma: no cover - optional dep
@@ -230,23 +274,83 @@ def extract_variable(decoded: DecodedGRIB, var_name: str) -> Any:
     raise RuntimeError("Unsupported decoded structure for variable extraction.")
 
 
-def _grib_georeference(da: Any) -> tuple[Any, Any, bool] | None:
-    """Derive ``(crs, transform, flip_rows)`` from cfgrib ``GRIB_*`` attrs.
+@dataclass(frozen=True)
+class _GribGrid:
+    """Georeferencing derived from a GRIB2 grid definition.
 
-    Supports ``regular_ll`` and ``lambert`` grids (the NOAA projected
-    products — HRRR, NAM, RRFS — are Lambert). Returns ``None`` for
-    unrecognized grid types or incomplete metadata; callers keep their
-    previous (ungeoreferenced) behavior in that case.
+    Attributes
+    ----------
+    crs : Any
+        ``rasterio.crs.CRS`` for the grid's own coordinate system.
+    transform : Any
+        Affine transform for the north-up, west-first image, in the
+        units of ``crs`` (metres for projected grids, degrees for
+        geographic and rotated-pole ones).
+    flip_rows, flip_cols : bool
+        Whether the GRIB scan order must be reversed to reach that
+        north-up, west-first layout: rows when the message scans
+        south-first (``jScansPositively=1``), columns when it scans
+        east-first (``iScansNegatively=1``).
+    shape : tuple of int
+        ``(ny, nx)`` — used to restore 2-D shape for grid types cfgrib
+        hands back as a flat ``values`` dimension.
+    warp_to_epsg4326 : bool
+        True when ``crs`` cannot be encoded in a GeoTIFF and the raster
+        must be reprojected on write (rotated-pole grids).
+    """
 
-    ``flip_rows`` is True when the GRIB scans south-first
-    (``jScansPositively=1``) and rows must be flipped to GeoTIFF's
-    north-up convention.
+    crs: Any
+    transform: Any
+    flip_rows: bool
+    flip_cols: bool
+    shape: tuple[int, int]
+    warp_to_epsg4326: bool = False
+
+
+def _north_up_origin(
+    x_first: float,
+    y_first: float,
+    nx: int,
+    ny: int,
+    dx: float,
+    dy: float,
+    flip_rows: bool,
+    flip_cols: bool,
+) -> tuple[float, float]:
+    """North-west *edge* of the image, from the GRIB's first grid point.
+
+    ``(x_first, y_first)`` is the center of the first grid point, which
+    sits in a corner chosen by the scan flags: the south row when the
+    message scans south-first, the east column when it scans east-first.
+    Step ``(n - 1)`` cells back toward the north-west corner in each
+    such case, then half a cell more to reach the pixel edge that an
+    affine transform's origin names. Axes are signed: ``x`` grows east,
+    ``y`` grows north.
+    """
+    x_west = x_first - (nx - 1) * dx if flip_cols else x_first
+    y_north = y_first + (ny - 1) * dy if flip_rows else y_first
+    return x_west - dx / 2, y_north + dy / 2
+
+
+def _grib_georeference(da: Any) -> _GribGrid | None:
+    """Derive georeferencing from cfgrib ``GRIB_*`` attrs.
+
+    Supports the grid types NOAA's operational products use:
+    ``regular_ll``, ``lambert`` (HRRR, NAM, RRFS CONUS), ``mercator``
+    (RRFS HI/PR), ``polar_stereographic`` (RRFS AK) and ``rotated_ll``
+    (RRFS NA). Returns ``None`` for unrecognized grid types or
+    incomplete metadata; callers keep their previous (ungeoreferenced)
+    behavior in that case.
 
     Notes
     -----
-    cfgrib does not expose the earth radius; the GRIB2 sphere default
-    of 6371229 m (shapeOfTheEarth=6) is assumed for projected grids,
-    which matches NOAA's operational products.
+    The earth radius comes from the message's ``radius`` key, falling
+    back to the GRIB2 sphere default of 6371229 m
+    (``shapeOfTheEarth=6``), which matches NOAA's operational products.
+
+    GeoTIFF has no encoding for a rotated-pole CRS — GDAL discards it —
+    so ``rotated_ll`` grids are flagged ``warp_to_epsg4326`` and the
+    writer reprojects them.
     """
     attrs = getattr(da, "attrs", {}) or {}
     grid_type = attrs.get("GRIB_gridType")
@@ -256,51 +360,189 @@ def _grib_georeference(da: Any) -> tuple[Any, Any, bool] | None:
     except ImportError:
         return None
     try:
+        nx = int(attrs["GRIB_Nx"])
         ny = int(attrs["GRIB_Ny"])
-        flip = bool(attrs.get("GRIB_jScansPositively", 0))
+        flip_rows = bool(attrs.get("GRIB_jScansPositively", 0))
+        flip_cols = bool(attrs.get("GRIB_iScansNegatively", 0))
         lat_first = float(attrs["GRIB_latitudeOfFirstGridPointInDegrees"])
         lon_first = float(attrs["GRIB_longitudeOfFirstGridPointInDegrees"])
     except (KeyError, TypeError, ValueError):
         return None
     if lon_first > 180.0:
         lon_first -= 360.0
+    radius = _DEFAULT_EARTH_RADIUS_M
+    with contextlib.suppress(KeyError, TypeError, ValueError):
+        radius = float(attrs["GRIB_radius"])
 
-    if grid_type == "regular_ll":
+    def _geographic(crs: Any, warp: bool = False) -> _GribGrid | None:
+        """Build a grid for the lat/lon-like types (degree increments)."""
         try:
             dlon = float(attrs["GRIB_iDirectionIncrementInDegrees"])
             dlat = float(attrs["GRIB_jDirectionIncrementInDegrees"])
         except (KeyError, TypeError, ValueError):
             return None
-        north = (lat_first + (ny - 1) * dlat) if flip else lat_first
-        transform = from_origin(lon_first - dlon / 2, north + dlat / 2, dlon, dlat)
-        return CRS.from_epsg(4326), transform, flip
+        west, north = _north_up_origin(
+            lon_first, lat_first, nx, ny, dlon, dlat, flip_rows, flip_cols
+        )
+        transform = from_origin(west, north, dlon, dlat)
+        return _GribGrid(crs, transform, flip_rows, flip_cols, (ny, nx), warp)
 
-    if grid_type == "lambert":
-        try:
+    def _projected(crs: Any, dx: float, dy: float) -> _GribGrid:
+        """Build a grid for the projected types (metre increments).
+
+        The first grid point is projected into ``crs`` to place the
+        image corner; both axes then step by whole cells.
+        """
+        import pyproj
+
+        tr = pyproj.Transformer.from_crs("EPSG:4326", crs, always_xy=True)
+        x_first, y_first = tr.transform(lon_first, lat_first)
+        west, north = _north_up_origin(
+            x_first, y_first, nx, ny, dx, dy, flip_rows, flip_cols
+        )
+        transform = from_origin(west, north, dx, dy)
+        return _GribGrid(crs, transform, flip_rows, flip_cols, (ny, nx))
+
+    try:
+        if grid_type == "regular_ll":
+            return _geographic(CRS.from_epsg(4326))
+
+        if grid_type == "rotated_ll":
             import pyproj
 
-            dx = float(attrs["GRIB_DxInMetres"])
-            dy = float(attrs["GRIB_DyInMetres"])
-            crs = CRS.from_dict(
-                {
-                    "proj": "lcc",
-                    "lat_1": float(attrs["GRIB_Latin1InDegrees"]),
-                    "lat_2": float(attrs["GRIB_Latin2InDegrees"]),
-                    "lat_0": float(attrs["GRIB_LaDInDegrees"]),
-                    "lon_0": float(attrs["GRIB_LoVInDegrees"]),
-                    "R": 6371229.0,
-                }
+            # GRIB names the *southern* rotated pole; CF and PROJ name
+            # the northern one, half a turn away in longitude.
+            lat_sp = float(attrs["GRIB_latitudeOfSouthernPoleInDegrees"])
+            lon_sp = float(attrs["GRIB_longitudeOfSouthernPoleInDegrees"])
+            lon_np = lon_sp - 180.0
+            if lon_np <= -180.0:
+                lon_np += 360.0
+            crs = CRS.from_wkt(
+                pyproj.CRS.from_cf(
+                    {
+                        "grid_mapping_name": "rotated_latitude_longitude",
+                        "grid_north_pole_latitude": -lat_sp,
+                        "grid_north_pole_longitude": lon_np,
+                        "north_pole_grid_longitude": float(
+                            attrs.get("GRIB_angleOfRotationInDegrees", 0.0)
+                        ),
+                        "earth_radius": radius,
+                    }
+                ).to_wkt()
             )
-            tr = pyproj.Transformer.from_crs("EPSG:4326", crs, always_xy=True)
-            x_first, y_first = tr.transform(lon_first, lat_first)
-            # (x_first, y_first) is the center of the first grid point.
-            west = x_first - dx / 2
-            top_center = y_first + (ny - 1) * dy if flip else y_first
-            transform = from_origin(west, top_center + dy / 2, dx, dy)
-            return crs, transform, flip
-        except Exception:
-            return None
+            return _geographic(crs, warp=True)
+
+        if grid_type == "lambert":
+            return _projected(
+                CRS.from_dict(
+                    {
+                        "proj": "lcc",
+                        "lat_1": float(attrs["GRIB_Latin1InDegrees"]),
+                        "lat_2": float(attrs["GRIB_Latin2InDegrees"]),
+                        "lat_0": float(attrs["GRIB_LaDInDegrees"]),
+                        "lon_0": float(attrs["GRIB_LoVInDegrees"]),
+                        "R": radius,
+                    }
+                ),
+                float(attrs["GRIB_DxInMetres"]),
+                float(attrs["GRIB_DyInMetres"]),
+            )
+
+        if grid_type == "mercator":
+            # GRIB2 template 3.10 has no central meridian; the grid is
+            # pinned by its first point. LaD is the latitude at which
+            # the Di/Dj spacing is expressed, i.e. PROJ's lat_ts.
+            return _projected(
+                CRS.from_dict(
+                    {
+                        "proj": "merc",
+                        "lat_ts": float(attrs["GRIB_LaDInDegrees"]),
+                        "lon_0": 0.0,
+                        "R": radius,
+                    }
+                ),
+                float(attrs["GRIB_DiInMetres"]),
+                float(attrs["GRIB_DjInMetres"]),
+            )
+
+        if grid_type == "polar_stereographic":
+            # Bit 1 of projectionCentreFlag selects the south pole.
+            south = bool(int(attrs.get("GRIB_projectionCentreFlag", 0)) & 128)
+            lad = abs(float(attrs["GRIB_LaDInDegrees"]))
+            lov = float(attrs["GRIB_orientationOfTheGridInDegrees"])
+            if lov > 180.0:
+                lov -= 360.0
+            return _projected(
+                CRS.from_dict(
+                    {
+                        "proj": "stere",
+                        "lat_0": -90.0 if south else 90.0,
+                        "lat_ts": -lad if south else lad,
+                        "lon_0": lov,
+                        "R": radius,
+                    }
+                ),
+                float(attrs["GRIB_DxInMetres"]),
+                float(attrs["GRIB_DyInMetres"]),
+            )
+    except Exception:
+        return None
     return None
+
+
+def _warp_to_epsg4326(values: Any, crs: Any, transform: Any) -> tuple[Any, Any, Any]:
+    """Reproject a north-up array to EPSG:4326.
+
+    For grids whose CRS a GeoTIFF cannot carry — rotated-pole grids, which
+    GDAL drops from the file in every encoding it accepts — writing the
+    native pixels would produce exactly the un-georeferenced output this
+    path exists to avoid. Warping keeps the file self-describing at the
+    cost of one nearest-neighbour resample; nearest preserves the source's
+    physical values, which bilinear would blend.
+    """
+    import logging
+
+    import numpy as np  # type: ignore
+    from rasterio.crs import CRS
+    from rasterio.enums import Resampling
+    from rasterio.warp import calculate_default_transform, reproject
+
+    height, width = values.shape
+    dst_crs = CRS.from_epsg(4326)
+    left, top = transform * (0, 0)
+    right, bottom = transform * (width, height)
+    dst_transform, dst_width, dst_height = calculate_default_transform(
+        crs, dst_crs, width, height, left, bottom, right, top
+    )
+    # NaN marks the pixels outside the warped footprint, so the array has
+    # to hold it: integer sources are promoted (to float64, which holds
+    # every integer width GRIB uses exactly) rather than filled with 0.
+    dtype = (
+        values.dtype
+        if np.issubdtype(values.dtype, np.floating)
+        else np.dtype("float64")
+    )
+    out = np.full((dst_height, dst_width), np.nan, dtype=dtype)
+    reproject(
+        source=values.astype(dtype, copy=False),
+        destination=out,
+        src_transform=transform,
+        src_crs=crs,
+        dst_transform=dst_transform,
+        dst_crs=dst_crs,
+        resampling=Resampling.nearest,
+        src_nodata=np.nan,
+        dst_nodata=np.nan,
+    )
+    logging.warning(
+        "Reprojected %dx%d rotated-pole grid to EPSG:4326 (%dx%d): GeoTIFF "
+        "cannot encode a rotated-pole CRS.",
+        width,
+        height,
+        dst_width,
+        dst_height,
+    )
+    return out, dst_crs, dst_transform
 
 
 def _netcdf_bytes(data_to_write: Any) -> bytes:
@@ -436,7 +678,10 @@ def convert_to_format(
                         with xr.open_dataset(
                             decoded.path,
                             engine="cfgrib",
-                            backend_kwargs={"indexpath": ""},
+                            backend_kwargs={
+                                "indexpath": "",
+                                "read_keys": _GRID_READ_KEYS,
+                            },
                             decode_timedelta=False,
                         ) as ds_raw:
                             obj_raw: Any = ds_raw
@@ -500,20 +745,29 @@ def convert_to_format(
             # metadata: rioxarray's to_raster writes no CRS/transform for
             # cfgrib datasets (2D lat/lon coords), and GRIB scan order
             # (south-first) must be normalized to GeoTIFF north-up.
-            georef = _grib_georeference(data_array)
-            if georef is not None:
+            grid = _grib_georeference(data_array)
+            if grid is not None:
                 import numpy as np  # type: ignore
                 from rasterio.io import MemoryFile
 
-                crs, transform, flip = georef
+                crs, transform = grid.crs, grid.transform
                 values = np.squeeze(np.asarray(data_array.values))
+                if values.ndim == 1 and values.size == grid.shape[0] * grid.shape[1]:
+                    # cfgrib hands mercator (and other grid types absent
+                    # from its GRID_TYPE_MAP) back as a flat 'values'
+                    # dimension; the grid definition says how to fold it.
+                    values = values.reshape(grid.shape)
                 if values.ndim != 2:
                     raise ValueError(
                         "GeoTIFF conversion needs a single 2D field; select one "
                         "level/time with 'var' or extract-variable first."
                     )
-                if flip:
+                if grid.flip_rows:
                     values = values[::-1, :]
+                if grid.flip_cols:
+                    values = values[:, ::-1]
+                if grid.warp_to_epsg4326:
+                    values, crs, transform = _warp_to_epsg4326(values, crs, transform)
                 profile = {
                     "driver": "GTiff",
                     "width": values.shape[1],
@@ -523,10 +777,20 @@ def convert_to_format(
                     "crs": crs,
                     "transform": transform,
                 }
+                if grid.warp_to_epsg4326:
+                    # Pixels outside the warped footprint are NaN, not data.
+                    profile["nodata"] = float("nan")
                 with MemoryFile() as mem:
                     with mem.open(**profile) as dst:
                         dst.write(values, 1)
                     return mem.read()
+            import logging
+
+            logging.warning(
+                "No GRIB georeferencing for gridType=%r; writing without a CRS "
+                "and in the message's own scan order (rows may be upside down).",
+                (getattr(data_array, "attrs", {}) or {}).get("GRIB_gridType"),
+            )
             try:
                 # Fallback: rioxarray for data that carries its own
                 # georeferencing via the rio accessor.
