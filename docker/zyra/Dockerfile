@@ -97,6 +97,38 @@ ARG ZYRA_VERSION
 ARG ZYRA_EXTRAS
 ARG ZYRA_EXTRAS_ARM64
 RUN set -eux; \
+    # Retry just the zyra install while a fresh release propagates.
+    #
+    # The release job runs scripts/wait_for_pypi.py before this build and
+    # will not start it until the version is listed and its files serve
+    # bytes. That check runs on the GitHub runner; this install runs
+    # inside BuildKit, and the two do not share a PyPI CDN edge. A build
+    # has already failed with "Could not find a version that satisfies
+    # the requirement zyra==0.1.54" minutes after that guard printed
+    # "listed and downloadable" — the runner's edge had the release and
+    # BuildKit's did not. No amount of checking from the runner can fix
+    # that; the retry has to happen where the install happens.
+    #
+    # pip's own --retries does not cover it. "No matching distribution"
+    # is a *successful* fetch of an index that does not list the version
+    # yet, not a transport error, so pip has nothing to retry. The only
+    # thing that helps is asking again later.
+    #
+    # Scoped to zyra deliberately: every other dependency here has been
+    # on PyPI for a long time, and wrapping those would turn a genuine
+    # resolution conflict into a five-minute wait before the same error.
+    zyra_pip() { \
+      local attempt=1; \
+      until pip install --no-cache-dir --no-compile "$@"; do \
+        if [ "$attempt" -ge 10 ]; then \
+          echo "zyra install still failing after $attempt attempts; giving up" >&2; \
+          return 1; \
+        fi; \
+        echo "zyra install failed (attempt $attempt/10) - index may not have reached this edge yet; retrying in 30s" >&2; \
+        sleep 30; \
+        attempt=$((attempt + 1)); \
+      done; \
+    }; \
     EXTRAS="$ZYRA_EXTRAS"; \
     if [ "${TARGETARCH}" = "arm64" ]; then \
       if [ -n "${ZYRA_EXTRAS_ARM64}" ]; then \
@@ -105,9 +137,9 @@ RUN set -eux; \
       else \
         echo "ARM64: installing zyra without pygrib (use cfgrib/wgrib2)"; \
         if [ -z "$ZYRA_VERSION" ] || [ "$ZYRA_VERSION" = "latest" ]; then \
-          pip install --no-cache-dir --no-compile zyra; \
+          zyra_pip zyra; \
         else \
-          pip install --no-cache-dir --no-compile "zyra==${ZYRA_VERSION}"; \
+          zyra_pip "zyra==${ZYRA_VERSION}"; \
         fi; \
         # Manually install processing/visualization/connectors deps excluding pygrib
         pip install --no-cache-dir --no-compile \
@@ -121,15 +153,15 @@ RUN set -eux; \
     fi; \
     if [ -z "$ZYRA_VERSION" ] || [ "$ZYRA_VERSION" = "latest" ]; then \
       if [ -n "$EXTRAS" ]; then \
-        pip install --no-cache-dir --no-compile "zyra[${EXTRAS}]"; \
+        zyra_pip "zyra[${EXTRAS}]"; \
       else \
-        pip install --no-cache-dir --no-compile zyra; \
+        zyra_pip zyra; \
       fi; \
     else \
       if [ -n "$EXTRAS" ]; then \
-        pip install --no-cache-dir --no-compile "zyra[${EXTRAS}]==${ZYRA_VERSION}"; \
+        zyra_pip "zyra[${EXTRAS}]==${ZYRA_VERSION}"; \
       else \
-        pip install --no-cache-dir --no-compile "zyra==${ZYRA_VERSION}"; \
+        zyra_pip "zyra==${ZYRA_VERSION}"; \
       fi; \
     fi \
     && pip install --no-cache-dir --upgrade 'setuptools>=78.1.1' 'wheel>=0.46.2'
