@@ -48,12 +48,12 @@ def test_http_url_idx_subset(monkeypatch):
 
     def fake_ranges(url, ranges, **kw):
         calls["ranges"] = list(ranges)
-        return b"SUBSET"
+        return b"GRIB-SUBSET"
 
     monkeypatch.setattr(http_backend, "get_idx_lines", fake_idx)
     monkeypatch.setattr(http_backend, "download_byteranges", fake_ranges)
     out = read_bytes_any("https://example.org/f.grib2", idx_pattern="REFC")
-    assert out == b"SUBSET"
+    assert out == b"GRIB-SUBSET"
     assert calls["idx_url"] == "https://example.org/f.grib2"
     # Only the REFC range is requested, not the whole file.
     assert len(calls["ranges"]) == 1

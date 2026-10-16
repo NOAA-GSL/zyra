@@ -95,6 +95,23 @@ def _idx_gzip_error(path_or_url: str) -> RuntimeError:
     )
 
 
+def _check_idx_subset(data: bytes, path_or_url: str) -> bytes:
+    # .idx offsets point at GRIB message starts, so a valid subset always
+    # begins with b"GRIB". Checking the downloaded bytes (rather than
+    # probing the file header with an extra request) also catches gzip
+    # sources whose first matched range starts past the gzip header.
+    if data.startswith(b"GRIB"):
+        return data
+    if data.startswith(_GZIP_MAGIC):
+        raise _idx_gzip_error(path_or_url)
+    raise RuntimeError(
+        f".idx byte ranges for {path_or_url} do not start with a GRIB message; "
+        "the file may be compressed (gzip input cannot be .idx-subsetted) or "
+        "the .idx may not match it. Read the whole file instead (omit the "
+        ".idx pattern)."
+    )
+
+
 def read_bytes_any(
     path_or_url: str,
     *,
@@ -161,10 +178,10 @@ def _read_raw_bytes(
                     raise RuntimeError(
                         f"No .idx lines matched pattern {idx_pattern!r} for {path_or_url}"
                     )
-                data = http_backend.download_byteranges(path_or_url, ranges.keys())
-                if data.startswith(_GZIP_MAGIC):
-                    raise _idx_gzip_error(path_or_url)
-                return data
+                return _check_idx_subset(
+                    http_backend.download_byteranges(path_or_url, ranges.keys()),
+                    path_or_url,
+                )
             return http_backend.fetch_bytes(path_or_url)
         except RuntimeError:
             raise
@@ -185,12 +202,12 @@ def _read_raw_bytes(
                     raise RuntimeError(
                         f"No .idx lines matched pattern {idx_pattern!r} for {path_or_url}"
                     )
-                data = s3_backend.download_byteranges(
-                    path_or_url, None, ranges.keys(), unsigned=unsigned
+                return _check_idx_subset(
+                    s3_backend.download_byteranges(
+                        path_or_url, None, ranges.keys(), unsigned=unsigned
+                    ),
+                    path_or_url,
                 )
-                if data.startswith(_GZIP_MAGIC):
-                    raise _idx_gzip_error(path_or_url)
-                return data
             return s3_backend.fetch_bytes(path_or_url, unsigned=unsigned)
         except RuntimeError:
             raise

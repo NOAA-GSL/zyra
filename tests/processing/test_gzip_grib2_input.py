@@ -138,6 +138,28 @@ def test_idx_ranges_returning_gzip_fail_clearly(monkeypatch):
         read_bytes_any("https://example.org/feed", idx_pattern="REFC")
 
 
+@pytest.mark.parametrize("url", ["https://example.org/feed", "s3://bucket/feed"])
+def test_idx_ranges_past_gzip_header_fail_clearly(monkeypatch, url):
+    # Extensionless gzip source whose matched range starts after byte 0:
+    # the subset is interior compressed bytes with no gzip header.
+    from zyra.connectors.backends import http as http_backend
+    from zyra.connectors.backends import s3 as s3_backend
+
+    idx = ["1:0:d=2023040112:TMP::", "2:40:d=2023040112:REFC::"]
+    interior = GRIB_GZ[40:]
+    assert not interior.startswith((b"GRIB", b"\x1f\x8b"))
+    monkeypatch.setattr(http_backend, "get_idx_lines", lambda u, **kw: idx)
+    monkeypatch.setattr(s3_backend, "get_idx_lines", lambda u, **kw: idx)
+    monkeypatch.setattr(
+        http_backend, "download_byteranges", lambda u, r, **kw: interior
+    )
+    monkeypatch.setattr(
+        s3_backend, "download_byteranges", lambda u, b, r, **kw: interior
+    )
+    with pytest.raises(RuntimeError, match="do not start with a GRIB message"):
+        read_bytes_any(url, idx_pattern="REFC")
+
+
 def test_grib_decode_zero_messages_pygrib_raises():
     pytest.importorskip("pygrib")
     from zyra.processing.grib_utils import grib_decode
