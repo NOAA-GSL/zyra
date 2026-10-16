@@ -58,7 +58,9 @@ def grib_decode(data: bytes, backend: str = "cfgrib") -> DecodedGRIB:
     Parameters
     ----------
     data : bytes
-        Raw GRIB2 file content (possibly subsetted by byte ranges).
+        Raw GRIB2 file content (possibly subsetted by byte ranges). Must
+        already be decompressed; ``zyra.utils.io_utils.read_bytes_any``
+        gunzips ``.grib2.gz`` input before it reaches the decoder.
     backend : str, default "cfgrib"
         One of: "cfgrib", "pygrib", or "wgrib2".
 
@@ -72,7 +74,8 @@ def grib_decode(data: bytes, backend: str = "cfgrib") -> DecodedGRIB:
     ValueError
         If an unsupported backend is requested.
     RuntimeError
-        If decoding fails for the chosen backend.
+        If decoding fails for the chosen backend, including when the input
+        contains no GRIB messages.
     """
     backend = (backend or "cfgrib").lower()
     temp_path = _write_temp_file(data, suffix=".grib2")
@@ -105,6 +108,7 @@ def grib_decode(data: bytes, backend: str = "cfgrib") -> DecodedGRIB:
                     raise
                 pass
 
+        no_messages = False
         if backend in ("pygrib", "cfgrib"):
             try:
                 import pygrib  # type: ignore
@@ -112,7 +116,6 @@ def grib_decode(data: bytes, backend: str = "cfgrib") -> DecodedGRIB:
                 grbs = pygrib.open(temp_path)
                 messages = list(grbs)
                 grbs.close()
-                return DecodedGRIB(backend="pygrib", messages=messages, path=temp_path)
             except (
                 ImportError,
                 OSError,
@@ -121,6 +124,19 @@ def grib_decode(data: bytes, backend: str = "cfgrib") -> DecodedGRIB:
                 if backend == "pygrib":
                     raise RuntimeError(f"pygrib decoding failed: {exc}") from exc
                 # else fall through to wgrib2
+            else:
+                # pygrib opens non-GRIB bytes (e.g., still-compressed
+                # input) without error and yields nothing; an empty
+                # decode is a failure, not a success.
+                if messages:
+                    return DecodedGRIB(
+                        backend="pygrib", messages=messages, path=temp_path
+                    )
+                if backend == "pygrib":
+                    raise RuntimeError(
+                        "pygrib decoding failed: no GRIB messages found in input"
+                    )
+                no_messages = True
 
         if backend == "wgrib2" or _has_wgrib2():
             try:
@@ -139,6 +155,10 @@ def grib_decode(data: bytes, backend: str = "cfgrib") -> DecodedGRIB:
             except Exception as exc:  # pragma: no cover - external tool
                 raise RuntimeError(f"wgrib2 decoding failed: {exc}") from exc
 
+        if no_messages:
+            raise RuntimeError(
+                "Failed to decode GRIB2: no GRIB messages found in input"
+            )
         raise RuntimeError(
             "Failed to decode GRIB2: cfgrib and pygrib unavailable; wgrib2 not found."
         )
