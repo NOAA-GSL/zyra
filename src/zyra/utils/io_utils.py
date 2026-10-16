@@ -65,10 +65,12 @@ def open_output_file(path_or_dash: str) -> BinaryIO:
     return sys.stdout.buffer if path_or_dash == "-" else Path(path_or_dash).open("wb")  # noqa: SIM115
 
 
-# gzip member header: magic ``1f 8b`` plus compression method 8 (deflate),
-# the only method gzip defines. Sniffing bytes (not the ``.gz`` suffix)
-# covers stdin and URLs whose names do not end in ``.gz``.
-_GZIP_MAGIC = b"\x1f\x8b\x08"
+# gzip magic ``1f 8b``. Only the signature is matched; ``gzip.decompress``
+# validates the compression method and rest of the header, so a corrupt
+# header fails loudly instead of passing through as non-gzip bytes.
+# Sniffing bytes (not the ``.gz`` suffix) covers stdin and URLs whose
+# names do not end in ``.gz``.
+_GZIP_MAGIC = b"\x1f\x8b"
 
 
 def _is_gz_url(path_or_url: str) -> bool:
