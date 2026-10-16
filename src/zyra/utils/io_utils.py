@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
+import gzip
 import sys
+import zlib
 from contextlib import contextmanager
 from pathlib import Path
 from typing import BinaryIO, Iterator
@@ -63,6 +65,53 @@ def open_output_file(path_or_dash: str) -> BinaryIO:
     return sys.stdout.buffer if path_or_dash == "-" else Path(path_or_dash).open("wb")  # noqa: SIM115
 
 
+# gzip member header: magic ``1f 8b`` plus compression method 8 (deflate),
+# the only method gzip defines. Sniffing bytes (not the ``.gz`` suffix)
+# covers stdin and URLs whose names do not end in ``.gz``.
+_GZIP_MAGIC = b"\x1f\x8b\x08"
+
+
+def _is_gz_url(path_or_url: str) -> bool:
+    from urllib.parse import urlparse
+
+    return urlparse(path_or_url).path.lower().endswith(".gz")
+
+
+def _maybe_gunzip(data: bytes, source: str) -> bytes:
+    if not data.startswith(_GZIP_MAGIC):
+        return data
+    try:
+        return gzip.decompress(data)
+    except (OSError, EOFError, zlib.error) as exc:
+        raise RuntimeError(f"Failed to decompress gzip input {source}: {exc}") from exc
+
+
+def _idx_gzip_error(path_or_url: str) -> RuntimeError:
+    return RuntimeError(
+        f".idx byte-range subsetting is not supported for gzip-compressed input "
+        f"({path_or_url}): index offsets cannot address a compressed stream. "
+        "Read the whole file instead (omit the .idx pattern), or acquire it "
+        "first and process the local copy."
+    )
+
+
+def _check_idx_subset(data: bytes, path_or_url: str) -> bytes:
+    # .idx offsets point at GRIB message starts, so a valid subset always
+    # begins with b"GRIB". Checking the downloaded bytes (rather than
+    # probing the file header with an extra request) also catches gzip
+    # sources whose first matched range starts past the gzip header.
+    if data.startswith(b"GRIB"):
+        return data
+    if data.startswith(_GZIP_MAGIC):
+        raise _idx_gzip_error(path_or_url)
+    raise RuntimeError(
+        f".idx byte ranges for {path_or_url} do not start with a GRIB message; "
+        "the file may be compressed (gzip input cannot be .idx-subsetted) or "
+        "the .idx may not match it. Read the whole file instead (omit the "
+        ".idx pattern)."
+    )
+
+
 def read_bytes_any(
     path_or_url: str,
     *,
@@ -76,13 +125,31 @@ def read_bytes_any(
     are fetched (the NOAA GRIB2-on-S3 access pattern — HRRR/GFS style).
     ``unsigned`` enables anonymous access for public S3 buckets.
 
+    Gzip-compressed input (e.g., MRMS ``.grib2.gz``) is decompressed
+    transparently. Detection uses the gzip magic bytes rather than the
+    file extension, so it applies equally to local paths, stdin, and
+    URLs. ``.idx`` subsetting cannot be combined with gzip input.
+
     Raises
     ------
     RuntimeError
-        On fetch failures, unsupported schemes, or missing local paths.
+        On fetch failures, unsupported schemes, missing local paths,
+        corrupt gzip data, or ``idx_pattern`` with gzip-compressed input.
         Callers map this to their own error convention (CLI handlers log
         and return 2; ``zyra.cli`` converts to ``SystemExit``).
     """
+    return _maybe_gunzip(
+        _read_raw_bytes(path_or_url, idx_pattern=idx_pattern, unsigned=unsigned),
+        path_or_url,
+    )
+
+
+def _read_raw_bytes(
+    path_or_url: str,
+    *,
+    idx_pattern: str | None = None,
+    unsigned: bool = False,
+) -> bytes:
     if path_or_url == "-":
         return sys.stdin.buffer.read()
 
@@ -101,6 +168,8 @@ def read_bytes_any(
             from zyra.utils.grib import idx_to_byteranges
 
             if idx_pattern:
+                if _is_gz_url(path_or_url):
+                    raise _idx_gzip_error(path_or_url)
                 lines = http_backend.get_idx_lines(path_or_url)
                 ranges = idx_to_byteranges(lines, idx_pattern)
                 if not ranges:
@@ -109,7 +178,10 @@ def read_bytes_any(
                     raise RuntimeError(
                         f"No .idx lines matched pattern {idx_pattern!r} for {path_or_url}"
                     )
-                return http_backend.download_byteranges(path_or_url, ranges.keys())
+                return _check_idx_subset(
+                    http_backend.download_byteranges(path_or_url, ranges.keys()),
+                    path_or_url,
+                )
             return http_backend.fetch_bytes(path_or_url)
         except RuntimeError:
             raise
@@ -122,14 +194,19 @@ def read_bytes_any(
             from zyra.utils.grib import idx_to_byteranges
 
             if idx_pattern:
+                if _is_gz_url(path_or_url):
+                    raise _idx_gzip_error(path_or_url)
                 lines = s3_backend.get_idx_lines(path_or_url, unsigned=unsigned)
                 ranges = idx_to_byteranges(lines, idx_pattern)
                 if not ranges:
                     raise RuntimeError(
                         f"No .idx lines matched pattern {idx_pattern!r} for {path_or_url}"
                     )
-                return s3_backend.download_byteranges(
-                    path_or_url, None, ranges.keys(), unsigned=unsigned
+                return _check_idx_subset(
+                    s3_backend.download_byteranges(
+                        path_or_url, None, ranges.keys(), unsigned=unsigned
+                    ),
+                    path_or_url,
                 )
             return s3_backend.fetch_bytes(path_or_url, unsigned=unsigned)
         except RuntimeError:
