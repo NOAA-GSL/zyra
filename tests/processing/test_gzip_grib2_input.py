@@ -108,6 +108,14 @@ def test_corrupt_gzip_raises_runtime_error(tmp_path):
         read_bytes_any(str(p))
 
 
+def test_corrupt_gzip_method_byte_raises_runtime_error(tmp_path):
+    # A bad compression-method byte must not slip through as non-gzip.
+    p = tmp_path / "bad_method.grib2.gz"
+    p.write_bytes(GRIB_GZ[:2] + b"\x09" + GRIB_GZ[3:])
+    with pytest.raises(RuntimeError, match="Failed to decompress gzip"):
+        read_bytes_any(str(p))
+
+
 @pytest.mark.parametrize(
     "url", ["https://example.org/x.grib2.gz?v=1", "s3://noaa-mrms-pds/x.grib2.gz"]
 )
