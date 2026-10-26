@@ -1,0 +1,777 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/NOAA-GSL/zyra/main/src/zyra/assets/schemas/zyra-pipeline.schema.json",
+  "title": "Zyra run configuration",
+  "description": "Validates any file accepted by `zyra run`: a pipeline config (`stages:`) or a workflow config (`jobs:` / `on:`). Generated from the committed capabilities manifest by scripts/generate_pipeline_schema.py.",
+  "type": "object",
+  "allOf": [
+    {
+      "anyOf": [
+        {
+          "required": [
+            "stages"
+          ]
+        },
+        {
+          "required": [
+            "jobs"
+          ]
+        }
+      ],
+      "$comment": "A config must define either 'stages' (pipeline) or 'jobs' (workflow)."
+    },
+    {
+      "if": {
+        "required": [
+          "stages"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/pipeline"
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "jobs"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/workflow"
+      }
+    }
+  ],
+  "$defs": {
+    "pipeline": {
+      "type": "object",
+      "title": "Pipeline config",
+      "required": [
+        "stages"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Human-readable label. Not used by the runner."
+        },
+        "description": {
+          "type": "string"
+        },
+        "stages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/stage"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "stage": {
+      "type": "object",
+      "title": "Pipeline stage",
+      "required": [
+        "stage",
+        "command"
+      ],
+      "properties": {
+        "stage": {
+          "type": "string",
+          "enum": [
+            "acquire",
+            "acquisition",
+            "decide",
+            "decimate",
+            "decimation",
+            "disseminate",
+            "export",
+            "import",
+            "ingest",
+            "narrate",
+            "optimize",
+            "process",
+            "processing",
+            "render",
+            "simulate",
+            "transform",
+            "verify",
+            "visualization",
+            "visualize"
+          ],
+          "description": "Stage name or alias; normalized by _stage_group_alias()."
+        },
+        "command": {
+          "type": "string",
+          "description": "Subcommand within the stage."
+        },
+        "id": {
+          "type": "string",
+          "description": "Optional label echoed by --print-argv-format=json."
+        },
+        "args": {
+          "$ref": "#/$defs/args"
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "enum": [
+                  "acquire",
+                  "acquisition",
+                  "import",
+                  "ingest"
+                ]
+              }
+            },
+            "required": [
+              "stage"
+            ]
+          },
+          "then": {
+            "properties": {
+              "command": {
+                "enum": [
+                  "acquire",
+                  "acquisition",
+                  "api",
+                  "ftp",
+                  "http",
+                  "import",
+                  "ingest",
+                  "s3",
+                  "thredds",
+                  "vimeo"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "enum": [
+                  "process",
+                  "processing",
+                  "transform"
+                ]
+              }
+            },
+            "required": [
+              "stage"
+            ]
+          },
+          "then": {
+            "properties": {
+              "command": {
+                "enum": [
+                  "api-json",
+                  "audio-metadata",
+                  "audio-transcode",
+                  "convert-format",
+                  "decode-grib2",
+                  "enrich-datasets",
+                  "enrich-metadata",
+                  "extract-variable",
+                  "metadata",
+                  "pad-missing",
+                  "process",
+                  "processing",
+                  "reproject",
+                  "scan-frames",
+                  "transform",
+                  "update-dataset-json",
+                  "video-transcode"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "enum": [
+                  "simulate"
+                ]
+              }
+            },
+            "required": [
+              "stage"
+            ]
+          },
+          "then": {
+            "properties": {
+              "command": {
+                "enum": [
+                  "sample",
+                  "simulate"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "enum": [
+                  "decide",
+                  "optimize"
+                ]
+              }
+            },
+            "required": [
+              "stage"
+            ]
+          },
+          "then": {
+            "properties": {
+              "command": {
+                "enum": [
+                  "decide",
+                  "optimize"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "enum": [
+                  "visualize",
+                  "visualization",
+                  "render"
+                ]
+              }
+            },
+            "required": [
+              "stage"
+            ]
+          },
+          "then": {
+            "properties": {
+              "command": {
+                "enum": [
+                  "animate",
+                  "compose-video",
+                  "contour",
+                  "heatmap",
+                  "interactive",
+                  "render",
+                  "sos",
+                  "timeseries",
+                  "vector",
+                  "visualization",
+                  "visualize"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "enum": [
+                  "narrate"
+                ]
+              }
+            },
+            "required": [
+              "stage"
+            ]
+          },
+          "then": {
+            "properties": {
+              "command": {
+                "enum": [
+                  "describe",
+                  "narrate",
+                  "swarm"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "enum": [
+                  "verify"
+                ]
+              }
+            },
+            "required": [
+              "stage"
+            ]
+          },
+          "then": {
+            "properties": {
+              "command": {
+                "enum": [
+                  "evaluate",
+                  "verify"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "enum": [
+                  "decimate",
+                  "decimation",
+                  "export",
+                  "disseminate"
+                ]
+              }
+            },
+            "required": [
+              "stage"
+            ]
+          },
+          "then": {
+            "properties": {
+              "command": {
+                "enum": [
+                  "decimate",
+                  "decimation",
+                  "disseminate",
+                  "export",
+                  "ftp",
+                  "local",
+                  "post",
+                  "s3",
+                  "vimeo"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "enum": [
+                  "acquire",
+                  "acquisition",
+                  "import",
+                  "ingest"
+                ]
+              },
+              "command": {
+                "const": "ftp"
+              }
+            },
+            "required": [
+              "stage",
+              "command"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "required": [
+                  "path"
+                ]
+              }
+            },
+            "required": [
+              "args"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "enum": [
+                  "acquire",
+                  "acquisition",
+                  "import",
+                  "ingest"
+                ]
+              },
+              "command": {
+                "const": "http"
+              }
+            },
+            "required": [
+              "stage",
+              "command"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "required": [
+                  "url"
+                ]
+              }
+            },
+            "required": [
+              "args"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "enum": [
+                  "decimate",
+                  "decimation",
+                  "export",
+                  "disseminate"
+                ]
+              },
+              "command": {
+                "const": "ftp"
+              }
+            },
+            "required": [
+              "stage",
+              "command"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "required": [
+                  "path"
+                ]
+              }
+            },
+            "required": [
+              "args"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "enum": [
+                  "decimate",
+                  "decimation",
+                  "export",
+                  "disseminate"
+                ]
+              },
+              "command": {
+                "const": "local"
+              }
+            },
+            "required": [
+              "stage",
+              "command"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "required": [
+                  "path"
+                ]
+              }
+            },
+            "required": [
+              "args"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "enum": [
+                  "decimate",
+                  "decimation",
+                  "export",
+                  "disseminate"
+                ]
+              },
+              "command": {
+                "const": "post"
+              }
+            },
+            "required": [
+              "stage",
+              "command"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "required": [
+                  "url"
+                ]
+              }
+            },
+            "required": [
+              "args"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "enum": [
+                  "process",
+                  "processing",
+                  "transform"
+                ]
+              },
+              "command": {
+                "const": "convert-format"
+              }
+            },
+            "required": [
+              "stage",
+              "command"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "required": [
+                  "format"
+                ]
+              }
+            },
+            "required": [
+              "args"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "enum": [
+                  "process",
+                  "processing",
+                  "transform"
+                ]
+              },
+              "command": {
+                "const": "decode-grib2"
+              }
+            },
+            "required": [
+              "stage",
+              "command"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "required": [
+                  "file_or_url"
+                ]
+              }
+            },
+            "required": [
+              "args"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "enum": [
+                  "process",
+                  "processing",
+                  "transform"
+                ]
+              },
+              "command": {
+                "const": "extract-variable"
+              }
+            },
+            "required": [
+              "stage",
+              "command"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "required": [
+                  "file_or_url",
+                  "pattern"
+                ]
+              }
+            },
+            "required": [
+              "args"
+            ]
+          }
+        }
+      ]
+    },
+    "args": {
+      "type": "object",
+      "description": "Mapping of argument name to value. Keys become `--kebab-case` flags unless the runner maps them to a positional. Nested objects are not supported.",
+      "additionalProperties": {
+        "$ref": "#/$defs/argValue"
+      },
+      "propertyNames": {
+        "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$"
+      }
+    },
+    "argValue": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "Expanded to a multi-valued flag: `--inputs a b`."
+        }
+      ]
+    },
+    "workflow": {
+      "type": "object",
+      "title": "Workflow config",
+      "description": "GitHub-Actions-shaped config with triggers and dependent jobs.",
+      "required": [
+        "jobs"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "on": {
+          "$ref": "#/$defs/on"
+        },
+        "env": {
+          "type": "object",
+          "description": "Exported into the process environment before jobs run, after ${VAR} expansion. Values that still look unresolved are skipped rather than exported.",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "jobs": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/job"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "on": {
+      "type": "object",
+      "description": "Trigger section. NOTE: PyYAML parses a bare `on:` key as boolean true; Zyra accepts both. Quote it (`\"on\":`) for portable validation.",
+      "properties": {
+        "schedule": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "cron"
+                ],
+                "properties": {
+                  "cron": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "job": {
+      "type": "object",
+      "required": [
+        "steps"
+      ],
+      "properties": {
+        "needs": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ],
+          "description": "Job names that must succeed first. Cycles are rejected."
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "step": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Shell-style argv, split with shlex: `process convert-format - netcdf --stdout`."
+        },
+        {
+          "type": "object",
+          "required": [
+            "cmd"
+          ],
+          "properties": {
+            "cmd": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "$ref": "#/$defs/stage"
+        }
+      ]
+    }
+  }
+}
