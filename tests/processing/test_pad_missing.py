@@ -14,7 +14,7 @@ try:
 except ModuleNotFoundError:
     pytest.skip("Pillow is required for pad-missing tests", allow_module_level=True)
 
-from zyra.processing.pad_missing import pad_missing_frames
+from zyra.processing.pad_missing import _save_image, pad_missing_frames
 from zyra.transform import register_cli as register_transform_cli
 
 
@@ -210,3 +210,17 @@ def test_scan_frames_analysis_block(tmp_path: Path) -> None:
     assert analysis["duplicate_timestamps"]
     assert analysis["sample_frames"]
     assert "span_seconds" in analysis
+
+
+def test_save_image_writes_32bit_frame_as_16bit_png(tmp_path: Path) -> None:
+    # Pillow 13 refuses to write mode "I" as PNG; filler frames copied from a
+    # 32-bit sample (e.g. a TIFF) must still save, as 16-bit like Pillow 12 did.
+    img = Image.new("I", (2, 1))
+    img.putpixel((0, 0), 1000)
+    img.putpixel((1, 0), 70000)
+    target = tmp_path / "frame.png"
+    _save_image(img, target, "I")
+    with Image.open(target) as out:
+        assert out.mode == "I;16"
+        assert out.getpixel((0, 0)) == 1000
+        assert out.getpixel((1, 0)) == 65535

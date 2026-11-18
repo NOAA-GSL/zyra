@@ -1,7 +1,7 @@
 ########################
 # === Base Stage ===
 ########################
-FROM python:3.10-slim AS base
+FROM python:3.11-slim AS base
 
 # Set environment variables to prevent Python from writing .pyc files and buffering output
 ENV PYTHONDONTWRITEBYTECODE=1

@@ -132,7 +132,7 @@ By following these templates, contributors help keep Zyra's CLI aligned with rea
 
 ## Code Style
 
-- Python 3.10+ required.
+- Python 3.11.5+ required.
 - Follow [PEP8](https://peps.python.org/pep-0008/).
 - Run `ruff` and `pytest` locally before opening a PR.
 
