@@ -239,6 +239,14 @@ def _save_image(
     if target_mode and out.mode != target_mode:
         converted = out.convert(target_mode)
         out = converted
+    if out.mode == "I" and destination.suffix.lower() == ".png":
+        # Pillow 13+ can't write 32-bit "I" images as PNG. PNG stores at most
+        # 16 bits, which is what earlier Pillow versions wrote for this mode.
+        narrowed = out.convert("I;16")
+        if converted is not None:
+            with contextlib.suppress(Exception):
+                converted.close()
+        converted = out = narrowed
     try:
         out.save(destination)
     finally:

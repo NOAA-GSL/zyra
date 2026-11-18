@@ -74,7 +74,7 @@ Build, Test, and Development
 
 Coding Style & Naming
 
-- Python 3.10+; UTF-8; Unix newlines; 4-space indent.
+- Python 3.11.5+; UTF-8; Unix newlines; 4-space indent.
 - Names: files/functions in `snake_case`; classes in `PascalCase`; constants in `UPPER_CASE`.
 - Imports grouped: stdlib, third-party, local.
 - Formatting and linting via Ruff (replaces Black/Isort/Flake8 in this repo).

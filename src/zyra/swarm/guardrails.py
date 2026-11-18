@@ -31,7 +31,7 @@ def guardrails_install_hint() -> str:
             "guardrails is not supported on Python 3.15+ yet: the zyra[guardrails] "
             "extra is limited to Python <3.15 because its litellm dependency has "
             "no patched release for newer Pythons. Do not install guardrails-ai "
-            "directly; use Python 3.10-3.14 to enable guardrails."
+            "directly; use Python 3.11-3.14 to enable guardrails."
         )
     return 'guardrails library is not installed; pip install "zyra[guardrails]"'
 

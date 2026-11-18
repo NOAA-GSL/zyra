@@ -23,7 +23,7 @@ What actually happened, including error messages/logs.
 
 ## Environment
 - OS: [e.g. Ubuntu 22.04]
-- Python version: [e.g. 3.10]
+- Python version: [e.g. 3.11]
 - Zyra version/commit: [e.g. main @ abc123]
 
 ## Additional Context
