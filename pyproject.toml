@@ -28,7 +28,7 @@ Source = "https://github.com/NOAA-GSL/zyra"
 Tracker = "https://github.com/NOAA-GSL/zyra/issues"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<4.0"
+python = ">=3.11.5,<4.0"
 python-dotenv = "^1.0.0"
 pyyaml = "^6.0.2"
 numpy = "^1.26"
