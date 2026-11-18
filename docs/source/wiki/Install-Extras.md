@@ -3,7 +3,7 @@
 A quick guide to installing Zyra with optional extras. Use these to tailor your environment to the workflow stages you need.
 
 ## Python Version
-- Requires Python 3.10+
+- Requires Python 3.11.5+
 
 ## Core Install
 - Pip (core only): `pip install zyra`

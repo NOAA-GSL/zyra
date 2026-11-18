@@ -10,7 +10,7 @@ Zyra is available on **PyPI**, so you can install it with:
 pip install zyra
 ```
 
-✅ Requires **Python 3.10+**.  
+✅ Requires **Python 3.11.5+**.  
 For developer setup, see the [Contributing Guide](https://github.com/NOAA-GSL/zyra/wiki/Contributing).
 
 ---
