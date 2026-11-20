@@ -45,7 +45,7 @@ Notes for CI and PRs
 
 Fork & Upstream Workflow
 
-- Branches: Agents create branches in the fork, not in NOAA-GSL/zyra.
+- Branches: Agents create branches in the fork, not in NOAA-GSL/zyra. Start each branch from the current upstream `staging` (see CONTRIBUTING), not from the fork's default `main`: sync the fork first (`gh repo sync <fork-owner>/zyra --branch staging`), then branch from `staging`.
 - Pull requests: Open PRs from the fork branch into NOAA-GSL/zyra, targeting `staging` (not `main`).
 - Issues: File issues upstream in NOAA-GSL/zyra: https://github.com/NOAA-GSL/zyra/issues
 - Wiki: Don't edit `docs/source/wiki/`. Wiki changes go in the NOAA-GSL wiki itself: https://github.com/NOAA-GSL/zyra/wiki
