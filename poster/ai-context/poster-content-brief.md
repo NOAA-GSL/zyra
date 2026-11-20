@@ -13,7 +13,7 @@ This document provides the complete content and context needed to design a confe
 | **Author** | Eric Hackathorn |
 | **Affiliation** | NOAA Global Systems Laboratory |
 | **ORCID** | 0000-0002-9693-2093 |
-| **DOI** | 10.5281/zenodo.16923323 |
+| **DOI** | 10.5281/zenodo.16923322 |
 | **License** | Apache-2.0 |
 | **Repository** | https://github.com/NOAA-GSL/zyra |
 | **PyPI** | https://pypi.org/project/zyra/ |

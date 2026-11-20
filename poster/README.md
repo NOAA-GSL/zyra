@@ -9,7 +9,7 @@
   <p>
     <a href="https://pypi.org/project/zyra/"><img src="https://img.shields.io/pypi/v/zyra?color=%231A5A69" alt="PyPI" /></a>
     <a href="https://noaa-gsl.github.io/zyra/"><img src="https://img.shields.io/badge/docs-Sphinx-blue" alt="Docs" /></a>
-    <a href="https://doi.org/10.5281/zenodo.16923323"><img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.16923323-blue" alt="DOI" /></a>
+    <a href="https://doi.org/10.5281/zenodo.16923322"><img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.16923322-blue" alt="DOI" /></a>
     <a href="https://github.com/NOAA-GSL/zyra"><img src="https://img.shields.io/github/license/NOAA-GSL/zyra" alt="License" /></a>
   </p>
 </div>
@@ -262,4 +262,4 @@ zyra --help               # explore commands
 | PyPI | [pypi.org/project/zyra](https://pypi.org/project/zyra/) |
 | Documentation | [noaa-gsl.github.io/zyra](https://noaa-gsl.github.io/zyra/) |
 | Wiki | [github.com/NOAA-GSL/zyra/wiki](https://github.com/NOAA-GSL/zyra/wiki) |
-| DOI | [10.5281/zenodo.16923323](https://doi.org/10.5281/zenodo.16923323) |
+| DOI | [10.5281/zenodo.16923322](https://doi.org/10.5281/zenodo.16923322) |

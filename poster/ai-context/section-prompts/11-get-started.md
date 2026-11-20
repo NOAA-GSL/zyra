@@ -21,7 +21,7 @@ zyra --help               # explore commands
 | PyPI | https://pypi.org/project/zyra/ |
 | Documentation | https://noaa-gsl.github.io/zyra/ |
 | Wiki | https://github.com/NOAA-GSL/zyra/wiki |
-| DOI | https://doi.org/10.5281/zenodo.16923323 |
+| DOI | https://doi.org/10.5281/zenodo.16923322 |
 
 **Optional:** QR code linking to https://github.com/NOAA-GSL/zyra
 
