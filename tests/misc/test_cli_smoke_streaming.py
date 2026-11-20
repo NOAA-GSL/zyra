@@ -153,8 +153,8 @@ def test_grib2_extract_variable_stdout_netcdf_header():
     )
     # Real conversion succeeds (valid NetCDF header) or fails honestly
     # (previously a failed conversion emitted a fabricated dummy NetCDF
-    # with exit 0). demo.grib2 has no cfgrib-decodable message, so
-    # environments without wgrib2 exercise the failure branch.
+    # with exit 0). Fixture validity itself is checked separately in
+    # tests/misc/test_testdata_integrity.py.
     if res.returncode == 0:
         assert res.stdout.startswith(b"CDF") or res.stdout.startswith(b"\x89HDF")
     else:

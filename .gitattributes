@@ -1,4 +1,21 @@
 * text eol=lf
+# Binary data formats: store byte-for-byte. Without these, `* text eol=lf`
+# rewrites CRLF byte pairs inside the data and corrupts the file.
+*.nc binary
+*.nc4 binary
+*.grib binary
+*.grib2 binary
+*.grb binary
+*.grb2 binary
+*.h5 binary
+*.hdf5 binary
+*.npy binary
+*.npz binary
+*.tif binary
+*.tiff binary
+*.gz binary
+*.zip binary
+*.mp4 binary
 *.jpg filter=lfs diff=lfs merge=lfs -text
 *.jpeg filter=lfs diff=lfs merge=lfs -text
 *.png filter=lfs diff=lfs merge=lfs -text

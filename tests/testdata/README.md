@@ -11,11 +11,14 @@ Once added, tests and examples can reference:
 - `tests/testdata/demo.grib2`
 - `tests/testdata/demo.nc`
 
-demo.grib2: A minimal GRIB2 sample used for offline CLI streaming tests. Generated with `nodd_fetch.py` from a single‑variable subset of a live NOMADS product. To regenerate, run:
+demo.grib2: A single GRIB2 message used for offline CLI streaming tests: NCEP GFS 0.5° analysis (f000), 2 m temperature (`TMP:2 m above ground:anl`), cycle 2025-08-10 00Z, 720 × 361 global lat/lon grid, 160,539 bytes. It is record 580 of the public NODD copy of `gfs.t00z.pgrb2.0p50.f000` on AWS. To fetch it again, look up the record's byte range in the `.idx` file and request just that range:
 
-    nodd_fetch.py rrfs_hr prs --path conus --vars 'TMP:2 m above ground' --start YYYY-MM-DD-HH -d tests/testdata
+    BASE=https://noaa-gfs-bdp-pds.s3.amazonaws.com/gfs.20250810/00/atmos/gfs.t00z.pgrb2.0p50.f000
+    curl -s "$BASE.idx" | grep -A1 ':TMP:2 m above ground:anl:'
+    # bytes = this record's offset .. next record's offset - 1
+    curl -H 'Range: bytes=121590373-121750911' -o demo.grib2 "$BASE"
 
-Then rename the output `.grib2` to `demo.grib2`. Use a current date/time for `--start` because NOMADS datasets expire quickly. Keep file size under 200 KB for fast test execution.
+`zyra.utils.grib.idx_to_byteranges` computes the same range from the `.idx` lines. GFS data on NODD is retained long-term; if this cycle is ever removed, any GFS 0.5° `TMP:2 m above ground:anl` record works, though the tests assume the 720 × 361 grid.
 
 demo.nc: A tiny NetCDF counterpart. You can either download a small NetCDF from Unidata/xarray sample collections, or convert from `demo.grib2` if you have tools installed:
 
@@ -23,3 +26,5 @@ demo.nc: A tiny NetCDF counterpart. You can either download a small NetCDF from 
 - Using CDO: `cdo -f nc copy demo.grib2 demo.nc`
 
 If needed, further subset variables or time steps to keep `demo.nc` small for fast tests.
+
+Binary fixtures and git: these files must be stored byte-for-byte. `.gitattributes` marks their formats as `binary`; without that, the repo-wide `* text eol=lf` rule rewrites CRLF byte pairs inside the data on commit and silently corrupts them. `tests/misc/test_testdata_integrity.py` checks that each fixture is structurally intact.
