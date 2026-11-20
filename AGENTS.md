@@ -43,6 +43,13 @@ Notes for CI and PRs
 - CI should run `poetry run ruff format --check . && poetry run ruff check .` to ensure compliance. DCO sign-off is enforced by the GitHub DCO app on pull requests.
 - Group related changes into single PRs with a clear description and run instructions.
 
+Fork & Upstream Workflow
+
+- Branches: Agents create branches in the fork, not in NOAA-GSL/zyra.
+- Pull requests: Open PRs from the fork branch into NOAA-GSL/zyra, targeting `staging` (not `main`).
+- Issues: File issues upstream in NOAA-GSL/zyra: https://github.com/NOAA-GSL/zyra/issues
+- Wiki: Don't edit `docs/source/wiki/`. Wiki changes go in the NOAA-GSL wiki itself: https://github.com/NOAA-GSL/zyra/wiki
+
 Repository Guidelines
 
 Project Structure & Module Organization
@@ -116,7 +123,7 @@ Documentation Sources
 - Pipeline Patterns: https://github.com/NOAA-GSL/zyra/wiki/Pipeline-Patterns
 
 Notes
-- The `/docs/source/wiki/` content is generated via a scheduled sync from the GitHub Wiki. Do not hand-edit files in that folder unless the sync process specifically instructs otherwise. If you see a discrepancy between the repo copy and the live wiki, defer to the live wiki as the source of truth and file an issue to correct the mirror.
+- The `/docs/source/wiki/` content is generated via a scheduled sync from the GitHub Wiki. Don't edit files in that folder; wiki changes go in the NOAA-GSL wiki itself (https://github.com/NOAA-GSL/zyra/wiki). If you see a discrepancy between the repo copy and the live wiki, defer to the live wiki as the source of truth and file an issue to correct the mirror.
 
 Documentation contribution guidelines (where to put updates)
 - Keep the top-level README concise. For detailed usage and options, prefer module-level READMEs and the wiki.
@@ -132,7 +139,7 @@ Documentation contribution guidelines (where to put updates)
   - MCP tools: `src/zyra/api/mcp_tools/README.md`
 - Sphinx includes these module READMEs under "Module READMEs" in `docs/source/index.rst`. If you add a new README, include it there.
 - Keep function/class docstrings current; autodoc consumes them for the API reference pages.
-- Use the GitHub Wiki for narrative guides and high-level design. The mirrored copy under `docs/source/wiki/` is not edited directly.
+- Use the GitHub Wiki for narrative guides and high-level design. Don't edit the mirrored copy under `docs/source/wiki/`; make wiki changes in the NOAA-GSL wiki itself.
 
 When In Doubt: Decision Flow
 
