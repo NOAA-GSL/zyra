@@ -17,7 +17,7 @@ Title block spanning the full poster width. Establishes project identity and aut
 **Badges/Links:**
 - PyPI: https://pypi.org/project/zyra/
 - Docs: https://noaa-gsl.github.io/zyra/
-- DOI: 10.5281/zenodo.16923323
+- DOI: 10.5281/zenodo.16923322
 - License: Apache-2.0
 
 ## Layout

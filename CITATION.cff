@@ -10,8 +10,8 @@ authors:
     affiliation: NOAA Global Systems Laboratory
 identifiers:
   - type: doi
-    value: 10.5281/zenodo.16923323
-    description: Zenodo DOI
+    value: 10.5281/zenodo.16923322
+    description: Zenodo concept DOI (resolves to the latest release)
 repository-code: 'https://github.com/NOAA-GSL/zyra'
 url: 'https://github.com/NOAA-GSL/zyra/wiki'
 repository: 'https://pypi.org/project/zyra/'
